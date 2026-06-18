@@ -1,0 +1,62 @@
+---
+title: Graph Concepts
+---
+
+A graph typically comprises [nodes](/content/graph_solver/network_graph_solver#graph-nodes),
+[edges](/content/graph_solver/network_graph_solver#graph-edges), [weights](/content/graph_solver/network_graph_solver#graph-weights), and
+[restrictions](/content/graph_solver/network_graph_solver#graph-restrictions), but only requires *edges* and
+*weights*. The graph created in this tutorial only uses *edges* and *weights*.
+
+In this particular example, *edges* are logically mapped to sections of roadways
+and footpaths throughout the Washington, D.C., area. Each *edge* corresponds to
+a consecutive pair of points from each of the source LINESTRINGs, so a
+LINESTRING containing *n* points will have *n-1 edges*. Because
+the source graph is not created with *nodes*, implicit *nodes* are assigned
+at either end of each *edge* after graph creation.
+
+For example, link ID `18350083` is a part of the Ward Circle roundabout, which
+itself is part of Massachusetts Avenue Northwest near American University.
+Selecting link ID `18350083` from the `dc_shape` table reveals the following WKT
+linestring (the end of the linestring was removed for clarity):
+
+```
+LINESTRING (-77.08544159 38.93787003, -77.08544159 38.93793869, -77.08545685 38.9380188, -77.08548737 38.9381218, ...)
+```
+As noted above, each consecutive pair of coordinates will correspond to an
+*edge* in the graph, e.g.:
+
+* Edge A - `LINESTRING(-77.08544159 38.93787003, -77.08544159 38.93793869)`
+* Edge B - `LINESTRING(-77.08544159 38.93793869, -77.08545685 38.9380188)`
+* Edge C - `LINESTRING(-77.08545685 38.9380188, -77.08548737 38.9381218)`
+
+
+<Tip>
+After graph creation (and assuming the graph table was created), you
+can view each *edge's* details, including its respective WKT
+linestring, using [WMS](/content/admin/gadmin/data#gadmin-table-wms) and clicking an edge:
+
+
+![../img/graph_concepts/edge_wms.png](/content/guides/shared/img/graph_concepts/edge_wms.png)
+
+</Tip>
+
+
+Each coordinate pair composing an *edge* is an implicit node:
+
+
+![../img/graph_concepts/edge_wms_nodes.png](/content/guides/shared/img/graph_concepts/edge_wms_nodes.png)
+
+
+*Weights* in this graph, as mentioned previously, are an abstract cost
+(distance, time, etc.) for traveling any roadway or footpath in the Washington,
+D.C., area. *Weights* are particularly important when solving a graph. There are
+two solver types presented in the tutorial below:
+
+* `shortest_path` -- Find the shortest path between two points on a graph
+* `multiple_routing` -- Find the quickest route between a source point and
+  many destination points; also known as traveling salesman
+
+Because there are no explicit *nodes* in the tutorial graph, source and
+destination point(s) must be selected from any of the *edges* comprising the
+Washington, D.C., road network. Otherwise, the graph will not be able to
+traverse to the point and will result in a null solution.

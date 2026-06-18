@@ -1,0 +1,157 @@
+---
+title: UDF Simulator
+---
+
+<a id="udf-simulator"></a>
+
+
+The UDF simulator simulates the mechanics of the
+[/execute/proc](/content/api/rest/execute_proc_rest) call without the UDF actually having
+to be created in the database. The simulator reads data out of tables, writes it
+to files in the correct format, and provides the environment variable that needs
+to be set for the UDF API. After the UDF code is run, it can optionally read any
+output that was written and write it back into Kinetica. The simulator does not
+run the UDF code itself, it only manages the environment so the developer can
+run the UDF code from a debugger, Jupyter notebook, etc., as long as the
+environment variable is set correctly.
+
+
+<Note>
+The UDF simulator is invoked via a Python script packaged with the native
+Python API, at: `examples/udfsim.py`.
+Though the script is distributed with the Python API, you can also use it
+when developing a UDF in C++.
+</Note>
+
+
+## Modes
+
+
+| Mode | Description |
+| --- | --- |
+| `execute <execute parameters>` | Simulates UDF execution |
+| `output <output parameters>` | Processes UDF output |
+| `clean` | Cleans up files generated from `execute` or `output`. Takes no parameters |
+
+
+### Execute Parameters and Flags
+
+
+| Parameter/Flag | Type Restriction | Description |
+| --- | --- | --- |
+| `-f </path/to/file>` <br/> <br/> `--path </path/to/file>` | N/A | User-specified directory in which to create the control files. Default directory is `/opt/gpudb/api/python/` |
+| `-p <param_name value>` <br/> <br/> `--param <param_name value>` | N/A | UDF execution parameter(s) (see [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) for more information) |
+| `-d` <br/> <br/> `--distributed` | N/A | Enable distributed UDF simulation. This is the default execution mode |
+| `-i <table_name [column_name, ...]>` <br/> <br/> `--input <table_name [column_name, ...]>` | Distributed only | Input table and optional column list |
+| `-o <table_name>` <br/> <br/> `--output <table_name>` | Distributed only | Output table |
+| `-n` <br/> <br/> `--nondistributed` | N/A | Enable non-distributed UDF simulation |
+| `-K <url>` <br/> <br/> `--url <url>` | N/A | Kinetica URL; default is `http://localhost:9191` |
+| `-U <username>` <br/> <br/> `--username <username>` | N/A | Kinetica username for authentication |
+| `-P <password>` <br/> <br/> `--password <password>` | N/A | Kinetica password for authentication |
+| `-h` <br/> <br/> `--help` | N/A | Prints the help menu |
+
+
+### Output Parameters and Flags
+
+
+| Parameter/Flag | Description |
+| --- | --- |
+| `-d` <br/> <br/> `--dry-run` | Display output only; no output written to Kinetica |
+| `-K <url>` <br/> <br/> `--url <url>` | Kinetica URL; default is `http://localhost:9191` |
+| `-U <username>` <br/> <br/> `--username <username>` | Kinetica username for authentication |
+| `-P <password>` <br/> <br/> `--password <password>` | Kinetica password for authentication |
+| `-h` <br/> <br/> `--help` | Prints the help menu |
+
+
+## Usage
+
+
+1. Run the simulator with the `execute` argument and any parameters. Once
+   finished, it prints an export command that sets the environment variable
+   needed for the UDF API:
+
+   ```
+   python udfsim.py execute <execute parameters>
+   ```
+2. Run the printed `export` command via command line:
+
+   ```
+   export KINETICA_PCF=/opt/gpudb/api/kinetica-api-python/gpudb/kinetica-udf-sim-icf-Wvbdqi
+   ```
+3. Execute the UDF. For example, executing a Python UDF script:
+
+   ```
+   python udf_cublas_proc.py
+   ```
+
+   <Tip>
+   You can execute the UDF using whatever method (Jupyter notebook,
+   debugger, etc.) as long as the environment variable output from step 2 has
+   been set. The UDF can be executed multiple times without rerunning step 1
+   and step 2 as long as it hasn't output any data. For iterative testing
+   purposes, it may be desirable to comment out any data output code and
+   instead use print statements.
+   </Tip>
+
+4. Optionally, run the simulator with the `output` argument and any
+   parameters to output data from the UDF into the database:
+
+   ```
+   python udfsim.py output <output parameters>
+   ```
+
+   <Info>
+   This mode requires the environment variable output from step 2 to
+   be set
+   </Info>
+
+5. Optionally, run the simulator with the `clean` argument to clean up all the
+   files written in step 2. The files can also be manually deleted if desired:
+
+   ```
+   python udfsim.py clean
+   ```
+
+   <Info>
+   This mode requires the environment variable output from step 2 to
+   be set
+   </Info>
+
+
+## Examples
+
+
+Running the UDF simulator for the
+[Python table copy](/examples/python/udf/udf_tc.py)
+UDF with the following parameters/flags:
+
+* in distributed mode
+* using the `udf_tc_in_table` table as input and `udf_tc_out_table` table as
+  output (both tables created using
+  [Python table copy manager script](/examples/python/udf/udf_tc_manager.py)),
+* placing all control files in `/tmp/data/udf-sim-test/`
+* performing a dry run on the `output` mode
+
+
+```
+$  python /opt/gpudb/python/api/examples/udfsim.py execute -f /tmp/data/udf-sim-test/ -d -i udf_tc_in_table -o udf_tc_out_table
+export KINETICA_PCF=/tmp/data/udf-sim-test/kinetica-udf-sim-icf-k2cncp
+$  export KINETICA_PCF=/tmp/data/udf-sim-test/kinetica-udf-sim-icf-k2cncp
+$  python /opt/gpudb/udf/api/python/udf_tc.py
+$  python examples/udfsim.py output -d
+No results
+Output:
+
+udf_tc_out_table: 10000 records
+```
+
+## Limitations
+
+
+The UDF simulator has some limitations:
+
+* When simulating a distributed UDF, all the data from the input table goes to
+  one place and the UDF isn't run in parallel
+* Input data is written to actual files, not memory maps, so reading it from
+  within the UDF may be slower and therefore I/O performance testing is not
+  possible

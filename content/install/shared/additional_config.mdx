@@ -1,0 +1,58 @@
+---
+title: Additional Config
+---
+
+If additional edits to the database's configuration file are desired, e.g.,
+*UDFs* (*procs*), auditing, etc., the database will need to be stopped and the
+file will need to be updated. System configuration is done primarily through the
+configuration file <Badge color="gray">/opt/gpudb/core/etc/gpudb.conf</Badge>, and while all nodes
+in a cluster have this file, only the copy on the *head node* needs to be
+modified. The configuration file can be edited via *GAdmin* or via a text editor
+on the command line.
+
+
+<Note>
+Only edit the <Badge color="gray">/opt/gpudb/core/etc/gpudb.conf</Badge> on the
+*head node*.  Editing the file on *worker nodes* is not supported and may
+lead to unexpected results.
+</Note>
+
+Some common configuration options to consider updating:
+
+* Enabling [auditing](/content/security/auditing)
+* Changing the persist directory
+
+
+  <Note>
+  The directory should meet the following criteria:
+
+  * Available disk space that is at least 4x memory
+  * Writable by the `gpudb` user
+  * Consist of raided SSDs
+  * Not be part of a network share or NFS mount
+  </Note>
+
+* Enabling [UDFs](/content/udf) (*procs*)
+* Adjusting [storage tiers and resource groups](/content/rm)
+
+To edit the configuration file via *GAdmin*:
+
+1. Log into *GAdmin*
+
+   1. Enter `admin` for the **Username**
+   2. Enter the **Admin Password** provided to *KAgent* for the
+      **Password** (refer to [KAgent UI](/content/install/kagent_install#using-kagent-ui) for more
+      information)
+   3. Click **Log In**
+
+2. [Stop the system](/content/admin/services#stop-db).
+3. Navigate to **Cluster --&gt; Config**
+4. Edit the file in the text window.
+5. Click **Update**, then click **Start Service**.
+
+To edit the configuration file via command line:
+
+1. [Stop the system](/content/admin/services#stop-db).
+2. Open <Badge color="gray">/opt/gpudb/core/etc/gpudb.conf</Badge> in the desired text editor.
+3. Edit and save the file.
+4. [Start the system](/content/admin/services#start-db).

@@ -1,0 +1,232 @@
+---
+title: Pivot
+---
+
+<a id="pivot"></a>
+
+
+The *pivot* operation works much the same as the SQL concept: "rotating" and
+expanding single columns of values into multiple columns (one for each value),
+creating a wider but shorter table. It is nearly the opposite of the
+[unpivot](/content/concepts/unpivot) operation, though it will merge duplicates and drop
+null values, which *unpivot* cannot undo. You can perform *pivot*
+operations using the `pivot` and `pivot_values` parameters in the
+`options` map of [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest#aggregate-groupby-rest) or via the SQL
+[PIVOT](/content/sql/query#sql-pivot) function. Visit the [Aggregation](/content/concepts/aggregation) documentation to review
+details on aggregating data.
+
+A *pivot* operation could be used to convert a table like this:
+
+{/* Source: /examples/python/pivot.out (lines 7-14) */}
+```
++--------+--------------+----------------+
+| name   | phone_type   | phone_number   |
+|--------+--------------+----------------|
+| Jane   | Home         | 123-456-7890   |
+| Jane   | Work         | 111-222-3333   |
+| John   | Home         | 123-456-7890   |
+| John   | Cell         | 333-222-1111   |
++--------+--------------+----------------+
+```
+
+into a table like this:
+
+{/* Source: /examples/python/pivot.out (lines 38-43) */}
+```
++--------+--------------+--------------+--------------+
+| name   | Home_Phone   | Work_Phone   | Cell_Phone   |
+|--------+--------------+--------------+--------------|
+| Jane   | 123-456-7890 | 111-222-3333 |              |
+| John   | 123-456-7890 |              | 333-222-1111 |
++--------+--------------+--------------+--------------+
+```
+
+Each phone type in the pivoted key column becomes a prefix of one of the
+resulting value columns of the pivot, with the suffix for those columns
+(`Phone`) specified by the user.
+
+The results of a *pivot* may be written to a separate
+[memory-only table](/content/concepts/tables_memory_only) using the `result_table` option.
+This table can be persisted (like normal tables) using the
+`result_table_persist` option.
+
+A *memory-only table* name must adhere to the standard
+[naming criteria](/content/concepts/tables#table-naming-criteria). Each *memory-only table*
+exists within a [schema](/content/concepts/schemas) and follows the standard
+[name resolution rules](/content/concepts/tables#table-name-resolution) for *tables*.
+
+
+## Examples
+
+
+### Customer Phone Numbers
+
+
+Given a source table `phone_list`, which lists each phone number for a
+customer as a separate record in the table:
+
+{/* Source: /examples/python/pivot.out (lines 7-14) */}
+```
++--------+--------------+----------------+
+| name   | phone_type   | phone_number   |
+|--------+--------------+----------------|
+| Jane   | Home         | 123-456-7890   |
+| Jane   | Work         | 111-222-3333   |
+| John   | Home         | 123-456-7890   |
+| John   | Cell         | 333-222-1111   |
++--------+--------------+----------------+
+```
+
+A *pivot* operation can be performed like so, creating a single
+record per customer with the home, work, & cell phone numbers as separate
+columns:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/pivot.kisql (lines 65-76) */}
+```sql SQL
+SELECT
+    name,
+    Home_Phone,
+    Work_Phone,
+    Cell_Phone
+FROM
+    example.phone_list
+PIVOT
+(
+    MAX(phone_number) AS Phone
+    FOR phone_type IN ('Home', 'Work', 'Cell')
+)
+```
+
+{/* Source: /examples/python/pivot.py (lines 114-125) */}
+```python Python
+kinetica.aggregate_group_by(
+    table_name= "example.phone_list",
+    column_names= ["name", "MAX(phone_number) as Phone"],
+    offset= 0,
+    limit= 1000,
+    encoding= "json",
+    options= {
+        "sort_by": "key",
+        "pivot": "phone_type",
+        "pivot_values": "Home, Work, Cell"
+    }
+)
+```
+
+</CodeGroup>
+
+The resulting table looks like this:
+
+{/* Source: /examples/python/pivot.out (lines 38-43) */}
+```
++--------+--------------+--------------+--------------+
+| name   | Home_Phone   | Work_Phone   | Cell_Phone   |
+|--------+--------------+--------------+--------------|
+| Jane   | 123-456-7890 | 111-222-3333 |              |
+| John   | 123-456-7890 |              | 333-222-1111 |
++--------+--------------+--------------+--------------+
+```
+
+
+### Student Grades
+
+
+Given a source table `qtr_grade`, which lists each student's quarterly grade
+as a separate record in the table:
+
+{/* Source: /examples/python/pivot.out (lines 18-31) */}
+```
++--------------+-----------+---------+
+|   student_id | quarter   |   grade |
+|--------------+-----------+---------|
+|            1 | q1        |      80 |
+|            1 | q2        |      90 |
+|            1 | q3        |      85 |
+|            1 | q4        |      95 |
+|            2 | q1        |      82 |
+|            2 | q3        |      87 |
+|            2 | q4        |      92 |
+|            3 | q1        |      73 |
+|            3 | q2        |      77 |
+|            3 | q3        |      97 |
++--------------+-----------+---------+
+```
+
+Performing a *pivot* operation on the table converts it into a table
+with one record per student with each quarter grade as a separate column:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/pivot.kisql (lines 97-115) */}
+```sql SQL
+SELECT
+    student_id,
+    q1_grade,
+    q2_grade,
+    q3_grade,
+    q4_grade
+FROM
+(
+    SELECT
+        student_id,
+        quarter,
+        grade
+    FROM example.qtr_grade
+)
+PIVOT
+(
+    MAX(grade) AS grade
+    FOR quarter IN ('q1', 'q2', 'q3', 'q4')
+)
+```
+
+{/* Source: /examples/python/pivot.py (lines 147-158) */}
+```python Python
+kinetica.aggregate_group_by(
+    table_name = "example.qtr_grade",
+    column_names = ["student_id", "MAX(grade) as grade"],
+    offset = 0,
+    limit = 1000,
+    encoding = "json",
+    options = {
+        "sort_by": "key",
+        "pivot": "quarter",
+        "pivot_values": "q1, q2, q3, q4"
+    }
+)
+```
+
+</CodeGroup>
+
+The resulting table looks like this:
+
+{/* Source: /examples/python/pivot.out (lines 47-53) */}
+```
++--------------+------------+------------+------------+------------+
+|   student_id |   q1_grade |   q2_grade |   q3_grade |   q4_grade |
+|--------------+------------+------------+------------+------------|
+|            1 |         80 |         90 |         85 |         95 |
+|            2 |         82 |            |         87 |         92 |
+|            3 |         73 |         77 |         97 |            |
++--------------+------------+------------+------------+------------+
+```
+
+
+## Limitations
+
+
+* *Pivot* values are case sensitive; e.g., a value of `Home` will not match
+  records with values of `HOME` or `home`, and it will generate a new column
+  with `Home` as the name (or part of the name if an alias was specified).
+* *Pivot* values cannot contain commas, making the operation generally
+  inapplicable to data containing them, like *JSON*, *vector*, and
+  comma-embedded *strings*.
+* When the `result_table` option is used, *pivot* values must meet standard
+  [column naming criteria](/content/concepts/tables#table-naming-criteria), as they will be
+  used to construct the output table column names.  This may prevent the direct
+  *pivoting* of some data types, like *date* & *UUID* (among others), that
+  naturally contain invalid column naming characters.
+* As the *pivot* operation is executed via [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest#aggregate-groupby-rest), all
+  [Aggregation Limitations](/content/concepts/aggregation#aggregation-limitations) also apply.

@@ -1,0 +1,988 @@
+---
+title: Java Developer Guide
+description: Step-by-step instructions on writing Java applications with Kinetica
+slug: java_guide
+# time_estimate: 30 MIN
+---
+
+The following guide provides step-by-step instructions to get started writing
+*Java* applications using *Kinetica*. This guide demonstrates only a small set
+of the available API.  A detailed description of the complete interface is
+available under [Java API Reference](/content/api/java).
+
+
+## Prerequisites
+
+
+<a id="java-tutorial-data-file"></a>
+
+
+### Data File
+
+
+The [tutorial java file](/examples/java/java_tutorial/src/main/java/Tutorial.java)
+makes reference to a [data file](/examples/data/taxi_trip_data.csv)
+in the current directory. This path can be updated to point to a valid path on
+the host where the file will be located, or the script can be run with the data
+file in the current directory.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 148) */}
+```java Taxi Data File Path
+final String CSV_FILE_PATH = "./taxi_trip_data.csv";
+```
+
+
+<a id="java-api-install"></a>
+
+
+### API Download
+
+
+#### Maven Download
+
+
+We suggest using *Maven* as the build tool for your *Java* project. To use the
+*Kinetica Java API*, ensure the Maven Central repository is reachable and add
+the *Kinetica Java API* dependency that matches that of the targeted *Kinetica*
+database, as shown below:
+
+{/* Source: /examples/java/java_tutorial/pom.xml (lines 11-12 18) */}
+```xml API Version
+<properties>
+	<gpudb-api.version>[7.2.3.9,7.3.0.0-SNAPSHOT)</gpudb-api.version>
+</properties>
+```
+
+{/* Source: /examples/java/java_tutorial/pom.xml (lines 20-26 32) */}
+```xml API Dependency
+<dependencies>
+	<dependency>
+		<groupId>com.gpudb</groupId>
+		<artifactId>gpudb-api</artifactId>
+		<version>${gpudb-api.version}</version>
+		<type>jar</type>
+	</dependency>
+</dependencies>
+```
+
+
+<Note>
+The `pom.xml` file used for the tutorial can be found
+[below](/content/guides/java_guide#complete-sample-java).
+</Note>
+
+
+#### Manual Download
+
+
+The source code for the *Java* API is also available for download from the
+*GitHub* repository
+[kineticadb/kinetica-api-java](https://github.com/kineticadb/kinetica-api-java).
+Follow the instructions in the included README file to build the API library.
+
+
+### File Hierarchy
+
+
+The tutorial was setup like the below diagram:
+
+```bash
+java_tutorial/
+   ├── java_tutorial.out
+   ├── pom.xml
+   ├── src/
+   │    └── main/
+   │         └── java/
+   │              └── Tutorial.java
+   └── target/
+        └── docsite-tutorial-3.0-jar-with-dependencies.jar
+```
+
+
+## Connecting to the Database
+
+
+To connect to the database, instantiate an object of the
+[GPUdb](/content/api/java/com/gpudb/GPUdb.html) class, providing the connection
+URL, username, & password to the database server.  For more details on
+connecting to the database, see [Connecting via API](/content/api/concepts#api-conn).
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 188-191) */}
+```java Connect to the Database
+GPUdb.Options options = new GPUdb.Options();
+options.setUsername(user);
+options.setPassword(pass);
+GPUdb kdb = new GPUdb(url, options);
+```
+
+
+## Creating a Schema
+
+
+All [tables](/content/concepts/tables) &
+[views](/content/concepts/views) must be created within a
+[schema](/content/concepts/schemas).  So, the first step will be to create
+a *schema* to contain all of the *tables* & *views* created within this
+tutorial.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 151 208) */}
+```java Create Tutorial Schema
+final String SCHEMA_NAME = "tutorial_java";
+kdb.createSchema(SCHEMA_NAME, null);
+```
+
+
+<a id="java-create-type"></a>
+
+
+## Creating a Type
+
+
+Before a *table* can be created and any data can be loaded into it, a
+[type](/content/concepts/types) needs to be defined. The *type* is a class,
+extended from [RecordObject](/content/api/java/com/gpudb/RecordObject.html),
+using annotations to describe which class instance variables are fields (i.e.,
+columns), what type they are, and any special handling they should receive.
+
+For this tutorial, three *types* will be used to create three corresponding
+*tables*:
+
+* A base *table* containing a sample of NYC taxi cab ride data
+* A lookup *table* containing sample cab vendor information (created in the
+  example below)
+* A 1-to-1 relation *table* containing payment information for a subset of the
+  cab-ride transactions
+
+The definition of the *type* for the `vendor` *table* follows:
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 18-64) */}
+```java Define a Type
+public static class Vendor extends RecordObject
+{
+	/* Create column(s), establish its ordering, give it property
+	 * sub-type(s), give it a column type, and give it a name. */
+	@RecordObject.Column(order = 0, properties = { "char4", "primary_key" })
+	public String vendor_id;
+	@RecordObject.Column(order = 1, properties = { "char64" })
+	public String vendor_name;
+	@RecordObject.Column(order = 2, properties = { "char16", "nullable" })
+	public String phone;
+	@RecordObject.Column(order = 3, properties = { "char64", "nullable" })
+	public String email;
+	@RecordObject.Column(order = 4, properties = { "char64" })
+	public String hq_street;
+	@RecordObject.Column(order = 5, properties = { "char8", "dict" })
+	public String hq_city;
+	@RecordObject.Column(order = 6, properties = { "char2", "dict" })
+	public String hq_state;
+	@RecordObject.Column(order = 7)
+	public Integer hq_zip;
+	@RecordObject.Column(order = 8)
+	public Integer num_emps;
+	@RecordObject.Column(order = 9)
+	public Integer num_cabs;
+
+	public Vendor() {}
+
+	/* Create a constructor for the class that will take parameters so that
+	 * Bulk Inserting is easier */
+	public Vendor(
+			String vendor_id, String vendor_name, String phone,
+			String email, String hq_street, String hq_city, String hq_state,
+			Integer hq_zip, Integer num_emps, Integer num_cabs
+	)
+	{
+		this.vendor_id = vendor_id;
+		this.vendor_name = vendor_name;
+		this.phone = phone;
+		this.email = email;
+		this.hq_street = hq_street;
+		this.hq_city = hq_city;
+		this.hq_state = hq_state;
+		this.hq_zip = hq_zip;
+		this.num_emps = num_emps;
+		this.num_cabs = num_cabs;
+	}
+}
+```
+
+
+<Info>
+Although a constructor is not required, if the class does have any
+constructors, it must have a constructor with no parameters.  Other
+constructors can be added, as necessary
+</Info>
+
+Once defined, the *type* needs to be created with a call to
+[createType()](/content/api/java/com/gpudb/RecordObject.html#createType-java.lang.Class-com.gpudb.GPUdb-):
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 218) */}
+```java Create a Type
+String vendorTypeId = RecordObject.createType(Vendor.class, kdb);
+```
+
+
+## Creating a Table
+
+
+The returned object from the
+[createType()](/content/api/java/com/gpudb/RecordObject.html#createType-java.lang.Class-com.gpudb.GPUdb-)
+call contains a unique *type* identifier assigned by the system.  This
+identifier can then be used in the request to create a corresponding *table*.
+The examples below outline creating a *table* with either a
+[single request object](/content/api/java/com/gpudb/GPUdb.html#createTable-com.gpudb.protocol.CreateTableRequest-)
+(`vendor` *table*) or a
+[parameterized call](/content/api/java/com/gpudb/GPUdb.html#createTable-java.lang.String-java.lang.String-java.util.Map-)
+(`payment` *table*):
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 221-224 226) */}
+```java Create a Table (via Request Object)
+CreateTableRequest vendorCreateReq = new CreateTableRequest();
+vendorCreateReq.setTableName(TABLE_VENDOR);
+vendorCreateReq.setTypeId(vendorTypeId);
+vendorCreateReq.setOptions(GPUdb.options(CreateTableRequest.Options.IS_REPLICATED, "true"));
+kdb.createTable(vendorCreateReq);
+```
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 235) */}
+```java Create a Table (via Parameters)
+kdb.createTable(TABLE_PAYMENT, paymentTypeId, null);
+```
+
+
+## Inserting Data
+
+
+Once the table is created, data can be inserted into it.  There is a convenience
+class called [BulkInserter](/content/api/java/com/gpudb/BulkInserter.html),
+which facilitates inserting records into a table in batches; see
+[Distributed Ingest](/content/tuning/multihead/multihead_ingest) for details.  For this
+tutorial, only the native Java API call
+[insertRecords()](/content/api/java/com/gpudb/GPUdb.html#insertRecords-java.lang.String-java.util.List-java.util.Map-)
+will be used.
+
+
+### Key/Value Record
+
+
+In this example, values are assigned individually to fields after creating a
+`Payment` object with the default constructor.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 252-266) */}
+```java Assign After Default Constructor
+// Create a record object and assign values to properties
+Payment paymentDatum = new Payment();
+paymentDatum.payment_id = 189;
+paymentDatum.payment_type = "No Charge";
+paymentDatum.credit_type = null;
+paymentDatum.payment_timestamp = null;
+paymentDatum.fare_amount = 6.5;
+paymentDatum.surcharge = 0;
+paymentDatum.mta_tax = 0.6;
+paymentDatum.tip_amount = 0;
+paymentDatum.tolls_amount = 0;
+paymentDatum.total_amount = 7.1;
+
+// Insert the record into the table
+int numInserted = kdb.insertRecords(TABLE_PAYMENT, Arrays.asList(paymentDatum), null).getCountInserted();
+```
+
+
+### In-Line Record
+
+
+In this example, values are passed in to the `Vendor` object's parameterized
+constructor.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 270-299) */}
+```java Assign by Parameterized Constructor
+/* Create a list of in-line records. The order of the values must match
+ * the column order in the type */
+List<Vendor> vendorRecords = new ArrayList<>();
+vendorRecords.add(new Vendor(
+		"VTS","Vine Taxi Service","9998880001","admin@vtstaxi.com",
+		"26 Summit St.","Flushing","NY",11354,450,400));
+vendorRecords.add(new Vendor(
+		"YCAB","Yes Cab","7895444321",null,
+		"97 Edgemont St.","Brooklyn","NY",11223,445,425));
+vendorRecords.add(new Vendor(
+		"NYC","New York City Cabs",null,"support@nyc-taxis.com",
+		"9669 East Bayport St.","Bronx","NY",10453,505,500));
+vendorRecords.add(new Vendor(
+		"DDS","Dependable Driver Service",null,null,
+		"8554 North Homestead St.","Bronx","NY",10472,200,124));
+vendorRecords.add(new Vendor(
+		"CMT","Crazy Manhattan Taxi","9778896500","admin@crazymanhattantaxi.com",
+		"950 4th Road Suite 78","Brooklyn","NY",11210,500,468));
+vendorRecords.add(new Vendor(
+		"TNY","Taxi New York",null,null,
+		"725 Squaw Creek St.","Bronx","NY",10458,315,305));
+vendorRecords.add(new Vendor(
+		"NYMT","New York Metro Taxi",null,null,
+		"4 East Jennings St.","Brooklyn","NY",11228,166,150));
+vendorRecords.add(new Vendor(
+		"5BTC","Five Boroughs Taxi Co.","4566541278","mgmt@5btc.com",
+		"9128 Lantern Street","Brooklyn","NY",11229,193,175));
+
+// Insert the records into the Vendor table
+numInserted = kdb.insertRecords(TABLE_VENDOR, vendorRecords, null).getCountInserted();
+```
+
+
+### CSV
+
+
+CSV and other data files can be loaded into Kinetica via
+[KiFS](/content/tools/kifs) using the
+[GPUdbFileHandler](/content/api/java/com/gpudb/GPUdbFileHandler.html).  This can
+[upload](/content/api/java/com/gpudb/filesystem/GPUdbFileHandler.html#upload-java.lang.String-java.lang.String-)
+files into *KiFS* for later ingestion or stage them temporarily and
+[ingest](/content/api/java/com/gpudb/filesystem/GPUdbFileHandler.html#ingest-java.util.List-java.lang.String-com.gpudb.filesystem.ingest.IngestOptions-com.gpudb.filesystem.ingest.TableCreationOptions-)
+them all at once.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 335-336) */}
+```java Insert from File
+GPUdbFileHandler fh = new GPUdbFileHandler(kdb);
+fh.ingest(Arrays.asList(CSV_FILE_PATH), TABLE_TAXI, null, null);
+```
+
+
+## Retrieving Data
+
+
+Once the *table* is populated with data, the data can be retrieved from the
+system by a call to
+[getRecords(tableName, offset, limit, options)](/content/api/java/com/gpudb/GPUdb.html#getRecords-java.lang.String-long-long-java.util.Map-)
+using in-line parameter-passing.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 346-367) */}
+```java Retrieve Records (via Parameters)
+// Retrieve no more than 10 records from payments using in-line request parameters
+GetRecordsResponse<Payment> getPaymentRecordsResp = kdb.getRecords(
+		TABLE_PAYMENT,
+		0,
+		10,
+		GPUdb.options(GetRecordsRequest.Options.SORT_BY,"payment_id")
+);
+System.out.println(
+		"Payment ID Payment Type Credit Type Payment Timestamp " +
+		"Fare Amount Surcharge MTA Tax Tip Amount Tolls Amount Total Amount"
+);
+System.out.println(
+		"========== ============ =========== ================= " +
+		"=========== ========= ======= ========== ============ ============"
+);
+for (Payment p : getPaymentRecordsResp.getData())
+	System.out.printf(
+			"%10d %-12s %-11s %17s %11.2f %9.2f %7.2f %10.2f %12.2f %12.2f%n",
+			p.payment_id, Objects.toString(p.payment_type, ""), Objects.toString(p.credit_type, ""),
+			Objects.toString(p.payment_timestamp, ""), p.fare_amount, p.surcharge, p.mta_tax,
+			p.tip_amount, p.tolls_amount, p.total_amount
+	);
+```
+
+One can also invoke
+[getRecords(request)](/content/api/java/com/gpudb/GPUdb.html#getRecords-com.gpudb.protocol.GetRecordsRequest-)
+using the
+[GetRecordsRequest](/content/api/java/com/gpudb/protocol/GetRecordsRequest.html)
+request class.  This object contains all the parameters for the method call, and
+can be reused in successive calls, avoiding re-specifying query parameters.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 370-390) */}
+```java Retrieve Records (via Request Object)
+// Retrieve all records from the Vendor table using a request object
+GetRecordsRequest vendorReq = new GetRecordsRequest();
+vendorReq.setTableName(TABLE_VENDOR);
+vendorReq.setOffset(0);
+vendorReq.setLimit(GPUdb.END_OF_SET);
+vendorReq.setOptions(GPUdb.options(GetRecordsRequest.Options.SORT_BY, "vendor_id"));
+GetRecordsResponse<Vendor> vendorResp = kdb.getRecords(vendorReq);
+System.out.println(
+		"Vendor ID Vendor Name                Phone       Email                         " +
+		"HQ Street                HQ City  HQ State HQ Zip # Employees # Cabs"
+);
+System.out.println(
+		"========= ========================== =========== ============================= " +
+		"======================== ======== ======== ====== =========== ======"
+);
+for (Vendor v : vendorResp.getData())
+	System.out.printf(
+			"%-9s %-26s %-11s %-29s %-24s %-8s %-8s %-6d %11d %6d%n",
+			v.vendor_id, v.vendor_name, Objects.toString(v.phone, ""), Objects.toString(v.email, ""),
+			v.hq_street, v.hq_city, v.hq_state, v.hq_zip, v.num_emps, v.num_cabs
+	);
+```
+
+For large *tables*, the data can be easily be retrieved in smaller blocks by
+using the `offset` and `limit` parameters.  The returned response also
+contains the *type* (column definitions) of the results.
+
+Also, note that all query related methods have the above two versions--with the
+request object and with the parameters passed directly to the method.
+
+
+## Updating Records
+
+
+Use
+[updateRecords()](/content/api/java/com/gpudb/GPUdb.html#updateRecords-java.lang.String-java.util.List-java.util.List-java.util.List-java.util.Map-)
+to update matching key values for any records in a *table*.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 399-415) */}
+```java Update Records
+// Update the e-mail, number of employees, and number of cabs of the DDS vendor
+List<Map<String, String>> newValsList = new ArrayList<>();
+Map<String,String> newVals = new HashMap<>();
+newVals.put("email", "'management@ddstaxico.com'");
+newVals.put("num_emps", "num_emps + 2");
+newVals.put("num_cabs", "num_cabs + 1");
+newValsList.add(newVals);
+kdb.updateRecords(
+		TABLE_VENDOR,
+		Arrays.asList("vendor_id = 'DDS'"),
+		newValsList,
+		null,
+		GPUdb.options(
+				UpdateRecordsRequest.Options.USE_EXPRESSIONS_IN_NEW_VALUES_MAPS,
+				UpdateRecordsRequest.Options.TRUE
+		)
+);
+```
+
+
+## Deleting Records
+
+
+Use
+[deleteRecords()](/content/api/java/com/gpudb/GPUdb.html#deleteRecords-java.lang.String-java.util.List-java.util.Map-)
+to delete records from a *table*. A list can be used to specify which records to
+delete based on matching expressions.  Set
+[DELETE_ALL_RECORDS](/content/api/java/com/gpudb/protocol/DeleteRecordsRequest.Options.html#DELETE_ALL_RECORDS) to
+[TRUE](/content/api/java/com/gpudb/protocol/DeleteRecordsRequest.Options.html#TRUE)
+to delete all records in a table.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 446 449 451) */}
+```java Delete Records
+// Delete payment 189
+String delExpr = "payment_id = 189";
+kdb.deleteRecords(TABLE_PAYMENT, Arrays.asList(delExpr), null);
+```
+
+
+## Alter Table
+
+
+Some properties can be altered or added after *table* creation, using
+[alterTable()](/content/api/java/com/gpudb/GPUdb.html#alterTable-java.lang.String-java.lang.String-java.lang.String-java.util.Map-),
+including [indexes](/content/concepts/indexes) and
+[dictionary encoding](/content/concepts/dictionary_encoding).
+
+
+### Indexes
+
+
+Using the
+[alterTable()](/content/api/java/com/gpudb/GPUdb.html#alterTable-java.lang.String-java.lang.String-java.lang.String-java.util.Map-)
+method, you can create *indexes* on columns using the
+[CREATE_INDEX](/content/api/java/com/gpudb/protocol/AlterTableRequest.Action.html#CREATE_INDEX)
+*action* paired with a column name.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 465-470) */}
+```java Index Column
+/* Add column indexes on:
+ *   - payment table, fare_amount (for query-chaining filter example)
+ *   - taxi table, passenger_count (for filter-by-range example) */
+kdb.alterTable(TABLE_PAYMENT, AlterTableRequest.Action.CREATE_INDEX, "fare_amount", null);
+
+kdb.alterTable(TABLE_TAXI, AlterTableRequest.Action.CREATE_INDEX, "passenger_count", null);
+```
+
+
+### Dictionary Encoding
+
+
+Applying *dictionary encoding* via
+[alterTable()](/content/api/java/com/gpudb/GPUdb.html#alterTable-java.lang.String-java.lang.String-java.lang.String-java.util.Map-)
+involves adding a new property to a column using the
+[CHANGE_COLUMN](/content/api/java/com/gpudb/protocol/AlterTableRequest.Action.html#CHANGE_COLUMN)
+*action* paired with a column name & definition.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 496-505) */}
+```java Dictionary Encode Column
+// Apply dictionary encoding to the payment type column
+AlterTableResponse dictEncResp = kdb.alterTable(
+		TABLE_TAXI,
+		AlterTableRequest.Action.CHANGE_COLUMN,
+		columnName,
+		GPUdb.options(
+				AlterTableRequest.Options.COLUMN_PROPERTIES,
+				"char4,dict"
+		)
+);
+```
+
+
+<Note>
+To add a new property, all existing column properties must be
+listed along with any new properties.
+</Note>
+
+
+## Filters
+
+
+Filters are an easy way to reduce larger *tables* into more concise
+[views](/content/concepts/views) using
+[expressions](/content/concepts/expressions).
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 537-539) */}
+```java Count Value-Filtered Records
+// Filter for only payments with no corresponding payment type, returning the
+// count of records found
+long f1Count = kdb.filter(TABLE_PAYMENT, VIEW_EXAMPLE1, "IS_NULL(payment_type)", null).getCount();
+```
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 543-544) */}
+```java Count Using Filter Chaining
+// Using query chaining, filter null payment type records with a fare amount greater than 8
+long f2Count = kdb.filter(VIEW_EXAMPLE1, VIEW_EXAMPLE2, "fare_amount > 8", null).getCount();
+```
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 548-551) */}
+```java Count List-Filtered Records
+// Filter by list where vendor ID is either NYC or YCAB
+Map<String, List<String>> columnValuesMap = new HashMap<>();
+columnValuesMap.put("vendor_id", Arrays.asList("NYC", "YCAB"));
+long f3Count = kdb.filterByList(TABLE_TAXI, VIEW_EXAMPLE3, columnValuesMap, null).getCount();
+```
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 555-556) */}
+```java Count Range-Filtered Records
+// Filter by range trip with passenger count between 1 and 3
+long f4Count = kdb.filterByRange(TABLE_TAXI, VIEW_EXAMPLE4, "passenger_count", 1, 3, null).getCount();
+```
+
+
+## Aggregates
+
+
+*Kinetica* supports various aggregate and group-by queries, which group and
+aggregate your data to return counts and useful statistics.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 566-583) */}
+```java Calculate Count/Min/Mean/Max
+// Aggregate count, min, mean, and max on the trip distance
+Map<String,Double> a1Resp = kdb.aggregateStatistics(
+		TABLE_TAXI,
+		"trip_distance",
+		AggregateStatisticsRequest.Stats.COUNT + "," +
+		AggregateStatisticsRequest.Stats.MIN + "," +
+		AggregateStatisticsRequest.Stats.MAX + "," +
+		AggregateStatisticsRequest.Stats.MEAN,
+		null
+).getStats();
+System.out.println("Statistics of values in the trip_distance column:");
+System.out.printf(
+		"\tCount: %5.0f%n\tMin:   %5.2f%n\tMean:  %5.2f%n\tMax:   %5.2f%n%n",
+		a1Resp.get(AggregateStatisticsRequest.Stats.COUNT),
+		a1Resp.get(AggregateStatisticsRequest.Stats.MIN),
+		a1Resp.get(AggregateStatisticsRequest.Stats.MEAN),
+		a1Resp.get(AggregateStatisticsRequest.Stats.MAX)
+);
+```
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 586-590) */}
+```java Retrieve Unique Values
+// Find unique taxi vendor IDs
+List<Record> a2Resp = kdb.aggregateUnique(TABLE_TAXI, "vendor_id", 0, GPUdb.END_OF_SET, null).getData();
+System.out.println("Unique vendor IDs in the taxi trip table:");
+for (Record vendor : a2Resp)
+	System.out.println("\t* " + vendor.get("vendor_id"));
+```
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 594-608) */}
+```java Report Number of Records per Group
+// Find number of trips per vendor
+List <String> colNames = Arrays.asList("vendor_id", "count(vendor_id)");
+List<Record> a3Resp = kdb.aggregateGroupBy(
+		TABLE_TAXI,
+		colNames,
+		0,
+		GPUdb.END_OF_SET,
+		GPUdb.options(
+				AggregateGroupByRequest.Options.SORT_BY,
+				AggregateGroupByRequest.Options.KEY
+		)
+).getData();
+System.out.println("Trips per vendor:");
+for (Record vendor : a3Resp)
+	System.out.printf("\t%-6s %3d%n", vendor.get("vendor_id") + ":", vendor.get("count(vendor_id)"));
+```
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 612-630) */}
+```java Generate Histogram
+// Create a histogram for the different groups of passenger counts
+float start = 1;
+float end = 6;
+float interval = 1;
+List<Double> a4Resp = kdb.aggregateHistogram(
+		TABLE_TAXI,
+		"passenger_count",
+		start,
+		end,
+		interval,
+		null
+).getCounts();
+
+System.out.println("Passenger count groups by size:");
+System.out.println("Passengers Total Trips");
+System.out.println("========== ===========");
+List<String> countGroups = Arrays.asList("1", "2", "3", "4", ">5");
+for (int hgNum = 0; hgNum < a4Resp.size(); hgNum++)
+	System.out.printf("%10s %11.0f%n", countGroups.get(hgNum), a4Resp.get(hgNum));
+```
+
+
+## Joins
+
+
+[Joins](/content/concepts/joins) allow you to link multiple *tables* together,
+along their relations, retrieving associated information from any or all of
+them.  Tables can only be *joined* if they're [sharded](/content/concepts/tables#sharded)
+similarly or [replicated](/content/concepts/tables#replicated).  All join types can be
+performed using the
+[createJoinTable()](../../java/?com/gpudb/GPUdb.html#createJoinTable-java.lang.String-java.util.List-java.util.List-java.util.List-java.util.Map-)
+method.
+
+An *inner join* returns only records that have matching values in both *tables*.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 639-651) */}
+```java Inner Join
+/* Retrieve cab ride transactions and the full name of the associated
+ * vendor for rides having more than three passengers between April 1st
+ * & 16th, 2015 */
+kdb.createJoinTable(
+		JOIN_TABLE_INNER,
+		Arrays.asList(TABLE_TAXI + " as t", TABLE_PAYMENT + " as p"),
+		Arrays.asList(
+				"t.payment_id", "payment_type", "total_amount",
+				"passenger_count", "vendor_id", "trip_distance"
+		),
+		Arrays.asList("t.payment_id = p.payment_id", "passenger_count > 3"),
+		null
+);
+```
+
+A *left join* returns all of the records an *inner join* does, but additionally,
+for each record in the table on the *left* side of the *join* that has no match
+along the relation to a record in the table on the *right* side of the *join*, a
+corresponding record will be returned with "left-side" columns populated with
+the "left-side" record data and the "right-side" columns populated with *nulls*.
+Note the usage of `left join` in the given expression.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 680-690) */}
+```java Left Join
+/* Retrieve cab ride transactions and the full name of the associated
+ * vendor (if available--blank if vendor name is unknown) for
+ * transactions with associated payment data, sorting by increasing
+ * values of transaction ID. */
+kdb.createJoinTable(
+		JOIN_TABLE_LEFT,
+		Arrays.asList(TABLE_TAXI + " as t", TABLE_VENDOR + " as v"),
+		Arrays.asList("transaction_id", "pickup_datetime", "trip_distance", "t.vendor_id", "vendor_name"),
+		Arrays.asList("left join t, v on (t.vendor_id = v.vendor_id)", "payment_id <> 0"),
+		null
+);
+```
+
+
+<Info>
+Full outer *joins* require both tables to be replicated or joined on
+their shard keys. Set merges that perform deduplication of records, like
+[Union Distinct](/content/concepts/unions),
+[Intersect](/content/concepts/intersect), and
+[Except](/content/concepts/except) also need to use replicated tables to
+ensure the correct results, so a replicated version of the taxi
+(`taxi_trip_data_replicated`) *table* is created at this point in the
+tutorial using
+[createProjection()](/content/api/java/com/gpudb/GPUdb.html#createProjection-java.lang.String-java.lang.String-java.util.List-java.util.Map-).
+</Info>
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 720-737) */}
+```java Create Replicated Table for Full Outer Join
+kdb.createProjection(
+		TABLE_TAXI,
+		TABLE_TAXI_REPLICATED,
+		Arrays.asList(
+				"transaction_id",
+				"payment_id",
+				"vendor_id",
+				"pickup_datetime",
+				"dropoff_datetime",
+				"passenger_count",
+				"trip_distance",
+				"pickup_longitude",
+				"pickup_latitude",
+				"dropoff_longitude",
+				"dropoff_latitude"
+		),
+		GPUdb.options(CreateProjectionRequest.Options.IS_REPLICATED, "true")
+);
+```
+
+A *full outer join* returns all of the records a *left join* does, but
+additionally, for each record in the table on the *right* side of the *join*
+that has no match along the relation to a record in the table on the *left* side
+of the *join*, a corresponding record will be returned with "right-side" columns
+populated with the "right-side" record data and the "left-side" columns
+populated with *nulls*.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 740-749) */}
+```java Full Outer Join
+/* Retrieve the vendor IDs of known vendors with no recorded cab ride
+ * transactions, as well as the vendor ID and number of transactions
+ * for unknown vendors with recorded cab ride transactions */
+kdb.createJoinTable(
+		JOIN_TABLE_OUTER,
+		Arrays.asList(TABLE_TAXI_REPLICATED + " as t", TABLE_VENDOR + " as v"),
+		Arrays.asList("t.vendor_id as vendor_id", "v.vendor_id as vendor_id_1"),
+		Arrays.asList("full_outer join t,v on ((v.vendor_id = t.vendor_id))"),
+		null
+);
+```
+
+
+## Projections
+
+
+You can create [projections](/content/concepts/projections) using the
+[createProjection()](/content/api/java/com/gpudb/GPUdb.html#createProjection-java.lang.String-java.lang.String-java.util.List-java.util.Map-)
+method.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 788-798) */}
+```java Create a Temporary Projection
+// Create a projection containing all payments by credit card
+kdb.createProjection(
+		TABLE_PAYMENT,
+		PROJECTION_EXAMPLE1,
+		Arrays.asList(
+				"payment_id", "payment_type", "credit_type",
+				"payment_timestamp", "fare_amount", "surcharge",
+				"mta_tax", "tip_amount", "tolls_amount", "total_amount"
+		),
+		GPUdb.options(CreateProjectionRequest.Options.EXPRESSION, "payment_type = 'Credit'")
+);
+```
+
+To persist a *projection*:
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 831-848) */}
+```java Create a Permanent Projection
+/* Create a persisted table with cab ride transactions greater than 5
+ * miles whose trip started during lunch hours */
+kdb.createProjection(
+		TABLE_TAXI,
+		PROJECTION_EXAMPLE2,
+		Arrays.asList(
+				"hour(pickup_datetime) as hour_of_day", "vendor_id",
+				"passenger_count", "trip_distance"
+		),
+		GPUdb.options(
+				CreateProjectionRequest.Options.EXPRESSION,
+				"(hour(pickup_datetime) >= 11) AND " +
+				"(hour(pickup_datetime) <= 14) AND " +
+				"(trip_distance > 5)",
+				CreateProjectionRequest.Options.PERSIST,
+				CreateProjectionRequest.Options.TRUE
+		)
+);
+```
+
+
+## Union, Intersect, & Except
+
+
+[Union](/content/concepts/unions) can be used to combine homogeneous data
+sets into one larger data set.  When calling the
+[createUnion()](/content/api/java/com/gpudb/GPUdb.html#createUnion-java.lang.String-java.util.List-java.util.List-java.util.List-java.util.Map-)
+method, a
+[MODE](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options.html#MODE)
+of [UNION](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options.html#UNION)
+or [UNION_DISTINCT](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options.html#UNION_DISTINCT)
+will both combine data sets, but only retain the records that are unique across
+the chosen columns, removing all duplicates. A
+[MODE](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options.html#MODE)
+of [UNION_ALL](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options.html#UNION_ALL)
+will combine data sets, retaining all records from the source data sets.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 880-941) */}
+```java Set Union Retaining Duplicates
+/* Calculate the average number of passengers, as well as the shortest,
+ * average, and longest trips for all trips in each of the two time
+ * periods--from April 1st through the 15th, 2015 and from April 16th
+ * through the 23rd, 2015--and return those two sets of statistics in a
+ * single result set. */
+kdb.aggregateGroupBy(
+		TABLE_TAXI,
+		Arrays.asList(
+				"avg(passenger_count) as avg_pass_count",
+				"avg(trip_distance) as avg_trip_dist",
+				"min(trip_distance) as min_trip_dist",
+				"max(trip_distance) as max_trip_dist"
+		),
+		0,
+		GPUdb.END_OF_SET,
+		GPUdb.options(
+				AggregateGroupByRequest.Options.EXPRESSION,
+				"((pickup_datetime >= '2015-04-01') AND " +
+				"(pickup_datetime <= '2015-04-15 23:59:59.999'))",
+				AggregateGroupByRequest.Options.RESULT_TABLE,
+				AGG_GRPBY_UNION_ALL_SRC1
+		)
+);
+kdb.aggregateGroupBy(
+		TABLE_TAXI,
+		Arrays.asList(
+				"avg(passenger_count) as avg_pass_count",
+				"avg(trip_distance) as avg_trip_dist",
+				"min(trip_distance) as min_trip_dist",
+				"max(trip_distance) as max_trip_dist"
+		),
+		0,
+		GPUdb.END_OF_SET,
+		GPUdb.options(
+				AggregateGroupByRequest.Options.EXPRESSION,
+				"((pickup_datetime >= '2015-04-16') AND " +
+				"(pickup_datetime  <= '2015-04-23 23:59:59.999'))",
+				AggregateGroupByRequest.Options.RESULT_TABLE,
+				AGG_GRPBY_UNION_ALL_SRC2
+		)
+);
+kdb.createUnion(
+		UNION_ALL_TABLE,
+		Arrays.asList(AGG_GRPBY_UNION_ALL_SRC1, AGG_GRPBY_UNION_ALL_SRC2),
+		Arrays.asList(
+				Arrays.asList(
+						"'2015-04-01 - 2015-04-15'",
+						"avg_pass_count", "avg_trip_dist",
+						"min_trip_dist", "max_trip_dist"
+				),
+				Arrays.asList(
+						"'2015-04-16 - 2015-04-23'",
+						"avg_pass_count", "avg_trip_dist",
+						"min_trip_dist", "max_trip_dist"
+				)
+		),
+		Arrays.asList(
+				"pickup_window_range", "avg_pass_count",
+				"avg_trip", "min_trip", "max_trip"
+		),
+		GPUdb.options(CreateUnionRequest.Options.MODE, CreateUnionRequest.Options.UNION_ALL)
+);
+```
+
+Calling the
+[createUnion()](/content/api/java/com/gpudb/GPUdb.html#createUnion-java.lang.String-java.util.List-java.util.List-java.util.List-java.util.Map-)
+method with a
+[MODE](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options.html#MODE)
+of [INTERSECT](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options.html#INTERSECT)
+will perform a set [intersection](/content/concepts/intersect), which will
+combine data sets but only include the records found in both data sets, removing
+duplicate result records.   A
+[MODE](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options.html#MODE)
+of [INTERSECT_ALL](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options.html#INTERSECT_ALL)
+will retain intersecting duplicates from both sets.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 963-974) */}
+```java Set Intersection
+/* Retrieve locations (as lat/lon pairs) that were both pick-up and
+ * drop-off points */
+kdb.createUnion(
+		UNION_INTERSECT_TABLE,
+		Arrays.asList(TABLE_TAXI_REPLICATED, TABLE_TAXI_REPLICATED),
+		Arrays.asList(
+				Arrays.asList("pickup_latitude", "pickup_longitude"),
+				Arrays.asList("dropoff_latitude", "dropoff_longitude")
+		),
+		Arrays.asList("latitude", "longitude"),
+		GPUdb.options(CreateUnionRequest.Options.MODE, CreateUnionRequest.Options.INTERSECT)
+);
+```
+
+Calling the
+[createUnion()](/content/api/java/com/gpudb/GPUdb.html#createUnion-java.lang.String-java.util.List-java.util.List-java.util.List-java.util.Map-)
+method with a
+[MODE](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options.html#MODE)
+of [EXCEPT](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options.html#EXCEPT)
+will perform a set [except](/content/concepts/except) (subtraction), which
+will return records that appear in the first data set but not the second data
+set.  Note that the data sets on each side of the *except* will have duplicates
+removed *first*, and then the set subtraction will be processed.  A
+[MODE](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options.html#MODE)
+of [EXCEPT_ALL](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options.html#EXCEPT_ALL)
+will retain duplicates from the first set.
+
+{/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 998-1026) */}
+```java Set Exception (Subtraction)
+/* Show vendors that operate before noon, but not after noon: retrieve
+ * the unique list of IDs of vendors who provided cab rides between
+ * midnight and noon, and remove from that list the IDs of any vendors
+ * who provided cab rides between noon and midnight */
+kdb.createProjection(
+		TABLE_TAXI_REPLICATED,
+		PROJECTION_EXCEPT_SRC1,
+		Arrays.asList("vendor_id"),
+		GPUdb.options(
+				CreateProjectionRequest.Options.EXPRESSION,
+				"((HOUR(pickup_datetime) >= 0) AND (HOUR(pickup_datetime) <= 11))"
+		)
+);
+kdb.createProjection(
+		TABLE_TAXI_REPLICATED,
+		PROJECTION_EXCEPT_SRC2,
+		Arrays.asList("vendor_id"),
+		GPUdb.options(
+				CreateProjectionRequest.Options.EXPRESSION,
+				"((HOUR(pickup_datetime) >= 12) AND (HOUR(pickup_datetime) <= 23))"
+		)
+);
+kdb.createUnion(
+		UNION_EXCEPT_TABLE,
+		Arrays.asList(PROJECTION_EXCEPT_SRC1, PROJECTION_EXCEPT_SRC2),
+		Arrays.asList(Arrays.asList("vendor_id"), Arrays.asList("vendor_id")),
+		Arrays.asList("vendor_id"),
+		GPUdb.options(CreateUnionRequest.Options.MODE, CreateUnionRequest.Options.EXCEPT)
+);
+```
+
+
+<a id="complete-sample-java"></a>
+
+
+## Download & Run
+
+
+Included below is a complete example containing all the above requests, the data
+file, output, compiled jar, and pom files.
+
+* [Tutorial.java](/examples/java/java_tutorial/src/main/java/Tutorial.java)
+* [Taxi Data File](/examples/data/taxi_trip_data.csv)
+* [Java Output](/examples/java/java_tutorial/java_tutorial.out)
+* [Tutorial jar](/examples/java/java_tutorial/target/docsite-tutorial-3.0-jar-with-dependencies.jar)
+* [pom.xml](/examples/java/java_tutorial/pom.xml)
+
+To run the complete sample, ensure the <Badge color="gray">taxi_trip_data.csv</Badge> is in the
+correct location, given the direction [here](/content/guides/java_guide#java-tutorial-data-file), and
+run the tutorial JAR as an executable jar.  For instance, if running from the
+API project root:
+
+```bash title="Run Tutorial"
+java -jar target/docsite-tutorial-3.0-jar-with-dependencies.jar <url> <username> <password>
+```
+
+
+<Info>
+As this script creates a schema and several database objects within
+it, [system admin permission](/content/security/sec_concepts#security-concepts-permissions-system) is
+required to run it.
+</Info>

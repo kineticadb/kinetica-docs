@@ -1,0 +1,412 @@
+---
+title: Shortest Path with Python
+description: A Shortest Path graph solver example with the Python API
+slug: solve_graph_seattle_shortest_path
+# time_estimate: 10 MIN
+---
+
+The following is a complete example, using the *Python API*, of solving a graph
+created with Seattle road network data for a shortest path problem via the
+[/solve/graph](/content/api/rest/solve_graph_rest#solve-graph-rest) endpoint. For more information on
+Graphs & Solvers, see [Graphs & Solvers Concepts](/content/graph_solver/network_graph_solver).
+
+
+## Prerequisites
+
+
+The prerequisites for running the shortest path solve graph example are
+listed below:
+
+* Graph server enabled
+* Python API
+* [Solve graph script](/examples/python/graph/solve_graph_seattle_shortest_path.py)
+* [Seattle road network CSV file](/examples/data/road_weights.csv)
+
+
+### Python API Installation
+
+
+Depending on the target operating system, a Python virtual environment may need
+to be installed first:
+
+* [Python Virtual Environment](#python-virtual-environment)
+
+The native *Kinetica Python API* is accessible through the following means:
+
+* [PyPI](#pypi)
+* [Git](#git)
+
+
+#### Python Virtual Environment
+
+
+A Python virtual environment is necessary to install in an operating environment
+where Python is externally managed.
+
+1. Install a Python virtual environment:
+
+
+   ```bash
+   python3 -m venv .venv
+   ```
+
+2. Activate the Python virtual environment:
+
+
+   ```bash
+   source .venv/bin/activate
+   ```
+
+
+#### PyPI
+
+
+1. Install the API:
+
+
+   ```bash
+   pip3 install gpudb
+   ```
+
+2. Test the installation:
+
+
+   ```python
+   python3 -c "import gpudb;print('Import Successful')"
+   ```
+
+   If *Import Successful* is displayed, the API has been installed as is ready
+   for use.
+
+
+#### Git
+
+
+1. In the desired directory, run the following, but be sure to replace
+   `<kinetica-version>` with the name of the installed Kinetica version,
+   e.g., `v7.2`:
+
+
+   ```bash
+   git clone -b release/<kinetica-version> --single-branch https://github.com/kineticadb/kinetica-api-python.git
+   ```
+
+2. Change directory into the newly downloaded repository:
+
+
+   ```bash
+   cd kinetica-api-python
+   ```
+
+3. In the root directory of the unzipped repository, install the Kinetica API:
+
+
+   ```bash
+   sudo pip3 install .
+   ```
+
+4. Test the installation (*Python3* is necessary for running the API example):
+
+
+   ```bash
+   python3 examples/example.py
+   ```
+
+
+### Data File
+
+
+The example script references the <Badge color="gray">road_weights.csv</Badge> data file,
+mentioned in the [Prerequisites](#prerequisites), in the current local directory, by default.
+This directory can specified as a parameter when running the example script.
+
+
+## Script Detail
+
+
+This example is going to demonstrate solving (both individual and batch solve)
+for the shortest path between source points and several destination points
+located within a road network in Seattle.
+
+
+### Constants
+
+
+Several constants are defined at the beginning of the script:
+
+* `SCHEMA` -- the name of the schema in which the tables supporting the
+  graph creation and match operations will be created
+
+
+  <Note>
+  The schema is created during the table setup portion of the
+  script because the schema must exist prior to creating the
+  tables that will later support the graph creation and match
+  operations.
+  </Note>
+
+* `TABLE_SRN` -- the name of the table into which the Seattle road network
+  dataset is loaded
+* `GRAPH_S` -- the Seattle road network graph
+* `TABLE_GRAPH_S_SPSOLVED` / `TABLE_GRAPH_S_SPSOLVED2` /
+  `TABLE_GRAPH_S_SPSOLVED3` -- the Seattle road network graph shortest path
+  solution tables
+
+{/* Source: /examples/python/graph/solve_graph_seattle_shortest_path.py (lines 18-24) */}
+```python Constant Definitions
+SCHEMA = "graph_s_seattle_shortest_path"
+TABLE_SRN = SCHEMA + ".seattle_road_network"
+
+GRAPH_S = SCHEMA + ".seattle_road_network_graph"
+TABLE_GRAPH_S_SPSOLVED = GRAPH_S + "_shortest_path_solved"
+TABLE_GRAPH_S_SPSOLVED2 = GRAPH_S + "_shortest_path_solved2"
+TABLE_GRAPH_S_SPSOLVED3 = GRAPH_S + "_shortest_path_solved3"
+```
+
+
+### Graph Creation
+
+
+One graph is used for the shortest path solve graph example utilized in the
+script: `seattle_road_network_graph`, a graph based on the `road_weights`
+dataset (the CSV file mentioned in [Prerequisites](#prerequisites)).
+
+The `GRAPH_S` graph is created with the following characteristics:
+
+* It is [directed](/content/graph_solver/network_graph_solver#directed-graphs) because the roads in the graph
+  have directionality (one-way and two-way roads)
+* It has no explicitly defined *nodes* because the example relies on implicit
+  *nodes* attached to the defined *edges*
+* The *edges* are identified by `WKTLINE`, using WKT LINESTRINGs from the
+  `WKTLINE` column of the `seattle_road_network` table. The road segments'
+  directionality (`DIRECTION`) is derived from the `TwoWay` column of the
+  `seattle_road_network` table.
+* The *weights* (`VALUESPECIFIED`) are represented using the time taken to
+  travel the segment found in the `time` column of the
+  `seattle_road_network` table. The *weights* are matched to the *edges* using
+  the same `WKTLINE` column as *edges* (`EDGE_WKTLINE`) and the same
+  `TwoWay` column as the *edge* direction (`EDGE_DIRECTION`).
+* It has no inherent *restrictions* for any of the *nodes* or *edges* in the
+  graph
+* It will be replaced with this instance of the graph if a graph of the same
+  name exists (`recreate`)
+
+{/* Source: /examples/python/graph/solve_graph_seattle_shortest_path.py (lines 90-107) */}
+```python Create Seattle Road Network Graph
+create_s_graph_response = kinetica.create_graph(
+    graph_name = GRAPH_S,
+    directed_graph = True,
+    nodes = [],
+    edges = [
+        TABLE_SRN + ".WKTLINE AS WKTLINE",
+        TABLE_SRN + ".TwoWay AS DIRECTION"
+    ],
+    weights = [
+        TABLE_SRN + ".WKTLINE AS EDGE_WKTLINE",
+        TABLE_SRN + ".TwoWay AS EDGE_DIRECTION",
+        TABLE_SRN + ".time AS VALUESPECIFIED"
+    ],
+    restrictions = [],
+    options = {
+        "recreate": "true"
+    }
+)
+```
+
+
+### Shortest Path
+
+
+#### Single Source to Single Destination
+
+
+The first example illustrates a simple shortest path solve from a single
+source node to a single destination node. First, the source node and destination
+node are defined.
+
+{/* Source: /examples/python/graph/solve_graph_seattle_shortest_path.py (lines 138-139) */}
+```python Define Beginning & Ending Points
+source_nodes = ["POINT(-122.1792501 47.2113606)"]
+destination_nodes = ["POINT(-122.2221 47.5707)"]
+```
+
+Next, the `seattle_road_network_graph` graph is solved with the solve results
+being exported to the response:
+
+{/* Source: /examples/python/graph/solve_graph_seattle_shortest_path.py (lines 140-146) */}
+```python Solve Graph for Shortest Path
+kinetica.solve_graph(
+    graph_name = GRAPH_S,
+    solver_type = "SHORTEST_PATH",
+    source_nodes = source_nodes,
+    destination_nodes = destination_nodes,
+    solution_table = TABLE_GRAPH_S_SPSOLVED
+)
+```
+
+The cost for the source node to visit the destination node is represented as
+time in minutes:
+
+{/* Source: /examples/python/graph/solve_graph_seattle_shortest_path.out (lines 25-29) */}
+```text Solve Graph for Shortest Path Solution
++-------------------------------------------+---------------------+
+| Destination Node                          |   Cost (in minutes) |
+|-------------------------------------------+---------------------|
+| POINT (-122.22286015749 47.5709295272827) |             40.6023 |
++-------------------------------------------+---------------------+
+```
+
+The solution output to WMS:
+
+
+![seattle_sp_solved.png](/content/guides/solve_graph_seattle_shortest_path/seattle_sp_solved.png)
+
+
+#### Single Source to Many Destinations
+
+
+The second example illustrates a shortest path solve from a single source node
+to many destination nodes. First, the source node and destination nodes are
+defined. When one source node and many destination nodes are provided, the graph
+solver will calculate a shortest path solve for each destination node.
+
+{/* Source: /examples/python/graph/solve_graph_seattle_shortest_path.py (lines 168-174) */}
+```python Define Beginning & Multiple Ending Points
+source_nodes = ["POINT(-122.1792501 47.2113606)"]
+destination_nodes = [
+    "POINT(-122.222100 47.570700)",
+    "POINT(-122.541017 47.809121)",
+    "POINT(-122.520440 47.624725)",
+    "POINT(-122.467915 47.427280)"
+]
+```
+
+Next, the `seattle_road_network_graph` graph is solved with the solve results
+being exported to the response
+
+{/* Source: /examples/python/graph/solve_graph_seattle_shortest_path.py (lines 175-181) */}
+```python Solve Graph for Shortest Paths with Multiple Destinations
+kinetica.solve_graph(
+    graph_name = GRAPH_S,
+    solver_type = "SHORTEST_PATH",
+    source_nodes = source_nodes,
+    destination_nodes = destination_nodes,
+    solution_table = TABLE_GRAPH_S_SPSOLVED2
+)
+```
+
+The cost for the source node to visit each of the destination nodes separately
+is represented as time in minutes:
+
+{/* Source: /examples/python/graph/solve_graph_seattle_shortest_path.out (lines 36-43) */}
+```text Solve Graph for Shortest Paths with Multiple Destinations Solution
++--------------------------------------------+---------------------+
+| Destination Node                           |   Cost (in minutes) |
+|--------------------------------------------+---------------------|
+| POINT (-122.22286015749 47.5709295272827)  |             40.6023 |
+| POINT (-122.471138834953 47.4291801452637) |             69.5329 |
+| POINT (-122.519598305225 47.6248499751091) |             79.7307 |
+| POINT (-122.541549503803 47.8095200657845) |             90.872  |
++--------------------------------------------+---------------------+
+```
+
+The solutions output to WMS:
+
+
+![seattle_sp_solved2.png](/content/guides/solve_graph_seattle_shortest_path/seattle_sp_solved2.png)
+
+
+#### Many Sources to Many Destinations
+
+
+The third example illustrates a shortest path solve from a many source nodes
+to many destination nodes. First, the source node and destination nodes are
+defined. If many source node and many destination nodes are provided, the graph
+solver will pair the source and destination node by list index and calculate a
+shortest path solve for each pair. For this example, there are two starting
+points (`POINT(-122.1792501 47.2113606)` and
+`POINT(-122.375180125237 47.8122103214264)`) and paths will be calculated from
+the first source to two different destinations and from the second source to two
+other destinations.
+
+
+<Note>
+Calculations from multiple unique sources are faster and more
+efficient than calculations with one unique source, but results
+may differ slightly between multiple unique source calculations
+and single unique source calculations (less than ~1% variance).
+</Note>
+
+{/* Source: /examples/python/graph/solve_graph_seattle_shortest_path.py (lines 202-213) */}
+```python Define Multiple Beginning & Multiple Ending Points
+source_nodes = [
+    "POINT(-122.1792501 47.2113606)",
+    "POINT(-122.1792501 47.2113606)",
+    "POINT(-122.375180125237 47.8122103214264)",
+    "POINT(-122.375180125237 47.8122103214264)"
+]
+destination_nodes = [
+    "POINT(-122.222100 47.570700)",
+    "POINT(-122.541017 47.809121)",
+    "POINT(-122.520440 47.624725)",
+    "POINT(-122.467915 47.427280)"
+]
+```
+
+Next, the `seattle_road_network_graph` graph is solved with the solve results
+being exported to the response:
+
+{/* Source: /examples/python/graph/solve_graph_seattle_shortest_path.py (lines 214-220) */}
+```python Solve Graph for Shortest Paths with Multiple Sources & Multiple Destinations
+kinetica.solve_graph(
+    graph_name = GRAPH_S,
+    solver_type = "SHORTEST_PATH",
+    source_nodes = source_nodes,
+    destination_nodes = destination_nodes,
+    solution_table = TABLE_GRAPH_S_SPSOLVED3
+)
+```
+
+The cost for the source node to visit each of the destination nodes separately
+is represented as time in minutes:
+
+{/* Source: /examples/python/graph/solve_graph_seattle_shortest_path.out (lines 50-57) */}
+```text Solve Graph for Shortest Paths with Multiple Sources & Multiple Destinations Solution
++--------------------------------------------+--------------------------------------------+---------------------+
+| Source Node                                | Destination Node                           |   Cost (in minutes) |
+|--------------------------------------------+--------------------------------------------+---------------------|
+| POINT (-122.179250121117 47.2113606333733) | POINT (-122.221578061581 47.5709509849548) |             40.6791 |
+| POINT (-122.375180125237 47.8122103214264) | POINT (-122.520979642868 47.6248607039452) |             51.1339 |
+| POINT (-122.375180125237 47.8122103214264) | POINT (-122.471138834953 47.4291801452637) |             60.8013 |
+| POINT (-122.179250121117 47.2113606333733) | POINT (-122.541549503803 47.8095200657845) |             90.2997 |
++--------------------------------------------+--------------------------------------------+---------------------+
+```
+
+The solutions output to WMS:
+
+
+![seattle_sp_solved3.png](/content/guides/solve_graph_seattle_shortest_path/seattle_sp_solved3.png)
+
+
+## Download & Run
+
+
+Included below is a complete example containing all the above requests, the data
+files, and output.
+
+* [Shortest path solve graph script](/examples/python/graph/solve_graph_seattle_shortest_path.py)
+* [Seattle road network data file](/examples/data/road_weights.csv)
+* [Python output](/examples/python/graph/solve_graph_seattle_shortest_path.out)
+
+To run the complete sample, ensure that:
+
+* the <Badge color="gray">solve_graph_seattle_shortest_path.py</Badge> script is in the
+  current directory
+* the <Badge color="gray">road_weights.csv</Badge> file is in the current directory or use
+  the `data_dir` parameter to specify the local directory containing it
+
+Then, run the following:
+
+```bash title="Run Example"
+python solve_graph_seattle_shortest_path.py [--url <kinetica_url>] --username <username> --password <password> [--data_dir <data_file_directory>]
+```

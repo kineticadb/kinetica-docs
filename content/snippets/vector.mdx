@@ -1,0 +1,420 @@
+---
+title: Vector Search
+description: "Copy-paste examples of using & searching vectors in SQL & Python"
+slug: vector
+# time_estimate: 5 MIN
+---
+
+## Creating a Table
+
+
+A `vector` column can optionally be configured to normalize the vector data
+inserted into it, giving each vector a magnitude (L2 norm) of *1*.  This can
+improve the performance of some vector operations with minimal overhead.
+
+
+### Vector Column without Normalization
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/vector/vector.kisql (lines 19-23) */}
+```sql SQL
+CREATE OR REPLACE TABLE example.vs
+(
+	name VARCHAR(16) NOT NULL,
+	embedding VECTOR(3) NOT NULL
+)
+```
+
+{/* Source: /examples/python/vector.py (lines 18-24) */}
+```python Python (native API)
+table_name = 'example.vs'
+columns = [
+    ['name', 'string', 'char16'],
+    ['embedding', 'bytes', 'vector(3)']
+]
+
+gpudb.GPUdbTable(columns, table_name, db = kinetica)
+```
+
+{/* Source: /examples/python/vector.py (lines 244 250) */}
+```python Python (from DataFrame)
+table_name = 'example.vs'
+vs = gpudb.GPUdbTable.from_df(df, kinetica, table_name, clear_table = True)
+```
+
+</CodeGroup>
+
+
+### Vector Column with Normalization
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/vector/vector.kisql (lines 102-106) */}
+```sql SQL
+CREATE OR REPLACE TABLE example.vs_norm
+(
+	name VARCHAR(16) NOT NULL,
+	embedding VECTOR(3, NORMALIZE) NOT NULL
+)
+```
+
+{/* Source: /examples/python/vector.py (lines 191 195-200) */}
+```python Python (native API)
+table_name = 'example.vs_norm'
+columns = [
+    ['name', 'string', 'char16'],
+    ['embedding', 'bytes', 'vector(3)', 'normalize']
+]
+
+vs = gpudb.GPUdbTable(columns, table_name, db = kinetica)
+```
+
+{/* Source: /examples/python/vector.py (lines 278-283) */}
+```python Python (from DataFrame)
+table_name = 'example.vs_norm'
+
+vs = gpudb.GPUdbTable.from_df(
+        df, kinetica, table_name, clear_table = True,
+        column_types = { 'embedding': [ 'vector(3)', 'normalize' ] }
+)
+```
+
+</CodeGroup>
+
+
+## Inserting Vector Data
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/vector/vector.kisql (lines 33-35 46-49) */}
+```sql SQL
+INSERT INTO example.vs
+VALUES
+	('fun','[-0.23764,0.43119,-0.72154]'),
+	('play','[-0.73571,0.19937,-0.89408]'),
+	('food','[0.47222,-0.44545,-0.51833]'),
+	('money','[0.59784,-0.057026,0.97746]'),
+	('work','[0.51359,0.19695,-0.51944]')
+```
+
+{/* Source: /examples/python/vector.py (lines 31-32 43-51) */}
+```python Python (as strings)
+embs = [
+    ['fun', '[-0.23764,0.43119,-0.72154]'],
+    ['play', '[-0.73571,0.19937,-0.89408]'],
+    ['food', '[0.47222,-0.44545,-0.51833]'],
+    ['money', '[0.59784,-0.057026,0.97746]'],
+    ['work', '[0.51359,0.19695,-0.51944]']
+]
+
+vs = gpudb.GPUdbTable(name = 'example.vs', db = kinetica)
+
+vs.insert_records(embs)
+```
+
+{/* Source: /examples/python/vector.py (lines 56-57 68-75 78) */}
+```python Python (as native types)
+embs = [
+    ['fun', [-0.23764,0.43119,-0.72154]],
+    ['play', [-0.73571,0.19937,-0.89408]],
+    ['food', [0.47222,-0.44545,-0.51833]],
+    ['money', [0.59784,-0.057026,0.97746]],
+    ['work', [0.51359,0.19695,-0.51944]]
+]
+
+vs = gpudb.GPUdbTable(name = 'example.vs', db = kinetica)
+
+vs.insert_records(embs)
+```
+
+{/* Source: /examples/python/vector.py (lines 307-308 311) */}
+```python Python (as DataFrame)
+vs = gpudb.GPUdbTable(name = 'example.vs', db = kinetica)
+
+vs.insert_df(df, batch_size = 10000)
+```
+
+</CodeGroup>
+
+
+## Retrieving Vector Data
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/vector/vector.kisql (lines 28-29) */}
+```sql SQL
+SELECT name, embedding
+FROM example.vs
+```
+
+{/* Source: /examples/python/vector.py (lines 85-88 91-95) */}
+```python Python (w/o native type conversions)
+vs = gpudb.GPUdbTable(name = 'example.vs', db = kinetica)
+
+records = vs.get_records()
+
+dim = 3
+
+print('%-16s %s' % ('Name', 'Embedding'))
+for record in records:
+    print('%-16s %s' % (record[0], list(struct.unpack('%df'%dim, record[1]))))
+```
+
+{/* Source: /examples/python/vector.py (lines 102-105 108-110) */}
+```python Python (w/ native type conversions)
+vs = gpudb.GPUdbTable(name = 'example.vs', db = kinetica, convert_special_types_on_retrieval = True)
+
+records = vs.get_records(encoding = 'json')
+
+print('%-16s %s' % ('Name', 'Embedding'))
+for record in records:
+    print('%-16s %s' % (record["name"], record["embedding"]))
+```
+
+{/* Source: /examples/python/vector.py (lines 307-310 323) */}
+```python Python (as DataFrame)
+vs = gpudb.GPUdbTable(name = 'example.vs', db = kinetica)
+
+df = vs.to_df()
+
+print(df)
+```
+
+</CodeGroup>
+
+
+## Indexing Vector Data
+
+
+### CAGRA Vector Index
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 155-156) */}
+```sql SQL
+ALTER TABLE example.employee
+ADD CAGRA INDEX (profile)
+```
+
+{/* Source: /examples/python/indexes.py (lines 145-150 152-153) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "create_index",
+    value = "profile",
+    options = {
+            "index_type": "cagra"
+    }
+)
+```
+
+</CodeGroup>
+
+
+### HNSW Vector Index
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 173-174) */}
+```sql SQL
+ALTER TABLE example.employee
+ADD HNSW INDEX (profile)
+```
+
+{/* Source: /examples/python/indexes.py (lines 183-188 190-191) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "create_index",
+    value = "profile",
+    options = {
+            "index_type": "hnsw"
+    }
+)
+```
+
+</CodeGroup>
+
+
+## Searching Vector Data
+
+
+### Vector Search by Operator
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/vector/vector.kisql (lines 82-84) */}
+```sql SQL Literal
+SELECT TOP 5 name, embedding <-> VECTOR('[-0.23764,0.43119,-0.72154]', 3) as distance
+FROM example.vs
+ORDER BY distance
+```
+
+{/* Source: /examples/sql/vector/vector.kisql (lines 89-94) */}
+```sql SQL Lookup
+SELECT TOP 5 name, embedding <-> search_embedding as distance
+FROM
+	example.vs,
+	(SELECT embedding AS search_embedding FROM example.vs WHERE name = 'fun')
+WHERE name <> 'fun'
+ORDER BY distance
+```
+
+{/* Source: /examples/python/vector.py (lines 154-164) */}
+```python Python Literal
+sql = """
+    SELECT TOP 5 name, embedding <-> VECTOR('[-0.23764,0.43119,-0.72154]', 3) as distance
+    FROM example.vs
+    ORDER BY distance
+"""
+
+with gpudb.GPUdbSqlIterator(kinetica, sql) as records:
+
+    print('%-16s %s' % ('Name', 'Distance'))
+    for record in records:
+        print('%-16s %f' % (record[0], record[1]))
+```
+
+{/* Source: /examples/python/vector.py (lines 171-184) */}
+```python Python Lookup w/ SQL
+sql = """
+    SELECT TOP 5 name, embedding <-> search_embedding as distance
+    FROM
+        example.vs,
+        (SELECT embedding AS search_embedding FROM example.vs WHERE name = 'fun')
+    WHERE name <> 'fun'
+    ORDER BY distance
+"""
+
+with gpudb.GPUdbSqlIterator(kinetica, sql) as records:
+
+    print('%-16s %s' % ('Name', 'Distance'))
+    for record in records:
+        print('%-16s %f' % (record[0], record[1]))
+```
+
+{/* Source: /examples/python/vector.py (lines 372-380) */}
+```python Python Literal to DataFrame
+sql = """
+    SELECT TOP 5 name, embedding <-> VECTOR('[-0.23764,0.43119,-0.72154]', 3) as distance
+    FROM example.vs
+    ORDER BY distance
+"""
+
+df = kinetica.to_df(sql)
+
+print(df)
+```
+
+{/* Source: /examples/python/vector.py (lines 390-401) */}
+```python Python Lookup w/ SQL to DataFrame
+sql = """
+    SELECT TOP 5 name, embedding <-> search_embedding as distance
+    FROM
+        example.vs,
+        (SELECT embedding AS search_embedding FROM example.vs WHERE name = 'fun')
+    WHERE name <> 'fun'
+    ORDER BY distance
+"""
+
+df = kinetica.to_df(sql)
+
+print(df)
+```
+
+</CodeGroup>
+
+
+### Vector Search by Function
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/vector/vector.kisql (lines 65-67) */}
+```sql SQL Literal
+SELECT TOP 5 name, L2_DISTANCE(embedding,'[-0.23764,0.43119,-0.72154]') as distance
+FROM example.vs
+ORDER BY distance
+```
+
+{/* Source: /examples/sql/vector/vector.kisql (lines 72-77) */}
+```sql SQL Lookup
+SELECT TOP 5 name, L2_DISTANCE(embedding, search_embedding) as distance
+FROM
+	example.vs,
+	(SELECT embedding AS search_embedding FROM example.vs WHERE name = 'fun')
+WHERE name <> 'fun'
+ORDER BY distance
+```
+
+{/* Source: /examples/python/vector.py (lines 117-127) */}
+```python Python Literal
+vs = gpudb.GPUdbTable(name = 'example.vs', db = kinetica)
+
+records = vs.get_records_by_column(
+        ["name", "L2_DISTANCE(embedding,'[-0.23764,0.43119,-0.72154]') as distance"],
+        limit = 5,
+        options = {"sort_by": "distance"}
+)
+
+print('%-16s %s' % ('Name', 'Distance'))
+for record in zip(records['name'], records['distance']):
+    print('%-16s %f' % (record[0], record[1]))
+```
+
+{/* Source: /examples/python/vector.py (lines 134-147) */}
+```python Python Lookup w/ SQL
+sql = """
+    SELECT TOP 5 name, L2_DISTANCE(embedding, search_embedding) as distance
+    FROM
+        example.vs,
+        (SELECT embedding AS search_embedding FROM example.vs WHERE name = 'fun')
+    WHERE name <> 'fun'
+    ORDER BY distance
+"""
+
+with gpudb.GPUdbSqlIterator(kinetica, sql) as records:
+
+    print('%-16s %s' % ('Name', 'Distance'))
+    for record in records:
+        print('%-16s %f' % (record[0], record[1]))
+```
+
+{/* Source: /examples/python/vector.py (lines 333-341) */}
+```python Python Literal to DataFrame
+sql = """
+    SELECT TOP 5 name, L2_DISTANCE(embedding,'[-0.23764,0.43119,-0.72154]') as distance
+    FROM example.vs
+    ORDER BY distance
+"""
+
+df = kinetica.to_df(sql)
+
+print(df)
+```
+
+{/* Source: /examples/python/vector.py (lines 351-362) */}
+```python Python Lookup w/ SQL to DataFrame
+sql = """
+    SELECT TOP 5 name, L2_DISTANCE(embedding, search_embedding) as distance
+    FROM
+        example.vs,
+        (SELECT embedding AS search_embedding FROM example.vs WHERE name = 'fun')
+    WHERE name <> 'fun'
+    ORDER BY distance
+"""
+
+df = kinetica.to_df(sql)
+
+print(df)
+```
+
+</CodeGroup>

@@ -1,0 +1,304 @@
+---
+title: Running C++ UDFs
+---
+
+<a id="udf-running-label-cpp"></a>
+
+
+The information below includes all information one needs to know to begin
+running C++ UDFs. For more information on
+writing C++ UDFs, see [C++ UDF API](/content/udf/cpp/writing); for more information on
+simulating running UDFs, see [UDF Simulator](/content/udf/simulating_udfs). Example C++ UDFs
+can be found [here](/content/udf/cpp/examples).
+
+
+<Note>
+Though any of the
+[native APIs](/content/api/concepts), [SQL](/content/sql/udf#sql-udf), or
+[GAdmin](/content/admin/gadmin/udf)
+can be used for deploying and executing UDFs written in any UDF API language,
+all the examples below are written using the native Python API for
+convenience.
+</Note>
+
+
+## Deployment
+
+
+Calling the [create_proc()](../../../api/python/?source/gpudb.html#gpudb.GPUdb.create_proc) method ([CREATE FUNCTION](/content/sql/udf#sql-create-function) in SQL)
+will deploy the specified UDF to the Kinetica execution environment, to every
+server in the cluster.  The method takes the following parameters:
+
+<AccordionGroup>
+
+<Accordion title="proc_name" id="proc_name" defaultOpen>
+
+A system-wide unique name for the UDF
+
+</Accordion>
+
+<Accordion title="execution_mode" id="execution_mode" defaultOpen>
+
+An execution mode; either *distributed* or *nondistributed*
+
+</Accordion>
+
+<Accordion title="files" id="files" defaultOpen>
+
+A set of files composing the UDF package, including the names of the files and the binary data for
+those files.  The files specified will be created on the target Kinetica servers in the UDF
+directory, with the given data and filenames; if the filenames contain subdirectories, that structure
+will be copied to the target servers.
+
+Files in [KiFS](/content/tools/kifs) can also be used here.  To use a *KiFS* file, pass the *KiFS*
+URI as the name of the file and set the binary data portion to `b''`.  In this case, the *KiFS*
+files will be copied into the UDF execution environment under their respective UDF directories for
+use when [execute_proc()](../../../api/python/?source/gpudb.html#gpudb.GPUdb.execute_proc) is called.
+
+For example, a file uploaded to (and referenced in the `files` mapping as):
+
+```
+kifs://udf/file.ext
+```
+Will be made available to the UDF and need to be referenced in the `args` listing as:
+
+```
+udf/file.ext
+```
+
+<Info>
+Uploading files using the `files` parameter should be reserved for smaller files; larger
+files should be uploaded to *KiFS* and referenced there instead.
+</Info>
+
+</Accordion>
+
+<Accordion title="command" id="command" defaultOpen>
+
+The name of the command to run, which can be a file within the deployed UDF fileset, or any command
+able to be executed within the host environment, e.g., `python`.  If a host environment command is
+specified, the host environment must be properly configured to support that command's execution.
+
+</Accordion>
+
+<Accordion title="args" id="args" defaultOpen>
+
+A list of command-line arguments to pass to the specified command; e.g.,
+`./<file name>.py`
+
+
+<Info>
+Any files referenced here that were uploaded to *KiFS* will need to be prefixed with their
+corresponding *KiFS* directory names; i.e., `<kifs dir>/<file name>.<ext>`
+</Info>
+
+</Accordion>
+
+<Accordion title="options" id="options" defaultOpen>
+
+Optional parameters for UDF creation, including the
+[function environment](/content/udf/python/writing#udf-python-func-env) to use for the Python UDF.
+
+See [create_proc()](../../../api/python/?source/gpudb.html#gpudb.GPUdb.create_proc) for more details.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Creating a UDF - Direct File Passing
+
+
+To deploy a C++ UDF using the native Python API, a local, compiled proc
+executable (`udf_tc_proc`) can be read in as bytes and then passed into the
+[create_proc()](../../../api/python/?source/gpudb.html#gpudb.GPUdb.create_proc) call as a `files` map, with the key as the name of the file
+and the value as the byte array.
+
+{/* Source: /examples/cpp/udf/table_copy/udf_tc_manager.py (lines 17-18 ) */}
+```python Create UDF Example - Filename Constants
+PROC_FILE_NAME = 'udf_tc_proc'
+PROC_NAME = PROC_FILE_NAME
+```
+
+{/* Source: /examples/cpp/udf/table_copy/udf_tc_manager.py (lines 97-99) */}
+```python Create UDF Example - File Map Loading
+files = {}
+with open(PROC_FILE_NAME, 'rb') as file:
+    files[PROC_FILE_NAME] = file.read()
+```
+
+{/* Source: /examples/cpp/udf/table_copy/udf_tc_manager.py (lines 102-109) */}
+```python Create UDF Example - create_proc() Call
+response = kinetica.create_proc(
+    proc_name = PROC_NAME,
+    execution_mode = 'distributed',
+    files = files,
+    command = f'./{PROC_FILE_NAME}',
+    args = [],
+    options = {}
+)
+```
+
+
+### Creating a UDF - Uploading to KiFS
+
+
+To deploy a C++ UDF using the native Python API, a local, compiled proc
+executable (`udf_tc_proc`) can be uploaded to a *KiFS* directory and then
+referenced in the [create_proc()](../../../api/python/?source/gpudb.html#gpudb.GPUdb.create_proc) call, with the key as the *KiFS* path to the
+file and the value as an empty byte array, `b''`.
+
+{/* Source: /examples/cpp/udf/table_copy/udf_tc_manager.py (lines 15-16 17-19 136-137) */}
+```python Create UDF Example - KiFS File Uploading
+ gpudb_file_handler import GPUdbFileHandler
+
+_FILE_NAME = 'udf_tc_proc'
+_NAME = PROC_FILE_NAME
+_DIR = 'udf'
+
+GPUdbFileHandler(kinetica).upload_file(PROC_FILE_NAME, KIFS_DIR)
+```
+
+{/* Source: /examples/cpp/udf/table_copy/udf_tc_manager.py (lines 140-147) */}
+```python Create UDF Example - KiFS create_proc() Call
+response = kinetica.create_proc(
+    proc_name = PROC_NAME,
+    execution_mode = 'distributed',
+    files = {f'kifs://{KIFS_DIR}/{PROC_FILE_NAME}': b''},
+    command = f'{KIFS_DIR}/{PROC_FILE_NAME}',
+    args = [],
+    options = {}
+)
+```
+
+
+<a id="concurrency-limits"></a>
+
+
+### Concurrency Limits
+
+
+The `max_concurrency_per_node` setting is available in the `options` map of
+the [/create/proc](/content/api/rest/create_proc_rest#create-proc-rest). This option allows you to define a per-*Kinetica*-
+host concurrency limit for a *UDF*, i.e. no more than *n* OS processes (*UDF*
+instances) in charge of evaluating the *UDF* will be permitted to execute
+concurrently on a single *Kinetica* host. You may want to set a concurrency
+limit if you have limited resources (like GPUs) and want to avoid the risks of
+continually exhausting your resources. This setting is particularly useful for
+distributed *UDFs*, but it will also work for non-distributed *UDFs*.
+
+
+<Info>
+You can also set concurrency limits on the **Edit Proc**
+screen in the **UDF** section of
+[GAdmin](/content/admin/gadmin/udf)
+</Info>
+
+The default value for the setting is *0*, which results in no limits. If you set
+the value to *4*, only *4* instances of the *UDF* will be queued to execute the
+*UDF*. This holds true across *all* invocations of the proc; this means that
+even if [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) is called eight times, only *4*
+processes will be running. Another instance will be queued as soon as one
+instance finishes processing. This process will repeat, only allowing *4*
+instances of the *UDF* to run at a time, until all instances have completed or
+the *UDF* is killed.
+
+
+## Execution
+
+
+Calling the [execute_proc()](../../../api/python/?source/gpudb.html#gpudb.GPUdb.execute_proc) method (see [Executing Functions](/content/sql/udf#sql-execute-function) in
+SQL) will execute the specified UDF within the targeted Kinetica execution
+environment.  The method takes the following parameters:
+
+<AccordionGroup>
+
+<Accordion title="proc_name" id="proc_name-2" defaultOpen>
+
+The system-wide unique name for the UDF
+
+</Accordion>
+
+<Accordion title="params" id="params" defaultOpen>
+
+Set of string-to-string key/value paired parameters to pass to the UDF
+
+</Accordion>
+
+<Accordion title="bin_params" id="bin_params" defaultOpen>
+
+Set of string-to-binary key/value paired parameters to pass to the UDF
+
+</Accordion>
+
+<Accordion title="input_table_names" id="input_table_names" defaultOpen>
+
+Input data table names, to be processed by the UDF
+
+</Accordion>
+
+<Accordion title="input_column_names" id="input_column_names" defaultOpen>
+
+Mapping of input data table names to their respective column names, to be processed as input
+data by the UDF
+
+</Accordion>
+
+<Accordion title="output_table_names" id="output_table_names" defaultOpen>
+
+Output data table names, where processed data is to be appended
+
+</Accordion>
+
+<Accordion title="options" id="options-2" defaultOpen>
+
+Optional parameters for UDF execution; see [execute_proc()](../../../api/python/?source/gpudb.html#gpudb.GPUdb.execute_proc) for details
+
+</Accordion>
+
+</AccordionGroup>
+
+The call is asynchronous and will return immediately with a `run_id`, which is
+a string that can be used in subsequent checks of the execution status.
+
+For example, to execute a proc that's already been created (`udf_tc_proc`)
+using existing input (`udf_tc_in_table`) and output (`udf_tc_out_table`)
+tables:
+
+{/* Source: /examples/cpp/udf/table_copy/udf_tc_manager.py (lines 17-18 265-267) */}
+```python Execute UDF Example - Parameter Constants
+_FILE_NAME = 'udf_tc_proc'
+_NAME = PROC_FILE_NAME
+
+input_table = 'udf_tc_in_table'
+output_table = 'udf_tc_out_table'
+```
+
+{/* Source: /examples/cpp/udf/table_copy/udf_tc_manager.py (lines 165-173) */}
+```python Execute UDF Example - execute_proc() Call
+response = kinetica.execute_proc(
+    proc_name = PROC_NAME,
+    params = {},
+    bin_params = {},
+    input_table_names = [input_table],
+    input_column_names = {},
+    output_table_names = [output_table],
+    options = {}
+)
+```
+
+
+## Management
+
+
+UDFs can be managed using
+[SQL](/content/sql/udf#sql-udf), [GAdmin](/content/admin/gadmin/udf),
+or through one of the native API calls:
+
+| Native API | SQL Command | Description |
+| --- | --- | --- |
+| [delete_proc()](../../../api/python/?source/gpudb.html#gpudb.GPUdb.delete_proc) | [DROP FUNCTION](/content/sql/udf#sql-drop-function) | Removes the given UDF definition from the system; needs to be called before [create_proc()](../../../api/python/?source/gpudb.html#gpudb.GPUdb.create_proc) when recreating a UDF |
+| [has_proc()](../../../api/python/?source/gpudb.html#gpudb.GPUdb.has_proc) |  | Returns whether the given UDF exists |
+| [kill_proc()](../../../api/python/?source/gpudb.html#gpudb.GPUdb.kill_proc) |  | Terminates a running UDF (or UDFs) |
+| [show_proc()](../../../api/python/?source/gpudb.html#gpudb.GPUdb.show_proc) | [SHOW FUNCTION](/content/sql/udf#sql-show-function) | Returns the parameter values used in creating the UDF |
+| [show_proc_status()](../../../api/python/?source/gpudb.html#gpudb.GPUdb.show_proc_status) | [SHOW FUNCTION STATUS](/content/sql/udf#sql-show-function-status) | Returns whether the UDF (or UDFs) is still running, has completed, or has exited with an error, along with any processed results |

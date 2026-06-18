@@ -1,0 +1,49 @@
+---
+title: Export Records from Table
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="export-records-tofiles-feature-overview"></a>
+
+
+Export records from a table to files. All tables can be exported, in full or
+partial (see *columns_to_export* and *columns_to_skip*). Additional filtering
+can be applied when using export table with expression through SQL. Default
+destination is KIFS, though other storage types (Azure, S3, GCS, and HDFS) are
+supported through *datasink_name*; see
+[Create Data Sink](/content/feature_overview/create_datasink_feature_overview#create-datasink-feature-overview).
+
+Server's local file system is not supported.  Default file format is delimited
+text. See options for different file types and different options for each file
+type.  Table is saved to a single file if within max file size limits (may vary
+depending on datasink type).  If not, then table is split into multiple files;
+these may be smaller than the max size limit.
+
+All filenames created are returned in the response.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string |  |
+| filepath | string | Path to data export target.  If input parameter *filepath* has a file extension, it is read as the name of a file. If input parameter *filepath* is a directory, then the source table name with a random UUID appended will be used as the name of each exported file, all written to that directory. If filepath is a filename, then all exported files will have a random UUID appended to the given name.  In either case, the target directory specified or implied must exist.  The names of all exported files are returned in the response. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> batch_size: Number of records to be exported as a batch. The default value is `1000000`. <br/> <br/> column_formats: For each source column specified, applies the column-property-bound format. Currently supported column properties include date, time, and datetime. The parameter value must be formatted as a JSON string of maps of column names to maps of column properties to their corresponding column formats, e.g., '\{ "order_date" : \{ "date" : "%Y.%m.%d" \}, "order_time" : \{ "time" : "%H:%M:%S" \} \}'. See *default_column_formats* for valid format syntax. <br/> <br/> columns_to_export: Specifies a comma-delimited list of columns from the source table to export, written to the output file in the order they are given. Column names can be provided, in which case the target file will use those names as the column headers as well. Alternatively, column numbers can be specified--discretely or as a range. For example, a value of '5,7,1..3' will write values from the fifth column in the source table into the first column in the target file, from the seventh column in the source table into the second column in the target file, and from the first through third columns in the source table into the third through fifth columns in the target file. Mutually exclusive with *columns_to_skip*. <br/> <br/> columns_to_skip: Comma-separated list of column names or column numbers to not export. All columns in the source table not specified will be written to the target file in the order they appear in the table definition. Mutually exclusive with *columns_to_export*. <br/> <br/> datasink_name: Datasink name, created using [Create Data Sink](/content/feature_overview/create_datasink_feature_overview#create-datasink-feature-overview) . <br/> <br/> default_column_formats: Specifies the default format to use to write data. Currently supported column properties include date, time, and datetime. This default column-property-bound format can be overridden by specifying a column property and format for a given source column in *column_formats*. For each specified annotation, the format will apply to all columns with that annotation unless custom *column_formats* for that annotation are specified. The parameter value must be formatted as a JSON string that is a map of column properties to their respective column formats, e.g., '\{ "date" : "%Y.%m.%d", "time" : "%H:%M:%S" \}'. Column formats are specified as a string of control characters and plain text. The supported control characters are 'Y', 'm', 'd', 'H', 'M', 'S', and 's', which follow the Linux 'strptime()' specification, as well as 's', which specifies seconds and fractional seconds (though the fractional component will be truncated past milliseconds). Formats for the 'date' annotation must include the 'Y', 'm', and 'd' control characters. Formats for the 'time' annotation must include the 'H', 'M', and either 'S' or 's' (but not both) control characters. Formats for the 'datetime' annotation meet both the 'date' and 'time' control character requirements. For example, '\{"datetime" : "%m/%d/%Y %H:%M:%S" \}' would be used to write text as "05/04/2000 12:12:11" <br/> <br/> export_ddl: Save DDL to a separate file. The default value is `false`. <br/> <br/> file_extension: Extension to give the export file. The default value is `.csv`. <br/> <br/> file_type: Specifies the file format to use when exporting data. The default value is `delimited_text`. +--------------+------------------------------------------------+ \|Supported \|Description \| \|Values \| \| +==============+================================================+ \|delimited_text\|Delimited text file format; e.g., CSV, TSV, PSV,\| \| \|etc. \| \| \| \| +--------------+------------------------------------------------+ \|parquet \| \| \| \| \| +--------------+------------------------------------------------+ <br/> <br/> kinetica_header: Whether to include a Kinetica proprietary header. Will not be written if *text_has_header* is *false*. The default value is `false`. The supported values are: * true * false <br/> <br/> kinetica_header_delimiter: If a Kinetica proprietary header is included, then specify a property separator. Different from column delimiter. The default value is `\|`. <br/> <br/> compression_type: File compression type. GZip can be applied to text and Parquet files. Snappy can only be applied to Parquet files, and is the default compression for them. The supported values are: * uncompressed * snappy * gzip <br/> <br/> single_file: Save records to a single file. This option may be ignored if file size exceeds internal file size limits (this limit will differ on different targets). The default value is `true`. The supported values are: * true * false * overwrite <br/> <br/> single_file_max_size: Max file size (in MB) to allow saving to a single file. May be overridden by target limitations. The default value is ''. <br/> <br/> text_delimiter: Specifies the character to write out to delimit field values and field names in the header (if present). For *delimited_text* *file_type* only. The default value is `,`. <br/> <br/> text_has_header: Indicates whether to write out a header row. For *delimited_text* *file_type* only. The default value is `true`. The supported values are: * true * false <br/> <br/> text_null_string: Specifies the character string that should be written out for the null value in the data. For *delimited_text* *file_type* only. The default value is `\N`. |
+
+
+## Output Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of source table. |
+| count_exported | long | Number of source table records exported. |
+| count_skipped | long | Number of source table records skipped. |
+| files | array of strings | Names of all exported files. |
+| last_timestamp | long | Timestamp of last file scanned. |
+| data_text | array of strings |  |
+| data_bytes | array of bytes |  |
+| info | map of string to strings | Additional information. |

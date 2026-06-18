@@ -1,0 +1,37 @@
+---
+title: /show/video
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="show-video-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/show/video
+```
+Retrieves information about rendered videos.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| paths | array of strings | The fully-qualified [KiFS](../../../tools/kifs/) paths for the videos to show. If empty, shows all videos. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'show_video_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /show/video endpoint: <br/> <br/> creation_times: [array of strings] Creation time for each video as an ISO-8601 datetime. <br/> <br/> elapsed_render_time_seconds: [array of longs] The elapsed time spent rendering each video in seconds. <br/> <br/> job_ids: [array of longs] The job id of the rendering process, for each video that is still being rendered. <br/> <br/> paths: [array of strings] KIFS path to each video. <br/> <br/> rendered_bytes: [array of longs] The number of bytes emitted by the encoder for each video. <br/> <br/> rendered_frames: [array of longs] The number of frames rendered for each video. <br/> <br/> rendered_percents: [array of longs] Percent completion of each video's rendering process (0-100). <br/> <br/> requests: [array of strings] JSON-string reflecting each video's creation parameters. <br/> <br/> status: [array of strings] The status of the last rendered frame for each video.  Either OK or Error with a message indicating the nature of the error. <br/> <br/> ttls: [array of longs] The remaining [TTL](../../../concepts/ttl/), in minutes, before the respective video expires (-1 if it will never expire). <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

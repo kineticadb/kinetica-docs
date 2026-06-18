@@ -1,0 +1,110 @@
+---
+title: Reveal
+sidebarTitle: Reveal
+---
+
+<a id="sql-load-dashboard"></a>
+
+
+## LOAD DASHBOARD
+
+
+*Kinetica* provides a SQL interface for loading
+[Reveal](/content/bi/reveal) *dashboards* from a variety of sources:
+
+* [KiFS](/content/tools/kifs) path
+* Cloud provider via [data source](/content/sql/ddl#sql-create-data-source)
+* Public URL (GitHub, etc.)
+
+
+```sql title="LOAD DASHBOARD Syntax"
+LOAD DASHBOARD "<dashboard name>"
+FROM FILE PATH '<file path>'
+[WITH OPTIONS (DATASOURCE = '<data source name>')]
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;dashboard name&gt;" id="<dashboard-name>" defaultOpen>
+
+Name of the *dashboard*.
+
+
+<Note>
+This name **must** match the name of the *dashboard* in the file.
+</Note>
+
+</Accordion>
+
+<Accordion title="&lt;file path&gt;" id="<file-path>" defaultOpen>
+
+*Dashboard* source file path.
+
+If a *data source* is specified, the path must resolve to an accessible file at that location.
+
+If no *data source* is specified, the file path can refer to one of two locations:
+
+* Public URL
+
+* [KiFS](/content/tools/kifs) path
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>File Path</th>
+    <th>Outcome</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>kifs://reveal/db/nyctaxi.db</code></td>
+    <td>File <Badge color="gray">nyctaxi.db</Badge>, under the *KiFS* virtual directory <Badge color="gray">reveal/db</Badge></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;data source name&gt;" id="<data-source-name>" defaultOpen>
+
+Name of *data source* through which the *dashboard* will be loaded.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To load a *dashboard* named `nyctaxi.db` into *Reveal*:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/reveal.kisql (lines 40-41) */}
+```sql KiFS
+LOAD DASHBOARD "NYC Taxi"
+FROM FILE PATH 'kifs://reveal/nyctaxi.db'
+```
+
+{/* Source: /examples/sql/reveal.kisql (lines 45-47) */}
+```sql Data Source
+LOAD DASHBOARD "NYC Taxi"
+FROM FILE PATH 'nyctaxi.db'
+WITH OPTIONS (DATASOURCE = 'reveal')
+```
+
+{/* Source: /examples/sql/reveal.kisql (lines 51-52) */}
+```sql Public URL
+LOAD DASHBOARD "NYC Taxi"
+FROM FILE PATH 'https://github.com/kineticadb/examples/raw/master/quickstart/nyctaxi.db'
+```
+
+</CodeGroup>

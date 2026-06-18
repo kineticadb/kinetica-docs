@@ -1,0 +1,792 @@
+---
+title: API Documentation
+---
+
+## Map Initialization
+
+
+<a id="initmap"></a>
+
+
+### initMap
+
+
+**Function**
+
+`initMap(options) -> {Promise<Map>}`
+
+**Returns**
+
+A Promise that delivers the *Mapbox GL Map* when initialized; this is the
+*Mapbox web map object* that will be used throughout the rest of the API.
+
+**Description**
+
+Initializes a *Mapbox* web map.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `options` | `Object` | Yes | A configuration object for the map |
+| `options.mapDiv` | `String` | Yes | The div ID of the web map container |
+| `options.mapboxgl` | `Object` | Yes | The *Mapbox GL* object |
+| `options.mapboxKey` | `String` | Yes | The *Mapbox* API key |
+| `options.kineticaUrl` | `String` | Yes | The URL of the *Kinetica* REST API |
+| `options.wmsUrl` | `String` | Yes | The URL of the *Kinetica* WMS endpoint |
+| `options.center` | `Array<Number>` | No | The center point at which the map should initialize |
+| `options.zoom` | `Integer` | No | The *Mapbox* zoom scale with which to initialize the map |
+| `options.username` | `String` | No | The basic auth username for the *Kinetica* REST API |
+| `options.password` | `String` | No | The basic auth password for the *Kinetica* REST API |
+
+**Example**
+
+Map centered on *Kinetica* HQ:
+
+```js
+initMap(
+    {
+        mapDiv : "kineticaHQ",
+        mapboxgl : window.mapboxgl,
+        mapboxKey : 'abc123',
+        kineticaUrl : "http://<db.host>:9191",
+        wmsUrl : "http://<db.host>:9191/wms",
+        center : [-122.398, 37.793],
+        zoom : 15,
+        username : "admin",
+        password : "admin"
+    }
+)
+```
+
+
+## WMS Layer
+
+
+<a id="addwmslayer"></a>
+
+
+### addWmsLayer
+
+
+**Function**
+
+`addWmsLayer(map, options) -> {Promise<Object>}`
+
+**Returns**
+
+A layer parameters object; useful for testing purposes.
+
+**Description**
+
+Adds a WMS raster-styled layer to the *Mapbox* map.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `map` | `Object` | Yes | The *Mapbox* web map object |
+| `options` | `Object` | Yes | A configuration object for the WMS layer |
+| `options.layerId` | `String` | Yes | A unique identifier of the layer; cannot have the same ID as any other added layer |
+| `options.layerType` | `String` | Yes | The styling used to render the WMS image; options: <br/> <br/> *  `raster` <br/> *  `cb_raster` <br/> *  `heatmap` <br/> *  `contour` <br/> *  `labels` <br/> <br/> Can optionally use `options.renderingOptions.layers` in lieu of this property |
+| `options.wmsUrl` | `String` | Yes | The URL of the *Kinetica* WMS endpoint |
+| `options.tableName` | `String` | Yes | The name of the source table for the layer, containing geospatial data |
+| `options.xAttr` | `String` | Yes (if x,y) | The name of the column containing *x* values *(often longitude)* |
+| `options.yAttr` | `String` | Yes (if x,y) | The name of the column containing *y* values *(often latitude)* |
+| `options.geoAttr` | `String` | Yes (if WKT) | The name of the column containing *WKT* values |
+| `options.before` | `String` | No | The layer before (underneath) which to add the new layer; if specified layer ID is not found, the new layer will be added on top of all existing layers |
+| `options.renderingOptions` | `Object` | No | Rendering options that dictate the styling of the WMS layer; see the WMS documentation for the corresponding layer type for examples and default values: <br/> <br/> * [raster](../api/rest/wms_rest.html#raster) <br/> * [cb_raster](../api/rest/wms_rest.html#cb-raster) <br/> * [heatmap](../api/rest/wms_rest.html#heatmap) <br/> * [contour](../api/rest/wms_rest.html#contour) <br/> * [labels](../api/rest/wms_rest.html#labels) |
+
+**Example**
+
+Raster image of offices from an `office` table with `lat` & `lon`
+columns for coordinates:
+
+```js
+addWmsLayer(
+    map,
+    {
+        wmsUrl : 'http://<db.host>:9191/wms',
+        layerId : 'offices',
+        layerType : 'raster',
+        tableName : 'office',
+        xAttr : 'lon',
+        yAttr : 'lat',
+        renderingOptions :
+        {
+            POINTCOLORS: 'FF0000',
+            POINTSHAPES: 'square',
+            POINTSIZES: 4
+        }
+    }
+)
+```
+
+<a id="updatewmslayer"></a>
+
+
+### updateWmsLayer
+
+
+**Function**
+
+`updateWmsLayer(map, options) -> {Object}`
+
+**Returns**
+
+An object containing the map, WMS URL, source name, layer name, query
+parameters, and the redraw function; useful for testing purposes
+
+**Description**
+
+Updates a WMS layer's parameters with the passed options. Useful for updating
+WMS output styling parameters based on UI interactions.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `map` | `Object` | Yes | The *Mapbox* web map object |
+| `options` | `Object` | Yes | A configuration object for the WMS layer |
+| `options.layerId` | `String` | Yes | The unique identifier of the layer to update |
+| `options.wmsUrl` | `String` | Yes | The URL of the *Kinetica* WMS endpoint |
+| `options.renderingOptions` | `Object` | No | Rendering options that dictate the styling of the WMS layer; see the WMS documentation for the corresponding layer type for examples and default values: <br/> <br/> * [raster](../api/rest/wms_rest.html#raster) <br/> * [cb_raster](../api/rest/wms_rest.html#cb-raster) <br/> * [heatmap](../api/rest/wms_rest.html#heatmap) <br/> * [contour](../api/rest/wms_rest.html#contour) <br/> * [labels](../api/rest/wms_rest.html#labels) |
+
+**Example**
+
+Update raster image of offices, turning each point into a green circle:
+
+```js
+updateWmsLayer(
+    map,
+    {
+        layerId : 'offices',
+        wmsUrl : 'http://<db.host>:9191/wms',
+        renderingOptions :
+        {
+            POINTCOLORS: '00FF00',
+            POINTSHAPES: 'circle',
+            POINTSIZES: 3
+        }
+    }
+)
+```
+
+<a id="updatewmslayertype"></a>
+
+
+### updateWmsLayerType
+
+
+**Function**
+
+`updateWmsLayerType(map, layerId, layerType, debounceLimit) -> {Object}`
+
+**Returns**
+
+An object containing the redraw function and the debounce limit; useful for
+testing purposes
+
+**Description**
+
+Changes an existing WMS layer's rendering type and sets all of its parameters to
+the default values. Useful for changing a layer's presentation without having to
+destroy the old layer and create a new one.
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `map` | `Object` | Yes | The *Mapbox* web map object |
+| `layerId` | `String` | Yes | The unique identifier of the layer to update |
+| `layerType` | `String` | Yes | The type to which the layer should be updated |
+| `debounceLimit` | `Number` | No | The debounce limit to use as a delay between the end of panend/zoomend events; default is 2000ms |
+
+**Example**
+
+Update layer of offices to a heatmap:
+
+```js
+updateWmsLayerType(
+    map,
+    'offices',
+    'heatmap',
+    1000
+)
+```
+
+<a id="removewmslayer"></a>
+
+
+### removeWmsLayer
+
+
+**Function**
+
+`removeWmsLayer(map, layerId) -> {Void}`
+
+**Returns**
+
+Void
+
+**Description**
+
+Removes a WMS layer from the map, based on layer ID; this includes the layer
+source and event listeners
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `map` | `Object` | Yes | The *Mapbox* web map object |
+| `layerId` | `String` | Yes | The unique identifier of the layer to remove |
+
+**Example**
+
+Remove offices layer:
+
+```js
+removeWmsLayer(
+    map,
+    'offices'
+)
+```
+
+<a id="addcblegend"></a>
+
+
+### addCbLegend
+
+
+**Function**
+
+`addCbLegend(map, legendTitle, location, cbConfig) -> {Void}`
+
+**Returns**
+
+Void
+
+**Description**
+
+Adds a WMS raster styled layer to the *Mapbox* map
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `map` | `Object` | Yes | The *Mapbox* web map object |
+| `legendTitle` | `String` | Yes | A title to add to the top of the legend |
+| `location` | `String` | Yes | The location of the screen to render; e.g., `top-right` |
+| `cbConfig` | `Object` | Yes | An object containing the class-break configuration values |
+| `cbConfig.cbVals` | `Array<String>` | Yes | An array of class-break specifications to be shown next to the colored legend tokens |
+| `cbConfig.pointColors` | `Array<String>` | Yes | An array of class-break colors to be rendered as tokens next to the class breaks |
+
+**Example**
+
+Add a legend to a class break on offices by the number of employees at each;
+offices of up to 20 employees will be green, between 21 and 40 will be
+yellow, and 41 or more employees will be shaded *red*:
+
+```js
+addCbLegend(
+    map,
+    'Offices by Employees',
+    'top-right',
+    {
+        cbVals :
+        [
+            '0-20',
+            '20-40',
+            '<other>'
+        ],
+        pointColors :
+        [
+            '00FF00',
+            'FFFF00',
+            'FF0000'
+        ]
+    }
+)
+```
+
+<a id="setlayeropacity"></a>
+
+
+### setLayerOpacity
+
+
+**Function**
+
+`setLayerOpacity(map, layerId, opacity) -> {Void}`
+
+**Returns**
+
+Void
+
+**Description**
+
+A helper function to easily set a layer's opacity
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `map` | `Object` | Yes | The *Mapbox* web map object |
+| `layerId` | `String` | Yes | The unique identifier of the layer to modify |
+| `opacity` | `Number` | Yes | The opacity to assign the layer, between `0` and `1` |
+
+**Example**
+
+Set opacity of offices layer to 50%:
+
+```js
+removeWmsLayer(
+    map,
+    'offices',
+    .5
+)
+```
+
+
+## Cluster Layer
+
+
+<a id="addclusterlayer"></a>
+
+
+### addClusterLayer
+
+
+**Function**
+
+`addClusterLayer(map, options) -> {Promise}`
+
+**Returns**
+
+Returns a promise that resolves with the map, cluster object, update function,
+and options used to generate the cluster. Useful for testing purposes.
+
+**Description**
+
+Adds a geohash cluster visualization layer to the Mapbox map
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `map` | `Object` | Yes | The *Mapbox* web map object |
+| `options` | `Object` | Yes | A configuration object for the cluster layer |
+| `options.layerId` | `String` | Yes | A unique identifier for the layer; cannot have the same ID as any other added layer |
+| `options.mapboxgl` | `Object` | Yes | The *Mapbox GL* object |
+| `options.kineticaUrl` | `String` | Yes | The URL of the *Kinetica* REST API |
+| `options.tableName` | `String` | Yes | The name of the source table for the layer, containing geospatial data |
+| `options.xAttr` | `String` | Yes | The name of the column containing *x* values *(often longitude)* |
+| `options.yAttr` | `String` | Yes | The name of the column containing *y* values *(often latitude)* |
+| `options.geohashAttr` | `String` | Yes | The name of the column containing geohashes |
+| `options.precision` | `Integer` | Yes | The geohash precision *(number of beginning geohash* *characters)* to use on the initial database groupby of geohashes; cannot exceed the length of any geohash; higher numbers will produce a more granular view at some performance cost |
+| `options.clusterRadius` | `Integer` | No | The visual radius, in pixels, on the map within which to generate clusters; does not impact database performance, only client-side rendering |
+| `options.clusterMaxZoom` | `Integer` | No | The maximum zoom with which clusters can be generated; defaults to `14` |
+| `options.useBbox` | `Boolean` | No | Whether to generate clusters only within the current bounding box or not to restrict the generation area; defaults to `No`; when `Yes`, more granular, high-density clusters tend to be generated |
+| `options.minSize` | `Integer` | No | The minimum visual size of each cluster dot; defaults to `1` pixel |
+| `options.maxSize` | `Integer` | No | The maximum visual size of each cluster dot; defaults to `20` pixels |
+| `options.minColor` | `String` | No | The color of the smallest clusters; defaults to *red*; a gradient will form between this color and the one in `maxColor` |
+| `options.maxColor` | `String` | No | The color of the largest clusters; defaults to *green*; a gradient will form between this color and the one specified in `minColor` |
+| `options.dbAggregations` | `Array<String>` | No | An array of custom aggregations to perform at the database level at the specified `precision` of the geohashes; these will be included as properties for the custom client-side aggregations <br/> <Info> `COUNT(*)` is calculated by default and should not be specified as an aggregate </Info> |
+| `options.clientAggregations` | `Array<Object>` | No | An array of custom map/reduce aggregations to perform on the client side, for each cluster displayed at the current zoom level; aggregation configurations should be objects with the following properties: <br/> <br/> * `key`: name of column *(or column alias defined in* `dbAggregations` *expression)* on which to apply the aggregation; this name must be used throughout the map/reduce config <br/> * `initial`: initial value of aggregation variable <br/> * `map`: optional mapping function on `(key, properties)`, where each value of the column *(or column alias defined in* `dbAggregations` *expressions)* can be accessed within the function at `properties.<column>` <br/> * `reduce`: reducing function on `(accumulated, properties)` where each mapped value of the column *(or column alias defined in* `dbAggregations` *expressions)* can be accessed within the function at `properties.<column>` and accumulated into the value at `accumulated.<column>` <br/> <Tip> See below for an example setup using both database & client-side aggregations </Tip> |
+
+
+<Info>
+A WKT column is not currently allowed when creating clusters--x/y
+columns must be used.
+</Info>
+
+**Example**
+
+Clustering of employees from an `office_employee` table with `lat` &
+`lon` columns for coordinates, each cluster calculating the total of the
+salaries earned by all employees located at offices within the cluster:
+
+```js
+addClusterLayer(
+    map,
+    {
+        layerId : 'office_employees',
+        mapboxgl: window.mapboxgl,
+        kineticaUrl : 'http://<db.host>:9191',
+        tableName : 'office_employee',
+        xAttr : 'lon',
+        yAttr : 'lat',
+        geohashAttr : 'geo_hash',
+        precision : 4,
+        clusterRadius : 40,
+        clusterMaxZoom : 14,
+        useBbox : true,
+        minSize : 1,
+        maxSize : 20,
+        minColor : '#FF0000',
+        maxColor : '#00FF00',
+        dbAggregations :
+        [
+            'SUM(salary) employeeSalaries'
+        ],
+        clientAggregations :
+        [
+            {
+                key: 'employeeSalaries',
+                initial: 0,
+                map: (key, properties) => {
+                    return Number(properties.employeeSalaries);
+                },
+                reduce: (accumulated, properties) => {
+                    return accumulated.employeeSalaries + properties.employeeSalaries;
+                }
+            }
+        ]
+    }
+)
+```
+
+
+## Events
+
+
+The following events can be acted upon using the *Kinetica Kickbox.js Event API*
+
+| Event Name | Description |
+| --- | --- |
+| `beforeWmsLayerAdded` | Fires just before a WMS layer is added to the map |
+| `afterWmsLayerAdded` | Fires just after a WMS layer has been added to the map |
+| `beforeClusterLayerAdded` | Fires just before a cluster layer is added to the map |
+| `afterClusterLayerAdded` | Fires just after a cluster layer is added to the map |
+| `beforeWmsLayerRemoved` | Fires just before a WMS layer is removed from the map |
+| `afterWmsLayerRemoved` | Fires just after a WMS layer is removed from the map |
+| `beforeWmsSourceRemoved` | Fires just before a WMS layer is removed from the map |
+| `afterWmsSourceRemoved` | Fires just after a WMS layer is removed from the map |
+| `beforeZoomToBounds` | Fires just before zooming to bounds |
+| `afterZoomToBounds` | Fires just after zooming to bounds |
+| `beforeWmsLayerUpdated` | Fires just before a WMS layer is updated |
+| `afterWmsLayerUpdated` | Fires just before a WMS layer is updated |
+
+
+<a id="on"></a>
+
+
+### on
+
+
+**Function**
+
+`on(name, cb) -> {Void}`
+
+**Returns**
+
+Void
+
+**Description**
+
+Registers a callback with the given event name; an ID can be specified to allow
+a subsequent unregister call by ID instead of function signature, which requires
+storing function references globally
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `name` | `String` | Yes | The event name with which to register the listener callback |
+| `cb` | `Function` | Yes | The callback to invoke when the event is fired |
+| `cb.kbFnId` | `String` | No | The callback ID to use when unregistering the handler using `offById` |
+
+**Example**
+
+Log to console immediately after a WMS layer is added, and assign a callback
+ID of `myCallbackId` for subsequent use in turning this event handler off
+using `offById`:
+
+```js
+var afterWmsLayerUpdatedCb = (e) => { console.log('[' + e.eventName + ']  WMS layer has been updated'); }
+afterWmsLayerUpdatedCb.kbFnId = 'myCallbackId';
+
+on(
+    'afterWmsLayerUpdated',
+    afterWmsLayerUpdatedCb
+)
+```
+
+<a id="off"></a>
+
+
+### off
+
+
+**Function**
+
+`off(name, cb) -> {Void}`
+
+**Returns**
+
+Void
+
+**Description**
+
+Unregisters a callback with the given event name and callback function
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `name` | `String` | Yes | The event name from which to unregister the listener callback |
+| `cb` | `Function` | Yes | The callback function to unregister |
+
+**Example**
+
+Stop calling `afterWmsLayerUpdateCb` when `afterWmsLayerUpdated` events
+occur:
+
+```js
+off(
+    'afterWmsLayerUpdated',
+    afterWmsLayerUpdateCb
+)
+```
+
+
+<Info>
+As noted in `on`, the callback function reference passed in
+here must be the same reference passed to the `on` function
+</Info>
+
+
+<a id="offbyid"></a>
+
+
+### offById
+
+
+**Function**
+
+`offById(name, cbId) -> {Void}`
+
+**Returns**
+
+Void
+
+**Description**
+
+Unregisters a callback that has a `kbFnId` property equal to the specified
+`cbId`
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `name` | `String` | Yes | The event name from which to unregister the listener callback |
+| `cbId` | `String` | Yes | The ID of the callback function to unregister |
+
+**Example**
+
+Stop calling the callback function with an ID of `myCallbackId` when
+`afterWmsLayerUpdated` events occur:
+
+```js
+offById(
+    'afterWmsLayerUpdated',
+    'myCallbackId'
+)
+```
+
+
+<Info>
+This ID must match the one assigned to the callback function
+before calling the `on` function
+</Info>
+
+
+<a id="trigger"></a>
+
+
+### trigger
+
+
+**Function**
+
+`trigger(name) -> {Void}`
+
+**Returns**
+
+Void
+
+**Description**
+
+Triggers a *Kinetica Kickbox.js* event for all listeners of the event with the
+specified name
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `name` | `String` | Yes | The name of the event to trigger |
+
+**Example**
+
+Fire the `afterWmsLayerUpdated` event, triggering all listeners for that
+event to invoke their respective callback functions:
+
+```js
+trigger('afterWmsLayerUpdated')
+```
+
+
+## Identify Modes
+
+
+<a id="enableidentifybyradiusmode"></a>
+
+
+### enableIdentifyByRadiusMode
+
+
+**Function**
+
+`enableIdentifyByRadiusMode(map, options) -> {Void}`
+
+**Returns**
+
+Void
+
+**Description**
+
+Enables the identify-by-radius mode on a specified layer, after first disabling
+any currently active identify mode
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `map` | `Object` | Yes | The *Mapbox* web map object |
+| `options` | `Object` | Yes | An object containing the identify-by-radius mode configuration values |
+| `options.layerId` | `String` | Yes | The unique identifier of the layer on which to enable identify-by-radius mode |
+| `options.mapboxgl` | `Object` | Yes | The *Mapbox GL* object |
+| `options.MapboxDraw` | `Object` | Yes | The *Mapbox GL Draw* object |
+| `options.kineticaUrl` | `String` | Yes | The URL of the *Kinetica* REST API |
+| `options.tableName` | `String` | Yes | The name of the source table for the layer, containing geospatial data |
+| `options.xAttr` | `String` | Yes (if x,y) | The name of the column containing *x* values *(often longitude)* |
+| `options.yAttr` | `String` | Yes (if x,y) | The name of the column containing *y* values *(often latitude)* |
+| `options.geoAttr` | `String` | Yes (if WKT) | The name of the column containing *WKT* values |
+| `options.transformations` | `Array<Object>` | No | An array of objects that contain two properties: <br/> <br/> * `condition` - a function to determine whether a given record should be transformed <br/> * `transformation` - a function that performs a transformation on a given record |
+
+
+<Info>
+The *Mapbox GL* and *Mapbox GL Draw* objects require a separate
+install from *Kinetica Kickbox.js*
+</Info>
+
+**Example**
+
+Enable geospatial filtering of data via click-and-drag of a circle on the
+*offices* map layer, prefixing hex values in the `color_code` column with
+a `#`:
+
+```js
+enableIdentifyByRadiusMode
+(
+    {
+        layerId : 'offices',
+        mapboxgl : window.mapboxgl,
+        MapboxDraw : window.MapboxDraw,
+        kineticaUrl : "http://<db.host>:9191",
+        tableName : 'office',
+        xAttr : 'lon',
+        yAttr : 'lat',
+        transformations :
+        [
+            {
+                condition: (columnName, columnType) => { return columnName === 'color_code'; },
+                transformation: (record, columnName) =>
+                {
+                    record[columnName] = '#' + record[columnName];
+                    return record;
+                }
+            }
+        ]
+    }
+)
+```
+
+<a id="enableidentifybypointmode"></a>
+
+
+### enableIdentifyByPointMode
+
+
+**Function**
+
+`enableIdentifyByPointMode(map) -> {Void}`
+
+**Returns**
+
+Void
+
+**Description**
+
+Enables the identify-by-point mode on a specified layer, after first disabling
+any currently active identify mode
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `map` | `Object` | Yes | The *Mapbox* web map object |
+| `options` | `Object` | Yes | An object containing the identify-by-point mode configuration values |
+| `options.layerId` | `String` | Yes | The unique identifier of the layer on which to enable identify-by-point mode |
+| `options.mapboxgl` | `Object` | Yes | The *Mapbox GL* object |
+| `options.MapboxDraw` | `Object` | Yes | The *Mapbox GL Draw* object |
+| `options.kineticaUrl` | `String` | Yes | The URL of the *Kinetica* REST API |
+| `options.tableName` | `String` | Yes | The name of the source table for the layer, containing geospatial data |
+| `options.xAttr` | `String` | Yes (if x,y) | The name of the column containing *x* values *(often longitude)* |
+| `options.yAttr` | `String` | Yes (if x,y) | The name of the column containing *y* values *(often latitude)* |
+| `options.geoAttr` | `String` | Yes (if WKT) | The name of the column containing *WKT* values |
+| `options.radiusInMeters` | `Number` | Yes | The radius *(in meters)* around the clicked point to use as the search area |
+| `options.transformations` | `Array<Object>` | No | An array of objects that contain two properties: <br/> <br/> * `condition` - a function to determine whether a given record should be transformed <br/> * `transformation` - a function that performs a transformation on a given record |
+
+
+<Info>
+The *Mapbox GL* and *Mapbox GL Draw* objects require a separate
+install from *Kinetica Kickbox.js*
+</Info>
+
+**Example**
+
+Enable geospatial filtering of data via click of a point on the *offices*
+map layer and applying a 200m fixed radius to determine the filtered area,
+prefixing hex values in the `color_code` column with a `#`:
+
+```js
+enableIdentifyByPointMode
+(
+    {
+        layerId : 'offices',
+        mapboxgl : window.mapboxgl,
+        MapboxDraw : window.MapboxDraw,
+        kineticaUrl : "http://<db.host>:9191",
+        tableName : 'office',
+        xAttr : 'lon',
+        yAttr : 'lat',
+        radiusInMeters : 200,
+        transformations :
+        [
+            {
+                condition: (columnName, columnType) => { return columnName === 'color_code'; },
+                transformation: (record, columnName) =>
+                {
+                    record[columnName] = '#' + record[columnName];
+                    return record;
+                }
+            }
+        ]
+    }
+)
+```
+
+<a id="disableidentifymode"></a>
+
+
+### disableIdentifyMode
+
+
+**Function**
+
+`disableIdentifyMode(map) -> {Void}`
+
+**Returns**
+
+Void
+
+**Description**
+
+Disables the currently active *identify-by-radius* or *identify-by-point*
+mode and unregisters all callbacks driving the user interaction with this
+mode
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `map` | `Object` | Yes | The *Mapbox* web map object |
+
+**Example**
+
+Disable any active *identify* mode:
+
+```js
+disableIdentifyMode(map)
+```

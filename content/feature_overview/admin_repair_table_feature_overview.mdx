@@ -1,0 +1,31 @@
+---
+title: "Administration: Repair Table"
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="admin-repair-table-feature-overview"></a>
+
+
+Manually repair a corrupted table. Returns information about affected tables.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_names | array of strings | List of tables to query. An asterisk returns all tables. |
+| table_types | map of string to strings | ID of the type per table. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> repair_policy: Corrective action to take. +--------------+-------------------------------------------------+ \|Supported \|Description \| \|Values \| \| +==============+=================================================+ \|delete_chunks \|Deletes any corrupted chunks. \| \| \| \| +--------------+-------------------------------------------------+ \|shrink_columns\|Shrinks corrupted chunks to the shortest column. \| \| \| \| +--------------+-------------------------------------------------+ \|replay_wal \|Manually invokes write-ahead log (WAL) replay on \| \| \|the table. \| \| \| \| +--------------+-------------------------------------------------+ \|alter_table \|Reset columns modification after incomplete alter\| \| \|column. \| \| \| \| +--------------+-------------------------------------------------+ <br/> <br/> verify_all: If *false* only table chunk data already known to be corrupted will be repaired. Otherwise the database will perform a full table scan to check for correctness. The default value is `false`. The supported values are: * true * false |
+
+
+## Output Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_names | array of strings | List of repaired tables. |
+| repair_status | array of strings | List of repair status by table. |
+| info | map of string to strings | Additional information. |

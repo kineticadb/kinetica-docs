@@ -1,0 +1,121 @@
+---
+title: Kinetica File System (KiFS)
+---
+
+<a id="kifs-tools"></a>
+
+
+The *Kinetica File System (KiFS)* is a file system interface that's packaged
+with *Kinetica*.  It provides a repository for users to store and make use of
+files within the database.
+
+*KiFS* can be leveraged by several *Kinetica* features:
+
+* [UDFs](/content/udf_overview)
+  ([in SQL](/content/sql/udf#sql-create-function))
+* [External tables](/content/concepts/external_tables)
+  ([in SQL](/content/sql/ddl#sql-create-ext-table))
+* [/insert/records/fromfiles](/content/api/rest/insert_records_fromfiles_rest#insert-records-fromfiles-rest) API
+  calls ([SQL LOAD INTO](/content/sql/load#sql-load-file-server))
+
+
+*KiFS* files can be referenced with the following URI:
+
+```
+kifs://<kifs directory><kifs file>
+```
+
+
+For example, the following URI can be broken down into three components:
+
+```
+kifs://data/geospatial/flights.csv
+```
+| Component | Value |
+| --- | --- |
+| Scheme | `kifs://` |
+| Directory | `data` |
+| File | `/geospatial/flights.csv` |
+
+The unique *KiFS* file name, when referenced in the API, is the composite of the
+directory and file:
+
+```
+data/geospatial/flights.csv
+```
+
+
+## Configuration
+
+
+In the default configuration, *KiFS* is enabled and makes use of the standard
+*Kinetica* persistence scheme, distributing files among the cluster nodes.
+
+*KiFS* can also be configured to use any of the following for file storage:
+
+* Local shared storage, mounted and accessible to every node in the *Kinetica*
+  cluster
+* Azure (Microsoft blob storage)
+* HDFS (Apache Hadoop Distributed File System)
+* S3 (Amazon S3 Bucket)
+
+To configure *KiFS* to use one of these other storage types, update the
+<Badge color="gray">/opt/gpudb/core/etc/gpudb.conf</Badge> configuration file in the
+[KiFS section](/content/config#config-main-kifs) with one of the following setups,
+and then restart the database.
+
+
+<Info>
+Remote storage configuration parameters mirror those used for defining
+cold storage tiers.  See [Cold Storage Tier](/content/config#config-main-cold-storage-tier) in the
+*Configuration Reference* for the full set of parameters.
+</Info>
+
+```sh title="Local Shared KiFS Storage Configuration Example"
+kifs.type=disk
+kifs.base_path=/opt/gpudb/kifs
+```
+
+```sh title="Azure KiFS Storage Configuration Example"
+kifs.type = azure
+kifs.base_path = /gpudb/kifs
+kifs.azure_container_name = kinetica
+kifs.azure_storage_account_name = <azure account name>
+kifs.azure_storage_account_key = <azure account key>
+```
+
+```sh title="HDFS KiFS Storage Configuration Example"
+kifs.type = hdfs
+kifs.base_path = /gpudb/kifs
+kifs.hdfs_uri = hdfs://localhost:9000
+kifs.hdfs_principal = kinetica
+kifs.hdfs_use_kerberos = true
+kifs.hdfs_kerberos_keytab = /opt/gpudb/krb5.keytab
+```
+
+```sh title="S3 KiFS Storage Configuration Example"
+kifs.type = s3
+kifs.base_path = /gpudb/kifs
+kifs.wait_timeout = 10
+kifs.connection_timeout = 30
+kifs.s3_bucket_name = kifs-bucket
+kifs.s3_aws_access_key_id = <aws access key>
+kifs.s3_aws_secret_access_key = <aws secret key>
+```
+
+
+## SQL Interface
+
+
+*KiFS* is able to be managed via SQL.  See [Files & Directories (KiFS)](/content/sql/kifs#sql-kifs) for details.
+
+*Files* can be uploaded to and downloaded from *KiFS* using
+[Kinetica SQL (KiSQL)](/content/tools/kisql) or any JDBC client by using the
+[Kinetica JDBC Driver](/content/connectors/sql_guide#odbc-jdbc).
+
+
+## Native API Support
+
+
+The *Kinetica Java API* provides a streamlined interface for managing *files* &
+*directories* in *KiFS*.  See [KiFS API Support](/content/tools/kifs_api) for details.

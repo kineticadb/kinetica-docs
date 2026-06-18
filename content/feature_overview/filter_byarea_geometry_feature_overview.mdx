@@ -1,0 +1,39 @@
+---
+title: Filter Geometry by Area
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="filter-byarea-geometry-feature-overview"></a>
+
+
+Calculates which geospatial geometry objects from a table intersect a named
+area of interest (NAI/polygon). The operation is synchronous, meaning that a
+response will not be returned until all the matching objects are fully
+available. The response payload provides the count of the resulting set. A new
+resultant set (view) which satisfies the input NAI restriction specification is
+created with the name input parameter *view_name* passed in as part of the
+input.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of the table to filter, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). This may be the name of a table or a view (when chaining queries). |
+| view_name | string | If provided, then this will be the name of the view containing the results, in [schema_name.]view_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution) and meeting [table naming criteria](../../concepts/tables/#table-naming-criteria). Must not be an already existing table or view. <br/> <br/> The default value is ''. |
+| column_name | string | Name of the geospatial geometry column to be filtered. |
+| x_vector | array of doubles | List of x coordinates of the vertices of the polygon representing the area to be filtered. |
+| y_vector | array of doubles | List of y coordinates of the vertices of the polygon representing the area to be filtered. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> create_temp_table: If *true*, a unique temporary table name will be generated in the sys_temp schema and used in place of input parameter *view_name*. This is always allowed even if the caller does not have permission to create tables. The generated name is returned in *qualified_view_name*. The default value is `false`. The supported values are: * true * false <br/> <br/> collection_name: [DEPRECATED--please specify the containing schema for the view as part of input parameter *view_name* and use [Create Schema](/content/feature_overview/create_schema_feature_overview#create-schema-feature-overview) to create the schema if non-existent] The schema for the newly created view. If the schema is non-existent, it will be automatically created. |
+
+
+## Output Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| count | long | The number of records passing the area filter. |
+| info | map of string to strings | Additional information. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> qualified_view_name: The fully qualified name of the view (i.e. including the schema). |

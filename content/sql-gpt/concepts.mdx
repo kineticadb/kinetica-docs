@@ -1,0 +1,628 @@
+---
+title: SQL-GPT Concepts
+sidebarTitle: Concepts
+---
+
+[SQL-GPT](https://www.kinetica.com/features/sqlgpt/) is a Kinetica generative AI capability that produces SQL based on
+questions asked in natural language.
+
+A *SQL-GPT* interface is integrated into the top of each *Worksheet* of every
+*Workbook* in Kinetica.  The feature provides the option to customize the
+*SQL-GPT context* for each *Workbook* independently.
+
+The functionality is also accessible using SQL syntax integrated into the core
+database engine, so it can be leveraged by any Kinetica-powered application that
+can make SQL requests.
+
+
+<a id="sql-gpt-overview"></a>
+
+
+## Overview
+
+
+Transformer-based LLMs have an ability to learn new tasks with minimal training,
+and they have extensive knowledge to apply when performing generative tasks,
+such as generating SQL.  Configuring SQL-GPT to answer questions about a
+proprietary dataset requires minimal configuration to get started.
+
+Enabling SQL-GPT in a Kinetica environment consists of two steps:
+
+
+1. **Creating a SQL-GPT context**:
+   Create a *SQL-GPT context* via the *Workbench* UI, or using the
+   [CREATE CONTEXT](/content/sql/sqlgpt#sql-gpt-create-context) SQL syntax directly. The *context*
+   defines tables, rules, annotation, and training samples that the LLM needs to
+   understand your data.
+
+2. **Generating SQL**:
+   Enter natural language into the *Workbench* UI and click
+   **Generate SQL**, or use the
+   [GENERATE SQL](/content/sql/sqlgpt#sql-gpt-generate-sql) syntax. The response will contain the
+   generated SQL.
+
+   The [EXECUTE_AI_QUERY](/content/sql/sqlgpt#sql-gpt-execute) function can be used to generate SQL and
+   execute it in one step.
+
+
+<a id="sql-gpt-overview-syntax"></a>
+
+
+## Generating SQL
+
+
+Assuming you have a *SQL-GPT context* you can use the
+[GENERATE SQL](/content/sql/sqlgpt#sql-gpt-generate-sql) syntax to make natural language queries.
+
+```sql title="GENERATE SQL Syntax"
+GENERATE SQL FOR '<question>'
+WITH OPTIONS (context_name = '<context object>')
+```
+
+For example if you have a *context* object `stock_trades_context`, you can use
+it to generate SQL for the following question:
+
+{/* Source: /examples/sql/sql-gpt/concepts.kisql (lines 185-190) */}
+```sql GENERATE SQL Example
+GENERATE SQL FOR
+'
+	For each trade of the Apple stock find a corresponding
+	quote that is less than 5 seconds after the trade occurred?
+'
+WITH OPTIONS (context_name = 'stock_trades_context')
+```
+
+
+<a id="sql-gpt-overview-context"></a>
+
+
+## SQL-GPT Context
+
+
+A *SQL-GPT context* is a Kinetica database object that specifies information
+about the tables constituting a particular data set, as well as rules and
+sample queries for referencing them.  The LLM uses this *context* to generate
+Kinetica-compliant SQL that references objects in that data set.
+
+A *context* is required to run `GENERATE SQL`.  You can define multiple
+*context* objects and have one for each use case.  Each *context* is contained
+within a database [schema](/content/sql/ddl#sql-create-schema) and has
+relevant access controls.
+
+images/sqlgpt_inferencing_context_erd.svg
+
+The *context* object is used to populate the *LLM context* to facilitate
+*in-context training*, as opposed to *fine tuning*. The LLM context is a limited
+storage area in the model which can be compared to a person's short term memory.
+An advantage of *in-context training* is that a single model can be used to
+inference any number of schemas without modification, but it has the limitation
+that the training data must fit within the *LLM context* and this limits how
+many tables and columns can be considered at any one time.
+
+At a high level the *context* contains:
+
+* **Context Name**:
+  This is the name of the database object that stores the *SQL-GPT context* and
+  is referenced when generating a query.
+
+* **Context Tables**:
+  The schemas of the tables included in the *context* are passed to the LLM.
+  Only these tables will be considered when generating SQL.
+
+* **Table and Column Comments**:
+  The LLM relies entirely on the *context* to understand what data is contained
+  in the tables.  If the columns and table names do not describe the data well,
+  then comments are needed.
+
+* **Rules**:
+  These are natural language descriptions explaining how to generate the SQL.
+  For example, a rule could specify a geospatial function to be used in certain
+  cases or how to join a table.
+
+* **Samples**:
+  These are question/answer pairs that provide examples the LLM can generalize
+  when generating SQL for user-supplied questions.
+
+
+<a id="sql-gpt-overview-context-syntax"></a>
+
+
+### Context Syntax
+
+
+The [CREATE CONTEXT](/content/sql/sqlgpt#sql-gpt-create-context) command creates the table & query
+*context* for SQL-GPT to understand the tables available for generating SQL
+and how to use them to answer questions.
+
+```sql title="CREATE CONTEXT Syntax"
+CREATE [OR REPLACE] [TEMP] CONTEXT [<schema name>.]<context name>
+[<table definition clause>[,...],]
+[<sample definition clause>,]
+[<rules definition clause>]
+[WITH OPTIONS (ttl = '<ttl value>'[,...])]
+```
+
+A *context* contains a set of clauses where each entry is one of the following:
+
+* [Table Definition Clause](/content/sql-gpt/concepts#sql-gpt-overview-context-clause-table)
+* [Sample Definition Clause](/content/sql-gpt/concepts#sql-gpt-overview-context-clause-sample)
+* [Rule Definition Clause](/content/sql-gpt/concepts#sql-gpt-overview-context-clause-rule)
+
+The *context* must include a table reference in one of these clauses in order
+for it to be properly considered during SQL generation.  While all clauses are
+strictly optional, a *context* must include one of them to be considered valid.
+
+A *context* can be made to be non-persistent (not survive a database restart)
+with the `TEMP` option, and be assigned a removal time-to-live via `ttl`.
+Specifying `OR REPLACE` will remove any existing *context* of the same name
+before creating the new one.
+
+For example:
+
+{/* Source: /examples/sql/sql-gpt/concepts.kisql (lines 77-137) */}
+```sql CREATE CONTEXT Example
+CREATE OR REPLACE CONTEXT nyctaxi_ctx
+(
+	TABLE = taxi_data,
+	COMMENT =
+	'
+		This table contains historical New York taxi trip data.
+		Each row contains the trip starting (pickup) and ending
+		(drop off) latitudes and longitudes, the total fare,
+		and other details about the trip.
+	',
+	COMMENTS =
+	(
+		vendor_id = 'The ID for the taxi company providing the ride.',
+		pickup_datetime = 'The time at which a trip started.',
+		dropoff_datetime = 'The time at which a trip ended',
+		trip_distance = 'The total distance in kilometers for a particular trip'
+
+	),
+	RULES =
+	(
+		'Do not use the surcharge column of the taxi_data table',
+		'Payment types include cash, credit, dispute, no charge, and unknown'
+	)
+),
+(
+	TABLE = nyct2020,
+	COMMENT = 'This table contains Neighborhood Tabulation Area (NTA) geoms and names for NYC neighborhoods',
+	COMMENTS =
+	(
+		gid = 'The primary key that identifies each row in this table',
+		geom = 'The WKT that provides the spatial outline for the neighborhood',
+		NTAName = 'The name of the NTA neighborhood.'
+	)
+	RULES =
+	(
+		'Use the nyct2020 table to calculate aggregate statistics for neighborhoods',
+		'Use NTAName instead of spatial coordinates to identify a neighborhood'
+	)
+),
+(
+	SAMPLES =
+	(
+		'How many trips did each taxi vendor''s cabs make?' =
+		'
+			SELECT vendor_id, COUNT(*)
+			FROM taxi_data
+			GROUP BY vendor_id
+		'
+	)
+),
+(
+	RULES =
+	(
+		'
+			Use the ST_CONTAINS() function to join the geom column of the nyct2020 table
+			with the pickup_longitude and pickup_latitude columns of the taxi_data table
+			or the dropoff_longitude and dropoff_latitude columns of the taxi_data table
+		',
+		'Use functions like HOUR(expr) DAY(expr) etc to extract a date/time expression''s components'
+	)
+)
+```
+
+
+<a id="sql-gpt-overview-context-clause-table"></a>
+
+
+### Table Definition Clause
+
+
+The *table definition* clause provides information about a single table that
+includes a table comment, column comments, and rules that apply to that table.
+All parameters are optional except for the table name.  The *table definition*
+clause itself is also optional.
+
+
+<Note>
+Kinetica will pass the all columns of the table to the LLM
+regardless of whether you provide comments for them.  If the table has many
+columns, this could consume unnecessary space in the *LLM context*.  In this
+situation, it is advised that you create a view with descriptive column names
+containing only the columns needed for generating SQL.
+</Note>
+
+```sql title="Table Definition Clause Syntax"
+(
+    TABLE = <table name>
+    [COMMENT = '<table comment>']
+    [COMMENTS = (
+        <column name> = '<column comment>',
+        ...
+        <column name> = '<column comment>'
+    )]
+    [RULES = (
+        '<table rule>',
+        ...
+        '<table rule>'
+    )]
+)
+```
+
+The following example *table definition* clause for a table `taxi_data`
+contains a table comment, four column comments, and two rules for SQL-GPT to
+consider when using the table.
+
+{/* Source: /examples/sql/sql-gpt/concepts.kisql (lines 78-99 137) */}
+```sql Table Definition Clause Example
+(
+	TABLE = taxi_data,
+	COMMENT =
+	'
+		This table contains historical New York taxi trip data.
+		Each row contains the trip starting (pickup) and ending
+		(drop off) latitudes and longitudes, the total fare,
+		and other details about the trip.
+	',
+	COMMENTS =
+	(
+		vendor_id = 'The ID for the taxi company providing the ride.',
+		pickup_datetime = 'The time at which a trip started.',
+		dropoff_datetime = 'The time at which a trip ended',
+		trip_distance = 'The total distance in kilometers for a particular trip'
+
+	),
+	RULES =
+	(
+		'Do not use the surcharge column of the taxi_data table',
+		'Payment types include cash, credit, dispute, no charge, and unknown'
+	)
+)
+```
+
+
+<a id="sql-gpt-overview-context-clause-sample"></a>
+
+
+### Sample Definition Clause
+
+
+A *sample definition* contains a set of question & answer pairs used to train
+*SQL-GPT* for generating SQL.  *SQL-GPT* has previously been trained on
+thousands of generic samples, so you should not need more than a few (if any)
+samples to customize it for your use case.  The *sample definition* clause is
+optional.
+
+
+<Note>
+A *sample definition* should reference tables that are included
+in *table definitions* within either its own *context* or a separate
+*context* that is passed along with it into a
+[GENERATE SQL](/content/sql/sqlgpt#sql-gpt-generate-sql) or [EXECUTE_AI_QUERY](/content/sql/sqlgpt#sql-gpt-execute)
+command.  This ensures that *SQL-GPT* has a proper definition (and
+understanding) of the tables and columns referenced in each sample query.
+</Note>
+
+```sql title="Sample Definition Clause Syntax"
+(
+    SAMPLES =
+    (
+        '<question>' = '<SQL answer>',
+        ...
+        '<question>' = '<SQL answer>'
+    )
+)
+```
+
+The following example *sample definition* clause contains a single
+natural-language question and the desired query used to answer that question.
+
+{/* Source: /examples/sql/sql-gpt/concepts.kisql (lines 116-125 137) */}
+```sql Sample Definition Clause Example
+(
+	SAMPLES =
+	(
+		'How many trips did each taxi vendor''s cabs make?' =
+		'
+			SELECT vendor_id, COUNT(*)
+			FROM taxi_data
+			GROUP BY vendor_id
+		'
+	)
+)
+```
+
+
+<Info>
+String literals will need to have their single quotes escaped with
+pairs of single quotes, as per standard SQL escaping rules.
+</Info>
+
+<a id="sql-gpt-overview-context-clause-rule"></a>
+
+
+### Rule Definition Clause
+
+
+A *rule definition* contains a set of global rules that *SQL-GPT* should use in
+employing the various tables named in the *context* to generate SQL.  By
+convention, rules that apply to a specific table belong in the `RULES` section
+of the [table definition](/content/sql-gpt/concepts#sql-gpt-overview-context-clause-table),
+while rules that apply across tables or independently from any tables belong
+here.  The *rule definition* clause is optional.
+
+
+<Note>
+A *rule definition* should reference tables that are included
+in *table definitions* within either its own *context* or a separate
+*context* that is passed along with it into a
+[GENERATE SQL](/content/sql/sqlgpt#sql-gpt-generate-sql) or [EXECUTE_AI_QUERY](/content/sql/sqlgpt#sql-gpt-execute)
+command.  This ensures that *SQL-GPT* has a proper definition (and
+understanding) of any tables and columns referenced in each rule.
+</Note>
+
+```sql title="Rule Definition Clause Syntax"
+(
+    RULES =
+    (
+        '<rule>',
+        ...
+        '<rule>'
+    )
+)
+```
+
+The following example *rule definition* clause contains one rule for handling
+joins between the `taxi_data` & `nyct2020` tables and another rule for
+dealing with date/time values.
+
+{/* Source: /examples/sql/sql-gpt/concepts.kisql (lines 127-137) */}
+```sql Rules Definition Clause Example
+(
+	RULES =
+	(
+		'
+			Use the ST_CONTAINS() function to join the geom column of the nyct2020 table
+			with the pickup_longitude and pickup_latitude columns of the taxi_data table
+			or the dropoff_longitude and dropoff_latitude columns of the taxi_data table
+		',
+		'Use functions like HOUR(expr) DAY(expr) etc to extract a date/time expression''s components'
+	)
+)
+```
+
+
+<Info>
+String literals will need to have their single quotes escaped with
+pairs of single quotes, as per standard SQL escaping rules.
+</Info>
+
+<a id="sql-gpt-overview-best-practices"></a>
+
+
+## Context Best Practices
+
+
+LLM inferencing behavior is complex, and there is no way to accurately predict
+how it will respond to changes in the *context*.  Building a *context* to
+generate the SQL statements you expect may require some best practices in
+addition to trial and error.
+
+
+### Managing Context Size
+
+
+Increasing the size of the *context* is a trade-off.  The [SQLGPT.io](https://sqlgpt.io/) service
+and *Kinetica SQLAssist LLM* currently support thousands of tokens, where a
+token is a representation of a group of 3 to 4 characters, on average.  Due to
+limited space, it is important to eliminate unnecessary information from the
+*context*, while adding what is necessary.
+
+* **Limit the number of tables included in the context.**
+  Adding more tables increases *context* size and gives the model more tables to
+  choose from, which increases the probability of error.  Consider dividing up
+  the inferencing cases into *contexts* of no more than 5 tables.  Tables that
+  can be joined together can be replaced in the *context* by a single
+  [view](/content/sql/ddl#sql-create-view) that connects them along their
+  relational key columns.
+
+* **Limit the number of columns in the context.**
+  For each table included in a *context*, all of its columns are automatically
+  sent to the LLM, and the space occupied by the column definitions can quickly
+  add up.  If a table has many columns that are not relevant to the inferencing,
+  then create a [view](/content/sql/ddl#sql-create-view) with only the columns
+  needed for inferencing.
+
+
+### Reducing Ambiguity
+
+
+The model does not know anything about your tables or data other than what is
+provided in the *context*.  It can be helpful to ask yourself:
+*"If a programmer/analyst who is not familiar with the schema was given*
+*these comments and samples would they be able to write correct SQL?"*
+
+In many situations the programmer/analyst might say:
+*"This does not make sense,"* or *"I need more information"*.  The model can't
+ask these questions, because it is programmed to choose the response with the
+highest probability of being correct, regardless of the input provided.  For
+this reason, it is important to consider what it needs to know without being
+ambiguous.
+
+* **Use descriptive column names when possible.**
+  Many tables have short and unintuitive column names.  The model is good at
+  interpreting the meaning of columns based on their names, so descriptive names
+  should be used whenever possible.  Additionally, provide comments for columns
+  that are most likely to be used in queries.  This will make it more likely
+  that the LLM will use these correctly during inferencing.
+
+* **Make sure samples are of high quality.**
+  Providing a sample with an ambiguous question or incorrect answer can confuse
+  the model and degrade performance.  It can adapt to ambiguous questions while
+  inferencing, but the samples should be clear and correct.  If the model
+  answers a question incorrectly when it is provided with a similar sample, then
+  check the samples for ambiguities, errors, or inconsistencies.
+
+* **Provide samples that can help build more complex queries.**
+  An LLM is capable of generating really complex queries. However, it helps to
+  provide simpler samples that give the LLM the building blocks for constructing
+  the complex patterns that you want to see in its responses.
+
+* **Make sure your samples reference tables that are in your environment.**
+  An LLM will likely reference any tables that are provided as part of the
+  *context* in its output, regardless of whether a given table was used in a
+  sample or provided as a table definition.  It is important that a sample
+  definition references tables that are included in the overall *context*
+  supplied to the LLM, as this ensures the LLM has a proper definition
+  (and understanding) of the tables and columns referenced in the query.
+
+
+### Managing SQL Generation
+
+
+The rules and samples in the *context* can be used to suggest to the model how
+to generate the SQL.  This can include features like:  SQL functions to use,
+columns to return, or strategy to use to solve the problem.  It is important to
+understand that these are suggestions, and there is not a guarantee that they
+will be used.  Sometimes trial and error with different suggestions can produce
+the intended result.
+
+* **Provide at least one sample per table.**
+
+  For each table, it can be beneficial to give the model at least one example
+  that queries the table in isolation.
+
+  In some cases, you may add a table for the purpose of it being joined with
+  another table, as you would not ask a question that would use this table in
+  isolation.  It is still useful to include an isolated SQL example on the join
+  column so the model is familiar with the column.
+
+  For example, if you have a geospatial table with shapes of cities that you
+  intend only to join with another table containing positions of landmarks, then
+  you could add a sample for *"What is the boundary geometry of the Washington DC?"*
+  with the generated SQL returning the WKT column containing the city that
+  should be joined.
+
+* **Add rules or samples to show how tables should be joined.**
+
+  Questions that require the LLM to determine that a response needs a join as
+  well as what tables to use for that join are much more challenging than
+  single-table queries.  If the use case requires joins, it is advised to
+  provide samples or rules to show how the tables should be joined.
+
+* **Encapsulate complex and commonly used SQL into views.**
+
+  If you have problems getting the LLM to generate a complex join or
+  aggregation, then consider encapsulating the table(s) involved in a logical
+  view for the *context*.  Unlike materialized views, logical views have
+  essentially no memory footprint in the database.
+
+
+## LLM Options
+
+
+For the SQL-GPT LLM, you can use one of the following two options:
+
+* *Kinetica's* [SQLGPT.io](https://sqlgpt.io/) service - (default) uses external LLM services
+* *Kinetica SQLAssist LLM* - runs in your local environment for added security,
+  ensuring that your metadata and sample queries are not shared with any
+  external services; also provides deterministic control over the model so that
+  query results will not change unexpectedly
+
+Contact Kinetica support for details on accessing *Kinetica SQLAssist LLM*.
+
+
+<a id="sql-gpt-overview-rag"></a>
+
+
+## Retrieval-Augmented Generation (RAG)
+
+
+The SQL *Retrieval-Augmented Generation (RAG)* capabilities within *Kinetica*
+enable SQL generation use cases to encompass larger schemas and more training
+samples than are possible with a single *SQL-GPT context*.  By using
+[embedding models](/content/vector_search#vector-model) to index the contents of
+*contexts*, it can generate a composite *context* on-demand for each query.  In
+this way, users can construct use cases that can accurately encompass thousands
+of tables.
+
+
+### Enabling RAG
+
+
+*SQL RAG* can be enabled while the database is running by modifying the system
+properties:
+
+{/* Source: /examples/sql/sql-gpt/rag.kisql (lines 96) */}
+```sql Enable RAG in SQL
+ALTER SYSTEM SET PROPERTIES ('ai_enable_rag' = 'true')
+```
+
+It can be enabled permanently (across database restarts) by updating the
+[system configuration](/content/config#config-main-ai):
+
+```sql title="Enable RAG in Configuration"
+# Enable RAG
+ai.enable_rag = true
+```
+
+
+### Using RAG
+
+
+After SQL RAG has been enabled, any *SQL-GPT context* created will automatically
+have embeddings generated for it.
+
+To generate embeddings for *SQL-GPT contexts* that existed prior to enabling
+RAG:
+
+{/* Source: /examples/sql/sql-gpt/rag.kisql (lines 268) */}
+```sql Generate Embeddings for Existing SQL-GPT Contexts
+EXECUTE FUNCTION rag_udf_updater /* KI_HINT_SAVE_UDF_STATS */ (KV_PAIRS(action = 'refresh'))
+```
+
+Once embeddings have been generated for *SQL-GPT contexts*, SQL RAG can be used
+when generating & executing SQL and when generating token counts.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/sql-gpt/rag.kisql (lines 240-241) */}
+```sql GENERATE TOKENS with RAG Example
+GENERATE TOKENS
+WITH OPTIONS (context_names = 'nyctaxi_ctx, flights_ctx', use_rag = 'true')
+```
+
+{/* Source: /examples/sql/sql-gpt/rag.kisql (lines 246-248) */}
+```sql GENERATE SQL with RAG Example
+GENERATE SQL FOR
+	'What was the busiest airport, including taxis and flights, during January and February of 2023?'
+WITH OPTIONS (context_names = 'nyctaxi_ctx, flights_ctx', use_rag = 'true')
+```
+
+{/* Source: /examples/sql/sql-gpt/rag.kisql (lines 253-261) */}
+```sql EXECUTE_AI_QUERY with RAG Example
+SELECT *
+FROM TABLE
+(
+	EXECUTE_AI_QUERY
+	(
+		QUESTION => 'What was the busiest airport, including taxis and flights, during January and February of 2023?',
+		OPTIONS => KV_PAIRS (context_names = 'nyctaxi_ctx, flights_ctx', use_rag = 'true')
+	)
+)
+```
+
+</CodeGroup>

@@ -1,0 +1,149 @@
+---
+title: Database Backup
+---
+
+## Database Backup
+
+
+[SQL commands](/content/sql/backup_restore) can be used to initiate hot
+*backups*, with *full*, *incremental*, & *differential snapshots*, and
+restorations of schema objects & data within the database.
+
+| Objects Backed Up | Objects Not Backed Up |
+| --- | --- |
+| * [Credentials](/content/sql/ddl#sql-create-credential) <br/> * [Data Sinks](/content/sql/ddl#sql-create-data-sink) <br/> * [Data Sources](/content/sql/ddl#sql-create-data-source) <br/> * [Resource Groups](/content/sql/resource_group) <br/> * [Roles](/content/sql/security#sql-security-role-mgmt) <br/> * [SQL Procedures](/content/sql/procedure#sql-procedures) <br/> * [SQL-GPT Contexts](/content/sql/sqlgpt#sql-gpt-create-context) <br/> * [Streams](/content/sql/ddl#sql-create-stream) <br/> * [Tables](/content/sql/ddl#sql-create-table) <br/> * [UDFs](/content/sql/udf) <br/> * [UDF Environments](/content/sql/udf#sql-create-function-environment) <br/> * [Users](/content/sql/security#sql-security-user-mgmt) <br/> * [Views](/content/sql/ddl#sql-create-view) | * [Graphs](/content/sql/graph) <br/> * [KiFS Files](/content/sql/kifs) <br/> * [ML Models/Containers](/content/sql/ml) <br/> * [Symbols](/content/api/rest/insert_symbol_rest) |
+
+
+<Info>
+*  For the set of SQL commands for database *backup*, see
+   [Database Backup/Restore](/content/sql/backup_restore).
+*  For a full system backup, see [System Backup](/content/admin/backup_restore#system-backup).
+</Info>
+
+
+### Snapshot Types
+
+
+Three types of *snapshots* are supported for database objects & data:
+
+* **full** - *snapshot* of the given database objects & data
+* **incremental** - *snapshot* of the changes in the database objects & data
+  since the last *snapshot* of any kind
+* **differential** - *snapshot* of the changes in the database objects & data
+  since the last *full snapshot*
+
+
+### Backup Storage
+
+
+Database *backup* files will be transferred to the target specified in the given
+[data sink](/content/sql/ddl#sql-create-data-sink).  There, they will be stored
+under two levels of directories:  the top-level directory will be the name of
+the database *backup* and the subdirectory will be the timestamp the *snapshot*
+was taken; e.g.:
+
+```
+/<backup_name>/ki_backup_info.json
+/<backup_name>/<backup_name>.mdb
+/<backup_name>/<snapshot_timestamp>/<snapshot_timestamp>.mdb
+/<backup_name>/<snapshot_timestamp>/rank-<rank_number>/tom-<TOM_number>/*
+```
+A new *backup* will result in the creation of a directory with the corresponding
+*backup* name, as well as a *snapshot* timestamp directory with the
+*full snapshot* files.  An *incremental* or *differential snapshot* for a given
+*backup* will result in the creation of another *snapshot* timestamp directory,
+under the *backup* directory, containing all the files for that *snapshot*.
+
+A [data source](/content/sql/ddl#sql-create-data-source) is required to retrieve
+detail about *backups* and restore database objects & data from them.  The
+*data source* must point to the same remote store as the *data sink* through
+which a *backup* was created in order to access and restore from it.
+
+
+### Backup Use Case
+
+
+A typical usage of the backup feature is:
+
+* create a *backup*, taking an initial *full snapshot*
+* schedule iterative *incremental* or *differential snapshots*
+* restore a *backup*
+
+
+#### Initial Backup
+
+
+To create the initial *backup*, run a [CREATE BACKUP](/content/sql/backup_restore#sql-backup-create)
+statement, in SQL, that specifies:
+
+* the name to use for the *backup*--the backed-up database object set
+* the [data sink](/content/sql/ddl#sql-create-data-sink) that will be used to
+  transfer the backed-up files to the remote store (e.g., s3)
+* the set of database objects to back up
+
+For example, to create an initial *backup* with the following parameters:
+
+* `daily_backup` - name of the *backup*
+* `backup_ds` - *data sink* targeting the remote file service
+* `example_backup` - name of the [schema](/content/sql/ddl#sql-create-schema)
+  to back up
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 490-492) */}
+```sql Create Initial Backup Example
+CREATE BACKUP daily_backup
+DATA SINK = backup_ds
+OBJECTS (ALL = example_backup)
+```
+
+
+#### Schedule Iterative Snapshots
+
+
+To schedule iterative *snapshots* after the initial *backup* is done, create a
+[SQL procedure](/content/sql/procedure) that specifies:
+
+* the name of the backed-up database object set (same as the initial *backup*)
+* the [data sink](/content/sql/ddl#sql-create-data-sink) that will be used to
+  transfer the *snapshots* to the remote store (same as the initial *backup*)
+* the schedule for running the incremental *snapshots*
+
+For example, to schedule incremental *snapshots* with the following parameters:
+
+* `daily_backup` - name of the *backup* to which *snapshots* will be added
+* `backup_ds` - *data sink* targeting the remote file service
+* `1 DAY` - daily *snapshot* interval
+* `STARTING AT...2025-01-01` - starting at a date in the past causes the
+  first *snapshot* to be taken at the next possible time interval
+* `STARTING AT...00:00:00` - schedule the *snapshot* to be taken at midnight
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 495-500) */}
+```sql Schedule Iterative Snapshots Example
+CREATE PROCEDURE scheduled_backup
+BEGIN
+	BACKUP daily_backup
+	DATA SINK = backup_ds
+END
+EXECUTE FOR EVERY 1 DAY STARTING AT '2025-01-01 00:00:00';
+```
+
+
+#### Restore Backup
+
+
+To restore database objects and table data from the latest *snapshot* in a
+*backup*, using the following parameters:
+
+* `daily_backup` - name of the *backup* to restore
+* `restore_ds` - *data source* targeting the remote file service
+* `example_backup` - name of the [schema](/content/sql/ddl#sql-create-schema)
+  to restore
+* `replace` - any exising database object will be overwritten by its
+  counterpart from the *backup*
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 511-514) */}
+```sql Restore Backup Example
+RESTORE BACKUP daily_backup
+DATA SOURCE = restore_ds
+OBJECTS (ALL = example_backup)
+WITH OPTIONS (RESTORE_POLICY = 'replace')
+```

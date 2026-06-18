@@ -1,0 +1,83 @@
+---
+title: Validate
+---
+
+## Validation
+
+
+To validate that *Kinetica* has been installed and started properly, you can
+perform the following tests.
+
+
+### Curl Test
+
+
+To ensure that *Kinetica* has started (you may have to wait a moment while the
+system initializes), you can run `curl` on the *head node* to check if
+the server is responding and port is available with respect to any running
+firewalls:
+
+```
+$ curl localhost:9191
+Kinetica is running!
+```
+
+### API Test
+
+
+You can also run a test to ensure that the API is responding properly.  There is
+an *admin simulator* project in *Python* provided with the *Python* API, which
+pulls statistics from the *Kinetica* instance.  Running this on the *head node*,
+passing in the appropriate `<username>` & `<password>`, you should see:
+
+```
+$ /opt/gpudb/bin/gpudb_python /opt/gpudb/kitools/gadmin_sim.py -u <username> -p <password> --table --summary
++-----------------+--------------------------------+----------------------+----------------------+-------+
+|     Schema      |           Table/View           |       Records        |       Type ID        |  TTL  |
++=================+================================+======================+======================+=======+
+| SYSTEM          | <ALL TABLES/VIEWS>             |                    1 |                      |       |
+| SYSTEM          | ITER                           |                    1 |        UNSET_TYPE_ID |    -1 |
++-----------------+--------------------------------+----------------------+----------------------+-------+
+
++---------------------------+----------------------+
+|        Object Type        |        Count         |
++===========================+======================+
+| Schemas                   |                    1 |
+| Tables & Views            |                    1 |
+| Records                   |                    1 |
+| Records + Track Elements  |                    1 |
++---------------------------+----------------------+
+```
+
+### GAdmin Status Test
+
+
+The administrative interface itself can be used to validate that the system is
+functioning properly.  Simply log into [GAdmin](/content/admin/gadmin).
+Browse to **Dashboard** to view the status of the overall system and
+**Ranks** to view the status breakdown by *rank*.
+
+
+### Ingest/Read Test
+
+
+After verifying *Kinetica* has started and its components work, you should
+confirm ingesting and reading data works as expected.
+
+1. Navigate to the **Demo** tab on the **Cluster** page.
+2. Click **Load Sample Data** under the **NYC Taxi** section,
+   then click **Load** to confirm.
+3. Once the data is finished loading, click **View Loaded Data**. The
+   data should be available in the `nyctaxi` [table](/content/concepts/tables)
+   located in the `demo` [schema](/content/concepts/schemas).
+
+If [Reveal](/content/bi/reveal) is enabled:
+
+1. Navigate to:
+
+   ```
+   http://<head-node-ip-address>:8088/
+   ```
+2. Log into *Reveal* and [change the administration account's default password](/content/security/reveal#change-password-reveal).
+3. Click **NYC Taxi** under **Dashboards**. The default NYC Taxi
+   dashboard should load.

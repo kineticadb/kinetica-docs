@@ -1,0 +1,1387 @@
+---
+title: Scalar Functions
+---
+
+<AccordionGroup>
+
+<Accordion title="DIST(x1, y1, x2, y2)" id="dist-x1-y1-x2-y2" defaultOpen>
+
+Computes the Euclidean distance (in degrees), i.e. `SQRT( (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) )`.
+
+</Accordion>
+
+<Accordion title="GEODIST(lon1, lat1, lon2, lat2)" id="geodist-lon1-lat1-lon2-lat2" defaultOpen>
+
+Computes the geographic great-circle distance (in meters) between two lat/lon points.
+
+</Accordion>
+
+<Accordion title="GEOHASH_DECODE_LATITUDE(geohash)" id="geohash_decode_latitude-geohash" defaultOpen>
+
+Decodes a given `geohash` and returns the latitude value for the given hash string. Supports a
+maximum geohash character length of *16*.
+
+</Accordion>
+
+<Accordion title="GEOHASH_DECODE_LONGITUDE(geohash)" id="geohash_decode_longitude-geohash" defaultOpen>
+
+Decodes a given `geohash` and returns the longitude value for the given hash string. Supports a
+maximum geohash character length of *16*.
+
+</Accordion>
+
+<Accordion title="GEOHASH_ENCODE(lat, lon, precision)" id="geohash_encode-lat-lon-precision" defaultOpen>
+
+Encodes a given coordinate pair and returns a hash string with a given `precision`. The maximum `precision` is *15*.
+
+</Accordion>
+
+<Accordion title="GEOMETRY(wkt)" id="geometry-wkt" defaultOpen>
+
+Alias for `ST_GEOMFROMTEXT(wkt)`
+
+</Accordion>
+
+<Accordion title="ST_ADDPOINT (linestring, point[, position])" id="st_addpoint-linestring-point-position" defaultOpen>
+
+Adds a given `point` geometry to the given `linestring` geometry at the specified
+`position`, which is a 0-based index.  If no `position` is specified, the point will be added to the end.
+
+</Accordion>
+
+<Accordion title="ST_ALMOSTEQUALS (geom1, geom2[, decimal])" id="st_almostequals-geom1-geom2-decimal" defaultOpen>
+
+Returns `1` (true) if given geometries, `geom1` and `geom2`, are almost spatially equal within
+the given amount of `decimal` scale. Note that geometries will still be considered equal if the
+decimal scale for the geometries is within a half order of magnitude of each other; e.g., if
+`decimal` is set to 2, then `POINT(63.4 123.45)` and `POINT(63.4 123.454)` are equal, but
+`POINT(63.4 123.45)` and `POINT(63.4 123.459)` are *not* equal. The geometry types must match to be
+considered equal.
+
+If no `decimal` scale is specified, a default scale of *6* will be applied.
+
+</Accordion>
+
+<Accordion title="ST_AREA(geom[, solution])" id="st_area-geom-solution" defaultOpen>
+
+Returns the area of the given geometry `geom` if it is a POLYGON or MULTIPOLYGON using the
+specified solution type. Returns `0` if the input geometry type is (MULTI)POINT or
+(MULTI)LINESTRING. Solution types available:
+
+* `0` (default) - 2D Euclidean area
+* `1` - curved surface area on a sphere in square meters
+* `2` - curved surface area on a spheroid in square meters
+
+</Accordion>
+
+<Accordion title="ST_AZIMUTH(geom1, geom2)" id="st_azimuth-geom1-geom2" defaultOpen>
+
+Returns the azimuth in radians defined by the segment between two POINTs, `geom1` and `geom2`.
+Returns a `null` if the input geometry type is MULTIPOINT, (MULTI)LINESTRING, or (MULTI)POLYGON.
+
+</Accordion>
+
+<Accordion title="ST_BOUNDARY(geom)" id="st_boundary-geom" defaultOpen>
+
+Returns the closure of the combinatorial boundary of a given geometry `geom`. Returns an empty
+geometry if `geom` is an empty geometry. Returns a `null` if `geom` is a GEOMETRYCOLLECTION
+
+</Accordion>
+
+<Accordion title="ST_BOUNDINGDIAGONAL(geom)" id="st_boundingdiagonal-geom" defaultOpen>
+
+Returns the diagonal of the given geometry's (`geom`) bounding box.
+
+</Accordion>
+
+<Accordion title="ST_BUFFER (geom, radius[, style[, solution]])" id="st_buffer-geom-radius-style-solution" defaultOpen>
+
+Returns a geometry that represents all points whose distance from the given geometry `geom` is
+less than or equal to the given distance `radius`. The `radius` units can be specified by the
+`solution` type (default is in degrees) and the `radius` is created in the provided `style`.
+The `style` options are specified as a list of blank-separated key-value pairs, e.g.,
+`'quad_segs=8 endcap=round'`. If an empty `style` list (`''`) is provided, the default settings
+will be used. The `style` parameter must be specified to provide a `solution` type.
+
+Available `style` options:
+
+* `quad_segs` - the number of segments used to approximate a quarter circle (default is `8`)
+* `endcap` - the endcap style of the buffer (default is `round`); options are `round`,
+  `flat` (or `butt`), and `square`
+* `join` - the join style of the buffer (default is `round`); options are `round`, `mitre`
+  (or `miter`), and `bevel`
+* `mitre_limit` - the mitre ratio limit expressed as a floating-point number (`miter_limit` is
+  also acceptable)
+
+Available `solution` types:
+
+* `0` (default) - 2D Euclidean radius distance in degrees
+* `1` - curved surface radius distance on a sphere in meters
+* `2` - curved surface radius distance on a spheroid in meters
+
+
+<Tip>
+To create a 5-meter buffer around `geom` using the default styles:
+`ST_BUFFER(geom, 5, '', 1)`. To create a 5-foot (converting feet to meters) buffer
+around `geom` using the following styles:
+`ST_BUFFER(geom, 5*0.3048,'quad_segs=4 endcap=flat', 1)`
+</Tip>
+
+</Accordion>
+
+<Accordion title="ST_BUFFERBYCOMPONENT (geom, radius[, style[, solution]])" id="st_bufferbycomponent-geom-radius-style-solution" defaultOpen>
+
+Returns a buffered geometry similar to the output of `ST_BUFFER` using the same parameters. The only
+difference is the buffered geometry is calculated by independently buffering each individual component
+and then the buffered components are dissolved (i.e. unioned) together to produce the final output. This
+can produce very similar (but not identical) results to `ST_BUFFER` but will often run much faster.
+
+</Accordion>
+
+<Accordion title="ST_CENTROID(geom)" id="st_centroid-geom" defaultOpen>
+
+Calculates the center of the given geometry `geom` as a POINT. For (MULTI)POINTs, the center is
+calculated as the average of the input coordinates. For (MULTI)LINESTRINGs, the center is calculated
+as the weighted length of each given LINESTRING. For (MULTI)POLYGONs, the center is calculated as
+the weighted area of each given POLYGON. If `geom` is an empty geometry, an empty
+GEOMETRYCOLLECTION is returned
+
+</Accordion>
+
+<Accordion title="ST_CLIP(geom1, geom2)" id="st_clip-geom1-geom2" defaultOpen>
+
+Returns the geometry shared between given geometries `geom1` and `geom2`
+
+</Accordion>
+
+<Accordion title="ST_CLOSESTPOINT (geom1, geom2[, solution])" id="st_closestpoint-geom1-geom2-solution" defaultOpen>
+
+Calculates the 2-D `POINT` in `geom1` that is closest to `geom2` using the specified solution
+type. If `geom1` or `geom2` is empty, a `null` is returned. Solution types available:
+
+* `0` (default) - Euclidean; calculates the closest point using 2-D Euclidean distance
+* `1` - Haversine; calculates the closest point using sphere distance in meters
+* `2` - Vincenty; returns minimum spheroid distance in meters, more accurate than Haversine but
+  slower performance
+
+</Accordion>
+
+<Accordion title="ST_COLLECT(geom1, geom2)" id="st_collect-geom1-geom2" defaultOpen>
+
+Returns a MULTI* or GEOMETRYCOLLECTION comprising `geom1` and `geom2`. If `geom1` and `geom2`
+are the same, singular geometry type, a MULTI* is returned, e.g., if `geom1` and `geom2` are both
+POINTs (empty or no), a MULTIPOINT is returned. If `geom1` and `geom2` are neither the same type
+nor singular geometries, a GEOMETRYCOLLECTION is returned.
+
+</Accordion>
+
+<Accordion title="ST_COLLECTIONEXTRACT (collection, type)" id="st_collectionextract-collection-type" defaultOpen>
+
+Returns only the specified `type` from the given geometry `collection`. Type is a number that
+maps to the following:
+
+* `1` = `POINT`
+* `2` = `LINESTRING`
+* `3` = `POLYGON`
+
+</Accordion>
+
+<Accordion title="ST_COLLECTIONHOMOGENIZE(collection)" id="st_collectionhomogenize-collection" defaultOpen>
+
+Returns the simplest form of the given `collection`, e.g., a collection with a single POINT will
+be returned as `POINT(x y)`, and a collection with multiple individual points will be returned as a
+MULTIPOINT.
+
+</Accordion>
+
+<Accordion title="ST_CONCAVEHULL (geom, target_percent[, allow_holes])" id="st_concavehull-geom-target_percent-allow_holes" defaultOpen>
+
+Returns a potentially concave geometry that encloses all geometries found in the given `geom` set.
+Use `target_percent` (values between 0 and 1) to determine the percent of area of a convex hull the
+concave hull will attempt to fill; `1` will return the same geometry as an `ST_CONVEXHULL`
+operation. Set `allow_holes` to `1` (true) to allow holes in the resulting geometry; default
+value is `0` (false). Note that `allow_holes` is independent of the area of `target_percent`.
+
+</Accordion>
+
+<Accordion title="ST_CONTAINS(geom1, geom2)" id="st_contains-geom1-geom2" defaultOpen>
+
+Returns `1` (true) if no points of `geom2` lie in the exterior of `geom1` and at least one
+point of `geom2` lies in the interior of `geom1`. Note that `geom1` does not contain its
+boundary but does contain itself.
+
+</Accordion>
+
+<Accordion title="ST_CONTAINSPROPERLY(geom1, geom2)" id="st_containsproperly-geom1-geom2" defaultOpen>
+
+Returns `1` (true) if `geom2` intersects the interior of `geom1` but not the boundary
+(or exterior). Note that `geom1` does not contain its boundary but does contain itself.
+
+</Accordion>
+
+<Accordion title="ST_CONVEXHULL(geom)" id="st_convexhull-geom" defaultOpen>
+
+Returns the minimum convex geometry that encloses all geometries in the given `geom` set.
+
+</Accordion>
+
+<Accordion title="ST_COORDDIM(geom)" id="st_coorddim-geom" defaultOpen>
+
+Returns the coordinate dimension of the given `geom`, e.g., a geometry with `x`, `y`, and `z`
+coordinates would return `3`.
+
+</Accordion>
+
+<Accordion title="ST_COVEREDBY(geom1, geom2)" id="st_coveredby-geom1-geom2" defaultOpen>
+
+Returns `1` (true) if no point in `geom1` is outside `geom2`.
+
+</Accordion>
+
+<Accordion title="ST_COVERS(geom1, geom2)" id="st_covers-geom1-geom2" defaultOpen>
+
+Returns `1` (true) if no point in `geom2` is outside `geom1`.
+
+</Accordion>
+
+<Accordion title="ST_CROSSES(geom1, geom2)" id="st_crosses-geom1-geom2" defaultOpen>
+
+Returns `1` (true) if the given geometries, `geom1` and `geom2`, spatially cross, meaning some
+but not all interior points in common. If `geom1` and/or `geom2` are a GEOMETRYCOLLECTION, a
+`0` is returned regardless of if the two geometries cross
+
+</Accordion>
+
+<Accordion title="ST_DIFFERENCE(geom1, geom2)" id="st_difference-geom1-geom2" defaultOpen>
+
+Returns a geometry that represents the part of `geom1` that does not intersect with `geom2`.
+
+</Accordion>
+
+<Accordion title="ST_DIMENSION(geom)" id="st_dimension-geom" defaultOpen>
+
+Returns the dimension of the given geometry `geom`, which is less than or equal to the coordinate
+dimension. If `geom` is a single geometry, a `0` is for `POINT`, a `1` is for `LINESTRING`,
+and a `2` is for `POLYGON`. If `geom` is a collection, it will return the largest dimension from
+the collection. If `geom` is empty, `0` is returned.
+
+</Accordion>
+
+<Accordion title="ST_DISJOINT(geom1, geom2)" id="st_disjoint-geom1-geom2" defaultOpen>
+
+Returns `1` (true) if the given geometries, `geom1` and `geom2`, do not spatially intersect.
+
+</Accordion>
+
+<Accordion title="ST_DISTANCE(geom1, geom2[, solution])" id="st_distance-geom1-geom2-solution" defaultOpen>
+
+Calculates the minimum distance between the given geometries, `geom1` and `geom2`, using the
+specified solution type. Solution types available:
+
+* `0` (default) - Euclidean; returns 2-D Euclidean distance
+* `1` - Haversine; returns minimum sphere distance in meters
+* `2` - Vincenty; returns minimum spheroid distance in meters, more accurate than Haversine but
+  slower performance
+
+
+<Info>
+If `geom1` and `geom2` intersect (verify using `ST_INTERSECTS`), the distance will
+always be `0`.
+</Info>
+
+</Accordion>
+
+<Accordion title="ST_DISTANCEPOINTS (x1, y1, x2, y2[, solution])" id="st_distancepoints-x1-y1-x2-y2-solution" defaultOpen>
+
+Calculates the minimum distance between the given points, `x1, y1` and `x2, y2`, using the
+specified solution type. Solution types available:
+
+* `0` (default) - Euclidean; returns 2-D Euclidean distance
+* `1` - Haversine; returns minimum sphere distance in meters
+* `2` - Vincenty; returns minimum spheroid distance in meters, more accurate than Haversine but
+  slower performance
+
+</Accordion>
+
+<Accordion title="ST_DFULLYWITHIN (geom1, geom2, distance[, solution])" id="st_dfullywithin-geom1-geom2-distance-solution" defaultOpen>
+
+Returns `1` (true) if the maximum distance between geometries `geom1` and `geom2` is less than
+or equal to the specified `distance` of each other using the specified solution type. If `geom1`
+or `geom2` is `null`, `0` (false) is returned. Solution types available:
+
+* `0` (default) - Euclidean; uses degrees to calculate distance
+* `1` - Sphere; uses meters to calculate distance
+* `2` - Spheroid; uses meters to calculate distance, more accurate than sphere but slower
+  performance
+
+</Accordion>
+
+<Accordion title="ST_DWITHIN (geom1, geom2, distance[, solution])" id="st_dwithin-geom1-geom2-distance-solution" defaultOpen>
+
+Returns `1` (true) if the minimum distance between geometries `geom1` and `geom2` is within the
+specified `distance` of each other using the specified solution type. Solution types available:
+
+* `0` (default) - Euclidean; uses degrees to calculate distance
+* `1` - Sphere; uses meters to calculate distance
+* `2` - Spheroid; uses meters to calculate distance, more accurate than sphere but slower
+  performance
+
+</Accordion>
+
+<Accordion title="ST_ELLIPSE(x, y, height, width)" id="st_ellipse-x-y-height-width" defaultOpen>
+
+Returns an ellipse using the following values:
+
+* `x` - the x coordinate or longitude used to center the ellipse
+* `y` - the y coordinate or latitude used to center the ellipse
+* `height` - the height of the ellipse (in degrees)
+* `width` - the width of the ellipse (in degrees)
+
+</Accordion>
+
+<Accordion title="ST_ENDPOINT(geom)" id="st_endpoint-geom" defaultOpen>
+
+Returns the last point of the given `geom` as a POINT if it's a LINESTRING.  If `geom` is not
+a LINESTRING, `null` is returned.
+
+</Accordion>
+
+<Accordion title="ST_ENVDWITHIN (geom1, geom2, distance[, solution])" id="st_envdwithin-geom1-geom2-distance-solution" defaultOpen>
+
+Returns `1` (true) if `geom1` is within the specified `distance` of the bounding box of
+`geom2` using the specified solution type. Solution types available:
+
+* `0` (default) - Euclidean; uses degrees to calculate distance
+* `1` - Sphere; uses meters to calculate distance
+
+</Accordion>
+
+<Accordion title="ST_ENVELOPE(geom)" id="st_envelope-geom" defaultOpen>
+
+Returns the bounding box of a given geometry `geom`.
+
+</Accordion>
+
+<Accordion title="ST_ENVINTERSECTS(geom1, geom2)" id="st_envintersects-geom1-geom2" defaultOpen>
+
+Returns `1` (true) if the bounding box of the given geometries, `geom1` and `geom2`, intersect.
+
+</Accordion>
+
+<Accordion title="ST_EQUALS(geom1, geom2)" id="st_equals-geom1-geom2" defaultOpen>
+
+Returns `1` (true) if the given geometries, `geom1` and `geom2`, are spatially equal. Note that
+order does not matter.
+
+</Accordion>
+
+<Accordion title="ST_EQUALSEXACT (geom1, geom2[, tolerance])" id="st_equalsexact-geom1-geom2-tolerance" defaultOpen>
+
+Returns `1` (true) if the given geometries, `geom1` and `geom2`, are almost spatially equal
+within some given `tolerance`. If the values within the given geometries are within the
+`tolerance` value of each other, they're considered equal, e.g., if `tolerance` is 2,
+POINT(1 1) and POINT(1 3) are considered equal, but POINT(1 1) and POINT(1 3.1) are not. Note that
+the geometry types have to match for them to be considered equal.  The default `tolerance` is *0*,
+which makes this function effectively equivalent to `ST_EQUALS(geom1, geom2)` in the default case.
+
+</Accordion>
+
+<Accordion title="ST_ERASE(geom1, geom2)" id="st_erase-geom1-geom2" defaultOpen>
+
+Returns the result of erasing a portion of `geom1` equal to the size of `geom2`.
+
+</Accordion>
+
+<Accordion title="ST_EXPAND(geom, units)" id="st_expand-geom-units" defaultOpen>
+
+Returns the bounding box expanded in all directions by the given `units` of the given `geom`. The
+expansion can also be defined for separate directions by providing separate parameters for each
+direction, e.g., `ST_EXPAND(geom, unitsx, unitsy, unitsz, unitsm)`.
+
+</Accordion>
+
+<Accordion title="ST_EXPANDBYRATE(geom, rate)" id="st_expandbyrate-geom-rate" defaultOpen>
+
+Returns the bounding box expanded by a given `rate` (a ratio of width and height) for the given
+geometry `geom`. The `rate` must be between 0 and 1.
+
+</Accordion>
+
+<Accordion title="ST_EXTERIORRING(geom)" id="st_exteriorring-geom" defaultOpen>
+
+Returns a LINESTRING representing the exterior ring of the given POLYGON `geom`
+
+</Accordion>
+
+<Accordion title="ST_FORCE2D(geom)" id="st_force2d-geom" defaultOpen>
+
+Returns the 2-dimensional version (e.g., X and Y coordinates) of `geom`, the provided geometry or
+set of geometries (e.g., via GEOMETRYCOLLECTION or WKT column name).
+
+</Accordion>
+
+<Accordion title="ST_FORCE3D(geom[, z])" id="st_force3d-geom-z" defaultOpen>
+
+Returns the 3-dimensional version (e.g., X, Y, and Z coordinates) of `geom`, a provided geometry or
+set of geometries (e.g., via GEOMETRYCOLLECTION or WKT column name), using `z` as the geometry's
+new z-value. The provided z-values can also be derived from a numeric column. If no `z` is provided,
+a `0` will be applied.
+
+
+<Info>
+If a WKT column is provided for `geom` and a numeric column is provided for `z`, the z
+values will be matched to the provided geometries by row in the source table. If a singular
+geometry is provided for `geom` and a column is provided for `z`, three-dimensional
+versions of the provided geometry will be returned for each z value found in the provided
+`z` column. If columns are provided for both `geom` and `z` and nulls are present in
+either column, the row containing null values will be skipped in the results.
+</Info>
+
+</Accordion>
+
+<Accordion title="ST_GENERATEPOINTS(geom, num)" id="st_generatepoints-geom-num" defaultOpen>
+
+Creates a MULTIPOINT containing a number `num` of randomly generated points within the boundary of
+`geom`.
+
+</Accordion>
+
+<Accordion title="ST_GEOHASH(geom[, precision])" id="st_geohash-geom-precision" defaultOpen>
+
+Returns a hash string representation of the given geometry `geom` with specified `precision`
+(the length of the resulting geohash string). The longer the `precision`, the more precise the hash is. By
+default, `precision` is set to `20`; the max for `precision` is `32`. Returns `null` if
+`geom` is an empty geometry.
+
+See [Geohash](/content/snippets/geohash) for an example.
+
+
+<Info>
+The value returned will *not* be a geohash of the exact geometry but a geohash of the
+centroid of the given geometry
+</Info>
+
+</Accordion>
+
+<Accordion title="ST_GEOMETRYFROMTEXT(wkt)" id="st_geometryfromtext-wkt" defaultOpen>
+
+Alias for `ST_GEOMFROMTEXT(wkt)`
+
+</Accordion>
+
+<Accordion title="ST_GEOMETRYN(geom, index)" id="st_geometryn-geom-index" defaultOpen>
+
+Returns the `index` geometry back from the given `geom` geometry. The `index` starts from 1 and goes to
+the number of geometries in `geom`.
+
+</Accordion>
+
+<Accordion title="ST_GEOMETRYTYPE(geom)" id="st_geometrytype-geom" defaultOpen>
+
+Returns the type of geometry from the given `geom`.
+
+</Accordion>
+
+<Accordion title="ST_GEOMETRYTYPEID(geom)" id="st_geometrytypeid-geom" defaultOpen>
+
+Returns the type ID of from `geom`. Type and ID mappings:
+
+* POINT = 0
+* LINESTRING = 1
+* POLYGON = 3
+* MULTIPOINT = 4
+* MULTILINESTRING = 5
+* MULTIPOLYGON = 6
+* GEOMETRYCOLLECTION = 7
+
+</Accordion>
+
+<Accordion title="ST_GEOMFROMGEOHASH (geohash[, precision])" id="st_geomfromgeohash-geohash-precision" defaultOpen>
+
+Returns a POLYGON boundary box using the given `geohash` with a precision set by the integer
+`precision`. If `precision` is specified, the function will use as many characters in the hash
+equal to `precision` to create the geometry. If no `precision` is specified, the full length of
+the `geohash` is used.
+
+See [Geohash](/content/snippets/geohash) for an example.
+
+</Accordion>
+
+<Accordion title="ST_GEOMFROMH3(h3_index)" id="st_geomfromh3-h3_index" defaultOpen>
+
+Alias for `H3_CELLTOBOUNDARY`; see [H3 Functions](/content/location_intelligence/geo_functions#geo-functions-h3).
+
+</Accordion>
+
+<Accordion title="ST_GEOMFROMTEXT(wkt)" id="st_geomfromtext-wkt" defaultOpen>
+
+Returns a geometry from the given Well-Known text representation `wkt`. Note that this function is
+only compatible with constants.
+
+</Accordion>
+
+<Accordion title="ST_H3(wkt, resolution)" id="st_h3-wkt-resolution" defaultOpen>
+
+Alias for `H3_GEOMTOCELL`; see [H3 Functions](/content/location_intelligence/geo_functions#geo-functions-h3).
+
+</Accordion>
+
+<Accordion title="ST_HEXGRID (xmin, ymin, xmax, ymax, cell_side[, limit])" id="st_hexgrid-xmin-ymin-xmax-ymax-cell_side-limit" defaultOpen>
+
+Creates a MULTIPOLYGON containing a grid of hexagons between given minimum and maximum points of a
+bounding box. The minimum point cannot be greater than or equal to the maximum point. The size (in
+meters) of the individual hexagons' sides is determined by `cell_side`. The `cell_side` cannot be
+greater than the width or height of the bounding box. The maximum number of cells that can be
+produced is determined by `limit`, a positive integer. Supported values for `limit`:
+
+* `-1` - No limit to the number of cells generated (effectively limited by system memory)
+* `0` (default) - 100 million cells
+* `<n>` - Custom limit of `n` cells
+
+If the custom limit request specifies more cells (based on the bounding box and the `cell_side`)
+than the system limit, a `null` is returned.
+
+</Accordion>
+
+<Accordion title="ST_INTERIORRINGN(geom, n)" id="st_interiorringn-geom-n" defaultOpen>
+
+Returns the `n`-th interior LINESTRING ring of the POLYGON `geom`. If `geom` is not a POLYGON
+or the given `n` is out of range, a `null` is returned. The index begins at 1
+
+</Accordion>
+
+<Accordion title="ST_INTERSECTION(geom1, geom2)" id="st_intersection-geom1-geom2" defaultOpen>
+
+Returns the shared portion between given geometries `geom1` and `geom2`
+
+</Accordion>
+
+<Accordion title="ST_INTERSECTS(geom1, geom2)" id="st_intersects-geom1-geom2" defaultOpen>
+
+Returns `1` (true) if the given geometries, `geom1` and `geom2`, intersect in 2-D
+
+</Accordion>
+
+<Accordion title="ST_ISCLOSED(geom)" id="st_isclosed-geom" defaultOpen>
+
+Returns `1` (true) if the given geometry's (`geom`) start and end points coincide
+
+</Accordion>
+
+<Accordion title="ST_ISCOLLECTION(geom)" id="st_iscollection-geom" defaultOpen>
+
+Returns `1` (true) if `geom` is a collection, e.g., GEOMETRYCOLLECTION, MULTIPOINT,
+MULTILINESTRING, etc.
+
+</Accordion>
+
+<Accordion title="ST_ISEMPTY(geom)" id="st_isempty-geom" defaultOpen>
+
+Returns `1` (true) if `geom` is empty
+
+</Accordion>
+
+<Accordion title="ST_ISRING(geom)" id="st_isring-geom" defaultOpen>
+
+Returns `1` (true) if LINESTRING `geom` is both closed (per `ST_ISCLOSED`) and "simple"
+(per `ST_ISSIMPLE`). Returns `0` if `geom` is not a LINESTRING
+
+</Accordion>
+
+<Accordion title="ST_ISSIMPLE(geom)" id="st_issimple-geom" defaultOpen>
+
+Returns `1` (true) if `geom` has no anomalous geometric points, e.g., self-intersection or
+self-tangency
+
+</Accordion>
+
+<Accordion title="ST_ISVALID(geom)" id="st_isvalid-geom" defaultOpen>
+
+Returns `1` (true) if `geom` (typically a [MULTI]POLYGON) is well formed. A POLYGON is valid if
+its rings do not cross, and its boundary intersects only at POINTs (not along a line). The POLYGON must
+also not have dangling LINESTRINGs. A MULTIPOLYGON is valid if all of its elements are also valid, and
+the interior rings of those elements do not intersect. Each element's boundaries may touch but only
+at POINTs (not along a line).  `ST_MAKEVALID(geom)` can be used to help correct invalid geometries.
+
+</Accordion>
+
+<Accordion title="ST_ISVALIDREASON(geom)" id="st_isvalidreason-geom" defaultOpen>
+
+Returns `Valid Geometry` if `geom` is well formed, according to `ST_ISVALID(geom)`; otherwise,
+returns the reason `geom` is determined to be malformed.  `ST_MAKEVALID(geom)` can be used to
+help correct invalid geometries.
+
+Example:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <tbody>
+  <tr>
+    <td>**Function Call**</td>
+    <td><code>ST_ISVALIDREASON('POLYGON((-1 0, 1 0, 1 1, -1 -1))')</code></td>
+  </tr>
+  <tr>
+    <td>**Return**</td>
+    <td><code>Self-intersection[0 0]</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="ST_LENGTH(geom[, solution])" id="st_length-geom-solution" defaultOpen>
+
+Returns the length of the geometry if it is a LINESTRING or MULTILINESTRING. Returns `0` if
+another type of geometry, e.g., POINT, MULTIPOINT, etc. GEOMETRYCOLLECTIONs are
+also supported but the aforementioned type limitation still applies; the collection will be
+recursively searched for LINESTRINGs and MULTILINESTRINGs and the summation of all supported geometry
+types is returned (unsupported types are ignored). Solution types available:
+
+* `0` (default) - 2D Euclidean length
+* `1` - length on a sphere in meters
+* `2` - length on a spheroid in meters
+
+</Accordion>
+
+<Accordion title="ST_LINEFROMMULTIPOINT(geom)" id="st_linefrommultipoint-geom" defaultOpen>
+
+Creates a LINESTRING from `geom` if it is a MULTIPOINT. Returns `null` if `geom` is not a
+MULTIPOINT
+
+</Accordion>
+
+<Accordion title="ST_LINEINTERPOLATEPOINT(geom, frac)" id="st_lineinterpolatepoint-geom-frac" defaultOpen>
+
+Returns a POINT on the LINESTRING `geom` that is the `frac` fraction of the distance along the line. If `geom` is either
+empty or **not** a LINESTRING, `null` is returned
+
+</Accordion>
+
+<Accordion title="ST_LINELOCATEPOINT(linestring, point)" id="st_linelocatepoint-linestring-point" defaultOpen>
+
+Returns the location of the closest point in the given `linestring` to the given `point` as a
+value between `0` and `1`. The return value is a fraction of the total `linestring` length.
+
+</Accordion>
+
+<Accordion title="ST_LINEMERGE(geom)" id="st_linemerge-geom" defaultOpen>
+
+Returns a LINESTRING or MULTILINESTRING from a given `geom`. If `geom` is a MULTILINESTRING
+comprising LINESTRINGs with shared endpoints, a contiguous LINESTRING is returned. If `geom` is a
+LINESTRING or a MULTILINESTRING comprising LINESTRINGS without shared endpoints, `geom` is returned
+If `geom` is an empty (MULTI)LINESTRING or a (MULTI)POINT or (MULTI)POLYGON, an empty
+GEOMETRYCOLLECTION is returned.
+
+</Accordion>
+
+<Accordion title="ST_LINESUBSTRING (geom, start_frac, end_frac)" id="st_linesubstring-geom-start_frac-end_frac" defaultOpen>
+
+Returns the fraction of a given `geom` LINESTRING from the point that is the `start_frac` fraction of the distance along
+the line to the point that is the `end_frac` fraction of the distance along the line.
+
+For example, given `LINESTRING(1 1, 2 2, 3 3)` a `start_fraction` of `0` and an `end_fraction` of `0.25` would yield
+the first quarter of the given LINESTRING, or `LINESTRING(1 1, 1.5 1.5)`.
+
+Returns `null` in the following cases:
+
+* input geometry is (MULTI)POINT, MULTILINESTRING, or (MULTI)POLYGON
+* `start_frac` is greater than `end_frac`
+* `start_frac` or `end_frac` are not between `0` & `1`, inclusive
+
+</Accordion>
+
+<Accordion title="ST_LONGESTLINE (geom1, geom2[, solution])" id="st_longestline-geom1-geom2-solution" defaultOpen>
+
+Returns the LINESTRING that represents the longest line of points between the two geometries. If
+multiple longest lines are found, only the first line found is returned. If `geom1` or `geom2` is
+empty, `null` is returned. Solution types available:
+
+* `0` (default) - Euclidean; uses degrees to calculate the longest line
+* `1` - Sphere; uses meters to calculate the longest line
+* `2` - Spheroid; uses meters to calculate the longest line, more accurate than sphere but slower
+  performance
+
+</Accordion>
+
+<Accordion title="ST_MAKEENVELOPE (xmin, ymin, xmax, ymax)" id="st_makeenvelope-xmin-ymin-xmax-ymax" defaultOpen>
+
+Creates a rectangular POLYGON from the given min and max parameters
+
+</Accordion>
+
+<Accordion title="ST_MAKELINE(geom[, geom2])" id="st_makeline-geom-geom2" defaultOpen>
+
+Creates a LINESTRING from `geom` if it is a MULTIPOINT. If `geom` is a POINT, there must be at
+least one other POINT to construct a LINESTRING. If `geom` is a LINESTRING, it must have at least
+two points. Returns `null` if `geom` is not a POINT, MULTIPOINT, or LINESTRING
+
+
+<Info>
+This function can be rather costly in terms of performance
+</Info>
+
+</Accordion>
+
+<Accordion title="ST_MAKEPOINT(x, y)" id="st_makepoint-x-y" defaultOpen>
+
+Creates a POINT at the given coordinate
+
+
+<Info>
+This function can be rather costly in terms of performance
+</Info>
+
+</Accordion>
+
+<Accordion title="ST_MAKEPOLYGON(geom)" id="st_makepolygon-geom" defaultOpen>
+
+Creates a POLYGON from `geom`. Inputs must be closed LINESTRINGs
+
+
+<Info>
+This function can be rather costly in terms of performance
+</Info>
+
+</Accordion>
+
+<Accordion title="ST_MAKETRIANGLE2D (x1, y1, x2, y2, x3, y3)" id="st_maketriangle2d-x1-y1-x2-y2-x3-y3" defaultOpen>
+
+Creates a closed 2-D POLYGON with three vertices
+
+</Accordion>
+
+<Accordion title="ST_MAKETRIANGLE3D (x1, y1, z1, x2, y2, z2, x3, y3, z3)" id="st_maketriangle3d-x1-y1-z1-x2-y2-z2-x3-y3-z3" defaultOpen>
+
+Creates a closed 3-D POLYGON with three vertices
+
+</Accordion>
+
+<Accordion title="ST_MAKEVALID(geom[, options])" id="st_makevalid-geom-options" defaultOpen>
+
+Attempts to convert `geom` into a valid geometry when it is malformed, as determined by
+`ST_ISVALID(geom)`.  Returns `geom` if it is a valid geometry already.  The method used to convert
+invalid geometries into valid ones can be specified in `options` as a space-separated string of
+`x=y` key/value pairs.  The keys and corresponding values are as follows:
+
+* `method` - the algorithm used to convert invalid geometries into valid ones; either:
+
+  * `linework` (default) - build geometry from lines extracted from `geom`
+  * `structure` - build geometry from interior & exterior rings extracted from `geom`
+
+* `keepcollapsed` - if using the `method` of `structure`, whether to drop portions of the
+  converted geometry that collapse to lower dimensions:
+
+  * `true` (default) - keep portions of geometry that collapse to lower dimensions
+  * `false` - don't keep portions of geometry that collapse to lower dimensions
+
+Example using default *linework* method:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <tbody>
+  <tr>
+    <td>**Function Call**</td>
+    <td><code>ST_MAKEVALID('POLYGON((-1 0, 1 0, 1 1, -1 -1))')</code></td>
+  </tr>
+  <tr>
+    <td>**Return**</td>
+    <td><code>MULTIPOLYGON (((-1 -1, -1 0, 0 0, -1 -1)), ((1 0, 0 0, 1 1, 1 0)))</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+Example using the *structure* method without dropping collapsible parts of the converted geometry:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <tbody>
+  <tr>
+    <td>**Function Call**</td>
+    <td><code>ST_MAKEVALID('POLYGON((0 0, 0 0, 0 0, 0 0))', 'method=structure keepcollapsed=true')</code></td>
+  </tr>
+  <tr>
+    <td>**Return**</td>
+    <td><code>POINT (0 0)</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+Example using the *structure* method with dropping collapsible parts of the converted geometry:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <tbody>
+  <tr>
+    <td>**Function Call**</td>
+    <td><code>ST_MAKEVALID('POLYGON((0 0, 0 0, 0 0, 0 0))', 'method=structure keepcollapsed=false')</code></td>
+  </tr>
+  <tr>
+    <td>**Return**</td>
+    <td><code>POLYGON EMPTY</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="ST_MAXDISTANCE (geom1, geom2[, solution])" id="st_maxdistance-geom1-geom2-solution" defaultOpen>
+
+Returns the maximum distance between the given `geom1` and `geom2` geometries using the specified
+solution type. If `geom1` or `geom2` is empty, `null` is returned. Solution types available:
+
+* `0` (default) - returns maximum 2-D Euclidean distance
+* `1` - Sphere; returns maximum distance in meters
+* `2` - Spheroid; returns maximum distance in meters, more accurate than sphere but slower
+  performance
+
+</Accordion>
+
+<Accordion title="ST_MAXX(geom)" id="st_maxx-geom" defaultOpen>
+
+Returns the maximum x coordinate of a bounding box for the given `geom` geometry. This function
+works for 2-D and 3-D geometries.
+
+</Accordion>
+
+<Accordion title="ST_MAXY(geom)" id="st_maxy-geom" defaultOpen>
+
+Returns the maximum y coordinate of a bounding box for the given `geom` geometry. This function
+works for 2-D and 3-D geometries.
+
+</Accordion>
+
+<Accordion title="ST_MAXZ(geom)" id="st_maxz-geom" defaultOpen>
+
+Returns the maximum z coordinate of a bounding box for the given `geom` geometry. This function
+works for 2-D and 3-D geometries.
+
+</Accordion>
+
+<Accordion title="ST_MINX(geom)" id="st_minx-geom" defaultOpen>
+
+Returns the minimum x coordinate of a bounding box for the given `geom` geometry. This function
+works for 2-D and 3-D geometries.
+
+</Accordion>
+
+<Accordion title="ST_MINY(geom)" id="st_miny-geom" defaultOpen>
+
+Returns the minimum y coordinate of a bounding box for the given `geom` geometry. This function
+works for 2-D and 3-D geometries.
+
+</Accordion>
+
+<Accordion title="ST_MINZ(geom)" id="st_minz-geom" defaultOpen>
+
+Returns the minimum z coordinate of a bounding box for the given `geom` geometry. This function
+works for 2-D and 3-D geometries.
+
+</Accordion>
+
+<Accordion title="ST_MULTI(geom)" id="st_multi-geom" defaultOpen>
+
+Returns `geom` as a MULTI- geometry, e.g., a POINT would return a MULTIPOINT.
+
+</Accordion>
+
+<Accordion title="ST_MULTIPLERINGBUFFERS (geom, distance[, outside])" id="st_multipleringbuffers-geom-distance-outside" defaultOpen>
+
+Creates multiple buffers at specified `distance` around the given `geom` geometry. Multiple
+distances are specified as comma-separated values in an array, e.g., `[10,20,30]`. Valid values for
+`outside` are:
+
+* `FULL` - indicates that buffers will overlap or cover the given `geom` geometry. This is the
+  default.
+* `OUTSIDE_ONLY` - indicates that buffers will be rings around the given `geom` geometry.
+
+</Accordion>
+
+<Accordion title="ST_NDIMS(geom)" id="st_ndims-geom" defaultOpen>
+
+Returns the number of dimensions in `geom`.  For X,Y data, this will return 2; if a Z component is
+present, it will return 3.
+
+</Accordion>
+
+<Accordion title="ST_NEAR(geom1, geom2)" id="st_near-geom1-geom2" defaultOpen>
+
+Returns the portion of `geom2` that is closest to `geom1`. If `geom2` is a singular geometry
+object (e.g., POINT, LINESTRING, POLYGON), `geom2` will be returned. If `geom2` a multi-geometry,
+e.g., MULTIPOINT, MULTILINESTRING, etc., the nearest singular geometry in `geom2` will be
+returned.
+
+</Accordion>
+
+<Accordion title="ST_NORMALIZE(geom)" id="st_normalize-geom" defaultOpen>
+
+Returns `geom` in its normalized (canonical) form, which may rearrange the points in lexicographical
+order.
+
+</Accordion>
+
+<Accordion title="ST_NPOINTS(geom)" id="st_npoints-geom" defaultOpen>
+
+Returns the number of points (vertices) in `geom`.
+
+</Accordion>
+
+<Accordion title="ST_NRINGS(geom)" id="st_nrings-geom" defaultOpen>
+
+Returns the total number of rings (including interior rings) in `geom`.  For non-polygonal geometries,
+it will return 0. For MULTIPOLYGONs, it will return the total number of rings across all components.
+
+</Accordion>
+
+<Accordion title="ST_NUMGEOMETRIES(geom)" id="st_numgeometries-geom" defaultOpen>
+
+If `geom` is a collection or MULTI- geometry, returns the number of geometries. If `geom` is a
+single geometry, returns 1.
+
+</Accordion>
+
+<Accordion title="ST_NUMINTERIORRINGS(geom)" id="st_numinteriorrings-geom" defaultOpen>
+
+Returns the number of interior rings if `geom` is a POLYGON. Returns `null` if `geom` is
+anything else.
+
+</Accordion>
+
+<Accordion title="ST_NUMPOINTS(geom)" id="st_numpoints-geom" defaultOpen>
+
+Returns the number of points in the `geom` LINESTRING. Returns `null` if `geom` is not a
+LINESTRING.
+
+</Accordion>
+
+<Accordion title="ST_OVERLAPS(geom1, geom2)" id="st_overlaps-geom1-geom2" defaultOpen>
+
+Returns `1` (true) if given geometries `geom1` and `geom2` share space. If `geom1` and/or
+`geom2` are a GEOMETRYCOLLECTION, a `0` is returned regardless of if the two geometries overlap
+
+</Accordion>
+
+<Accordion title="ST_PARTITION(geom[, threshold])" id="st_partition-geom-threshold" defaultOpen>
+
+Returns a MULTIPOLYGON representing the given `geom` partitioned into a number of POLYGONs with a
+maximum number of vertices equal to the given `threshold`. Minimum value for `threshold` is
+`10`; default value is `10000`. If `geom` is not a POLYGON or MULTIPOLYGON, `geom` is
+returned. If the number of vertices in `geom` is less than the `threshold`, `geom` is returned.
+
+</Accordion>
+
+<Accordion title="ST_PERIMETER(geom[, solution])" id="st_perimeter-geom-solution" defaultOpen>
+
+Returns the perimeter of the geometry if it is a POLYGON or MULTIPOLYGON. Returns `0` if another
+type of geometry, e.g., POINT, MULTIPOINT, LINESTRING, or MULTILINESTRING. GEOMETRYCOLLECTIONs are
+also supported but the aforementioned type limitation still applies; the collection will be
+recursively searched for POLYGONs and MULTIPOLYGONs and the summation of all supported geometry types
+is returned (unsupported types are ignored). Solution types available:
+
+* `0` (default) - 2D Euclidean length
+* `1` - length on a sphere in meters
+* `2` - length on a spheroid in meters
+
+</Accordion>
+
+<Accordion title="ST_POINT(x, y)" id="st_point-x-y" defaultOpen>
+
+Returns a POINT with the given `x` and `y` coordinates.
+
+</Accordion>
+
+<Accordion title="ST_POINTFROMGEOHASH (geohash[, precision])" id="st_pointfromgeohash-geohash-precision" defaultOpen>
+
+Returns a POINT using the given `geohash` with a precision set by the integer `precision`. If
+`precision` is specified, the function will use as many characters in the hash equal to
+`precision` to create the geometry. If no `precision` is specified, the full length of
+the `geohash` is used.
+
+
+<Info>
+The POINT returned represents the center of the bounding box of the geohash
+</Info>
+
+</Accordion>
+
+<Accordion title="ST_POINTGRID (xmin, ymin, xmax, ymax, cell_side[, limit])" id="st_pointgrid-xmin-ymin-xmax-ymax-cell_side-limit" defaultOpen>
+
+Creates a MULTIPOLYGON containing a square-shaped grid of points between given minimum and maximum
+points of a bounding box. The minimum point cannot be greater than or equal to the maximum point. The
+distance between the points (in meters) is determined by `cell_side`. The `cell_side` cannot be
+greater than the width or height of the bounding box. The maximum number of cells that can be
+produced is determined by `limit`, a positive integer. Supported values for `limit`:
+
+* `-1` - No limit to the number of cells generated (effectively limited by system memory)
+* `0` (default) - 100 million cells
+* `<n>` - Custom limit of `n` cells
+
+If the custom limit request specifies more cells (based on the bounding box and the `cell_side`)
+than the system limit, a `null` is returned.
+
+</Accordion>
+
+<Accordion title="ST_POINTN(geom, n)" id="st_pointn-geom-n" defaultOpen>
+
+Returns the `n`-th point in LINESTRING `geom`. Negative values are valid, but note that they are
+counted backwards from the end of `geom`. A `null` is returned if `geom` is not a LINESTRING.
+
+</Accordion>
+
+<Accordion title="ST_POINTS(geom)" id="st_points-geom" defaultOpen>
+
+Returns a MULTIPOINT containing all of the coordinates of `geom`.
+
+</Accordion>
+
+<Accordion title="ST_PROJECT(geom, distance, azimuth)" id="st_project-geom-distance-azimuth" defaultOpen>
+
+Returns a POINT projected from a start point `geom` along a geodesic calculated using `distance`
+and `azimuth`. If `geom` is **not** a POINT, `null` is returned.
+
+</Accordion>
+
+<Accordion title="ST_REMOVEPOINT(geom, offset)" id="st_removepoint-geom-offset" defaultOpen>
+
+Remove a point from LINESTRING `geom` using `offset` to skip over POINTs in the LINESTRING. The
+`offset` is 0-based.
+
+</Accordion>
+
+<Accordion title="ST_REMOVEREPEATEDPOINTS (geom, tolerance)" id="st_removerepeatedpoints-geom-tolerance" defaultOpen>
+
+Removes points from `geom` if the point's vertices are greater than or equal to the `tolerance`
+of the previous point in the geometry's list. If `geom` is not a MULTIPOINT, MULTILINESTRING, or a
+MULTIPOLYGON, no points will be removed.
+
+</Accordion>
+
+<Accordion title="ST_REVERSE(geom)" id="st_reverse-geom" defaultOpen>
+
+Return the geometry with its coordinate order reversed.
+
+</Accordion>
+
+<Accordion title="ST_ROTATE(geom, radians[, wkt])" id="st_rotate-geom-radians-wkt" defaultOpen>
+
+Rotates `geom` counter-clockwise by `radians` radians.  Optionally, the rotation origin can be provided as a WKT POINT
+WKT POINT (`wkt`).  If not provided, `geom` will be rotated around *(0, 0)*.
+
+</Accordion>
+
+<Accordion title="ST_ROTATE(geom, radians[, x, y])" id="st_rotate-geom-radians-x-y" defaultOpen>
+
+Rotates `geom` counter-clockwise by `radians` radians.  Optionally, the rotation origin can be provided as a coordinate
+pair (`x` & `y`).  If not provided, `geom` will be rotated around *(0, 0)*.
+
+</Accordion>
+
+<Accordion title="ST_SCALE(geom, wkt)" id="st_scale-geom-wkt" defaultOpen>
+
+Scales `geom` by multiplying its respective vertices by the corresponding *x*, *y* values in the given WKT POINT.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <tbody>
+  <tr>
+    <td>**Function Call**</td>
+    <td><code>ST_SCALE('POLYGON((1 2, -2 1, -1 -2, 2 -1, 1 2))', GEOMETRY('POINT(3 5)'))</code></td>
+  </tr>
+  <tr>
+    <td>**Return**</td>
+    <td><code>POLYGON ((3 10, -6 5, -3 -10, 6 -5, 3 10))</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="ST_SCALE(geom, x, y)" id="st_scale-geom-x-y" defaultOpen>
+
+Scales `geom` by multiplying its respective vertices by the given `x` & `y` values.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <tbody>
+  <tr>
+    <td>**Function Call**</td>
+    <td><code>ST_SCALE('POLYGON((1 2, -2 1, -1 -2, 2 -1, 1 2))', 3, 5)</code></td>
+  </tr>
+  <tr>
+    <td>**Return**</td>
+    <td><code>POLYGON ((3 10, -6 5, -3 -10, 6 -5, 3 10))</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="ST_SEGMENTIZE (geom, max_segment_size[, solution])" id="st_segmentize-geom-max_segment_size-solution" defaultOpen>
+
+Returns the given `geom`, but segmentized *n* number of times depending on how the
+`max_segment_size` distance (in units based on the `solution` type) divides up the original
+geometry. The new `geom` is guaranteed to have segments that are smaller than the given
+`max_segment_size`. Note that POINTs are not able to be segmentized. Collection geometries
+(GEOMETRYCOLLECTION, MULTILINESTRING, MULTIPOINT, etc.) can be segmentized, but only the individual
+parts will be segmentized, not the collection as a whole. Solution types available:
+
+* `0` - Euclidean; uses degrees to calculate distance
+* `1` (default) - Sphere; uses meters to calculate distance
+
+</Accordion>
+
+<Accordion title="ST_SETPOINT(geom1, position, geom2)" id="st_setpoint-geom1-position-geom2" defaultOpen>
+
+Replace a point of LINESTRING `geom1` with POINT `geom2` at `position` (base 0). Negative
+values are valid, but note that they are counted backwards from the end of `geom`.
+
+</Accordion>
+
+<Accordion title="ST_SHAREDPATH(geom1, geom2)" id="st_sharedpath-geom1-geom2" defaultOpen>
+
+Returns a collection containing paths shared by `geom1` and `geom2`.
+
+</Accordion>
+
+<Accordion title="ST_SHORTESTLINE(geom1, geom2)" id="st_shortestline-geom1-geom2" defaultOpen>
+
+Returns the 2-D LINESTRING that represents the shortest line of points between the two geometries. If
+multiple shortest lines are found, only the first line found is returned. If `geom1` or `geom2`
+is empty, `null` is returned
+
+</Accordion>
+
+<Accordion title="ST_SIMPLIFY(geom, tolerance)" id="st_simplify-geom-tolerance" defaultOpen>
+
+Returns a simplified version of the given `geom` using an algorithm to reduce the number of points
+comprising a given geometry while attempting to best retain the original shape. The given
+`tolerance` determines how much to simplify the geometry. The higher the `tolerance`, the more
+simplified the returned geometry. Some holes might be removed and some invalid polygons (e.g.,
+self-intersecting, etc.) might be present in the returned geometry. Only (MULTI)LINESTRINGs and
+(MULTI)POLYGONs can be simplified, including those found within GEOMETRYCOLLECTIONs; any other
+geometry objects will be returned unsimplified.
+
+
+<Info>
+The `tolerance` should be provided in the same units as the data. As a rule of thumb,
+a `tolerance` of `0.00001` would correspond to about one meter.
+</Info>
+
+</Accordion>
+
+<Accordion title="ST_SIMPLIFYPRESERVETOPOLOGY (geom, tolerance)" id="st_simplifypreservetopology-geom-tolerance" defaultOpen>
+
+Returns a simplified version of the given `geom` using an algorithm to reduce the number of points
+comprising a given geometry while attempting to best retain the original shape. The given
+`tolerance` determines how much to simplify the geometry. The higher the `tolerance`, the more
+simplified the returned geometry. No holes will be removed and no invalid polygons (e.g.,
+self-intersecting, etc.) will be present in the returned geometry. Only (MULTI)LINESTRINGs and
+(MULTI)POLYGONs can be simplified, including those found within GEOMETRYCOLLECTIONs; any other
+geometry objects will be returned unsimplified.
+
+
+<Info>
+The `tolerance` should be provided in the same units as the data. As a rule of thumb,
+a `tolerance` of `0.00001` would correspond to about one meter.
+</Info>
+
+</Accordion>
+
+<Accordion title="ST_SNAP(geom1, geom2, tolerance)" id="st_snap-geom1-geom2-tolerance" defaultOpen>
+
+Snaps `geom1` to `geom2` within the given `tolerance`. If the `tolerance` causes `geom1`
+to not snap, the geometries will be returned unchanged.
+
+</Accordion>
+
+<Accordion title="ST_SPLIT(geom1, geom2)" id="st_split-geom1-geom2" defaultOpen>
+
+Returns a collection of geometries resulting from the split between `geom1` and `geom2`
+geometries.
+
+</Accordion>
+
+<Accordion title="ST_SQUAREGRID (xmin, ymin, xmax, ymax, cell_side[, limit])" id="st_squaregrid-xmin-ymin-xmax-ymax-cell_side-limit" defaultOpen>
+
+Creates a MULTIPOLYGON containing a grid of squares between given minimum and maximum points of a
+bounding box. The minimum point cannot be greater than or equal to the maximum point. The size (in
+meters) of the individual squares' sides is determined by `cell_side`. The `cell_side` cannot be
+greater than the width or height of the bounding box. The maximum number of cells that can be
+produced is determined by `limit`, a positive integer. Supported values for `limit`:
+
+* `-1` - No limit to the number of cells generated (effectively limited by system memory)
+* `0` (default) - 100 million cells
+* `<n>` - Custom limit of `n` cells
+
+If the custom limit request specifies more cells (based on the bounding box and the `cell_side`)
+than the system limit, a `null` is returned.
+
+</Accordion>
+
+<Accordion title="ST_STARTPOINT(geom)" id="st_startpoint-geom" defaultOpen>
+
+Returns the first point of LINESTRING `geom` as a POINT. Returns `null` if `geom` is not a
+LINESTRING.
+
+</Accordion>
+
+<Accordion title="ST_SYMDIFFERENCE(geom1, geom2)" id="st_symdifference-geom1-geom2" defaultOpen>
+
+Returns a geometry that represents the portions of `geom1` and `geom2` geometries that do not
+intersect.
+
+</Accordion>
+
+<Accordion title="ST_TOUCHES(geom1, geom2)" id="st_touches-geom1-geom2" defaultOpen>
+
+Returns `1` (true) if the given geometries, `geom1` and `geom2`, have at least one point in
+common but their interiors do not intersect. If `geom1` and/or `geom2` are a GEOMETRYCOLLECTION,
+a `0` is returned regardless of if the two geometries touch
+
+</Accordion>
+
+<Accordion title="ST_TRANSLATE (geom, deltax, deltay[, deltaz])" id="st_translate-geom-deltax-deltay-deltaz" defaultOpen>
+
+Translate `geom` by given offsets `deltax` and `deltay`. A z-coordinate offset can be applied
+using `deltaz`.
+intersect.
+
+</Accordion>
+
+<Accordion title="ST_TRIANGLEGRID (xmin, ymin, xmax, ymax, cell_side[, limit])" id="st_trianglegrid-xmin-ymin-xmax-ymax-cell_side-limit" defaultOpen>
+
+Creates a MULTIPOLYGON containing a grid of triangles between given minimum and maximum points of a
+bounding box. The minimum point cannot be greater than or equal to the maximum point. The size (in
+meters) of the individual triangles' sides is determined by `cell_side`. The `cell_side` cannot be
+greater than the width or height of the bounding box. The maximum number of cells that can be
+produced is determined by `limit`, a positive integer. Supported values for `limit`:
+
+* `-1` - No limit to the number of cells generated (effectively limited by system memory)
+* `0` (default) - 100 million cells
+* `<n>` - Custom limit of `n` cells
+
+If the custom limit request specifies more cells (based on the bounding box and the `cell_side`)
+than the system limit, a `null` is returned.
+
+</Accordion>
+
+<Accordion title="ST_UNION(geom1, geom2)" id="st_union-geom1-geom2" defaultOpen>
+
+Returns a geometry that represents the point set union of the two given geometries, `geom1` and
+`geom2`.
+
+</Accordion>
+
+<Accordion title="ST_UNIONCOLLECTION(geom)" id="st_unioncollection-geom" defaultOpen>
+
+Returns a geometry that represents the point set union of a single given geometry `geom`.
+
+</Accordion>
+
+<Accordion title="ST_UPDATE(geom1, geom2)" id="st_update-geom1-geom2" defaultOpen>
+
+Returns a geometry that is `geom1` geometry updated by `geom2` geometry
+
+</Accordion>
+
+<Accordion title="ST_VORONOIPOLYGONS(geom[, tolerance])" id="st_voronoipolygons-geom-tolerance" defaultOpen>
+
+Returns a GEOMETRYCOLLECTION containing Voronoi polygons (regions consisting of points closer to
+a vertex in `geom` than any other vertices in `geom`) calculated from the vertices in `geom`
+and the given `tolerance`. The `tolerance` determines the distance at which points will be
+considered the same.  An empty GEOMETRYCOLLECTION is returned if `geom` is an empty geometry, a
+single POINT, or a LINESTRING or POLYGON composed of equivalent vertices (e.g.,
+`POLYGON((0 0, 0 0, 0 0, 0 0))`, `LINESTRING(0 0, 0 0)`).
+
+If no `tolerance` is specified, no vertices will be considered the same; each will have its own polygon.
+
+The bounding box for the result POLYGONs extends past the four edges of the input `geom` bounding box by
+an amount that is the greater of the input bounding box's height and width.  For instance, an input `geom`
+with a *3* x *4* bounding box will result in Voronoi polygons filling a space that is *11* x *12*.
+
+</Accordion>
+
+<Accordion title="ST_WITHIN(geom1, geom2)" id="st_within-geom1-geom2" defaultOpen>
+
+Returns `1` (true) if the `geom1` geometry is inside the `geom2` geometry. Note that as long as
+at least one point is inside of `geom2`, `geom1` is considered within `geom2` even if the rest
+of the `geom1` lies along the boundary of `geom2`
+
+</Accordion>
+
+<Accordion title="ST_WKBTOWKT(geom)" id="st_wkbtowkt-geom" defaultOpen>
+
+Returns the text form (WKT) of a geometry from the given byte form (WKB)
+
+</Accordion>
+
+<Accordion title="ST_WKTTOWKB(geom)" id="st_wkttowkb-geom" defaultOpen>
+
+Returns the byte form (WKB) of a geometry from the given text form (WKT)
+
+</Accordion>
+
+<Accordion title="ST_X(geom)" id="st_x-geom" defaultOpen>
+
+Returns the X coordinate of the POINT `geom`; if the coordinate is not available, `null` is
+returned. `geom` must be a POINT.
+
+</Accordion>
+
+<Accordion title="ST_XMAX(geom)" id="st_xmax-geom" defaultOpen>
+
+Alias for `ST_MAXX()`
+
+</Accordion>
+
+<Accordion title="ST_XMIN(geom)" id="st_xmin-geom" defaultOpen>
+
+Alias for `ST_MINX()`
+
+</Accordion>
+
+<Accordion title="ST_Y(geom)" id="st_y-geom" defaultOpen>
+
+Returns the Y coordinate of the POINT `geom`; if the coordinate is not available, `null` is
+returned. `geom` must be a POINT.
+
+</Accordion>
+
+<Accordion title="ST_YMAX(geom)" id="st_ymax-geom" defaultOpen>
+
+Alias for `ST_MAXY()`
+
+</Accordion>
+
+<Accordion title="ST_YMIN(geom)" id="st_ymin-geom" defaultOpen>
+
+Alias for `ST_MINY()`
+
+</Accordion>
+
+<Accordion title="ST_ZMAX(geom)" id="st_zmax-geom" defaultOpen>
+
+Alias for `ST_MAXZ()`
+
+</Accordion>
+
+<Accordion title="ST_ZMIN(geom)" id="st_zmin-geom" defaultOpen>
+
+Alias for `ST_MINZ()`
+
+</Accordion>
+
+</AccordionGroup>

@@ -1,0 +1,157 @@
+---
+title: Auditing
+---
+
+Kinetica can be configured to print audit information to a log for security or
+debugging purposes. The audit configuration settings can be found  in the
+`Auditing` section of the <Badge color="gray">gpudb.conf</Badge> file (located in the
+`/opt/gpudb/core/etc` directory). The `enable_audit` setting must be
+enabled for the other settings to work. Any of these settings can be altered at
+runtime using [/alter/system/properties](/content/api/rest/alter_system_properties_rest#alter-system-properties-rest) to assist with
+debugging unless `lock_audit` is set to `true`. Below is a list of the
+settings and what they do:
+
+| Setting Name | Description |
+| --- | --- |
+| `enable_audit` | If set to `true`, the following information is audited with every request: <br/> <br/> * Job ID <br/> * URI <br/> * User <br/> * Client address (including any HTTP "x-forwarded-for" header if present) |
+| `audit_headers` | If set to `true`, all HTTP headers received with the request will also be audited except for authorization information, which is redacted to prevent exposure of passwords |
+| `audit_body` | If set to `true`, each request body will be audited in JSON format except for records that are inserted via [/insert/records](/content/api/rest/insert_records_rest#insert-records-rest) or [/update/records](/content/api/rest/update_records_rest#update-records-rest) or any passwords that are used in administrative requests |
+| `audit_data` | If set to `true`, records that are inserted via [/insert/records](/content/api/rest/insert_records_rest#insert-records-rest) or [/update/records](/content/api/rest/update_records_rest#update-records-rest) requests will be audited in JSON format along with the request body. The `audit_body` setting  must also be set to `true` for the `audit_data` setting to work <br/> <Info> Enabling this setting during bulk ingestion of data will rapidly produce very large audit logs, which may cause disk space exhaustion </Info> |
+| `lock_audit` | If set to `true`, audit settings cannot be altered at runtime |
+
+
+## Changing the Location of Audit Logs
+
+
+The location of audit logs is controlled by the <Badge color="gray">gpudb_logger.conf</Badge> file
+(located in the `/opt/gpudb/core/etc` directory). By default, audit
+information is logged inline with the main Kinetica logs (see
+[Logging](/content/install/kagent_install#logging-ref) for location). See [Custom Logging](/content/admin/logging) for
+more information.
+
+
+## Configuration Examples
+
+
+### No Auditing
+
+
+* `enable_audit = false`
+* `audit_headers = false`
+* `audit_body = false`
+* `audit_data = false`
+
+
+### Basic Auditing
+
+
+Settings:
+
+* `enable_audit = true`
+* `audit_headers = false`
+* `audit_body = false`
+* `audit_data = false`
+
+
+```
+2018-01-22 10:30:46.182 INFO  (30520,31495,r0/gpudb_cluster_i) host.gpudb.local - Job ID: 18  URI: /filter  User: admin  Client: 172.123.45.67:58452
+
+...
+
+2018-01-22 10:48:32.217 INFO  (14801,16039,r0/gpudb_cluster_i) host.gpudb.local - Job ID: 26  URI: /insert/records  User: admin  Client: 172.123.45.67:57973
+```
+
+### Request Body Auditing
+
+
+Settings:
+
+* `enable_audit = true`
+* `audit_headers = false`
+* `audit_body = true`
+* `audit_data = false`
+
+
+```
+2018-01-24 08:38:13.821 INFO  (21303,22318,r0/gpudb_cluster_i) host.gpudb.local - Job ID: 17  URI: /filter  User: admin  Client: 172.123.45.67:60279
+  {"table_name":"rand_num_table","view_name":"tf2","expression":"x = 1","options":{}}
+
+...
+
+2018-01-24 08:40:54.157 INFO  (21303,22318,r0/gpudb_cluster_i) host.gpudb.local - Job ID: 113  URI: /insert/records  User: admin  Client: 172.123.45.67:60266
+  {"table_name":"mrg_src1","list":[],"list_str":[],"list_encoding":"json","options":{}} (5 records in list_str)
+```
+
+### Request Body and Data Auditing
+
+
+Settings:
+
+* `enable_audit = true`
+* `audit_headers = false`
+* `audit_body = true`
+* `audit_data = true`
+
+
+```
+2018-01-22 10:25:57.003 INFO  (28047,29104,r0/gpudb_cluster_i) host.gpudb.local - Job ID: 29  URI: /filter  User: admin  Client: 172.123.45.67:58350
+    {"table_name":"test_table","view_name":"test_view","expression":"x = 7","options":{}}
+
+...
+
+2018-01-22 10:36:03.338 INFO  (17302,18378,r0/gpudb_cluster_i) host.gpudb.local - Job ID: 36  URI: /insert/records  User: admin  Client: 172.123.45.67:58038
+  {"table_name":"mrg_src1","list":[],"list_str":[],"list_encoding":"json","options":{}}
+      {"x":4, "y":40}
+      {"x":5, "y":50}
+      {"x":6, "y":60}
+      {"x":7, "y":70}
+      {"x":8, "y":80}
+```
+
+### Request Body, Data, and Header Auditing
+
+
+Settings:
+
+* `enable_audit = true`
+* `audit_headers = true`
+* `audit_body = true`
+* `audit_data = true`
+
+
+```
+2018-01-22 10:20:25.696 INFO  (25633,26607,r0/gpudb_cluster_i) host.gpudb.local - Job ID: 54  URI: /filter  User: admin  Client: 172.123.45.67:58271
+    Accept: */*
+    Authorization: [redacted]
+    Connection: keep-alive
+    Content-Type: application/json
+    Host: 172.123.45.67:9191
+    Postman-Token: cc79932a-090c-4271-8df2-7e7788264ab1
+    User-Agent: PostmanRuntime/7.1.1
+    accept-encoding: gzip, deflate
+    cache-control: no-cache
+    content-length: 100
+
+    {"table_name":"test_table","view_name":"test_view","expression":"x = 7","options":{}}
+
+...
+
+2018-01-22 10:27:21.651 INFO  (19780,20806,r0/gpudb_cluster_i) host.gpudb.local - Job ID: 61  URI: /insert/records  User: admin  Client: 172.123.45.67:58139
+  Accept: */*
+  Authorization: [redacted]
+  Connection: keep-alive
+  Content-Type: application/json
+  Host: 172.123.45.67:9191
+  Postman-Token: 14480159-3794-4396-a9b7-b27fbfeae3a9
+  User-Agent: PostmanRuntime/7.1.1
+  accept-encoding: gzip, deflate
+  cache-control: no-cache
+  content-length: 217
+
+  {"table_name":"mrg_src1","list":[],"list_str":[],"list_encoding":"json","options":{}}
+      {"x":4, "y":40}
+      {"x":5, "y":50}
+      {"x":6, "y":60}
+      {"x":7, "y":70}
+      {"x":8, "y":80}
+```

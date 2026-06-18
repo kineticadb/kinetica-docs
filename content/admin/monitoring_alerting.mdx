@@ -1,0 +1,358 @@
+---
+title: Monitoring and Alerting
+sidebarTitle: "Monitoring & Alerting (KAgent)"
+---
+
+Kinetica's monitoring and alerting features are available via the
+[KAgent](/content/admin/kagent/kagent) application. Detailed cluster, usage,
+and query statistics and metrics are available to assist administrators in
+monitoring their Kinetica environment. Administrators can configure alerts that
+are triggered when specific performance metric thresholds are exceeded
+([Metric Alerts](/content/admin/monitoring_alerting#metric-alerts-concept)) or by specific system events
+([Event Alerts](/content/admin/monitoring_alerting#event-alerts-concept)). Administrators can then choose who should be
+notified when those alerts fire by configuring [Recipients](/content/admin/monitoring_alerting#recipients-concept) and
+[Delivery Channels](/content/admin/monitoring_alerting#delivery-channels-concept) for alert delivery. Visit
+[KAgent](/content/admin/kagent/kagent) for an overview of the *KAgent* (and
+Monitoring and Alerting) user interface. For information on simpler alerting
+via *Host Manager*, see [Alerting](/content/admin/alerting).
+
+
+## Monitoring
+
+
+Monitoring in *Kinetica* is enabled via the detailed cluster and ring metrics
+and information on the [Dashboard](/content/admin/kagent/dashboard), usage statistics and metrics in
+[Usage](/content/admin/kagent/usage), and query logging in [Queries](/content/admin/kagent/queries).
+
+
+## Alerting
+
+
+Alerting in *Kinetica* consists of sending notifications at regular intervals
+to desired recipients when a given event or metric alert is triggered.
+
+
+<a id="delivery-channels-concept"></a>
+
+
+### Delivery Channels
+
+
+Delivery channels determine how and/or where notifications are sent. Review the
+[Channels](/content/admin/kagent/alerts#channels-ui) interface documentation for more information on accessing the
+existing delivery channel configuration settings. The supported delivery
+channels are as follows:
+
+* *Email* -- An SMTP host can be configured to send notifications when alerts
+  are triggered
+* *Slack* -- A *Slack* application's incoming Webhook URL can be provided to
+  send notifications to a channel in the specified workplace when alerts are
+  triggered
+
+
+#### Configure Email
+
+
+1. From the **Channels** tab on the **Alerts** page in *KAgent*,
+   click the **Email Settings** sub-tab.
+2. Provide a **Host** and **From** value.
+3. Optionally, provide a **Hello** hostname.
+4. For the **Authentication** settings, provide at least a
+   **Username** and **Password** **or** an **Identity**
+   and **Secret**.
+5. For the **TLS Options**, adjust and provide values as necessary.
+
+
+<p><strong>Example</strong></p>
+
+
+To configure notifications to be sent using your *Gmail* account:
+
+1. [Generate a Custom App Password](https://support.google.com/mail/answer/185833)
+   using the desired *Gmail* account.
+2. For the **Host**, input `smtp.gmail.com:587`.
+3. For the **From**, input the address from which the email alert will
+   be sent.
+4. For the **Authentication**:
+
+   1. Provide the **Username**  for the *Gmail* account used to generate
+      the *App Password*.
+   2. Input the *App Password* into the **Password** field.
+
+5. Under **TLS Options**, enable the **Use TLS** slider.
+6. Click **Save**.
+
+
+![../kagent/images/example_email_settings.png](/content/admin/kagent/images/example_email_settings.png)
+
+
+<a id="config-slack"></a>
+
+
+#### Configure Slack
+
+
+Configuring *Slack* to receive *KAgent* alerts involves creating an app
+using the *Slack* API. Follow the
+[incoming Webhook creation documentation](https://api.slack.com/messaging/webhooks)
+on the *Slack* API website. Once the webhook URL is available, copy it and
+provide it when [creating a Slack recipient](/content/admin/monitoring_alerting#create-recipient).
+
+
+<a id="recipients-concept"></a>
+
+
+### Recipients
+
+
+Recipients determine to whom notifications are sent when an alert is triggered.
+Review the [Recipients](/content/admin/kagent/alerts#recipients-ui) interface documentation for more information
+on accessing the currently configured recipients. The supported types of
+recipients are as follows:
+
+* *Web* -- A notification will be displayed in the *KAgent*
+  [notifications pane](/content/admin/kagent/kagent#kagent-ui-notifications) for the selected
+  recipient
+* *Email* -- A notification will be sent via email using the configured
+  SMTP server for the selected recipient
+* *Slack* -- A notification will be sent to a given *Slack* channel using the
+  configured *Slack* incoming Webhook URL
+
+
+<a id="create-recipient"></a>
+
+
+#### Create a Recipient
+
+
+1. From the **Recipients** tab on the **Alerts** page in
+   *KAgent*, click **+ Add Recipient**.
+2. Select a recipient type:
+
+   * *Email*: Provide an **Email Address**.
+
+
+     <Tip>
+     A distribution list can also be provided if multiple people
+     should be notified.
+     </Tip>
+
+   * *Web*: Provide a valid **Username**.
+
+
+     <Note>
+     The provided user must have system admin permissions to
+     access [KAgent](/content/admin/kagent/kagent).
+     </Note>
+
+   * *Slack*: Provide an incoming Webhook URL. See [Configure Slack](/content/admin/monitoring_alerting#config-slack) for more
+     information.
+
+
+3. Click **OK**. The recipient will be created but must be added to
+   the alerts via the **Event Alerts** or **Metric Alerts**
+   lists.
+
+
+![../kagent/images/add_recipient.png](/content/admin/kagent/images/add_recipient.png)
+
+
+<p><strong>Example</strong></p>
+
+
+To add `sys_admn`, a user with the `system_admin` role, as a *Web*
+recipient:
+
+1. Click **+ Add Recipient**.
+2. Select the **Web** tab.
+3. Input `sys_admn` for the **Username** field.
+4. Click **OK**.
+
+
+<a id="metric-alerts-concept"></a>
+
+
+### Metric Alerts
+
+
+Metric Alerts are triggered when specific performance metric thresholds are
+exceeded, such as CPU utilization, memory usage, or rate of API requests.
+Review the [Metric Alerts](/content/admin/kagent/alerts#metric-alerts-ui) interface documentation for more information
+on accessing the currently configured metric alerts.
+
+
+<a id="create-metric-alert"></a>
+
+
+#### Create a Metric Alert
+
+
+1. From the **Metric Alerts** tab on the **Alerts** page in
+   [KAgent](/content/admin/kagent/kagent):, click **+ Add Metric Alert**.
+2. Provide a **Name** for the alert.
+
+
+   <Tip>
+   This will be used when generating a notification, so this value
+   should be short but relevant
+   </Tip>
+
+3. Select a **Severity** for the alert.
+4. Provide a **Description** for the alert.
+
+
+   <Tip>
+   This will be used when generating a notification, so this value
+   should be short but relevant
+   </Tip>
+
+5. Define the **Trigger** condition that will cause the alert to fire:
+
+   1. First, select a **When** condition and an **Of** *metric*.
+   2. Next, select an **Is** comparative condition and input a value
+      for the given units associated with the selected *metric*.
+   3. Select an **On** condition to determine to which (or any/all)
+      ring, cluster, and/or node this alert applies.
+   4. Select an **For** condition to determine for how long the
+      selected metric must be consistently meeting the configured condition.
+
+
+      <Tip>
+      Set the value to `0` to send an alert as soon as the condition
+      is met.
+      </Tip>
+
+6. Optionally, click **Recipients** and select an available recipient to
+   send the notification to when the alert triggered. A recipient can also be
+   set via the **Metric Alerts** list.
+7. Click **Save**.
+
+
+![../kagent/images/add_metric_alert.png](/content/admin/kagent/images/add_metric_alert.png)
+
+
+<p><strong>Examples</strong></p>
+
+
+To create a warning metric alert for high (&gt; 90%) CPU usage on any node within
+a ring/cluster for 5 minutes (or more):
+
+1. Click **+ Add Metric Alert**.
+2. For the **Name**, input `High CPU Usage`.
+3. For the **Severity**, select **WARNING** from the
+   drop-down menu.
+4. For the **Description**, input
+   `CPU usage has been greater than 90% for 5 minutes (or more)`.
+5. For the **Trigger**:
+
+   1. Leave **When** as **Value**.
+   2. For the **Of** *metric*, select **CPU Usage** from the
+      drop-down menu. Notice the **units**  will automatically change to
+      **%**.
+   3. Update the **Is** comparative condition to
+      **Greater than** and set the associated value to `90`.
+   4. For **On**, select **Any Ring, Cluster, or Node** from the
+      drop-down menu.
+   5. Leave the default values for **For**.
+   6. Click **Save**.
+
+
+      <Tip>
+      If a recipient has already been created, click
+      **Recipient** next to the new metric alert, then select
+      the desired recipient for the alert.
+      </Tip>
+
+
+![../kagent/images/example_metric_alert.png](/content/admin/kagent/images/example_metric_alert.png)
+
+
+To create a fatal metric alert for average memory usage of 100% across a given
+cluster for 0 minutes (triggering an immediate notification upon meeting the
+condition):
+
+1. Click **+ Add Metric Alert**.
+2. For the **Name**, input `Max Memory Usage`.
+3. For the **Severity**, select **FATAL** from the drop-down
+   menu.
+4. For the **Description**, input
+   `Average memory usage across cluster is 100%`.
+5. For the **Trigger**:
+
+   1. For the **When**, select **Average** from the drop-down
+      menu.
+   2. For the **Of** *metric*, select **Memory Usage** from the
+      drop-down menu. Notice the **units**  will automatically change to
+      **%**.
+   3. Leave the **Is** comparative condition as **Equal to**,
+      but set the associated value to `100`.
+   4. For **On**, select the desired ring then a desired cluster from
+      the drop-down menu.
+   5. Set the **For** value to `0`.
+   6. Click **Save**.
+
+
+      <Tip>
+      If a recipient has already been created, click
+      **Recipient** next to the new metric alert, then select
+      the desired recipient for the alert.
+      </Tip>
+
+
+![../kagent/images/example_metric_alert_mem_usage.png](/content/admin/kagent/images/example_metric_alert_mem_usage.png)
+
+<a id="event-alerts-concept"></a>
+
+
+### Event Alerts
+
+
+Event Alerts are triggered when specific system events occur, such as nodes
+terminating or data ingestion completing. Review the [Event Alerts](/content/admin/kagent/alerts#event-alerts-ui)
+interface documentation for more information on accessing the currently
+configured event alerts. Review the list of [Event Codes](/content/admin/event_codes) to see the
+available events.
+
+
+<a id="create-event-alert"></a>
+
+
+#### Create an Event Alert
+
+
+1. From the **Event Alerts** tab on the **Alerts** page in
+   *KAgent*, click **+ Add Event Alert**.
+2. Select a system event from the **Events** drop-down menu.
+3. Optionally, select a ring from the **Ring** drop-down menu.
+4. Optionally, select a cluster from the **Cluster** drop-down menu.
+5. Optionally, select a node from the **Node** drop-down menu.
+6. Optionally, select an available recipient to send the notification to when
+   the alert triggered. A recipient can also be set via the
+   **Event Alerts** list.
+7. Click **OK**.
+
+
+![../kagent/images/add_event_alert.png](/content/admin/kagent/images/add_event_alert.png)
+
+
+<p><strong>Example</strong></p>
+
+
+To create an event alert for when a rank crashes in a given cluster:
+
+1. Click **+ Add Event Alert**.
+2. For the **Event**, select **Rank crashed** from the drop-down
+   menu.
+3. Select the desired **Ring** and **Cluster**. Leave
+   **Node** as the default value.
+4. Click **OK**.
+
+
+   <Tip>
+   If a recipient has already been created, click
+   **Recipient** next to the new event alert, then select
+   the desired recipient for the alert.
+   </Tip>
+
+
+![../kagent/images/example_event_alert.png](/content/admin/kagent/images/example_event_alert.png)

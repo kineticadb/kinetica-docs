@@ -1,0 +1,243 @@
+---
+title: Projections
+---
+
+<a id="projections"></a>
+
+<a id="projection"></a>
+
+
+A *projection* is a concept unique to Kinetica. A *projection* is created
+through the [/create/projection](/content/api/rest/create_projection_rest) endpoint and
+represents a set of columns from and/or column expressions applied to a source
+data set ([table](/content/concepts/tables#table) or [view](/content/concepts/views#view)).
+*Projections* are [memory-only tables](/content/concepts/tables_memory_only) by
+default, but can be persisted (like a [table](/content/concepts/tables)) using the
+`persist` option.  While *projections* can simply represent a whole-cloth
+cross-section of an existing *table*, filtering clauses can be applied before
+creating the column to create an entirely new data set. Expressions that can be
+used to define columns or filters can be found
+[here](/content/concepts/expressions#expressions).
+
+
+<Info>
+A *projection* is somewhat analogous to creating a table from a
+single-table source query.  See [CREATE TABLE ... AS](/content/sql/ddl#sql-create-table-as) for
+details.
+</Info>
+
+A *projection* name must adhere to the standard
+[naming criteria](/content/concepts/tables#table-naming-criteria).  Each *projection*
+exists within a [schema](/content/concepts/schemas) and follows the standard
+[name resolution rules](/content/concepts/tables#table-name-resolution) for *tables*.
+
+A *projection* has several advantages:
+
+* Because a *projection* is a copy of your data, querying the *projection*
+  will be faster than querying a [join](/content/concepts/joins). You could create a
+  *projection* of a *join* to increase the speed of queries against the data
+  set. This also means derived columns and *join* lookups are precalculated.
+* A [/create/projection](/content/api/rest/create_projection_rest) call can calculate derived columns
+  natively
+* A *projection* can be [sharded](/content/concepts/tables#sharding) on entirely different columns
+  than its source *table* or *view*; a *projection* can also be *sharded* even
+  if its source *table* or *view* is [randomly sharded](/content/concepts/tables#random-sharding)
+  or [replicated](/content/concepts/tables#replicated)
+* A *projection* can also be [replicated](/content/concepts/tables#replicated) even if its source
+  *table* is [sharded](/content/concepts/tables#sharding)
+
+*Projections* can be created from any *table* or *view* and will
+create a new type schema using the columns and expressions specified in the
+[/create/projection](/content/api/rest/create_projection_rest) column list from the source schema. Note
+that if the source data set is [replicated](/content/concepts/tables#replicated) the *projection*
+will also be *replicated*, by default. If the source data set is
+[sharded](/content/concepts/tables#sharded), the *projection* will also be *sharded* by default,
+but only if the entire *shard key* is included in the
+[/create/projection](/content/api/rest/create_projection_rest) call and is specified in the same order
+as it appears in the source data set. The *sharded* columns do not have to be
+listed continguously.
+
+For example, a source *table* `employees` has four columns (in order),
+`employee_name`, `salary`, `employee_id`, and `has_benefits`, and two
+of those columns, `salary` and `employee_id`, comprise the *shard key*.
+To create a *sharded projection* using the `employees` *table*, the
+*shard key* will need to be listed in the same order as the source *table*,
+e.g., `column_names = ["salary", "employee_name", "employee_id"]`.
+
+A *projection* of an existing *table* or *view* (*sharded*, *replicated*, or
+otherwise) can be sharded on entirely different columns using the
+`shard_key` option on the [/create/projection](/content/api/rest/create_projection_rest) endpoint,
+regardless of the column(s) the *table*/*view* was previously sharded on (if
+any). See [Shard Keys](/content/concepts/tables#shard-key) for more information on *shard keys* and *sharding*
+restrictions.
+
+A *projection* is also a means to perform
+[window functions](/content/concepts/window). For examples of using
+*window functions*, see [Examples](/content/concepts/projections#projection-create-examples).
+
+Several limitations are discussed in further detail in the
+[Limitations and Cautions](/content/concepts/projections#projection-limitations) section.
+
+<a id="projection-create"></a>
+
+
+## Creating a Projection
+
+
+To create a *projection*, the [/create/projection](/content/api/rest/create_projection_rest) endpoint
+requires three parameters:
+
+1. the name of the data set to create the *projection* from
+2. the name of the *projection* to create
+3. the list of columns and/or column expressions selected from the source data
+   set with optional aliases (`TableA.id`, `TableB.id as b_id`,
+   `length(column_name) as column_name_length`, ...)
+
+<a id="projection-create-examples"></a>
+
+
+### Examples
+
+
+In *Python*, given source table `nyctaxi`, a *projection* of the pickup data
+for single passengers (filtering out some bad data) can be created via:
+
+{/* Source: /examples/python/projections.py (lines 10-24) */}
+```python
+kinetica.create_projection(
+    table_name = "demo.nyctaxi",
+    projection_name = "example.nyctaxi_single_pickups",
+    column_names = [
+        "vendor_id",
+        "pickup_latitude",
+        "pickup_longitude",
+        "pickup_datetime",
+        "trip_distance",
+        "total_amount"
+    ],
+    options = {
+        "expression": "passenger_count = 1 AND total_amount > 0"
+    }
+)
+```
+
+To create a *projection* in *Python* that calculates a 1-before and 3-after
+moving average on the trip distance for single passengers per vendor, using the
+*projection* created above as the source:
+
+{/* Source: /examples/python/projections.py (lines 34-51) */}
+```python
+kinetica.create_projection(
+    table_name = "example.nyctaxi_single_pickups",
+    projection_name = "example.nyctaxi_single_pickups_local_avg_dist",
+    column_names = [
+        "vendor_id",
+        "pickup_datetime",
+        "trip_distance",
+        "AVG(trip_distance) " \
+        "OVER (" \
+        "   PARTITION BY vendor_id " \
+        "   ORDER BY pickup_datetime " \
+        "   ROWS BETWEEN 1 PRECEDING AND 3 FOLLOWING " \
+        ") AS local_avg_dist"
+    ],
+    options = {
+        "order_by": "vendor_id, pickup_datetime"
+    }
+)
+```
+
+Lastly, to create a *projection* in *Python* that calculates the running total
+revenue per vendor for single passenger trips, using the first *projection*
+created above as the source:
+
+{/* Source: /examples/python/projections.py (lines 61-76) */}
+```python
+kinetica.create_projection(
+    table_name = "example.nyctaxi_single_pickups",
+    projection_name = "example.nyctaxi_single_pickups_running_total_revenue",
+    column_names = [
+        "vendor_id",
+        "pickup_datetime",
+        "SUM(total_amount) " \
+        "OVER (" \
+        "   PARTITION BY vendor_id " \
+        "   ORDER BY pickup_datetime " \
+        ") AS running_total_revenue"
+    ],
+    options = {
+        "order_by": "vendor_id, pickup_datetime"
+    }
+)
+```
+
+
+## Operating on a Projection
+
+
+All endpoints currently implemented are able to operate against a *projection*.
+
+
+### Examples
+
+
+For a *Python* example [filter](/content/concepts/filtered_views) using the first
+*projection* created in the [Creating a Projection](/content/concepts/projections#projection-create) section, the following
+would show pickup data for single passengers that traveled more than 10 miles:
+
+{/* Source: /examples/python/projections.py (lines 86-90) */}
+```python
+kinetica.filter(
+    table_name = "example.nyctaxi_single_pickups",
+    view_name = "example.nyctaxi_single_pickups_over_10_miles",
+    expression = "trip_distance > 10"
+)
+```
+
+When filtering against a *projection*, the [/filter](/content/api/rest/filter_rest#filter-rest) endpoint produces
+a [view](/content/concepts/views#view), which means you cannot add, edit, or delete rows. A chain
+of these filters can be used to create more and more restrictive *projections*
+of the original data set.
+
+In *Python*, to aggregate per vendor statistics for single passengers, using the
+same first *projection* as the source, the following call can be made:
+
+{/* Source: /examples/python/projections.py (lines 100-111) */}
+```python
+kinetica.aggregate_group_by(
+    table_name = "example.nyctaxi_single_pickups",
+    column_names = [
+      "vendor_id",
+      "MIN(total_amount) AS min_revenue",
+      "AVG(total_amount) AS avg_revenue",
+      "MAX(total_amount) AS max_revenue"
+    ],
+    offset = 0,
+    limit = -9999,
+    options = {"result_table": "example.nyctaxi_single_pickups_statistics"}
+)
+```
+
+
+<a id="projection-limitations"></a>
+
+
+## Limitations and Cautions
+
+
+There are several limitations to creating and using *projections*:
+
+* Performing a *projection* results in an entirely new data set, so be mindful
+  of the memory usage implications.
+* If a *projection* is created and its source data set's rows are updated (or
+  removed), the *projection* will not be updated to reflect the changes in the
+  source data set.
+* If using column functions to define *projection* column names in the
+  **column_names** parameter, an alias must be used for the column name,
+  e.g., `length(column_name) as column_name_length`. For more details on
+  column naming restrictions, see [Tables](/content/concepts/tables).
+* A *projection* is transient, by default, and will expire after the default
+  [TTL](/content/concepts/ttl) setting.
+* A *projection* is not persisted, by default, and will not survive a database
+  restart; specifying a `persist` option of `true` will make the
+  *projection* permanent and not expire.

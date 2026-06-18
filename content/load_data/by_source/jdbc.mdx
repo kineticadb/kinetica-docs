@@ -1,0 +1,200 @@
+---
+title: Load Data from JDBC
+description: Ingest from any compatible source using a JDBC driver
+# hugo_icon: images/ingestion-icon-white.svg
+sidebarTitle: JDBC
+---
+
+<a id="load-data-by-source-jdbc"></a>
+
+<a id="load-from-jdbc"></a>
+
+
+Loading data from a JDBC data source can be done in two easy steps:
+
+1. [Create a data source](/content/load_data/by_source/jdbc#load-from-jdbc-data-source): Create a
+   *data source* that holds JDBC connection information.
+2. [Ingest the data](/content/load_data/by_source/jdbc#load-from-jdbc-ingest): Load data from
+   your *data source* over JDBC using a remote query.
+
+
+## Before You Begin
+
+
+To illustrate data ingress from a JDBC data source, let's look at an example
+that uses PostgreSQL. If you would like to follow along with the examples in
+this article, you will need:
+
+- A running instance of PostgreSQL
+- A schema and table name in your PostgreSQL database, from which we will load
+  the data. For this tutorial we will be loading data from
+  `pg_catalog.pg_tables`.
+
+<a id="load-from-jdbc-data-source"></a>
+
+
+## Create Data Source
+
+
+Kinetica provides many service provider JDBC drivers in a default installation.
+Drivers not on the [supported list](/content/concepts/jdbc_drivers) can be
+[uploaded manually](/content/load_data/by_source/jdbc#load-from-jdbc-kifs).
+
+Since the PostgreSQL driver is already available in Kinetica, it's time to
+create a *data source*. Use the PostgreSQL connection string on the
+[JDBC driver list](/content/concepts/jdbc_drivers) and the linked
+documentation to construct a connection string for the `LOCATION`.
+
+
+<Info>
+Kinetica's native JDBC ingress differs from other native ingress modes
+in that you do not need to first create a *credential*. Authentication
+parameters can be passed directly into the *data source* at the time of
+creation.
+</Info>
+
+{/* Source: /examples/sql/load/load_data_by_source_jdbc.kisql (lines 42-45) */}
+```sql Create Data Source
+CREATE DATA SOURCE postgres_ds
+LOCATION = 'jdbc:postgresql://localhost:5432/my_database'
+USER = 'auser'
+PASSWORD = 'apass'
+```
+
+
+<a id="load-from-jdbc-ingest"></a>
+
+
+## Ingest Data
+
+
+Now that we have created a *data source*, let's ingest the data. The query
+specified in the `REMOTE QUERY` statement will be executed on the
+*data source* and it defines the data that Kinetica will receive in return.
+
+{/* Source: /examples/sql/load/load_data_by_source_jdbc.kisql (lines 56-58) */}
+```sql Load Data from JDBC Data Source
+LOAD INTO kinetica_pg_table
+FROM REMOTE QUERY 'SELECT schemaname, tablename FROM pg_catalog.pg_tables'
+WITH OPTIONS (DATA SOURCE = 'postgres_ds')
+```
+
+To load only the rows that satisfy a condition, you can use a `WHERE` clause in
+the `REMOTE QUERY` like this:
+
+{/* Source: /examples/sql/load/load_data_by_source_jdbc.kisql (lines 66-68) */}
+```sql Load Data from JDBC Data Source with Filter
+LOAD INTO kinetica_pg_table
+FROM REMOTE QUERY 'SELECT schemaname, tablename FROM pg_catalog.pg_tables WHERE schemaname = ''pg_catalog'''
+WITH OPTIONS (DATA SOURCE = 'postgres_ds')
+```
+
+
+## Considerations
+
+
+The following are some common options used when loading data. For the full list of
+options, see [LOAD INTO](/content/sql/load#sql-load-into).  For copy/paste examples of many of
+the options, see [Loading Data](/content/snippets/load-data).
+
+
+### Error Handling
+
+
+Kinetica has two different
+[error handling modes](/content/sql/load#sql-load-file-server-load-opt) for dealing
+with erroneous data. To halt ingestion after a bad record is found, use the
+`ABORT` mode. To skip erroneous records and continue the ingest, use the
+`SKIP` mode.
+
+To inspect erroneous records, you may use the
+[BAD RECORD TABLE NAME](/content/sql/load#sql-load-file-server-load-opt) option.
+All bad records encountered will be stored there for review. The bad records
+table is limited to 10,000 records by default and may be overridden using the
+[BAD RECORD TABLE LIMIT](/content/sql/load#sql-load-file-server-load-opt) option.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_data_by_source_jdbc.kisql (lines 76-82) */}
+```sql Abort
+LOAD INTO kinetica_pg_table
+FROM REMOTE QUERY 'SELECT schemaname, tablename FROM pg_catalog.pg_tables'
+WITH OPTIONS
+(
+    DATA SOURCE = 'postgres_ds',
+    ON ERROR = ABORT
+)
+```
+
+{/* Source: /examples/sql/load/load_data_by_source_jdbc.kisql (lines 90-97) */}
+```sql Log Bad Records
+LOAD INTO kinetica_pg_table
+FROM REMOTE QUERY 'SELECT * FROM pg_catalog.pg_tables'
+WITH OPTIONS
+(
+    DATA SOURCE = 'postgres_ds',
+    BAD RECORD TABLE NAME = 'error_example_invalid',
+    ON ERROR = SKIP
+)
+```
+
+</CodeGroup>
+
+<a id="load-from-jdbc-kifs"></a>
+
+
+### Uploading a JDBC Driver
+
+
+If the service you need to connect to is not on Kinetica's
+[supported list](/content/concepts/jdbc_drivers), you will need to upload a
+driver for that service into *KiFS* before creating a *data source*.
+
+For these instructions, we will upload a custom PostgreSQL driver into a
+directory in *KiFS* called `drivers` and remove the version from the file
+name.  The final file path will be:  `kifs://drivers/postgresql.jar`.  When
+creating a *data source* with a user-provided driver, this *KiFS* path will be
+specified for the `JDBC_DRIVER_JAR_PATH` option.  Consult the service's
+documentation for the JDBC class name to specify for the
+`JDBC_DRIVER_CLASS_NAME` option.
+
+
+#### Kinetica Workbench
+
+
+To upload the driver using Kinetica's
+[Workbench UI](/content/admin/workbench/ui):
+
+1. Open the **Files** tab of the Workbench Explorer.
+2. Press **+** &gt; **Upload New File** to open the
+   drag-and-drop interface.
+3. Browse to and select the JAR file to upload, or click
+   **Cancel** to close the dialog and then drag the driver JAR
+   file into the **Drag & Drop** area.
+4. Enter `drivers` for the **Folder** name.
+5. Enter `postgresql.jar` in the **File name override** box.
+6. Click **Upload** to upload the file.
+7. Click **Close** to close the dialog.
+
+
+#### KiSQL
+
+
+To upload the driver using [KiSQL](/content/tools/kisql), Kinetica's CLI
+SQL interface, issue the following commands.
+
+*It is assumed that the driver jar is located in the same directory as KiSQL.*
+
+```bash title="Connect to Kinetica with KiSQL"
+kisql --url http://localhost:9191;RowsPerFetch=20000 --user auser
+```
+
+{/* Source: /examples/sql/load/load_data_by_source_jdbc.kisql (lines 29) */}
+```sql Create a Directory in KiFS
+CREATE DIRECTORY 'drivers'
+```
+
+{/* Source: /examples/sql/load/load_data_by_source_jdbc.kisql (lines 31) */}
+```sql Upload the Driver
+UPLOAD FILE 'postgresql.jar' INTO 'drivers'
+```

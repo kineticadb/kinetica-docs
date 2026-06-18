@@ -1,0 +1,413 @@
+---
+title: Data Sinks
+---
+
+A *data sink* is reference object for a data target that is *generally* external
+to the database.  It consists of the location & connection information to that
+target.  A *data sink* can make use of a
+[credential](/content/concepts/credentials) object for storing remote authentication
+information.
+
+A *data sink* name must adhere to the standard
+[naming criteria](/content/concepts/tables#table-naming-criteria).  Each *data sink*
+exists within a [schema](/content/concepts/schemas) and follows the standard
+[name resolution rules](/content/concepts/tables#table-name-resolution) for *tables*.
+
+The following *data sink* types are supported:
+
+* Azure *(Microsoft blob storage)*
+* GCS *(Google Cloud Storage)*
+* HDFS *(Apache Hadoop Distributed File System)*
+* JDBC *(Java Database Connectivity, using a user-supplied driver or one of the*
+  *drivers on the [supported list](/content/concepts/jdbc_drivers))*
+* Kafka *(Apache Kafka streaming feed)*
+* Local *(Table within the same Kinetica instance)*
+* S3 *(Amazon S3 Bucket)*
+* Webhook *(HTTP/HTTPS)*
+
+
+<Info>
+The following default hosts are used for Azure, GCS, & S3, but can be
+overridden in the `destination` parameter:
+
+* Azure:  `<service_account_name>.blob.core.windows.net`
+* GCS:    `storage.googleapis.com`
+* S3:     `<region>.amazonaws.com`
+</Info>
+
+*Data sinks* perform no function by themselves, but act as proxies for
+transmitting data when referenced as a destination in the creation of a
+[table monitor](/content/concepts/table_monitors) (see also the
+[CREATE STREAM](/content/sql/ddl#sql-create-stream) command in SQL), or when referenced as the
+target of an [/export/records/totable](/content/api/rest/export_records_totable_rest#export-records-totable-rest) call (see also the
+[Exporting Data](/content/sql/export) command in SQL).
+
+
+<Info>
+Kafka *data sinks* will be validated upon creation, by default, and will
+fail to be created if an authorized connection cannot be established.
+</Info>
+
+
+## Managing Data Sinks
+
+
+A *data sink* can be managed using the following API endpoint calls.  For
+managing *data sinks* in SQL, see [CREATE DATA SINK](/content/sql/ddl#sql-create-data-sink).
+
+| API Call | Description |
+| --- | --- |
+| [/create/datasink](/content/api/rest/create_datasink_rest#create-datasink-rest) | Creates a *data sink*, given a location and connection information |
+| [/alter/datasink](/content/api/rest/alter_datasink_rest#alter-datasink-rest) | Modifies the properties of a *data sink*, validating the new connection |
+| [/drop/datasink](/content/api/rest/drop_datasink_rest#drop-datasink-rest) | Removes the *data sink* reference from the database; optionally removing all dependent [table monitors](/content/concepts/table_monitors) as well |
+| [/show/datasink](/content/api/rest/show_datasink_rest#show-datasink-rest) | Outputs the *data sink* properties |
+| [/grant/permission](/content/api/rest/grant_permission_rest#grant-permission-rest) | Grants the [permission](/content/security/sec_concepts#security-concepts-permissions-datasink) for a user to connect to a *data sink* |
+| [/revoke/permission](/content/api/rest/revoke_permission_rest#revoke-permission-rest) | Revokes the [permission](/content/security/sec_concepts#security-concepts-permissions-datasink) for a user to connect to a *data sink* |
+
+
+## Creating a Data Sink
+
+
+To create a *data sink*, `kin_dsink`, that targets *Apache Kafka*:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_sink/data_sink.kisql (lines 31-34 36-38) */}
+```sql SQL
+CREATE DATA SINK kin_dsink
+LOCATION = 'kafka://kafka.abc.com:9092'
+WITH OPTIONS
+(
+    CREDENTIAL = 'kafka_credential',
+    KAFKA_TOPIC_NAME = 'kafka_topic'
+)
+```
+
+{/* Source: /examples/python/data_sink.py (lines 106-109 111-114) */}
+```python Python
+kinetica.create_datasink(
+    name = 'kin_dsink',
+    destination = 'kafka://kafka.abc.com:9092',
+    options = {
+        'credential': 'kafka_credential',
+        'kafka_topic_name': 'kafka_topic'
+    }
+)
+```
+
+</CodeGroup>
+
+To create a *data sink* that targets a local database table:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_sink/data_sink.kisql (lines 140-141) */}
+```sql SQL
+CREATE DATA SINK kin_dsink_local
+LOCATION = 'table://example.ds_employee_backup'
+```
+
+{/* Source: /examples/python/data_sink.py (lines 124-127) */}
+```python Python
+kinetica.create_datasink(
+    name = 'kin_dsink',
+    destination = 'table://example.ds_employee_backup'
+)
+```
+
+</CodeGroup>
+
+
+<a id="create-data-sink-consumers"></a>
+
+
+### Consumer-Specific Syntax
+
+
+Several authentication schemes across multiple providers are supported.
+
+* [Azure](/content/concepts/data_sinks#create-data-sink-azure)
+* [GCS](/content/concepts/data_sinks#create-data-sink-gcs)
+* [HDFS](/content/concepts/data_sinks#create-data-sink-hdfs)
+* [JDBC](/content/concepts/data_sinks#create-data-sink-jdbc)
+* [Kafka](/content/concepts/data_sinks#create-data-sink-kafka)
+* [Local (Kinetica)](/content/concepts/data_sinks#create-data-sink-local)
+* [S3](/content/concepts/data_sinks#create-data-sink-s3)
+* [Webhook](/content/concepts/data_sinks#create-data-sink-webhook)
+
+
+<a id="create-data-sink-azure"></a>
+
+
+#### Azure
+
+
+<CodeGroup>
+
+{/* Source: syntax/data_sinks_azure.txt (lines 8-15) */}
+```python Credential
+kinetica.create_datasink(
+    name = '[<data sink schema name>.]<data sink name>',
+    destination = 'azure[://<host>]',
+    options = {
+        'credential': '[<credential schema name>.]<credential name>',
+        'azure_container_name': '<azure container name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sinks_azure.txt (lines 20-29) */}
+```python Managed Credentials
+kinetica.create_datasink(
+    name = '[<data sink schema name>.]<data sink name>',
+    destination = 'azure[://<host>]',
+    options = {
+    	'use_managed_credentials': 'true',
+        'azure_storage_account_name': '<azure storage account name>',
+        'azure_container_name': '<azure container name>',
+        'azure_tenant_id': '<azure tenant id>'
+    }
+)
+```
+
+</CodeGroup>
+
+
+<a id="create-data-sink-gcs"></a>
+
+
+#### GCS
+
+
+<CodeGroup>
+
+{/* Source: syntax/data_sinks_gcs.txt (lines 33-41) */}
+```python Credential
+kinetica.create_datasink(
+    name = '[<data sink schema name>.]<data sink name>',
+    destination = 'gcs[://<host>]',
+    options = {
+    	'credential': '[<credential schema name>.]<credential name>',
+    	['gcs_project_id': '<gcs project id>',]
+    	'gcs_bucket_name': '<gcs bucket name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sinks_gcs.txt (lines 46-54) */}
+```python Managed Credentials
+kinetica.create_datasink(
+    name = '[<data sink schema name>.]<data sink name>',
+    destination = 'gcs[://<host>]',
+    options = {
+    	'use_managed_credentials': 'true',
+    	['gcs_project_id': '<gcs project id>',]
+    	'gcs_bucket_name': '<gcs bucket name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sinks_gcs.txt (lines 8-15) */}
+```python Public (No Auth)
+kinetica.create_datasink(
+    name = '[<data sink schema name>.]<data sink name>',
+    destination = 'gcs[://<host>]',
+    options = {
+    	['gcs_project_id': '<gcs project id>',]
+    	'gcs_bucket_name': '<gcs bucket name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sinks_gcs.txt (lines 20-28) */}
+```python JSON Key
+kinetica.create_datasink(
+    name = '[<data sink schema name>.]<data sink name>',
+    destination = 'gcs[://<host>]',
+    options = {
+    	'gcs_service_account_keys': '<gcs account json key text>',
+    	['gcs_project_id': '<gcs project id>',]
+    	'gcs_bucket_name': '<gcs bucket name>'
+    }
+)
+```
+
+</CodeGroup>
+
+
+<a id="create-data-sink-hdfs"></a>
+
+
+#### HDFS
+
+
+{/* Source: syntax/data_sinks_hdfs.txt (lines 8-14) */}
+```python Credential
+kinetica.create_datasink(
+    name = '[<data sink schema name>.]<data sink name>',
+    destination = 'hdfs://<host>:<port>',
+    options = {
+        'credential': '[<credential schema name>.]<credential name>'
+    }
+)
+```
+
+
+<a id="create-data-sink-jdbc"></a>
+
+
+#### JDBC
+
+
+<CodeGroup>
+
+{/* Source: syntax/data_sinks_jdbc.txt (lines 16-24) */}
+```python Credential
+kinetica.create_datasink(
+    name = '[<data sink schema name>.]<data sink name>',
+    destination = '<jdbc url>',
+    options = {
+        ['jdbc_driver_class_name': '<jdbc driver class full path>',]
+        ['jdbc_driver_jar_path': 'kifs://<jdbc driver jar path>',]
+        'credential': '[<credential schema name>.]<credential name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sinks_jdbc.txt (lines 8-11) */}
+```python Password in URL
+kinetica.create_datasink(
+    name = '[<data sink schema name>.]<data sink name>',
+    destination = '<jdbc url with username/password>'
+)
+```
+
+</CodeGroup>
+
+
+<a id="create-data-sink-kafka"></a>
+
+
+#### Kafka
+
+
+<CodeGroup>
+
+{/* Source: syntax/data_sinks_kafka.txt (lines 19-26) */}
+```python Credential
+kinetica.create_datasink(
+    name = '[<data sink schema name>.]<data sink name>',
+    destination = 'kafka://<kafka.host>:<kafka.port>',
+    options = {
+        'credential': '[<credential schema name>.]<credential name>',
+        'kafka_topic_name': '<kafka topic name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sinks_kafka.txt (lines 8-14) */}
+```python Public (No Auth)
+kinetica.create_datasink(
+    name = '[<schema name>.]<data sink name>',
+    destination = 'kafka://<kafka.host>:<kafka.port>',
+    options = {
+        'kafka_topic_name': '<kafka topic name>'
+    }
+)
+```
+
+</CodeGroup>
+
+
+<a id="create-data-sink-local"></a>
+
+
+#### Local (Kinetica)
+
+
+{/* Source: syntax/data_sinks_local.txt (lines 8-11) */}
+```python User Auth
+kinetica.create_datasink(
+    name = '[<data sink schema name>.]<data sink name>',
+    destination = 'table://[<table schema name>.]<table name>'
+)
+```
+
+
+<a id="create-data-sink-s3"></a>
+
+
+#### S3
+
+
+<CodeGroup>
+
+{/* Source: syntax/data_sinks_s3.txt (lines 20-28) */}
+```python Credential
+kinetica.create_datasink(
+    name = '[<data sink schema name>.]<data sink name>',
+    destination = 's3[://<host>]',
+    options = {
+    	'credential': '[<credential schema name>.]<credential name>',
+        's3_bucket_name': '<aws s3 bucket name>',
+        's3_region': '<aws s3 region>'
+    }
+)
+```
+
+{/* Source: syntax/data_sinks_s3.txt (lines 33-41) */}
+```python Managed Credentials
+kinetica.create_datasink(
+    name = '[<data sink schema name>.]<data sink name>',
+    destination = 's3[://<host>]',
+    options = {
+    	'use_managed_credentials': 'true',
+        's3_bucket_name': '<aws s3 bucket name>',
+        's3_region': '<aws s3 region>'
+    }
+)
+```
+
+{/* Source: syntax/data_sinks_s3.txt (lines 8-15) */}
+```python Public (No Auth)
+kinetica.create_datasink(
+    name = '[<data sink schema name>.]<data sink name>',
+    destination = 's3[://<host>]',
+    options = {
+        's3_bucket_name': '<aws s3 bucket name>',
+        's3_region': '<aws s3 region>'
+    }
+)
+```
+
+</CodeGroup>
+
+
+<a id="create-data-sink-webhook"></a>
+
+
+#### Webhook
+
+
+<CodeGroup>
+
+{/* Source: syntax/data_sinks_webhook.txt (lines 16-22) */}
+```python Credential (with HTTPS)
+kinetica.create_datasink(
+    name = '[<data sink schema name>.]<data sink name>',
+    destination = 'https://<webhook.host>:<webhook.port>',
+    options = {
+        'credential': '[<credential schema name>.]<credential name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sinks_webhook.txt (lines 8-11) */}
+```python HTTP
+kinetica.create_datasink(
+    name = '[<schema name>.]<data sink name>',
+    destination = 'http://<webhook.host>:<webhook.port>'
+)
+```
+
+</CodeGroup>

@@ -1,0 +1,39 @@
+---
+title: /export/records/totable
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="export-records-totable-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/export/records/totable
+```
+Exports records from source table to the specified target table in an external
+database.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of the table from which the data will be exported to remote database, in [schema_name.]table_name format, using standard [name resolution rules](../../../concepts/tables/#table-name-resolution). |
+| remote_query | string | Parameterized insert query to export gpudb table data into remote database. <br/> <br/> The default value is ''. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> batch_size: Batch size, which determines how many rows to export per round trip. The default value is `200000`. <br/> <br/> datasink_name: Name of an existing external data sink to which table name specified in input parameter *table_name* will be exported. <br/> <br/> jdbc_session_init_statement: Executes the statement per each JDBC session before doing actual load. The default value is ''. <br/> <br/> jdbc_connection_init_statement: Executes the statement once before doing actual load. The default value is ''. <br/> <br/> remote_table: Name of the target table to which source table is exported. When this option is specified remote_query cannot be specified. The default value is ''. <br/> <br/> use_st_geomfrom_casts: Wraps parameterized variables with st_geomfromtext or st_geomfromwkb based on source column type. The default value is `false`. The supported values are: * true * false <br/> <br/> use_indexed_parameters: Uses $n style syntax when generating insert query for remote_table option. The default value is `false`. The supported values are: * true * false |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'export_records_to_table_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /export/records/totable endpoint: <br/> <br/> table_name: [string] Value of input parameter *table_name*. <br/> <br/> count_inserted: [long] Number of records inserted into the target table. <br/> <br/> count_skipped: [long] Number of records skipped. <br/> <br/> count_updated: [long] [Not yet implemented]  Number of records updated within the target table. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

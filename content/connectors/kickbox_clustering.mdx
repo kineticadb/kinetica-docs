@@ -1,0 +1,264 @@
+---
+title: Point Clustering
+---
+
+## Example
+
+
+An example of point clustering is available below:
+
+* [Point Cluster](https://github.com/kineticadb/kinetica-kickbox-mapbox-gl/blob/master/examples/point-cluster.html)
+
+
+<Info>
+You will need a current Mapbox API key and some minor modifications
+will be required in order to run each example. At a minimum, you will need a
+*Kinetica* table with latitude/longitude values.
+</Info>
+
+
+## Visualizing Point Clusters
+
+
+This example demonstrates the power of *Kinetica* to aggregate millions of
+records into granular clusters (thousands as a result) and send them to the
+browser. It then leverages the power of *Mapbox* and *Supercluster* to further
+aggregate these clusters based on zoom scale and visualize them on the map. The
+result is a high-performance and impressive display of clustering on a massive
+scale, which allows for the visualization of millions of points in a digestible
+way. Furthermore, each cluster can be clicked-on to reveal statistics about the
+cluster itself, including how many individual points are contained and the
+smallest & largest clusters in the current grouping.
+
+
+## Initializing the Map
+
+
+First, ensure *Kinetica* <Badge color="gray">Kickbox.js</Badge> and its stylesheet are included in
+the HTML page. If you're using <Badge color="blue-destructive">npm</Badge> to install *Kickbox*, add this
+*JavaScript* include between the final DOM element and the closing `</body>`
+tag:
+
+```html
+<script src="/node_modules/kinetica-kickbox-mapbox-gl/dist/kinetica-kickbox-mapbox-gl.min.js"></script>
+```
+
+The style sheet should be included in the `<head>` of the HTML:
+
+```html
+<link rel="stylesheet" href="/node_modules/kinetica-kickbox-mapbox-gl/dist/kinetica-kickbox-mapbox-gl.min.css" />
+```
+
+The map will have to be initialized before a *Kinetica* WMS layer can be added
+to it. Map initialization via [API Documentation](/content/connectors/kickbox_api#initmap) is promisified, so that
+initialization is guaranteed to complete before any layers are added, avoiding
+startup errors. Since this initialization function sets up basic authentication
+for *Kinetica* and connects to the *Mapbox* API all at once, it is intended to
+replace the existing map initialization function provided by *Mapbox*.
+
+```html
+kickbox.initMap({
+    mapboxgl: <mapboxgl_object>,
+    kineticaUrl: 'http://<db.host>:9191',
+    wmsUrl: 'http://<db.host>:9191/wms',
+    mapboxKey: '<MapboxKey>',
+    mapDiv: '<map_html_tag_name>',
+    username: '<kinetica_username>',
+    password: '<kinetica_password>'
+}).then(function(map){...}
+```
+
+The code above initializes the *Mapbox* map, sets the parameters for basic
+authentication inside of *Mapbox*, and also sets the basic authentication
+parameters for any `XmlHttpRequests` made to *Kinetica* itself. The function
+returns the standard *Mapbox* map.
+
+For an example call, see [API Documentation](/content/connectors/kickbox_api#initmap).
+
+
+## Adding a Point Cluster Layer
+
+
+After initialization, a point cluster layer can be added to the map. Performing
+this manually would require creating & adding a source, layer, & *supercluster*
+object; requesting & processing the aggregations from *Kinetica*; then piecing
+together the WMS URL with all of the configuration & rendering parameters, and
+finally, binding every `zoomend` and `moveend` event to reconstruct the WMS
+URL during interaction with the map.
+
+Fortunately, this process can be simplified with the [API Documentation](/content/connectors/kickbox_api#addclusterlayer)
+function:
+
+```html
+kickbox.addClusterLayer(
+    map,
+    {
+        layerId: '<layer_id>',
+        mapboxgl: window.mapboxgl,
+        kineticaUrl: 'http://<db.host>:9191',
+        tableName: '<table_name>',
+        xAttr: '<x_column_name>',
+        yAttr: '<y_column_name>',
+        geohashAttr: '<geohash_column_name>',
+        precision: <geohash_precision>,
+        clusterRadius: <cluster_radius_in_pixels>,
+        useBbox: false,
+        renderingOptions:
+        {
+            // Customize output here
+        }
+    }
+);
+```
+
+That is all the code required to visualize data in *Kinetica* on a *Mapbox* map,
+using point clustering!  By customizing the `renderingOptions` parameters, the
+way the points are rendered can be altered, including size, color, and shape.
+See the [WMS endpoint documentation](/content/api/rest/wms_rest#wms-rest) for the full
+set of rendering options to customize output.
+
+
+<Info>
+A WKT column is not currently allowed when creating clusters--x/y
+columns must be used.
+</Info>
+
+For an example call, see [API Documentation](/content/connectors/kickbox_api#addclusterlayer).
+
+
+## Full Code Example
+
+
+The `kbConfig` object should be updated with the settings for the target
+*Kinetica* environment for this example to run.  Note that the *Kickbox* files,
+<Badge color="gray">kickbox.min.js</Badge> & <Badge color="gray">kickbox.css</Badge> are assumed to be local to this
+HTML file.
+
+```html
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset='utf-8' />
+        <title>Kinetica Kickbox: Point Cluster Example</title>
+        <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+
+        <!-- Include Mapbox stylesheet -->
+        <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.css' rel='stylesheet' />
+
+        <!-- Include Kickbox CSS -->
+        <link rel="stylesheet" href='kickbox.css' />
+
+        <!-- Configure Your Kinetica Config Here. Exposes a variable called "kbConfig" -->
+        <script src="./config.js"></script>
+
+        <!-- Basic styling for the map -->
+        <style>
+            body { margin:0; padding:0;}
+            #map { position:absolute; top:0; bottom:0; width:100%; transition: all 0.3s; }
+        </style>
+    </head>
+    <body>
+        <div id='map'></div>
+        <!-- Include Mapbox and Kickbox -->
+        <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.js'></script>
+        <script src='kickbox.min.js'></script>
+
+        <script>
+            (function(mapboxgl) {
+
+                // Initialize the map
+                var kbConfig = {
+                    mapboxKey: 'your_mapbox_api_key',
+                    kineticaUrl: 'http://<db.host>:9191',
+                    wmsUrl: 'http://<db.host>:9191/wms',
+                    // If using basic authentication
+                    // username: '',
+                    // password: '',
+                    tableName: 'your_table_name',
+                    xColumnName: 'your_x_column_name',
+                    yColumnName: 'your_y_column_name',
+                    geohashColumnName: 'your_geohash_column_name',
+                    center: [-74.2598555, 40.6971494],
+                    zoom: 8
+                };
+
+                var layerId = tableName + '-cluster';
+
+                kickbox.initMap({
+                    mapDiv: 'map',
+                    mapboxgl: window.mapboxgl,
+                    mapboxKey: kbConfig.mapboxKey,
+                    kineticaUrl: kbConfig.kineticaUrl,
+                    wmsUrl: kbConfig.wmsUrl,
+                    // If using basic authentication
+                    // username: kbConfig.username,
+                    // password: kbConfig.password,
+                    zoom: kbConfig.zoom
+                }).then(function(map) {
+
+                    // Add a cluster layer to the map
+                    kickbox.addClusterLayer(map, {
+                        layerId: layerId,
+                        mapboxgl: window.mapboxgl,
+                        kineticaUrl: kbConfig.kineticaUrl,
+                        tableName: kbConfig.tableName,
+                        xAttr: kbConfig.xColumnName,
+                        yAttr: kbConfig.yColumnName,
+                        geohashAttr: kbConfig.geohashColumnName,
+                        precision: 9,
+                        clusterRadius: 40,
+                        clusterMaxZoom: 24,
+                        useBbox: false
+                    });
+                });
+
+            })(window.mapboxgl);
+        </script>
+    </body>
+</html>
+```
+
+
+## A Note About Data Design
+
+
+In order to visualize point clusters on a map, a geohashed column of coordinates
+in the table is required. A detailed discussion of geohashing is outside the
+scope of this documentation, but briefly, it is the encoding of coordinate data
+into strings of a predetermined precision. These strings can then be run through
+a `GROUP BY` query using a substring with a passed precision to generate the
+atomic clusters used in the example.
+
+They are referred to as *atomic clusters*, because the example has no atomic
+records underlying the visualization (in the browser, that is).  That would
+produce far too many results for the browser to handle. Instead, the
+*Supercluster* is given the set of aggregated-by-geohash *atomic clusters*,
+which it then further aggregates as the user zooms in or out. In essence, this
+provides a way to visualize clusters of clusters in real-time, where the basic
+level of clustering delivered by *Kinetica* is chosen based on experimentation
+and performance requirements.
+
+*Kinetica* does have functions to encode & decode geohashes, under the
+*Geometry Functions* section of the
+[Geospatial Function Reference](/content/concepts/expressions#geospatial-functions).  To generate a
+geohash column, in SQL, from a given source table containing `x` & `y`
+columns:
+
+```sql
+CREATE OR REPLACE TABLE table_with_coordinates_and_geohashes AS
+SELECT
+    lon,
+    lat,
+    GEOHASH_ENCODE(lon, lat, <precision>) geohash,
+    ...
+FROM table_with_coordinates
+```
+
+Replace `<precision>` with the number of geohash characters to generate for
+each string representation of the coordinate pairs.
+
+
+<Info>
+This table can also be created natively with the
+[/create/projection](/content/api/rest/create_projection_rest#create-projection-rest) endpoint
+</Info>

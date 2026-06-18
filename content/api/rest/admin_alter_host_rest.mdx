@@ -1,0 +1,40 @@
+---
+title: /admin/alter/host
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="admin-alter-host-rest"></a>
+
+
+```
+URL: http://<db.host>:<hm.port>/admin/alter/host
+```
+Alter properties on an existing host in the cluster. Currently, the only
+property that can be altered is a hosts ability to accept failover processes.
+
+**NOTE:** This endpoint is serviced by the host manager, not the database cluster itself, so the port specified needs to be the host manager port instead. The default host manager port can be found under [Default Ports](../../../install/shared/ports). For more information on the host manager, see [Host Manager](../../../admin/host_manager/).
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| host | string | Identifies the host this applies to. Can be the host address, or formatted as 'hostN' where N is the host number as specified in gpudb.conf. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> accepts_failover: If set to *true*, the host will accept processes (ranks, graph server, etc.) in the event of a failover on another node in the cluster. The default value is `false`. The supported values are: * true * false |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'admin_alter_host_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /admin/alter/host endpoint: <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

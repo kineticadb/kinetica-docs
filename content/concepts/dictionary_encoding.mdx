@@ -1,0 +1,140 @@
+---
+title: Dictionary Encoding
+---
+
+*Dictionary encoding* is a data compression technique that can be applied to
+individual columns.
+
+It will store each unique value of a column in memory and associate each record
+with its corresponding unique value.  This eliminates the storage of duplicate
+values in a column, reducing the overall memory & disk space required to hold
+the data.
+
+*Dictionary encoding* is most effective on columns with low cardinality; the
+fewer the number of unique values within a column, the greater the reduction in
+memory usage.  Queries against the encoded column will generally be faster.
+
+A column can be created with *dictionary encoding* in effect by applying the
+`dict` data handling property to the column during *type* creation (using
+[/create/type](/content/api/rest/create_type_rest#create-type-rest)).  An existing column can be converted to use
+*dictionary encoding* by modifying the column and applying the `dict` property
+(using [/alter/table](/content/api/rest/alter_table_rest#alter-table-rest)).
+
+For example, to apply *dictionary encoding* to a column during table creation:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/dictionary_encoding.kisql (lines 18-29) */}
+```sql SQL
+CREATE OR REPLACE TABLE example.employee
+(
+    id INTEGER NOT NULL,
+    dept_id INTEGER NOT NULL,
+    manager_id INTEGER,
+    first_name VARCHAR(32),
+    last_name VARCHAR(32, DICT),
+    sal DECIMAL(18,4),
+    hire_date DATE,
+    PRIMARY KEY (id, dept_id),
+    SHARD KEY (dept_id)
+)
+```
+
+{/* Source: /examples/python/dictionary_encoding.py (lines 17-34) */}
+```python Python
+# Create a column list; use GPUdbColumnProperty.DICT to apply dictionary
+# encoding to last_name
+columns = [
+    [ "id", GRC._ColumnType.INT, GCP.PRIMARY_KEY ],
+    [ "dept_id", GRC._ColumnType.INT, GCP.PRIMARY_KEY, GCP.SHARD_KEY ],
+    [ "manager_id", GRC._ColumnType.INT, GCP.NULLABLE ],
+    [ "first_name", GRC._ColumnType.STRING, GCP.CHAR32, GCP.NULLABLE ],
+    [ "last_name", GRC._ColumnType.STRING, GCP.CHAR32, GCP.DICT, GCP.NULLABLE ],
+    [ "sal", GRC._ColumnType.STRING, GCP.DECIMAL, GCP.NULLABLE ],
+    [ "hire_date", GRC._ColumnType.STRING, GCP.DATE, GCP.NULLABLE ]
+]
+
+# Create a simple table using the column list
+t = gpudb.GPUdbTable(
+    columns,
+    name = "example.employee",
+    db = kinetica
+)
+```
+
+</CodeGroup>
+
+To apply *dictionary encoding* to a column after table creation:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/dictionary_encoding.kisql (lines 35-36) */}
+```sql SQL
+ALTER TABLE example.employee
+ALTER COLUMN last_name VARCHAR(32, DICT)
+```
+
+{/* Source: /examples/python/dictionary_encoding.py (lines 62-70) */}
+```python Python
+# Set dictionary encoding on the last_name column of the employee table
+kinetica.alter_table(
+    table_name = "example.employee",
+    action = "change_column",
+    value = "last_name",
+    options = {
+        "column_properties": "char32,dict,nullable"
+    }
+)
+```
+
+</CodeGroup>
+
+To remove *dictionary encoding* from a column:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/dictionary_encoding.kisql (lines 42-43) */}
+```sql SQL
+ALTER TABLE example.employee
+ALTER COLUMN last_name VARCHAR(32)
+```
+
+{/* Source: /examples/python/dictionary_encoding.py (lines 79-87) */}
+```python Python
+# Remove dictionary encoding on the last_name column of the employee table
+kinetica.alter_table(
+    table_name = "example.employee",
+    action = "change_column",
+    value = "last_name",
+    options = {
+        "column_properties": "char32,nullable"
+    }
+)
+```
+
+</CodeGroup>
+
+
+<Note>
+Don't leave any spaces between properties in an
+[/alter/table](/content/api/rest/alter_table_rest#alter-table-rest) command's `column_properties` option.
+</Note>
+
+
+## Limitations and Cautions
+
+
+Columns with any of the following characteristics are **not** eligible for
+*dictionary encoding*:
+
+* Any of these [specific types](/content/concepts/types#types-chart):
+
+  * *array* types
+  * *geometry* types
+  * `json`
+  * `vector`
+
+* Member of a [filtered view](/content/concepts/filtered_views) or [join view](/content/concepts/joins)
+* Member of an existing [primary key](/content/concepts/tables#primary-key) or
+  [shard key](/content/concepts/tables#shard-key); i.e., *dictionary encoding* cannot be applied
+  to *primary key* or *shard key* columns **after table creation**

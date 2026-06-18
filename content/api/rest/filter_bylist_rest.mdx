@@ -1,0 +1,52 @@
+---
+title: /filter/bylist
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="filter-bylist-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/filter/bylist
+```
+Calculates which records from a table have values in the given list for the
+corresponding column. The operation is synchronous, meaning that a response
+will not be returned until all the objects are fully available. The response
+payload provides the count of the resulting set. A new resultant set (view)
+which satisfies the input filter specification is also created if a input
+parameter *view_name* is passed in as part of the request.
+
+For example, if a type definition has the columns 'x' and 'y', then a filter by
+list query with the column map \{"x":["10.1", "2.3"], "y":["0.0", "-31.5",
+"42.0"]\} will return the count of all data points whose x and y values match
+both in the respective x- and y-lists, e.g., "x = 10.1 and y = 0.0", "x = 2.3
+and y = -31.5", etc. However, a record with "x = 10.1 and y = -31.5" or "x =
+2.3 and y = 0.0" would not be returned because the values in the given lists do
+not correspond.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of the table to filter, in [schema_name.]table_name format, using standard [name resolution rules](../../../concepts/tables/#table-name-resolution). This may be the name of a table or a view (when chaining queries). |
+| view_name | string | If provided, then this will be the name of the view containing the results, in [schema_name.]view_name format, using standard [name resolution rules](../../../concepts/tables/#table-name-resolution) and meeting [table naming criteria](../../../concepts/tables/#table-naming-criteria). Must not be an already existing table or view. <br/> <br/> The default value is ''. |
+| column_values_map | map of string to arrays of strings | List of values for the corresponding column in the table. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> create_temp_table: If *true*, a unique temporary table name will be generated in the sys_temp schema and used in place of input parameter *view_name*. This is always allowed even if the caller does not have permission to create tables. The generated name is returned in *qualified_view_name*. The default value is `false`. The supported values are: * true * false <br/> <br/> collection_name: [DEPRECATED--please specify the containing schema for the view as part of input parameter *view_name* and use [/create/schema](/content/api/rest/create_schema_rest#create-schema-rest) to create the schema if non-existent] Name of a schema for the newly created view. If the schema provided is non-existent, it will be automatically created. <br/> <br/> filter_mode: String indicating the filter mode, either 'in_list' or 'not_in_list'. The default value is `in_list`. +-----------+----------------------------------------+ \|Supported \|Description \| \|Values \| \| +===========+========================================+ \|in_list \|The filter will match all items that are\| \| \|in the provided list(s). \| \| \| \| +-----------+----------------------------------------+ \|not_in_list\|The filter will match all items that are\| \| \|not in the provided list(s). \| \| \| \| +-----------+----------------------------------------+ |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'filter_by_list_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /filter/bylist endpoint: <br/> <br/> count: [long] The number of records passing the list filter. <br/> <br/> info: [map of string to strings] Additional information. The default value is an empty map ( \{\} ). +-------------------+-----------------------------------------------------------------+ \|Supported \|Parameter Description \| \|Parameters (keys) \| \| +===================+=================================================================+ \|qualified_view_name\|The fully qualified name of the view (i.e. including the schema).\| \| \| \| +-------------------+-----------------------------------------------------------------+ <br/> <br/> Empty string in case of an error. |

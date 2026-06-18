@@ -1,0 +1,69 @@
+---
+title: Obfuscating Plain-Text Passwords
+---
+
+## Overview
+
+
+Some deployments of *Kinetica* may require that plain-text passwords in
+configuration files be obfuscated, for security reasons.  A method for doing so
+has been made available via a set of scripts.
+
+The encryption key generated for performing the obfuscation will be available to
+the `root` and `gpudb` users to encrypt/decrypt passwords, as
+necessary.
+
+
+## Utilities
+
+
+Three utilities are provided to enable obfuscation of plain-text passwords in
+configuration files.
+
+All scripts are located under <Badge color="gray">/opt/gpudb/core/bin</Badge>.
+
+| Script | Description |
+| --- | --- |
+| `gpudb_generate_key.sh` | Generates an encryption key for use in plain-text obfuscation |
+| `gpudb_encrypt.sh [<options>] "plain text"` | Returns the obfuscated version of the given plain text <br/> <br/> `--help`: See help info for running command <br/> <br/> `--cipher`: Choose alternate encryption cipher; default cipher is *256-bit AES* |
+| `gpudb_decrypt.sh [<options>] <obfuscated text>` | Returns the plain text version of the given obfuscated text <br/> <br/> `--help`: See help info for running command <br/> <br/> `--cipher`: Choose alternate decryption cipher; default cipher is *256-bit AES* |
+
+
+<a id="sec-hard-obf-ex"></a>
+
+
+## Example
+
+
+A common use case is in obfuscating the plain-text LDAP password in the HTTPD
+configuration file when [external authentication](/content/security/sec_configuration#ex-auth-config) or
+[external authentication w/ SSL](/content/security/sec_configuration#ex-auth-ssl-config) is configured.
+
+To encrypt the **AuthLDAPBindPassword** in the
+<Badge color="gray">/opt/gpudb/httpd/conf/data.conf</Badge> file:
+
+1. Generate a new encryption key, if one does not already exist:
+
+   ```
+   $ /opt/gpudb/core/bin/gpudb_generate_key.sh
+   ```
+2. Obfuscate the LDAP bind password to be used:
+
+   ```
+   $ /opt/gpudb/core/bin/gpudb_encrypt.sh "secret password"
+   U2FsdGVkX18hfxI6MtztCHZIrrVpkhqmzuB/hGZ3b0umiYNFOtpSIS2JlAhWamTk
+   ```
+3. The obfuscated password can be verified by decrypting it:
+
+   ```
+   $ /opt/gpudb/core/bin/gpudb_decrypt.sh U2FsdGVkX18hfxI6MtztCHZIrrVpkhqmzuB/hGZ3b0umiYNFOtpSIS2JlAhWamTk
+   secret password
+   ```
+4. Modify the <Badge color="gray">/opt/gpudb/httpd/conf/data.conf</Badge> file's
+   **AuthLDAPBindPassword** with the obfuscated password and decryption
+   command:
+
+   ```
+   ## Password of user for search during bind
+   AuthLDAPBindPassword "exec:/opt/gpudb/core/bin/gpudb_decrypt.sh U2FsdGVkX18hfxI6MtztCHZIrrVpkhqmzuB/hGZ3b0umiYNFOtpSIS2JlAhWamTk"
+   ```

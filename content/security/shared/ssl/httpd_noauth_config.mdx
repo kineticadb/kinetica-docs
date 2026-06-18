@@ -1,0 +1,34 @@
+---
+title: 'HTTPD "NoAuth" Configuration'
+---
+
+1. Navigate to <Badge color="gray">/opt/gpudb/httpd/conf/noauth.conf</Badge> and uncomment the
+   following settings, ensuring you replace the **SSLCertificateFile**
+   and **SSLCertificateKeyFile** setting values with the proper file
+   paths. Read the Apache HTTPD
+   [SSL Docs](https://httpd.apache.org/docs/2.4/ssl/ssl_howto.html) for more
+   information
+
+   ```
+   SSLEngine On
+   ...
+   SSLCertificateFile </path/to/cert>
+   SSLCertificateKeyFile </path/to/key>
+   SSLProxyEngine On
+   RequestHeader set X-Forwarded-Proto "https"
+   ```
+
+<Note>
+The following settings are optional but provide greater security.
+Depending on what version of *OpenSSL* is installed on the
+system, the `TLS` version should be updated. Note that
+TLS version 1.1 is being retired after the first part of 2020.
+The `SSLCipherSuite` setting can also be upgraded, e.g.,
+`SSLCipherSuite HIGH:!aNULL:!MD5`:
+
+```
+SSLProtocol -all +TLSv1.2
+SSLCipherSuite HIGH:MEDIUM
+Header edit Set-Cookie ^(.*)$ $1;HttpOnly;Secure
+```
+</Note>

@@ -1,0 +1,42 @@
+---
+title: /alter/tier
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="alter-tier-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/alter/tier
+```
+Alters properties of an existing [tier](../../../rm/concepts/#storage-tiers)
+to facilitate [resource management](../../../rm/concepts/).
+
+To disable
+[watermark-based eviction](../../../rm/concepts/#watermark-based-eviction),
+set both *high_watermark* and *low_watermark* to 100.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| name | string | Name of the tier to be altered. Must be an existing tier group name:  vram, ram, disk[n], persist, cold[n]. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> capacity: Maximum size in bytes this tier may hold at once, per rank. <br/> <br/> high_watermark: Threshold of usage of this tier's resource that once exceeded, will trigger watermark-based eviction from this tier. The minimum allowed value is `0`. The maximum allowed value is `100`. <br/> <br/> low_watermark: Threshold of resource usage that once fallen below after crossing the *high_watermark*, will cease watermark-based eviction from this tier. The minimum allowed value is `0`. The maximum allowed value is `100`. <br/> <br/> wait_timeout: Timeout in seconds for reading from or writing to this resource. Applies to cold storage tiers only. <br/> <br/> persist: If *true* the system configuration will be written to disk upon successful application of this request. This will commit the changes from this request and any additional in-memory modifications. The default value is `true`. The supported values are: * true * false <br/> <br/> rank: Apply the requested change only to a specific rank. The minimum allowed value is `0`. The maximum allowed value is `10000`. |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'alter_tier_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /alter/tier endpoint: <br/> <br/> name: [string] Value of input parameter *name*. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

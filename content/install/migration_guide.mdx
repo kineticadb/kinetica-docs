@@ -1,0 +1,123 @@
+---
+title: Migrating To Kinetica 7.2
+sidebarTitle: Migrating to Kinetica 7.2
+---
+
+While any version of Kinetica can be [upgraded](/content/admin/upgrade) to
+the latest version using [KAgent](/content/admin/kagent/kagent), there are
+several aspects of upgrading that should be considered before doing so, as well
+as a number of steps that should be taken after installing *Kinetica 7.2*.
+
+
+## Database Clients
+
+
+The native APIs are backward compatible with prior releases; any clients that
+make use of these interfaces do not need to be updated after installation.
+
+To make use of the new [array](/content/concepts/array),
+[JSON](/content/concepts/json), & [vector](/content/vector_search)
+column types these interfaces should be upgraded.
+
+See [Native APIs](/content/admin/upgrade#upgrade-database-clients-apis) for instructions on upgrading
+client APIs.
+
+
+## Database Drivers
+
+
+The ODBC/JDBC interfaces are backward compatible with prior releases; any
+clients that make use of the ODBC or JDBC drivers do not need to be updated
+after installation.
+
+To make use of the new [array](/content/concepts/array),
+[JSON](/content/concepts/json), & [vector](/content/vector_search)
+column types these interfaces should be upgraded.
+
+See [JDBC](/content/admin/upgrade#upgrade-database-clients-drivers) for instructions on
+upgrading drivers.
+
+
+## Core
+
+
+### Disk-Optimized Column Attribute
+
+
+Previous releases of *Kinetica* supported the application of a *disk-optimized*
+attribute to a *unrestricted-width string* column, which would prevent the
+column from being loaded into an indexing service.  This resulted in less disk
+usage at the cost of some features not being applicable to that column.
+
+In *Kinetica 7.2*, this feature is no longer supported.  The indexing service
+has been removed, and most features applicable to *restricted-width string*
+column will now be applicable to *unrestricted-width string* columns.
+
+The removal of the indexing service may free up a great deal of storage.
+
+It may be beneficial to profile the disk & memory usage of the database after
+upgrade to determine if any resizing of either is warranted.
+
+
+### Store-Only Column Attribute
+
+
+Previous releases of *Kinetica* supported the application of a *store-only*
+attribute to a column, which would prevent the column from being loaded into
+memory.  This resulted in the need to persist the intermediate results of
+queries that referenced *store-only* columns.
+
+In *Kinetica 7.2*, this feature is no longer supported.  Any accessed columns
+will be loaded into memory and the writing of intermediate query results is no
+longer required.
+
+The backing storage for *store-only* columns has been removed, which may free up
+a great deal of storage.
+
+It may be beneficial to profile the disk & memory usage of the database after
+upgrade to determine if any resizing of either is warranted.
+
+
+### CONCAT_TRUNCATE() Function
+
+
+The `CONCAT_TRUNCATE()` function now only supports the following parameter
+types:
+
+* *charN*
+* *IPv4*
+* *UUID*
+
+Other types that previously worked in *Kinetica 7.1* will need to be explicitly
+casted to a *string* type.  For example, *Kinetica 7.1* allowed this:
+
+```
+SELECT CONCAT_TRUNCATE('ABCDE', 6)
+```
+In *Kinetica 7.2*, this should be updated to:
+
+```
+SELECT CONCAT_TRUNCATE('ABCDE', STRING(6))
+```
+
+### HASH() Function
+
+
+The `HASH()` function, when applied to unrestricted-width strings, returns a
+different hash in *Kinetica 7.2* than in *Kinetica 7.1*.
+
+The `SHA256()` function returns equivalent hashes for the same value
+regardless of source column type or constant value in both *Kinetica 7.1* and
+*Kinetica 7.2*.  It now is applicable to all data types (including
+unrestricted-width strings) and can be used for equivalence-checking instead of
+`HASH()`.
+
+
+<a id="migration-aaw"></a>
+
+
+## AAW
+
+
+If [AAW](https://docs.kinetica.com/7.1/aaw/overview/) is being used, [ingests](https://docs.kinetica.com/7.1/aaw/data/) will
+need to be recreated and [models redeployed](/content/sql/ml#sql-ml-import-model).

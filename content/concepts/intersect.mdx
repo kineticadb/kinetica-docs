@@ -1,0 +1,186 @@
+---
+title: Intersect
+---
+
+<a id="intersects"></a>
+
+<a id="intersect"></a>
+
+
+An *intersect* is a representation of all rows that appear in both of a pair of
+specified data sets ([tables](/content/concepts/tables#tables) or
+[views](/content/concepts/views#views)).
+
+
+<Info>
+An *intersect* is somewhat analogous to creating a table from a SQL
+`INTERSECT` of two tables.  See [CREATE TABLE ... AS](/content/sql/ddl#sql-create-table-as) and
+[INTERSECT](/content/sql/query#sql-intersect) for details.
+</Info>
+
+An *intersect* is performed via the [/create/union](/content/api/rest/create_union_rest)
+endpoint, using the `intersect` or `intersect_all` mode:
+
+* *Intersect* -- all unique rows that exist in both specified data sets
+* *Intersect All* -- all rows (including duplicates) that exist in both
+  specified data sets
+
+
+<Info>
+*Set union* and *set subtraction* are also available,
+and their descriptions and limitations can be found on
+[Union](/content/concepts/unions) and [Except](/content/concepts/except), respectively.
+</Info>
+
+You can only perform an *intersect* two data sets, and the columns between the
+two must have similar data [types](/content/concepts/types). Kinetica will cast compatible
+data *types* as depicted [here](/content/concepts/unions#union-compatible-data-types).
+
+Performing an *intersect* creates a separate
+[memory-only table](/content/concepts/tables_memory_only) containing the results.
+*Intersect* results can be persisted (like [tables](/content/concepts/tables)) using
+the `persist` option.
+
+An *intersect* result table name must adhere to the standard
+[naming criteria](/content/concepts/tables#table-naming-criteria). Each *intersect* result
+exists within a [schema](/content/concepts/schemas) and follows the standard
+[name resolution rules](/content/concepts/tables#table-name-resolution) for *tables*.
+
+Note that if the source data sets are [replicated](/content/concepts/tables#replicated),
+the results of the *intersect* will also be *replicated*. If the included data
+sets are [sharded](/content/concepts/tables#sharded), the resulting *memory-only table*
+from the *intersect* will also be *sharded*; this also means that if a
+non-sharded data set is included, the resulting *memory-only table* will also be
+non-sharded.
+
+Limitations on using *intersect* are discussed in further detail in the
+[Limitations](/content/concepts/intersect#intersect-limitations) section.
+
+
+<a id="intersect-perform"></a>
+
+
+## Performing an Intersect
+
+
+To perform an *intersect* of two data sets, the
+[/create/union](/content/api/rest/create_union_rest) endpoint requires five parameters:
+
+1. the name of the [memory-only table](/content/concepts/tables_memory_only) to be created
+2. the list of the two member data sets to be used in the *intersect* operation;
+   the result will contain all of the elements from the first data set that are
+   also in the second one
+3. the list of columns from each of the given data sets to be used in the
+   *intersect* operation
+4. the list of column names to be output to the resulting *memory-only table*
+5. the *intersect* mode specified in the `options` input parameter
+
+
+### Example
+
+
+An *intersect* between the `lunch_menu` table and the
+`dinner_menu` table would look like:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/intersect.kisql (lines 85-98) */}
+```sql SQL
+CREATE OR REPLACE TABLE example.lunch_and_dinner_menu AS
+SELECT
+    food_name AS lunch_and_dinner_food_name,
+    category,
+    price
+FROM
+    example.lunch_menu
+INTERSECT
+SELECT
+    food_name,
+    category,
+    price
+FROM
+    example.dinner_menu
+```
+
+{/* Source: /examples/python/intersect.py (lines 81-90) */}
+```python Python
+kinetica.create_union(
+    table_name = "example.lunch_and_dinner_menu",
+    table_names = ["example.lunch_menu", "example.dinner_menu"],
+    input_column_names = [
+        ["food_name", "category", "price"],
+        ["food_name", "category", "price"]
+    ],
+    output_column_names = ["lunch_and_dinner_food_name", "category", "price"],
+    options = {"mode": "intersect"}
+)
+```
+
+</CodeGroup>
+
+The results from the above call would contain only the menu items (excluding
+duplicates) found in the extracted columns from **both** `lunch_menu` and
+`dinner_menu`.
+
+
+<Info>
+Since the example includes `price` and all columns selected must
+match between the two sets for an item to be included, a lunch item
+that is priced differently as a dinner item would not appear in the
+result set.
+</Info>
+
+
+## Retrieving Intersect Data
+
+
+To retrieve records from the *intersect* results:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/intersect.kisql (lines 110-112) */}
+```sql SQL
+SELECT lunch_and_dinner_food_name, category, price
+FROM example.lunch_and_dinner_menu
+ORDER BY lunch_and_dinner_food_name
+```
+
+{/* Source: /examples/python/intersect.py (lines 115-119) */}
+```python Python
+gpudb.GPUdbTable(name = "example.lunch_and_dinner_menu", db = kinetica).get_records_by_column(
+    ["lunch_and_dinner_food_name", "category", "price"],
+    options = {"order_by": "lunch_and_dinner_food_name"},
+    print_data = True
+)
+```
+
+</CodeGroup>
+
+
+<a id="intersect-limitations"></a>
+
+
+## Limitations
+
+
+* Performing an *intersect* between two data sets results in an entirely new
+  data set, so be mindful of the memory usage implications.
+* All data sets have to be [replicated](/content/concepts/tables#replicated) or not *replicated*,
+  e.g., you cannot *intersect* *replicated* and *non-replicated* data sets.
+* If attempting to *intersect* [sharded](/content/concepts/tables#sharded) data sets, all data sets
+  have to be *sharded* similarly (if all data is not on the same processing
+  node, the *intersect* can't be calculated properly).
+* The result of an *intersect* operation does not get updated if source data
+  set(s) are updated.
+* The `input_column_name` parameter vector size needs to match the number of
+  data sets listed, i.e. if you want to *intersect* a data set to itself, the
+  data set will need to be listed twice in the `table_names` parameter.
+* The `input_column_name` parameter vectors need to be listed in the same
+  order as their source data sets, e.g., if two data sets are listed in the
+  `table_names` parameter, the first data set's columns should be listed first
+  in the `input_column_name` parameter, etc.
+* The result of an *intersect* is transient, by default, and will expire after
+  the default [TTL](/content/concepts/ttl) setting.
+* The result of an *intersect* is not persisted, by default, and will not
+  survive a database restart; specifying a `persist` option of `true` will
+  make the *table* permanent and not expire.

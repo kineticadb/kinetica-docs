@@ -1,0 +1,265 @@
+---
+title: Fitting Road Network Data to a Graph
+description: How to model a graph based on a road network dataset
+slug: fitting_data
+# time_estimate: 20 MIN
+---
+
+The following guide provides step-by-step instructions to get started with
+fitting existing road network data to a graph. Since *edges* in graphs can only
+be composed of two *nodes*, the weight (or cost to travel) for complex
+WKT LINESTRINGs (e.g., more than two points) that typically define road
+networks must be assigned consistently to the segments composing the
+LINESTRING, as noted under [Weights](/content/graph_solver/network_graph_solver#weights). There are two methods for
+calculating and assigning weights to a graph with *edges* derived from large WKT
+LINESTRINGs:
+
+1. In-line Expressions -- calculating weights using inline
+   [expressions](/content/concepts/expressions) and forcing the graph
+   server to divide complex WKT LINESTRINGs during the graph creation
+2. Expansion -- using [iteration](/content/sql/query#sql-iteration) to divide
+   complex WKT LINESTRINGs and, using a subquery, calculate weights prior to the
+   graph creation
+
+
+## Prerequisites
+
+
+* [D.C. Shape data file](/examples/data/dc_shape.csv)
+* Access to [GAdmin](/content/admin/gadmin)
+
+
+### Data File
+
+
+The tutorial makes use of the `dc_shape` dataset, which can be ingested from
+the [data file](/examples/data/dc_shape.csv) mentioned above.
+
+To ingest the file using [GAdmin](/content/admin/gadmin):
+
+1. Navigate to *GAdmin* and log in (`http://localhost:8080/`)
+2. In the top menu, click **Data --&gt; Import**
+3. In the top right corner, click **Advanced CSV Import**
+4. Click **Select File** and select the data file from your local
+   directory
+5. Leave the default options and values for the rest of **Step 1**
+6. Under **Step 2**, change **Schema** to
+   `graph`
+7. Under **Step 3: Confirm**, click **Import CSV**
+
+
+The file will be validated and records will be inserted.
+
+
+## Fit Using Inline Expressions
+
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/oLYIPBRteEM" title="Graph Modeling Concepts" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+
+Fitting road network data to a graph using inline expressions offers a simpler
+but less efficient approach to deriving the individual *edge* segments' weight.
+The `dc_shape_inline` graph that will be created will calculate weight as
+distance inline and is based on the aforementioned `dc_shape` dataset.
+
+
+### Create Schema
+
+
+Before starting with graph creation, a schema, `graph_c_fit_data`, will
+be created to contain the tables supporting graph creation & solving.  To create
+the schema:
+
+1. Still in *GAdmin*, on the top menu, click
+   **Query --&gt; SQL** to go to the *SQL Tool* page.
+2. Copy the following [CREATE SCHEMA](/content/sql/ddl#sql-create-schema) statement into the
+   **SQL Statements** text area on the top section of the page:
+   ```sql
+   CREATE SCHEMA graph_c_fit_data
+   ```
+1. Highlight the statement and click **Run Selected**.
+
+
+### Create Graph
+
+
+To create the graph, in *GAdmin*:
+
+1. Copy the following [CREATE GRAPH](/content/sql/graph#sql-graph-create) statement into the
+   **SQL Statements** text area on the top section of the page:
+   ```sql
+   CREATE DIRECTED GRAPH graph_c_fit_data.dc_shape_inline
+   (
+       EDGES => INPUT_TABLE
+       (
+           SELECT
+               link_id AS ID,
+               shape AS WKTLINE,
+               direction AS DIRECTION,
+               ST_LENGTH(shape,1)/(ST_NPOINTS(shape)-1) AS WEIGHT_VALUESPECIFIED
+           FROM graph.dc_shape
+       ),
+       OPTIONS => KV_PAIRS
+       (
+           'merge_tolerance' = '0.00001',
+           'recreate' = 'true',
+           'graph_table' = 'graph_c_fit_data.dc_shape_inline_graph'
+       )
+   )
+   ```
+1. Highlight the statement and click **Run Selected**.
+
+This creates the `dc_shape_inline` graph with the following characteristics:
+
+* It is [DIRECTED](/content/graph_solver/network_graph_solver#directed-graphs) because the roads in the graph
+  have directionality (one-way and two-way roads).
+* It has no explicitly defined [nodes](/content/graph_solver/network_graph_solver#graph-nodes), because the
+  example relies on implicit *nodes* attached to the defined *edges*.
+* The [EDGES](/content/graph_solver/network_graph_solver#graph-edges) are derived from WKT LINESTRINGs in the
+  `shape` column of the `dc_shape` table (`AS WKTLINE`); the graph
+  server will automatically divide each complex LINESTRING into simple *edges*.
+  Each *edge's* directionality is derived from the `direction` column of the
+  `dc_shape` table (`AS DIRECTION`), and each *edge* will be assigned
+  an ID that is the `link_id` column of the `dc_shape` table
+  (`AS ID`).
+* <iframe width="560" height="315" src="https://www.youtube.com/embed/ouZb00xEzh8" title="Weighted Graphs" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+  The [edge weights](/content/graph_solver/network_graph_solver#graph-weights) are represented as distance,
+  which is calculated as the length of the entire `shape` column's LINESTRING
+  (in meters) divided by the number of points in the LINESTRING minus 1
+  (`AS WEIGHT_VALUESPECIFIED`).
+* It has no inherent [restrictions](/content/graph_solver/network_graph_solver#graph-restrictions) for any of
+  the *nodes* or *edges* in the graph.
+* It utilizes the following `OPTIONS`:
+
+  * It will be replaced with this instance of the graph if a graph of the same
+    name exists (`recreate`).
+  * If *nodes* are within 0.00001 degrees (1 meter) of each other, they are
+    merged together (`merge_tolerance`).
+  * The resulting graph's information is placed into a table
+    (`graph_table`) and an `EDGE_WKTLINE` column is included so the graph
+    can be visualized.
+
+To view the created graph:
+
+1. On the top menu, click **Data --&gt; Graphs** to go to the
+   *Graphs* page.
+2. Click on the **dc_shape_inline** entry in the list of graphs.
+3. Click **Visualize** to bring up the map view.
+
+
+## Fit Using Expansion
+
+
+Fitting road network data to a graph using expansion separates the creation of
+line segments and calculation of distance from graph creation.  This increases
+the performance of the graph creation process, as most of the calculations are
+done within the database instead of the graph server. Expansion is achieved
+through [iteration](/content/sql/query#sql-iteration), wherein each source record
+with a WKT is expanded into a number of records equal to the number of *edges*
+in that corresponding WKT. For example, a single road record with a 10-segment
+WKT LINESTRING will become ten individual records, each containing one of the 10
+segments.  In this way, the weights can be pre-calculated and assigned directly
+to the road segments/edges, alleviating the need for the graph server to do this
+processing itself.
+
+
+### Create Expansion Table
+
+
+To accomplish this, first create the expansion table, in *GAdmin*:
+
+1. On the top menu, click **Query --&gt; SQL** to go to the
+   *SQL Tool* page.
+2. Copy the following [CREATE TABLE](/content/sql/ddl#sql-create-table) statement into the
+   **SQL Statements** text area on the top section of the page:
+   ```sql
+   CREATE TABLE graph_c_fit_data.dc_shape_expanded AS
+   SELECT
+       link_id,
+       direction,
+       REMOVE_NULLABLE(shape) AS shape,
+       REMOVE_NULLABLE(ST_LENGTH(shape,1)) AS distance
+   FROM
+   (
+       SELECT
+           direction,
+           link_id,
+           ST_MAKELINE(ST_POINTN(shape, i + 1), ST_POINTN(shape, i + 2)) AS shape
+       FROM graph.dc_shape
+       JOIN ITER ON i < ST_NUMPOINTS(shape) - 1
+   )
+   ```
+1. Highlight the statement and click **Run Selected**.
+
+This [CREATE TABLE ... AS](/content/sql/ddl#sql-create-table-as) statement performs several actions
+necessary to expand the edges and prepare the data for use by the graph creation
+process.
+
+First the complex LINESTRINGs are divided into single *edges* via a subquery:
+
+* The existing `dc_shape` table is joined to the `ITER` virtual table, where
+  each WKT LINESTRING is iterated through to extract line segments.
+* A new WKT LINESTRING is constructed (`ST_MAKELINE`) from each consecutive
+  pair of points in the source LINESTRING (`dc_shape.shape`) column.
+* The `direction` and `link_id` columns are extracted from the `dc_shape`
+  table to assist in graph creation later.
+
+Next, an outer query is used to eliminate the column *nullability* introduced
+by join (since graphs cannot be created from columns with the `nullable`
+property), and also to calculate the *weight* as distance.  Lastly, the result
+is saved to a table, which the graph creation will use as input.
+
+* The results of the query are placed in a new *table*
+  (`graph_c_fit_data.dc_shape_expanded`).
+* The `link_id` and `direction` columns are passed through as they are.
+* The `shape` column has its *nullability* removed (`REMOVE_NULLABLE`).
+* The `shape` column is used to calculate a distance column (`distance`),
+  and *nullability* is removed from that column as well.
+
+
+### Create Graph from Expansion Table
+
+
+Finally, the `dc_shape_expansion` graph is created directly from the
+`dc_shape_expanded` *table* with no extra calculations necessary.  The graph
+is created with the same characteristics as before, with the following changes:
+
+* The *edges* are derived from the line segments expanded from the original WKT
+  LINESTRINGs in the `shape` column of the `dc_shape_expanded` table
+  (`WKTLINE`).
+* The *weights* are pulled directly from the `distance` column of the
+  `dc_shape_expanded` table (`WEIGHT_VALUESPECIFIED`), pre-calculated
+  above.
+
+To create the graph:
+
+1. Copy the following [CREATE GRAPH](/content/sql/graph#sql-graph-create) statement into the
+   **SQL Statements** text area on the top section of the page:
+   ```sql
+   CREATE DIRECTED GRAPH graph_c_fit_data.dc_shape_expansion
+   (
+       EDGES => INPUT_TABLE
+       (
+           SELECT
+               shape AS WKTLINE,
+               link_id AS ID,
+               direction AS DIRECTION,
+               distance AS WEIGHT_VALUESPECIFIED
+           FROM graph_c_fit_data.dc_shape_expanded
+       ),
+       OPTIONS => KV_PAIRS
+       (
+           'merge_tolerance' = '0.00001',
+           'recreate' = 'true',
+           'graph_table' = 'graph_c_fit_data.dc_shape_expanded_graph'
+       )
+   )
+   ```
+1. Highlight the statement and click **Run Selected**.
+
+To view the created graph:
+
+1. On the top menu, click **Data --&gt; Graphs** to go to the
+   *Graphs* page.
+2. Click on the **dc_shape_expansion** entry in the list of
+   graphs.
+3. Click **Visualize** to bring up the map view.

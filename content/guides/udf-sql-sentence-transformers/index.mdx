@@ -1,0 +1,396 @@
+---
+title: "SQL-Managed Python UDF: Semantic Search"
+description: Learn how to install dependent packages using Python UDF function environments
+# time_estimate: 10 MIN
+---
+
+The following is a SQL-managed UDF written in the Python UDF API that performs a
+semantic search for a given sentence on a baseline set of sentences, ranking the
+baseline sentences on their similarity to the given one.
+
+This will demonstrate the UDF being registered as a standard UDF and as a table
+function (UDTF).  While it is only necessary to use one or the other, both are
+demonstrated here.
+
+Which UDF type to use depends on the use case:
+
+* UDF - Can be executed once and have results repeatedly queried when needed
+* UDTF - Must be executed every time results are needed, but can be used within
+  a query--execution & results in one step
+
+
+## Download & Run
+
+
+This example will contain the following files *(click to download)*:
+
+* [udf_st.kisql](/examples/sql/udf/st/udf_st.kisql) - UDF management script, in
+  SQL, which creates the input & output tables, uploads & loads the baseline
+  data, and creates and executes the UDF as both a UDF & UDTF
+* [udf_st.py](/examples/python/udf/udf_st.py) - the UDF, written using
+  the Python UDF API, which contains the semantic search example
+* [sentences.txt](/examples/data/sentences.txt) - the data file containing
+  the set of sentences that will be used as the baseline for the semantic search
+
+After copying these scripts to a local directory, the example can be run as
+follows, using the [KiSQL](/content/tools/kisql) SQL client, specifying the
+database URL, username, & password (when prompted):
+
+```bash title="Run Example"
+$ kisql --url <url> --user <username> --file udf_st.kisql
+```
+
+The script should output the sentences with the top 5 closest match scores to
+the given sentence for both the UDF & UDTF executions.
+
+{/* Source: /examples/sql/udf/st/udf_st.out (lines 116-124) */}
+```text Semantic Search Results
++------------+---------------------------------------------------------------------------------------------------------------------------------+
+|      score | sentence                                                                                                                        |
++------------+---------------------------------------------------------------------------------------------------------------------------------+
+|   0.470727 | I am always drawn back to places where I have lived, the houses and their neighborhoods.                                        |
+|   0.336594 | In the late summer of that year we lived in a house in a village that looked across the river and the plain to the mountains.   |
+|   0.28631  | I write this sitting in the kitchen sink.                                                                                       |
+|   0.285421 | In the beginning, sometimes I left messages in the street.                                                                      |
+|   0.255929 | If you want to find Cherry-Tree Lane all you have to do is ask the Policeman at the cross-roads.                                |
++------------+---------------------------------------------------------------------------------------------------------------------------------+
+```
+
+
+## UDF Detail
+
+
+The example UDF uses a single table, `udf_st_in`, as input and a corresponding
+table, `udf_st_out`, for output.
+
+The input table will contain a *string* column and be populated with a set of
+sentences.  The output table will contain a *float* column for each sentence's
+search score.  Both tables will also contain an *int* column that is the
+sentence identifier, allowing the input sentences to be matched up with the
+output scores after the UDF has run.
+
+The UDF will compare a given sentence to each of the sentences in the input
+table baseline data set and insert the distance scores into the output table.
+The management script will then output the sentences & scores from both the UDF
+& UDTF executions.
+
+
+### SQL Management Script
+
+
+The SQL management script runs a sequence of commands to setup and execute the
+UDF:
+
+* Creates input & output tables
+* Creates a [KiFS](/content/sql/kifs) directory, uploads data file & UDF to
+  it, and loads the data into the input table
+* Creates a Python UDF
+  [function environment](/content/sql/udf#sql-create-function-environment) for the
+  UDF to run in and installs the `sentence-transformers` package into it
+* Registers both the UDF and the table function (UDTF) variant of it, making
+  both available for subsequent execution
+* Executes the UDF and queries for the results, and then executes the UDTF,
+  displaying its results
+
+
+#### Create Tables
+
+
+Create UDF input table, into which set of baseline sentences will be loaded:
+
+{/* Source: /examples/sql/udf/st/udf_st.kisql (lines 6-11) */}
+```sql Create Input Table
+CREATE TABLE udf_st_in
+(
+    id SMALLINT NOT NULL,
+    sentence VARCHAR,
+    PRIMARY KEY (id)
+)
+```
+
+Create UDF output table, into which the UDF will write the semantic search
+scores:
+
+{/* Source: /examples/sql/udf/st/udf_st.kisql (lines 14-19) */}
+```sql Create Output Table
+CREATE TABLE udf_st_out
+(
+    id SMALLINT NOT NULL,
+    score REAL,
+    PRIMARY KEY (id)
+)
+```
+
+
+#### Load UDF & Data Files
+
+
+Create a *KiFS* directory into which the UDF's files will be uploaded:
+
+{/* Source: /examples/sql/udf/st/udf_st.kisql (lines 24) */}
+```sql Create KiFS Directory
+CREATE DIRECTORY 'udf'
+```
+
+Upload Python UDF script, the path of which assumes the file is co-located with
+the SQL script running the `UPLOAD` command:
+
+{/* Source: /examples/sql/udf/st/udf_st.kisql (lines 28) */}
+```sql Upload Python UDF
+UPLOAD FILE 'udf_st.py' INTO 'udf'
+```
+
+Upload sentence data file, which assumes the same co-location:
+
+{/* Source: /examples/sql/udf/st/udf_st.kisql (lines 32) */}
+```sql Upload Sentence File
+UPLOAD FILE 'sentences.txt' INTO 'udf'
+```
+
+Load sentences from the file uploaded to *KiFS* into the input table:
+
+{/* Source: /examples/sql/udf/st/udf_st.kisql (lines 39-41) */}
+```sql Load Sentence Data
+LOAD INTO udf_st_in
+FROM FILE PATHS 'kifs://udf/sentences.txt'
+FORMAT TEXT (DELIMITER = '\t', INCLUDES HEADER = FALSE, QUOTE = '|')
+```
+
+
+#### Create a Python UDF Environment
+
+
+Create the Python UDF environment in which the Python UDF will be run:
+
+{/* Source: /examples/sql/udf/st/udf_st.kisql (lines 46) */}
+```sql Create UDF Environment
+CREATE FUNCTION ENVIRONMENT udfe_st
+```
+
+Install the dependent libraries the Python UDF will need to run:
+
+{/* Source: /examples/sql/udf/st/udf_st.kisql (lines 50-51) */}
+```sql Install Libraries
+ALTER FUNCTION ENVIRONMENT udfe_st
+INSTALL PACKAGE 'sentence-transformers'
+```
+
+
+#### Register UDF & UDTF
+
+
+In this step, several aspects of the UDF are configured:
+
+* operating mode (distributed)
+* command to execute (`python`, as this is a Python UDF)
+* name and location of the Python UDF to run
+* Python UDF execution environment to run the UDF in
+
+Register the Python UDF as an executable UDF:
+
+{/* Source: /examples/sql/udf/st/udf_st.kisql (lines 56-61) */}
+```sql Register Python UDF
+CREATE FUNCTION udf_st
+MODE = 'distributed'
+RUN_COMMAND = 'python'
+RUN_COMMAND_ARGS = 'udf/udf_st.py'
+FILE PATHS 'kifs://udf/udf_st.py'
+WITH OPTIONS (SET_ENVIRONMENT = 'udfe_st')
+```
+
+Register the Python UDF as an executable table function:
+
+{/* Source: /examples/sql/udf/st/udf_st.kisql (lines 65-75) */}
+```sql Register Python UDTF
+CREATE FUNCTION UDTF_ST
+RETURNS TABLE
+(
+	id SMALLINT NOT NULL,
+	score REAL
+)
+MODE = 'distributed'
+RUN_COMMAND = 'python'
+RUN_COMMAND_ARGS = 'udf/udf_st.py'
+FILE PATHS 'kifs://udf/udf_st.py'
+WITH OPTIONS (SET_ENVIRONMENT = 'udfe_st')
+```
+
+
+#### Execute UDF & UDTF
+
+
+In this step, the UDF parameters are passed in:
+
+* input table of sentences to read from
+* output table to write semantic search score results to
+* sentence to compare to the baseline set of sentences
+
+Run the UDF:
+
+{/* Source: /examples/sql/udf/st/udf_st.kisql (lines 80-85) */}
+```sql Run UDF
+EXECUTE FUNCTION udf_st
+(
+    INPUT_TABLE_NAMES => INPUT_TABLE(udf_st_in),
+    OUTPUT_TABLE_NAMES => OUTPUT_TABLES('udf_st_out'),
+    PARAMS => KV_PAIRS(sentence = 'I live in a neighborhood in a small town.')
+)
+```
+
+Display the sentences and resulting semantic search scores by joining the input
+and output tables together:
+
+{/* Source: /examples/sql/udf/st/udf_st.kisql (lines 89-94) */}
+```sql Display UDF Results
+SELECT TOP 5 score, sentence
+FROM
+	udf_st_in i,
+	udf_st_out o
+WHERE i.id = o.id
+ORDER BY score DESC
+```
+
+Run the UDTF, joining its results to the input table, allowing the display of
+sentences & search scores in one SQL statement:
+
+{/* Source: /examples/sql/udf/st/udf_st.kisql (lines 99-111) */}
+```sql Run UDTF & Display Results
+SELECT TOP 5 score, sentence
+FROM
+	udf_st_in i,
+	TABLE
+	(
+	    UDTF_ST
+	    (
+	        INPUT_TABLE_NAMES => INPUT_TABLE(udf_st_in),
+	        PARAMS => KV_PAIRS(sentence = 'I live in a neighborhood in a small town.')
+	    )
+	) o
+WHERE i.id = o.id
+ORDER BY score DESC
+```
+
+
+### Python UDF Script
+
+
+When executed, each Python UDF process performs several operations on the
+segment of data available to it:
+
+* Initialize the UDF's dependencies and data access handlers
+* Perform the semantic search of the given sentence vs. the baseline sentences
+* Write the search scores to the output table and mark the process complete
+
+
+#### Initialize UDF
+
+
+Import the `ProcData` class from the `kinetica_proc` module to use the API;
+also, load dependent packages and configure the environment for their use prior
+to loading:
+
+{/* Source: /examples/python/udf/udf_st.py (lines 11-12 15-18 20) */}
+```python Imports & Environment Configuration
+from kinetica_proc import ProcData
+
+import os
+os.environ["HF_HOME"] = "/tmp"
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
+from sentence_transformers import SentenceTransformer, util
+```
+
+Call `ProcData()` to access the input & output tables; `input_data` is a
+list of input tables and `output_data` is a list of output tables:
+
+{/* Source: /examples/python/udf/udf_st.py (lines 24 26-27) */}
+```python Get Handles to Input/Output Tables
+proc_data = ProcData()
+in_table = proc_data.input_data[0]
+out_table = proc_data.output_data[0]
+```
+
+
+#### Perform Semantic Search
+
+
+Calculate the embeddings for the baseline sentences in the input table, using
+the `SentenceTransformer` library's `all-MiniLM-L6-v2` model; the sentences
+in the `sentence` column are stored in the input table map of column name to
+column values:
+
+{/* Source: /examples/python/udf/udf_st.py (lines 29-30 32) */}
+```python Calculate Embeddings for Baseline Sentences
+embedder = SentenceTransformer("all-MiniLM-L6-v2")
+sentences = [rec for rec in in_table['sentence']]
+emb = embedder.encode(sentences, convert_to_tensor = True)
+```
+
+Calculate the embedding for the sentence passed in to the UDF; parameters can be
+accessed using the `params` map of parameter names to parameter values:
+
+{/* Source: /examples/python/udf/udf_st.py (lines 38-39) */}
+```python Calculate Embeddings for Sentence to Compare
+sentence = proc_data.params["sentence"]
+sentence_emb = embedder.encode(sentence, convert_to_tensor = True)
+```
+
+Calculate semantic search scores between the given sentence and baseline
+sentence embeddings using the *cosine similarity* function:
+
+{/* Source: /examples/python/udf/udf_st.py (lines 40) */}
+```python Perform Semantic Search Scoring
+scores = util.cos_sim(sentence_emb, emb)[0]
+```
+
+
+#### Write Output Data
+
+
+Set the size of the output table segment appropriately before writing to it;
+there should be one output score for each input sentence, so the output table
+should be the same size as the input table:
+
+{/* Source: /examples/python/udf/udf_st.py (lines 44) */}
+``` Size Output Table
+out_table.size = in_table.size
+```
+
+
+<Info>
+Resizing the output table during or after record-writing will decrease
+performance.
+</Info>
+
+Acquire references to the input column being read from and the output columns
+being written to:
+
+{/* Source: /examples/python/udf/udf_st.py (lines 47-50) */}
+``` Get Handles to Input/Output Table Columns
+in_id = in_table['id']
+in_sen = in_table['sentence']
+out_id = out_table['id']
+out_score = out_table['score']
+```
+
+Loop over the baseline sentences, writing the ID and corresponding score for
+each sentence to the output table:
+
+{/* Source: /examples/python/udf/udf_st.py (lines 54-60) */}
+``` Write Output Scores
+for i in range(0, len(sentences)):
+
+    # Copy the ID column data
+    out_id[i] = in_id[i]
+
+    # Set the distance score column data
+    out_score[i] = scores[i]
+```
+
+Call `complete()` to let the database know the process completed successfully
+and is ready for clean-up:
+
+{/* Source: /examples/python/udf/udf_st.py (lines 62) */}
+``` Mark UDF as Complete
+proc_data.complete()
+```

@@ -1,0 +1,708 @@
+---
+title: Data Loading Concepts
+sidebarTitle: Data Loading Concepts
+---
+
+## Introduction
+
+
+Loading data in Kinetica is a nuanced process that is dependent on several factors,
+including the [interface](/content/load_data/concepts#ingest-concepts-interfaces) being used, the
+[data source](/content/load_data/concepts#ingest-concepts-data-sources) you are ingesting from,
+the chosen [data format](/content/load_data/concepts#ingest-compatible-data-formats), and the
+desired access pattern for the external data. This page is aimed at priming you
+with the concepts needed to understand each of these topics at a broad level.
+We recommend that you further read the SQL reference documentation to understand
+each concept at a deeper level, read our
+[ingestion guides](/content/load_data/by_source) to see common use cases,
+and refer to [ingest snippets](/content/snippets/load-data) to see
+copy/paste examples.
+
+
+### The Basics of Loading Data
+
+
+At a high level, Kinetica ingests data that is stored in a supported data provider
+like S3 or Azure BLOB, or Kinetica's native file system (KiFS). Your data will
+need to be stored in a [supported provider](/content/load_data/concepts#ingest-compatible-data-sources),
+or moved to one for Kinetica to load it. If your data cannot be stored in a
+supported provider you can upload files to Kinetica's file system using the
+UI-driven workflow, Kinetica's command line SQL interface (KiSQL), or using one
+of Kinetica's native APIs. The data itself will need to be stored in a supported
+format, like CSV or Parquet (see the full list below).
+
+Once Kinetica has access to your data and it is in a supported format, you can
+load data either from a UI-driven workflow, or by using SQL directly.
+
+<a id="ingest-concepts-interfaces"></a>
+
+
+## Data Loading Interfaces
+
+
+Kinetica loads data via four interfaces:
+
+- **GAdmin SQL Tool**: Ingest data from common cloud providers, the
+  [Kinetica File System (KiFS)](/content/tools/kifs), or the server's local
+  file system using GAdmin's [SQL Tool](/content/admin/gadmin/query#gadmin-sql) or
+  [UI workflow](/content/admin/gadmin/data#import-data).
+
+- **Kinetica Workbench UI**: Use the
+  [File Upload/Import wizard](/content/admin/workbench/ui/import/upload) to
+  upload files directly from your computer into the
+  [Kinetica File System (KiFS)](/content/tools/kifs) via a
+  drag-and-drop interface and load the data into a table.  Alternatively, files
+  can be uploaded via
+  [File Explorer](/content/admin/workbench/ui/explorer/files) and
+  subsequently imported using SQL blocks in a
+  [workbook](/content/admin/workbench/workbooks).
+
+- **KiSQL**: Upload files from a client machine into Kinetica's KiFS and then load
+  it using SQL. [KiSQL](/content/tools/kisql) is a java-based SQL console
+  application that sends commands over JDBC.
+
+- **JDBC**: Write custom ingestion applications with
+  [Kinetica's JDBC Driver](/content/connectors/sql_guide), or provide
+  connectivity to 3rd party applications like Nifi.
+
+- **Native API**: Write custom ingestion applications with one of Kinetica's
+  [native APIs](/content/api/concepts), like Java, Python, or C++.
+
+<a id="ingest-concepts-data-sources"></a>
+
+
+## Data Sources
+
+
+### Supported Data Sources
+
+
+A [data source](/content/concepts/data_sources) is an object that references a
+location on a remote system, and acts as a proxy for accessing external data.
+Once a *data source* is created you can access different files stored within.
+
+<a id="ingest-compatible-data-sources"></a>
+
+
+*Data sources* may be created for the following providers:
+
+- **Azure**: Microsoft BLOB Storage
+- **GCS**: Google Cloud Storage
+- **HDFS**: Apache Hadoop Distributed File System
+- **JDBC**: Java Database Connectivity, using a user-supplied driver
+- **Kafka**:
+
+  - Apache Kafka streaming feed
+  - Confluent Kafka streaming feed
+
+- **S3**: Amazon S3 Bucket
+
+
+<Info>
+Files stored in the [Kinetica File System (KiFS)](/content/tools/kifs)
+can be directly referenced in your `LOAD INTO` SQL statement and do not
+require a *data source* object to be created first.
+</Info>
+
+If the file is not stored in a compatible provider, then you will need to move it to
+a supported provider or location in order to ingest it.
+
+
+### Creating a Data Source
+
+
+<a id="ingest-credentials"></a>
+
+
+#### Create Credential
+
+
+A [credential](/content/concepts/credentials) is an authentication object for a
+resource or repository that is external to the database. A *credential* provides a
+*data source* a way to pass authentication details to a provider whenever it
+makes a request. A *credential* is given to a *data source* at the time of creation
+or alteration.
+
+Credentials may consist of:
+
+- The authentication type being used
+- A username and password
+- Authentication IDs of various kinds
+- Tokens
+- Keystores/truststores
+
+```sql title="CREATE CREDENTIAL Example"
+CREATE CREDENTIAL s3_cred
+TYPE = 'aws_access_key',
+IDENTITY = 'AKIAIOSFODNN7EXAMPLE',
+SECRET = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+```
+
+
+#### Create Data Source
+
+
+When creating a *data source*, you will need to specify the provider (E.g. S3, Azure BLOB,
+HDFS, or Kafka), and some may require the region as well. You can also specify a credential
+to authenticate with the provider.
+
+
+<Info>
+When ingesting from a public bucket, specify no access key or
+password.
+</Info>
+
+```sql title="CREATE DATA SOURCE Example"
+CREATE OR REPLACE DATA SOURCE s3_ds
+LOCATION = 'S3'
+WITH OPTIONS (
+	CREDENTIAL = 's3_cred',
+	BUCKET NAME = 'examplebucket',
+	REGION = 'us-east-1'
+)
+```
+
+
+#### SQL Examples
+
+
+See these example snippets of creating credentials and data sources using SQL:
+
+- [Create Data Sources](/content/snippets/create-data-sources)
+- [Create Credentials](/content/snippets/create-credentials)
+
+<a id="ingest-compatible-data-formats"></a>
+
+
+## Supported File Types
+
+
+Kinetica supports the following file formats:
+
+- **Avro**: Serialization format for record data.
+
+- **GeoJSON**: Stores geographic features along with non-spatial attributes in a
+  JSON format.
+
+- **JSON**: JavaScript Object Notation (JSON) is an open source file format that
+  is used extensively by web applications and Kafka.  See
+  [JSON/GeoJSON Limitations](/content/load_data/concepts#ingest-json-limitations).
+
+- **Parquet**: Apache Parquet is a popular open source column oriented data
+  storage format that is used with the Hadoop ecosystem.  See
+  [Parquet Limitations](/content/load_data/concepts#ingest-parquet-limitations).
+
+- **Shapefile**: Shapefile is a popular format for storing geospatial data.
+
+- **Text**: All delimited text files: This includes, CSV, TSV etc.
+
+If your data is not in a compatible format, then you need to convert the file
+into a supported format using a third-party tool.
+
+
+<a id="ingest-parquet-limitations"></a>
+
+
+### Parquet Limitations
+
+
+*Kinetica* supports most primitive *Arrow* types when ingesting data from
+*Parquet* files.  Non-primitive types will be either transformed or skipped.
+
+
+#### Transformed Types
+
+
+* `DICTIONARY` - inserted as the dict value type
+* `LIST` - stringified and stored in unrestricted string columns, rendering
+  values within them inaccessible as column data
+* `MAP` - stringified and stored in unrestricted string columns, rendering
+  values within them inaccessible as column data
+* `STRUCT` - flattened; e.g.:
+
+  |  |  |
+  | --- | --- |
+  | Source structure | `Aa {Bb, Cc {Dd, Ee}}` |
+  | Resulting (3) columns | `Aa_Bb Aa_Cc_Dd Aa_Cc_Ee` |
+
+
+#### Skipped Types
+
+
+* `EXTENSION`
+* `FIXED_SIZE_LIST`
+* `LARGE_BINARY`
+* `LARGE_LIST`
+* `LARGE_STRING`
+
+
+<a id="ingest-json-limitations"></a>
+
+
+### JSON/GeoJSON Limitations
+
+
+For formats like *JSON* and *GeoJSON*, both a single JSON object and multiple
+JSON objects (via array) can be ingested:
+
+<CodeGroup>
+
+{/* Source: /examples/data/products.json (lines 93-99) */}
+```json Single Record (Object)
+{
+	"id": 14,
+	"category": "Technology",
+	"name": "Dot Matrix Printers",
+	"description": "Impactful industrial implements for impressing ink iteratively",
+	"stock": 27
+}
+```
+
+{/* Source: /examples/data/products.json (lines 1-8 93-100) */}
+```json Multiple Records (Array of Objects)
+[
+	{
+		"id": 1,
+		"category": "Furniture",
+		"name": "Clamp-on Lamps",
+		"description": "Strong, steadfast fasteners; localized lighting for laboring",
+		"stock": 10
+	},
+	{
+		"id": 14,
+		"category": "Technology",
+		"name": "Dot Matrix Printers",
+		"description": "Impactful industrial implements for impressing ink iteratively",
+		"stock": 27
+	}
+]
+```
+
+</CodeGroup>
+
+
+The following handling will be applied to individual value types:
+
+* Primitives - ingested as is
+* Arrays - stringified and stored in unrestricted string columns, rendering
+  values within them inaccessible as column data
+* Objects - flattened; e.g.:
+
+  |  |  |
+  | --- | --- |
+  | Source structure | `Aa {Bb, Cc {Dd, Ee}}` |
+  | Resulting (3) columns | `Aa_Bb Aa_Cc_Dd Aa_Cc_Ee` |
+
+If you require arrays to be flattened, so that they can be directly accessed as
+column data, you will need to pre-flatten your data before ingesting it into
+*Kinetica*. This must be done using a third-party tool or script.
+
+
+<a id="ingest-loading"></a>
+
+
+## Loading Data
+
+
+### GAdmin
+
+
+The [Import](/content/admin/gadmin/data#import-data) feature of Kinetica's *GAdmin*
+imports data from a variety of sources using three different interfaces:
+
+* A drag & drop tool, for loading local files
+* An *Advanced Import (KIO)* tool, for complex file types or remote data sources
+* An *Advanced CSV Import* tool, for loading local files with complex
+  configurations
+
+To access the **Import** page and begin loading data, click the
+**Data** menu option in the main navigation bar and then the
+**Import** menu item. Then, choose the tool that best suits your
+needs.
+
+
+### Workbench
+
+
+The [Import](/content/admin/workbench/ui/import) interface of Kinetica's
+*Workbench* imports data from a variety of sources using a simple wizard
+workflow.  In addition to importing data, it generates the SQL equivalent that
+can be copied and pasted into a workbook.
+
+To access the Import page and begin loading data, click the
+**Import** link in the main navigation bar. Then, follow the
+workflow to import data from one of Kinetica's supported data providers.
+
+<a id="ingest-loading-sql"></a>
+
+
+### JDBC Client
+
+
+Any JDBC client can use the [Kinetica JDBC driver](/content/connectors/sql_guide#jdbc-clients)
+to initiate data loads.  The two primary commands for data loading are:
+
+- `CREATE EXTERNAL TABLE`: Create a data container that is bound to a given
+  source of data.
+
+- `LOAD INTO`: Initiate a data load or subscription into a table that will not
+  be bound to a given source of data.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/external_table/remote_query_logical.kisql (lines 59-61) */}
+```sql CREATE TABLE EXTERNAL
+CREATE LOGICAL EXTERNAL TABLE example.ext_employee_dept2
+REMOTE QUERY 'SELECT * FROM example.employee WHERE dept_id = 2'
+WITH OPTIONS (DATA SOURCE = 'example.jdbc_ds')
+```
+
+{/* Source: /examples/sql/load/load_into_format_kafka.sql (lines 3-5) */}
+```sql LOAD INTO
+LOAD DATA INTO example.orders
+FORMAT JSON
+WITH OPTIONS (DATA SOURCE = 'kafka_ds', SUBSCRIBE = TRUE)
+```
+
+</CodeGroup>
+
+
+See [Advanced Ingestion](/content/load_data/concepts#ingest-advanced) for more comprehensive ingestion scheme
+coverage, [Examples](/content/load_data/concepts#ingest-examples) for more ingestion examples in SQL,
+or [Loading Data - Snippets](/content/snippets/load-data) for a wide
+variety of copy/paste SQL loading examples.
+
+
+#### External Tables
+
+
+The purpose of an external table is to incorporate read-only data, governed by
+an external system, in your queries. An external table comes in two flavors:
+materialized and logical. A materialized external table loads data from the
+provider into Kinetica and stores it indefinitely. The data in a materialized
+external table is refreshed upon startup, and can also be refreshed manually. A
+logical external table, on the other hand, loads data from the provider only for
+the life of the query, and then flushes it from Kinetica when the query has
+completed.
+
+Each type of external table has benefits and drawbacks that should be weighed
+for your particular use case. Logical external tables allow you to only ingest
+data when needed, but the data must be loaded for each query and the loading
+time may be prohibitive. Materialized external tables give you immediate access
+to the data, but require space on your system to store the data.
+
+See [CREATE EXTERNAL TABLE](/content/sql/ddl#sql-create-ext-table) for details.
+
+
+#### Load Into
+
+
+The [LOAD INTO](/content/sql/load#sql-load-into) command is a general-purpose data
+loading utility that is capable of moving data into Kinetica from the supported
+data providers.  It largely mirrors the capabilities of *external tables*, but
+also:
+
+* Supports Kafka data feeds
+* Decouples the target table from the source; a data load can be done at any
+  time from any compatible source, subscriptions can be started & stopped, and
+  the data within the table can be managed independently from the data load
+
+See [LOAD INTO](/content/sql/load#sql-load-into) for details.
+
+
+<a id="ingest-kisql"></a>
+
+
+### KiSQL
+
+
+KiSQL is a java-based application that is capable of performing all the commands
+that a [JDBC client](/content/load_data/concepts#ingest-loading-sql) can as
+[noted above](/content/load_data/concepts#ingest-loading-sql), as well as uploading files from
+a client machine into Kinetica's KiFS. This is a great option if you don't have
+direct access to Kinetica's web interface, or if you want to script files to be
+loaded on a set schedule from a client.
+
+First, download KiSQL from [this GitHub Repository](https://github.com/kineticadb/kisql).
+If you're on a Windows machine, you do not need Java pre-installed. For MacOS or Linux machines,
+you will need to install Java 8 to run KiSQL.
+
+Next, start KiSQL with the URL of your Kinetica instance.
+
+```bash title="Start KiSQL"
+./kisql --url <kinetica_url> --user <username>
+```
+
+Create a directory, in which to load your file(s).
+
+
+<Info>
+You will need system administrator privileges to run this command.
+</Info>
+
+```sql title="Create Directory with KiSQL"
+CREATE DIRECTORY 'my_directory';
+```
+
+Upload your file(s) to KiFS.
+
+```sql title="Upload with KiSQL"
+UPLOAD FILES 'my_data.csv' INTO 'my_directory';
+```
+
+Finally, load your file into a table.
+
+```sql title="Load with KiSQL"
+LOAD INTO ki_home.my_data
+FROM FILE PATHS 'kifs://my_directory/my_data.csv'
+```
+
+
+<a id="ingest-advanced"></a>
+
+
+## Advanced Ingestion
+
+
+*Kinetica* supports a variety of loading schemes and tuning options for more
+effective data loads, at both a general level and a source-specific level.
+
+
+### Type Inferencing
+
+
+If your table does not already exist, the data types will be automatically
+inferred upon ingestion based on the data values processed.  There are two type
+inferencing modes available through the `TYPE_INFERENCE_MODE` option:
+
+- **SPEED**: *(default)* Only use a portion of the incoming data to determine
+  column types, potentially over-estimating the column width needs.
+
+- **ACCURACY**: Use the entire data set to determine the exact column types
+  needed to hold the data, taking much longer than the speed-based estimate.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/remote_file_inf.kisql (lines 42-44) */}
+```sql Speed (Default) Type Inference
+LOAD DATA INTO example.product_inf_default
+FROM FILE PATHS 'products.csv'
+WITH OPTIONS (DATA SOURCE = 'example.product_ds')
+```
+
+{/* Source: /examples/sql/load/remote_query_inf.kisql (lines 85-87) */}
+```sql Accuracy Type Inference
+LOAD INTO example.employee_inf_accuracy
+FROM REMOTE QUERY 'SELECT * FROM example.employee'
+WITH OPTIONS (DATA SOURCE = 'example.jdbc_ds', TYPE_INFERENCE_MODE = 'ACCURACY')
+```
+
+</CodeGroup>
+
+
+### Change Data Capture
+
+
+Kinetica supports a *change data capture* subscription scheme for both files and
+queries, loading only data that has changed since the last check:
+
+
+- For files, subscriptions will save the timestamp of the previous check, and at
+  each interval, check for files modified after that time.
+- For JDBC queries, the `REMOTE_QUERY_INCREASING_COLUMN` option is used to
+  name a column in the source table that can be used to identify new data.  The
+  value in the column needs to be ever-increasing and will often be a
+  sequence-based ID or a timestamp.
+
+
+<Tip>
+See [Manage Subscription](/content/sql/ddl#sql-alter-table-manage-sub) for pausing, resuming, &
+canceling a subscription on a target table.
+</Tip>
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/remote_file_sub.kisql (lines 34-43) */}
+```sql CDC via Remote File Store
+-- Load files in the orders directory with timestamps newer than the time of the
+--   previous poll interval; poll every 5 minutes
+LOAD DATA INTO example.orders
+FROM FILE PATHS 'orders/'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.order_ds',
+	SUBSCRIBE = TRUE,
+	POLL_INTERVAL = 300
+)
+```
+
+{/* Source: /examples/sql/load/remote_query_cdc.kisql (lines 57-62 64-67) */}
+```sql CDC via Query
+-- Load new orders for product 42 continuously into a table
+--   order_id is an ever-increasing sequence allotted to each new order
+LOAD INTO example.order_product42
+FROM REMOTE QUERY 'SELECT * FROM example.orders WHERE product_id = 42'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.jdbc_ds',
+	SUBSCRIBE = TRUE,
+	REMOTE_QUERY_INCREASING_COLUMN = 'order_id'
+)
+```
+
+</CodeGroup>
+
+
+<a id="ingest-tuning"></a>
+
+
+### Tuning
+
+
+#### Batch Size
+
+
+Users can adjust the batch size used to insert records with the `BATCH SIZE`
+option, which defaults to 200,000. For tables with very large columns (e.g.,
+extremely complex WKT records), users should adjust the batch size down to see
+an increase in performance. For very simple tables with short columns, users can
+adjust the batch size to be higher to see an increase in throughput. These are
+just rough guidelines and your mileage may vary depending on your use case.
+
+{/* Source: /examples/sql/load/options.kisql (lines 83-85) */}
+```sql LOAD INTO (BATCH SIZE) Example
+LOAD DATA INTO example.product_load_options
+FROM FILE PATHS 'kifs://data/products.csv'
+WITH OPTIONS (BATCH SIZE = 20000)
+```
+
+
+### Custom Ingest Applications
+
+
+In some circumstances, you may want to write a custom application to ingest data into
+Kinetica using Kinetica's native APIs or JDBC Driver. Kinetica offers several endpoints
+for uploading files, loading data, or inserting records. The usage of such endpoints is
+outside of the scope of this article. See [Kinetica's API](/content/api/concepts) section
+for more information.
+
+Kinetica's native APIs are capable of distributing records to the various nodes of your
+cluster at the time of ingest. This provides a more direct pathway that avoids the need
+for records to first be sent to Kinetica's head node for evaluation. When writing a
+custom application, refer to the
+[Multi-head Ingest](/content/tuning/multihead/multihead_ingest) page for
+information on how to achieve the best ingestion performance.
+
+
+### 3rd Party Tools
+
+
+If the data you wish to load is not in a supported format, if it is stored in an incompatible
+provider, or it requires ETL before you load it into Kinetica, you may use Kinetica's
+JDBC Driver in conjunction with an ETL tool to load data into Kinetica. In many
+cases, this process is as easy as dropping in Kinetica's JDBC Driver and defining a few
+configuration parameters. Note, however, that this depends on the tool you have chosen and the
+way that the JDBC connection was implemented.
+
+For more information about how to use Kinetica's JDBC Driver, see the
+[JDBC driver documentation](/content/connectors/sql_guide).
+
+
+<a id="ingest-examples"></a>
+
+
+## Examples
+
+
+### File/Queue-Based
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/remote_file.kisql (lines 52-54) */}
+```sql One-Time Load
+LOAD DATA INTO example.product
+FROM FILE PATHS 'products.csv'
+WITH OPTIONS (DATA SOURCE = 'example.product_ds')
+```
+
+{/* Source: /examples/sql/load/remote_file_sub.kisql (lines 34-43) */}
+```sql Change Data Capture
+-- Load files in the orders directory with timestamps newer than the time of the
+--   previous poll interval; poll every 5 minutes
+LOAD DATA INTO example.orders
+FROM FILE PATHS 'orders/'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.order_ds',
+	SUBSCRIBE = TRUE,
+	POLL_INTERVAL = 300
+)
+```
+
+{/* Source: /examples/sql/load/load_into_format_kafka.sql (lines 3-5) */}
+```sql Streaming
+LOAD DATA INTO example.orders
+FORMAT JSON
+WITH OPTIONS (DATA SOURCE = 'kafka_ds', SUBSCRIBE = TRUE)
+```
+
+{/* Source: /examples/sql/external_table/external_table.kisql (lines 40-46) */}
+```sql External Table
+CREATE EXTERNAL TABLE example.ext_product
+FILE PATHS 'products.csv'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.product_ds',
+	REFRESH ON START = TRUE
+)
+```
+
+</CodeGroup>
+
+
+### Query-Based
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/remote_query.kisql (lines 59-61) */}
+```sql One-Time Load
+LOAD INTO example.employee_dept2
+FROM REMOTE QUERY 'SELECT * FROM example.employee WHERE dept_id = 2'
+WITH OPTIONS (DATA SOURCE = 'example.jdbc_ds')
+```
+
+{/* Source: /examples/sql/load/remote_query_cdc.kisql (lines 57-62 64-67) */}
+```sql Change Data Capture
+-- Load new orders for product 42 continuously into a table
+--   order_id is an ever-increasing sequence allotted to each new order
+LOAD INTO example.order_product42
+FROM REMOTE QUERY 'SELECT * FROM example.orders WHERE product_id = 42'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.jdbc_ds',
+	SUBSCRIBE = TRUE,
+	REMOTE_QUERY_INCREASING_COLUMN = 'order_id'
+)
+```
+
+{/* Source: /examples/sql/external_table/external_table.kisql (lines 167-173) */}
+```sql External Table
+CREATE EXTERNAL TABLE example.ext_employee_dept2
+REMOTE QUERY 'SELECT * FROM example.ext_employee WHERE dept_id = 2'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.jdbc_ds',
+	REFRESH ON START = TRUE
+)
+```
+
+</CodeGroup>
+
+
+### More SQL Examples
+
+
+See [this page](/content/snippets/load-data) for a larger list of SQL examples using
+the `LOAD INTO` syntax with various options and authentication methods.

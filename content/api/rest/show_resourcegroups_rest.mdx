@@ -1,0 +1,38 @@
+---
+title: /show/resourcegroups
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="show-resourcegroups-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/show/resourcegroups
+```
+Requests resource group properties. Returns detailed information about the
+requested resource groups.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| names | array of strings | List of names of groups to be shown. A single entry with an empty string returns all groups. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> show_default_values: If *true* include values of fields that are based on the default resource group. The default value is `true`. The supported values are: * true * false <br/> <br/> show_default_group: If *true* include the default and system resource groups in the response. This value defaults to false if an explicit list of group names is provided, and true otherwise. The default value is `true`. The supported values are: * true * false <br/> <br/> show_tier_usage: If *true* include the resource group usage on the worker ranks in the response. The default value is `false`. The supported values are: * true * false |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'show_resource_groups_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /show/resourcegroups endpoint: <br/> <br/> groups: [array of maps of string to strings] Map of resource group information. <br/> <br/> rank_usage: [map of string to strings] Tier usage across ranks. Layout is: response.rank_usage[rank_number][resource_group_name] = group_usage (as stringified JSON). <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

@@ -1,0 +1,136 @@
+---
+title: Window Ranking Functions
+---
+
+<AccordionGroup>
+
+<Accordion title="CUME_DIST()" id="cume_dist" defaultOpen>
+
+The relative position of the current row within the cumulative distribution of the selected
+partition, expressed as a percentage from `0` (exclusive) to `1` (inclusive). The formula for
+this calculation is as follows:
+
+```
+(count of <= records within partition) / (partition row count)
+```
+This function is shorthand for using the `COUNT()` function in separate partition statements to
+arrive at the same result:
+
+
+```sql
+DOUBLE
+(
+    COUNT(*) OVER
+    (
+        PARTITION BY <partition_column>
+        ORDER BY <sort_column>
+    )
+) /
+(
+    COUNT(*) OVER
+    (
+        PARTITION BY <partition_column>
+        ORDER BY <sort_column>
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    )
+)
+```
+
+</Accordion>
+
+<Accordion title="DENSE_RANK()" id="dense_rank" defaultOpen>
+
+Number of the current row within the selected partition except rows with identical values
+evaluate to different ranks. Starts at 1
+
+</Accordion>
+
+<Accordion title="FIRST_VALUE(&lt;column&gt;) [&lt;IGNORE | RESPECT&gt; NULLS]" id="first_value-<column>-<ignore-|-respect>-nulls" defaultOpen>
+
+The value found in the first row within a frame of the given expression. Optionally, add
+`IGNORE NULLS` or `RESPECT NULLS` to the function syntax to ignore or respect `nulls`,
+respectively.
+
+</Accordion>
+
+<Accordion title="LAG(&lt;column&gt;[, &lt;num&gt;]) [&lt;IGNORE | RESPECT&gt; NULLS]" id="lag-<column>-<num>-<ignore-|-respect>-nulls" defaultOpen>
+
+The value of the row before the given expression's value. Provide an additional comma-separated
+value to specify which row to select, e.g., `LAG(vendor_id, 3)` would list the value in the
+`vendor_id` column from three rows prior to the current row. Optionally, add `IGNORE NULLS`
+or `RESPECT NULLS` to the function syntax to ignore or respect `nulls` respectively.
+
+</Accordion>
+
+<Accordion title="LAST_VALUE(&lt;column&gt;) [&lt;IGNORE | RESPECT&gt; NULLS]" id="last_value-<column>-<ignore-|-respect>-nulls" defaultOpen>
+
+The value found in the last row within a frame of the given expression. Optionally, add
+`IGNORE NULLS` or `RESPECT NULLS` to the function syntax to ignore or respect
+`nulls` respectively.
+
+</Accordion>
+
+<Accordion title="LEAD(&lt;column&gt;[, &lt;num&gt;]) [&lt;IGNORE | RESPECT&gt; NULLS]" id="lead-<column>-<num>-<ignore-|-respect>-nulls" defaultOpen>
+
+The value of the row after the given expression's value. Provide an additional comma-separated
+value to specify which row to select, e.g., `LEAD(vendor_id, 3)` would list the value in the
+`vendor_id` column from three rows after the current row. Optionally, add `IGNORE NULLS`
+or `RESPECT NULLS` to the function syntax to ignore or respect `nulls` respectively.
+
+</Accordion>
+
+<Accordion title="NTILE(&lt;num of groups&gt;)" id="ntile-<num-of-groups>" defaultOpen>
+
+The group number of the row after partitioning the rows into `num of groups` groups.  For
+example, `NTILE(4)` will partition data by quartiles and return the associated group number,
+`1` to `4`.
+
+</Accordion>
+
+<Accordion title="PERCENT_RANK()" id="percent_rank" defaultOpen>
+
+The rank of the current row within the selected partition, expressed as a percentage from `0`
+to `1`, inclusive. The formula for this calculation is as follows:
+
+```
+(rank within partition - 1) / (partition row count - 1)
+```
+This function is shorthand for using the `RANK()` & `COUNT()` functions in separate partition
+statements to arrive at the same result:
+
+
+```sql
+DOUBLE
+(
+    RANK() OVER
+    (
+        PARTITION BY <partition_column>
+        ORDER BY <sort_column>
+    ) - 1
+) /
+(
+    COUNT(*) OVER
+    (
+        PARTITION BY <partition_column>
+        ORDER BY <sort_column>
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) - 1
+)
+```
+
+</Accordion>
+
+<Accordion title="RANK()" id="rank" defaultOpen>
+
+Number of the current row within the selected partition. However, rows with identical values
+evaluate to the same rank. Starts at 1
+
+</Accordion>
+
+<Accordion title="ROW_NUMBER()" id="row_number" defaultOpen>
+
+Number of the current row within the selected partition. Starts at 1
+
+</Accordion>
+
+</AccordionGroup>

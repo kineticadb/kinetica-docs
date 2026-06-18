@@ -1,0 +1,758 @@
+---
+title: Kinetica SQL (KiSQL)
+---
+
+<a id="kisql"></a>
+
+<a id="kisql-tools"></a>
+
+
+*KiSQL* allows SQL queries to be performed against the data in *Kinetica* from
+the command line.
+
+[GitHub](https://github.com/kineticadb/kisql/tree/release/v7.2) has the latest
+release of *KiSQL* for download.
+
+It is also bundled with *Kinetica* and is located at `/opt/gpudb/bin/kisql` on
+default installations.
+
+*KiSQL* exposes the complete *Kinetica* SQL interface, as given in the
+[SQL](/content/sql) section, including:
+
+* Ingestion of local file data into tables ([INSERT INTO ... SELECT ... FROM FILE](/content/sql/load#sql-load-file-client))
+* Uploading of local files into the [Kinetica File System (KiFS)](/content/tools/kifs) for later
+  ingestion ([UPLOAD FILE](/content/sql/kifs#sql-kifs-upload-file))
+* Downloading of [Kinetica File System (KiFS)](/content/tools/kifs) files to local storage
+  ([DOWNLOAD FILE](/content/sql/kifs#sql-kifs-download-file))
+
+For a graphical SQL interface, see [GAdmin](/content/admin/gadmin/query#gadmin-sql).
+
+
+<a id="kisql-conn"></a>
+
+
+## Connecting
+
+
+*KiSQL* can be accessed via command line as `kisql`.  The only required
+parameter to connect is one of `--host`, `--url`, or `--connectionString`;
+alternatively, the `KI_HOST` or `KI_URL` environment variable can be used to
+set the target database server.
+
+If `--user` is specified, *KiSQL* will perform username/password
+authentication with the passed username; alternatively, the `KI_USER`
+environment variable can be used to pass the username.  *KiSQL*, when performing
+username/password authentication, will prompt for the password; alternatively,
+the `KI_PWD` environment variable can be used to set the password.
+
+If `--token` is specified, *KiSQL* will perform OIDC-based authentication with
+the passed OAuth token; alternatively, the `KI_OAUTH_TOKEN` environment
+variable can be used to pass the OAuth token.
+
+If `--trustStore` is specified, *KiSQL* will prompt for the trust store
+password; alternatively, the `KI_TRUSTSTOREPWD` environment variable can be
+used to set the password.
+
+*KiSQL* can connect to *Kinetica* either by passing a URL and these
+authentication parameters on the command line or by passing a JDBC connection
+string containing the corresponding parameters.
+
+Regardless of which style is used, the remainder of the parameters should be
+appended to the specified connection URL.  See [ODBC/JDBC Configuration](/content/connectors/sql_guide#jdbc-config) for
+the full list.
+
+
+<a id="kisql-conn-opt"></a>
+
+
+### Parameterized Options
+
+
+<CodeGroup>
+
+{/* Source: /connectors/sql_guide_src/kisql_url.txt (lines 4) */}
+```bash HTTP
+kisql --url http://<db.host>:9191[[;<parameter>=<value>]*] --user <username>
+```
+
+{/* Source: /connectors/sql_guide_src/kisql_url.txt (lines 5) */}
+```bash HTTPS w/o Cert Check
+kisql --url https://<db.host>:8082/gpudb-0[[;<parameter>=<value>]*] --user <username>
+```
+
+{/* Source: /connectors/sql_guide_src/kisql_url.txt (lines 6) */}
+```bash HTTPS w/ Default Trust Cert Check
+kisql --url https://<db.host>:8082/gpudb-0[[;<parameter>=<value>]*] --user <username> --bypassSslCertCheck false
+```
+
+{/* Source: /connectors/sql_guide_src/kisql_url.txt (lines 7) */}
+```bash HTTPS w/ Custom Trust Cert Check
+kisql --url https://<db.host>:8082/gpudb-0[[;<parameter>=<value>]*] --user <username> --bypassSslCertCheck false --trustStore <filePath>
+```
+
+{/* Source: /connectors/sql_guide_src/kisql_url.txt (lines 8) */}
+```bash HTTPS w/ OAuth Token
+kisql --url https://<db.host>:8082/gpudb-0[[;<parameter>=<value>]*] --user <username> --token <oauthToken>
+```
+
+</CodeGroup>
+
+
+<a id="kisql-conn-cs"></a>
+
+
+### JDBC Connection String
+
+
+<CodeGroup>
+
+{/* Source: /connectors/sql_guide_src/kisql_cs.txt (lines 4) */}
+```bash HTTP
+kisql --connectionString "jdbc:kinetica://<db.host>:9191[[;<parameter>=<value>]*]" --user <username>
+```
+
+{/* Source: /connectors/sql_guide_src/kisql_cs.txt (lines 5) */}
+```bash HTTPS w/o Cert Check
+kisql --connectionString "jdbc:kinetica:URL=https://<db.host>:8082/gpudb-0[[;<parameter>=<value>]*]" --user <username>
+```
+
+{/* Source: /connectors/sql_guide_src/kisql_cs.txt (lines 6) */}
+```bash HTTPS w/ Default Trust Cert Check
+kisql --connectionString "jdbc:kinetica:URL=https://<db.host>:8082/gpudb-0[[;<parameter>=<value>]*];BypassSslCertCheck=0" --user <username>
+```
+
+{/* Source: /connectors/sql_guide_src/kisql_cs.txt (lines 7) */}
+```bash HTTPS w/ Custom Trust Cert Check
+kisql --connectionString "jdbc:kinetica:URL=https://<db.host>:8082/gpudb-0[[;<parameter>=<value>]*];BypassSslCertCheck=0;SslCACertPath=<certPath>;SslCACertPassword=<certPass>" --user <username>
+```
+
+{/* Source: /connectors/sql_guide_src/kisql_cs.txt (lines 8) */}
+```bash HTTPS w/ OAuth Token
+kisql --connectionString "jdbc:kinetica:URL=https://<db.host>:8082/gpudb-0[[;<parameter>=<value>]*]" --user <username> --token <oauthToken>
+```
+
+</CodeGroup>
+
+
+<a id="kisql-params"></a>
+
+<a id="kisql-tools-params"></a>
+
+
+## Parameters
+
+
+### Connection Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt; -h | --host &gt; &lt;hostname&gt;" id="<-h-|-host->-<hostname>" defaultOpen>
+
+Connect to the specified Kinetica host; can also be specified by the `KI_HOST` environment variable.
+
+</Accordion>
+
+<Accordion title="&lt; -p | --port &gt; &lt;port number&gt;" id="<-p-|-port->-<port-number>" defaultOpen>
+
+Connect to the specified Kinetica port; can also be specified by the `KI_JDBCPORT` environment variable.
+If not specified, default is `9191`.
+
+</Accordion>
+
+<Accordion title="--url &lt;Kinetica URL&gt;" id="url-<kinetica-url>" defaultOpen>
+
+Connect using the specified Kinetica URL; e.g., `http://localhost:9191;RowsPerFetch=20000`.  Overrides `--host` &
+`--port`.  This can also be specified by the `KI_URL` environment variable.
+See [Secure Connections](/content/connectors/sql_guide#jdbc-connecting-secure) for specifying SSL connections and [Failover Connections](/content/connectors/sql_guide#jdbc-connecting-failover)
+for specifying HA connections.
+
+</Accordion>
+
+<Accordion title="--connectionString '&lt;JDBC URL&gt;'" id="connectionstring-<jdbc-url>" defaultOpen>
+
+Connect using the specified JDBC URL; e.g., `jdbc:kinetica://localhost:9191;RowsPerFetch=20000`. Overrides `--host`,
+`--port`, `--url`, & `primaryUrl`; will not override other parameters specified on the command line.
+See [ODBC/JDBC Configuration](/content/connectors/sql_guide#jdbc-config) for the JDBC connection string format and the full list of options able to be
+specified through it.
+
+
+<Info>
+`UID` or `PWD` specified in the connection string will be ignored; use `--user` or the
+`KI_USER` & `KI_PWD` environment variables instead.
+</Info>
+
+</Accordion>
+
+<Accordion title="--primaryUrl &lt;Kinetica URL&gt;" id="primaryurl-<kinetica-url>" defaultOpen>
+
+Try the specified Kinetica URL first when using `--url` to specify multiple
+[failover URLs](/content/connectors/sql_guide#jdbc-connecting-failover) for [HA](/content/ha).
+
+</Accordion>
+
+<Accordion title="--user &lt;user ID&gt;" id="user-<user-id>" defaultOpen>
+
+Authenticate with the specified user ID. This can also be specified by the `KI_USER` environment variable.
+
+
+<Note>
+If `--user` is left blank and authentication is disabled,
+*KiSQL* will connect using the *Anonymous* default user. Review
+[Security Concepts](/content/security/sec_concepts) for more information on default users.
+</Note>
+
+</Accordion>
+
+<Accordion title="--token &lt;OAuth token&gt;" id="token-<oauth-token>" defaultOpen>
+
+Authenticate with the specified OAuth token. This can also be specified by the `KI_OAUTH_TOKEN` environment
+variable.
+
+</Accordion>
+
+<Accordion title="--tokenNameClaim &lt;claim&gt;" id="tokennameclaim-<claim>" defaultOpen>
+
+OAuth token claim key where the user name is located.  If not specified, the default is `sub`.
+
+</Accordion>
+
+<Accordion title="--trustStore &lt;filepath&gt;" id="truststore-<filepath>" defaultOpen>
+
+Use the specified *Java* TrustStore file path for SSL connections. Can also be specified using the
+`KI_TRUSTSTORE` environment variable. See the [HTTPD + SSL setup instructions](/content/security/sec_configuration#httpd-ssl-config)
+sections for more information on setting up a TrustStore and setting up ODBC for secure connections.
+
+</Accordion>
+
+<Accordion title="--bypassSslCertCheck [&lt;value&gt;]" id="bypasssslcertcheck-<value>" defaultOpen>
+
+If using SSL, don't validate the server certificate.  If not specified, or if specified with no `value`, the
+default is not to validate the certificate.
+
+</Accordion>
+
+<Accordion title="&lt; --s | --schema &gt; &lt;schema name&gt;" id="<-s-|-schema->-<schema-name>" defaultOpen>
+
+Use `schema name` as the default schema for all object references; effectively, issuing a
+[SET CURRENT SCHEMA](/content/sql/ddl#sql-current-schema) command at the beginning of the session.
+
+</Accordion>
+
+<Accordion title="--disableAutoDiscovery" id="disableautodiscovery" defaultOpen>
+
+Disable
+[high availability](/content/ha) failover and
+[multi-head ingest](/content/tuning/multihead/multihead_ingest) /
+[multi-head egress](/content/tuning/multihead/multihead_egress).
+
+</Accordion>
+
+<Accordion title="--disableFailover" id="disablefailover" defaultOpen>
+
+[high availability](/content/ha) failover.
+
+</Accordion>
+
+<Accordion title="--disableSnappy" id="disablesnappy" defaultOpen>
+
+Do not use Snappy compression when transmitting data to the server.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Input Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt; -f | --file &gt; &lt;file path&gt;" id="<-f-|-file->-<file-path>" defaultOpen>
+
+Run any SQL statements found in the given file and exit.  Statements must be separated by a semicolon, unless
+`--lineMode` is specified, in which case each line of the file will be treated as a separate SQL statement.
+
+</Accordion>
+
+<Accordion title="&lt; --line | --lineMode &gt;" id="<-line-|-linemode->" defaultOpen>
+
+Execute each line of input as a separate SQL statement, even if not terminated with a semicolon.
+
+</Accordion>
+
+<Accordion title="--sql '&lt;SQL statements&gt;'" id="sql-<sql-statements>" defaultOpen>
+
+Run the given set of semicolon-separated SQL statements (in quotes) and exit.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Output Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="--debug [&lt;value&gt;]" id="debug-<value>" defaultOpen>
+
+Output debugging information.  If not specified, default is not to output debugging information; if
+specified, default `value` is `true`.
+
+</Accordion>
+
+<Accordion title="--delim '&lt;delimiter&gt;'" id="delim-<delimiter>" defaultOpen>
+
+Use the given delimiter (in quotes) for delimited output formatting. The `--format` parameter must be
+present and set to `delim` / `delimited`. Any alphanumeric character or symbol is a valid delimiter.  If
+not specified, default is a comma.
+
+</Accordion>
+
+<Accordion title="--echoSql [&lt;value&gt;]" id="echosql-<value>" defaultOpen>
+
+Echo SQL statements executed.  If not specified, default is to not output SQL statements; if specified, default
+`value` is `true`.
+
+</Accordion>
+
+<Accordion title="--format &lt;format&gt;" id="format-<format>" defaultOpen>
+
+Output SQL statement result sets with the specified format.  Default is `table`.  Valid `format` options
+include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Format</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>delim</code> <code>delimited</code></td>
+    <td>Uses the delimiter specified with <code>--delim</code> (or the default delimiter) to output records in CSV-style format, including a header row with the corresponding column names. <Note>The output will not be escaped according to the data values and delimiter used.  Be sure to select a delimiter not found within any data being output.</Note> <div><strong>Example Delimited Output</strong><pre><code>product_id,product_name&#10;1,Clamp-on Lamps&#10;2,Desk Chairs&#10;3,Air Purifiers</code></pre></div></td>
+  </tr>
+  <tr>
+    <td><code>table</code></td>
+    <td>Outputs records in an ASCII table format. <div><strong>Example Table Output</strong><pre><code>+--------------+-----------------------+&#10;|   product_id | product_name          |&#10;+--------------+-----------------------+&#10;|            1 | Clamp-on Lamps        |&#10;|            2 | Desk Chairs           |&#10;|            3 | Air Purifiers         |&#10;+--------------+-----------------------+</code></pre></div></td>
+  </tr>
+  <tr>
+    <td><code>vertical</code></td>
+    <td>Outputs each record as a vertical list of key/value pairs. <div><strong>Example Vertical Output</strong><pre><code>--Row 1---------&#10;product_id: 1&#10;product_name: Clamp-on Lamps&#10;--Row 2---------&#10;product_id: 2&#10;product_name: Desk Chairs&#10;--Row 3---------&#10;product_id: 3&#10;product_name: Air Purifiers</code></pre></div></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt; -i | --isql &gt;" id="<-i-|-isql->" defaultOpen>
+
+Simulate <Badge color="blue-destructive">isql</Badge> output.
+
+</Accordion>
+
+<Accordion title="--limit &lt;record count&gt;" id="limit-<record-count>" defaultOpen>
+
+Limit the number of records returned in each result set to the given number.  Use `-1` for no limit.
+If not specified, default is `-1`.
+
+</Accordion>
+
+<Accordion title="--logLevel &lt;level&gt;" id="loglevel-<level>" defaultOpen>
+
+Set the JDBC logging level.  Default logging level is `0` *(off)*.  Valid `level` options include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Level</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>0</code></td>
+    <td>Off</td>
+  </tr>
+  <tr>
+    <td><code>1</code></td>
+    <td>Fatal</td>
+  </tr>
+  <tr>
+    <td><code>2</code></td>
+    <td>Error</td>
+  </tr>
+  <tr>
+    <td><code>3</code></td>
+    <td>Warning</td>
+  </tr>
+  <tr>
+    <td><code>4</code></td>
+    <td>Info</td>
+  </tr>
+  <tr>
+    <td><code>5</code></td>
+    <td>Debug</td>
+  </tr>
+  <tr>
+    <td><code>6</code></td>
+    <td>Trace</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="--showTime [&lt;value&gt;]" id="showtime-<value>" defaultOpen>
+
+Display SQL execution time.  If not specified, default is to show execution time; if specified, default
+`value` is `true`.
+
+</Accordion>
+
+<Accordion title="--stopOnFirstError" id="stoponfirsterror" defaultOpen>
+
+When using a SQL script as input (`--file` option), stop on the first error encountered.
+
+</Accordion>
+
+<Accordion title="&lt; -tz | --timeZone &gt; &lt;time zone ID&gt;" id="<-tz-|-timezone->-<time-zone-id>" defaultOpen>
+
+Output *time* and *timestamp* data in the time zone with specified ID (e.g., `PST`).  Use `system` for
+local system time.  If not specified, default is `UTC`.
+
+</Accordion>
+
+<Accordion title="--verbose [&lt;value&gt;]" id="verbose-<value>" defaultOpen>
+
+Display JDBC class, URL (including SSL and TrustStore information), host, port, user, password, and version
+information as well as the given SQL statement.  If not specified, default is to not use *verbose* mode; if
+specified, default `value` is `true`.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Information Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="--listAllTimeZones" id="listalltimezones" defaultOpen>
+
+List all supported time zones and exit.
+
+</Accordion>
+
+<Accordion title="--version" id="version" defaultOpen>
+
+Display the version of <Badge color="blue-destructive">kisql</Badge> and exit.
+
+</Accordion>
+
+<Accordion title="&lt; -? | --help &gt;" id="<-|-help->" defaultOpen>
+
+Display help information
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Interactive Mode
+
+
+If neither `--sql` nor `-f` / `--file` are specified while using *KiSQL*
+from the command line interface, *KiSQL* will run in interactive mode. In
+interactive mode, a `;` terminates and executes SQL statements, unless
+`--lineMode` is used to modify that behavior. If standard input has been
+redirected, no prompt is issued and  SQL statements are read from `stdin`.
+
+*KiSQL* supports arrow key based traversal of the command execution history,
+and editing/re-execution of these commands.
+
+The following commands can be used at the beginning of a statement while in
+interactive mode:
+
+<AccordionGroup>
+
+<Accordion title="&lt; \c | \counts &gt; [&lt;schema&gt; [&lt;table&gt;]]" id="<-c-|-counts->-<schema>-<table>" defaultOpen>
+
+Display the number of records in each table.
+
+If a `schema` is given, only show record counts of accessible tables in that
+schema.
+
+If `schema` & `table` are given, only show the record count of that table, if
+accessible.
+
+</Accordion>
+
+<Accordion title="&lt; \e | \edit &gt; [entry number]" id="<-e-|-edit->-entry-number" defaultOpen>
+
+If no argument given, invoke the vi editor on the last query executed. If a
+number is provided (with `1` being the least recent entry), invoke `vi`
+editor on specific query by number from the history. Upon exiting the editor, the
+statement will be executed.
+
+</Accordion>
+
+<Accordion title="&lt; \f | \format &gt; &lt;type&gt;" id="<-f-|-format->-<type>" defaultOpen>
+
+Set the output format type; options are detailed in the `--format` parameter
+description [above](/content/tools/kisql#kisql-tools-params).
+
+
+<Info>
+The delimiter, when using the delimited output format cannot be changed
+during an interactive mode session.
+</Info>
+
+</Accordion>
+
+<Accordion title="&lt; \h | \history &gt;" id="<-h-|-history->" defaultOpen>
+
+Display the numbered SQL statement history (with the least recent entry being
+first).
+
+</Accordion>
+
+<Accordion title="&lt; \i | \indices &gt; [&lt;schema&gt; [&lt;table&gt;]]" id="<-i-|-indices->-<schema>-<table>" defaultOpen>
+
+Display the [indices](/content/concepts/indexes) to which the user has access.
+
+If a `schema` is given, only show accessible indices of tables in that schema.
+
+If `schema` & `table` are given, only show accessible indices of tables in
+that schema.
+
+</Accordion>
+
+<Accordion title="&lt; \k | \primaryKeys &gt; [&lt;schema&gt; [&lt;table&gt;]]" id="<-k-|-primarykeys->-<schema>-<table>" defaultOpen>
+
+Display the [primary key](/content/concepts/tables#primary-key) columns to which the user has
+access.
+
+If a `schema` is given, only show accessible primary key columns of tables in
+that schema.
+
+If `schema` & `table` are given, only show accessible primary key columns of
+that table.
+
+</Accordion>
+
+<Accordion title="&lt; \m | \metadata &gt;" id="<-m-|-metadata->" defaultOpen>
+
+Display connection metadata, including versions, supported features, & data types.
+
+</Accordion>
+
+<Accordion title="&lt; \p | \procedures &gt; [&lt;schema&gt; [&lt;procedure&gt;]]" id="<-p-|-procedures->-<schema>-<procedure>" defaultOpen>
+
+Display the [SQL procedures](/content/sql/procedure) to which the user has access.
+
+If a `schema` is given, only show accessible SQL procedures in that schema.
+
+If `schema` & `procedure` are given, only show that SQL procedure, if
+accessible.
+
+</Accordion>
+
+<Accordion title="&lt; \r | \run &gt; [ID]" id="<-r-|-run->-id" defaultOpen>
+
+Re-run the last command executed.
+
+If `ID` is given, run the command with that ID in the command history (as
+enumerated in the history output via `\history`)
+
+</Accordion>
+
+<Accordion title="&lt; \s | \schemas &gt;" id="<-s-|-schemas->" defaultOpen>
+
+Display the [schemas](/content/sql/ddl#sql-create-schema) to which the user has access.
+
+</Accordion>
+
+<Accordion title="&lt; \t | \tables &gt; [&lt;schema [&lt;table&gt;]]" id="<-t-|-tables->-<schema-<table>" defaultOpen>
+
+Display the [tables](/content/sql/ddl#sql-create-table) &
+[views](/content/sql/ddl#sql-create-view) to which the user has access.
+
+If a `schema` is given, only show accessible tables/views in that schema.
+
+If `schema` & `table` are given, only show that table, if accessible.
+
+</Accordion>
+
+<Accordion title="&lt; \u | \columns &gt; [&lt;schema&gt; [&lt;table&gt; [&lt;column&gt;]]]" id="<-u-|-columns->-<schema>-<table>-<column>" defaultOpen>
+
+Display the columns of [tables](/content/sql/ddl#sql-create-table) &
+[views](/content/sql/ddl#sql-create-view) to which the user has access.
+
+If a `schema` is given, only show accessible columns from tables/views in that
+schema.
+
+If `schema` & `table` are given, only show accessible columns from that
+table/view.
+
+If `schema`, `table`, & `column` are given, only show that columns, if
+accessible.
+
+</Accordion>
+
+<Accordion title="&lt; \v | \version &gt;" id="<-v-|-version->" defaultOpen>
+
+Display the version number of the following components:
+
+* *Kinetica* database to which *KiSQL* is connected
+* *Kinetica* JDBC driver used by *KiSQL*
+* *Kinetica* Java API used by the JDBC driver
+
+</Accordion>
+
+<Accordion title="&lt; \q | \quit | \exit &gt;" id="<-q-|-quit-|-exit->" defaultOpen>
+
+Exit interactive mode.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+### List CLI Options
+
+
+```bash title="Help"
+kisql -?
+```
+
+{/* Source: /examples/bash/kisql_examples.out (lines 13-19) */}
+``` Help Output
+Usage: kisql [-options]
+
+where options include:
+
+Connect:
+     --url        <url>       Connect to this GPUdb URL.  Use either this option or -host/-port, but not both.  Can also be specificed by the
+                              KI_URL environment variable
+```
+
+
+### Connect
+
+
+```bash title="Log In"
+$ kisql --url http://localhost:9191;RowsPerFetch=20000 --user kuser
+kuser password:
+```
+
+{/* Source: /examples/bash/kisql_examples.out (lines 131-132) */}
+``` Log In Output
+Connection successful
+Kinetica (kuser) =>
+```
+
+
+### List Schemas
+
+
+{/* Source: /examples/bash/kisql_examples.out (lines 147) */}
+``` List Schemas Command
+Kinetica (user) => \d
+```
+
+{/* Source: /examples/bash/kisql_examples.out (lines 149-152 175 261) */}
+``` List Schemas Output
++-------------+----------------------+-------------------------------------+--------------+
+| TABLE_CAT   | TABLE_SCHEM          | TABLE_NAME                          | TABLE_TYPE   |
++-------------+----------------------+-------------------------------------+--------------+
+| Kinetica    | SYSTEM               | ITER                                | TABLE        |
+| Kinetica    | kisql_example        | product                             | TABLE        |
++-------------+----------------------+-------------------------------------+--------------+
+```
+
+
+### Run Queries
+
+
+{/* Source: /examples/bash/kisql_examples.out (lines 267) */}
+``` Run SELECT Statement
+Kinetica (user) => SELECT COUNT(*) AS total_products FROM kisql_example.product;
+```
+
+{/* Source: /examples/bash/kisql_examples.out (lines 270-274) */}
+``` SELECT Statement Output
++------------------+
+|   total_products |
++------------------+
+|               14 |
++------------------+
+```
+
+
+### Use the CLI Query and Output Format Parameters
+
+
+```bash title="Run KiSQL with Modified Format"
+kisql --url http://localhost:9191;RowsPerFetch=20000 \
+      --isql \
+      --showTime false \
+      --format delim --delim ',' \
+      --sql 'SELECT * FROM kisql_example.product'
+```
+
+{/* Source: /examples/bash/kisql_examples.out (lines 288-302) */}
+```xml KiSQL with Modified Format Output
+id,category,name,description,stock
+1,Furniture,Clamp-on Lamps,Strong, steadfast fasteners; localized lighting for laboring,10
+2,Furniture,Desk Chairs,Soft, supportive seats enabling employment of exceptionally ergonomic endeavors,20
+3,Office Supplies,Air Purifiers,Fast filter for odius odors & pesky particulates,4
+4,Office Supplies,Binder Clips,Banker's clip, a.k.a. bobby clip, a.k.a. big clamp,10000
+5,Office Supplies,Binding Machines,Top tech for trussing treatises,2
+6,Office Supplies,Business Envelopes,Convenient containers for conventional communications,1000
+7,Office Supplies,Business Cards,Identifying information with corporate iconography for industrious individuals,1000000
+8,Technology,Power Strips,Dedicated energy-efficient devices for effectively delivering distributed electricity,50
+9,Technology,Business Copiers,Diligent, durable duplicators of documents and diagrams,3
+10,Technology,CD-R,'Write once; read many',100000
+11,Technology,Conference Phones,Crystal-clear collaborative communication in a convenient, contemporary casing,11
+12,Technology,Corded Keyboards,Tactile tools for troublesome tethered typing,1
+13,Technology,Cordless Keyboards,Classy contrivances for conventionally connectionless keying,101
+14,Technology,Dot Matrix Printers,Impactful industrial implements for impressing ink iteratively,27
+```
+
+
+### Load Files
+
+
+Create a directory, in which to load your file(s):
+
+{/* Source: /examples/bash/kisql_examples.out (lines 137) */}
+``` Create Directory Command
+Kinetica (user) => CREATE DIRECTORY 'kisql_dir';
+```
+
+Upload your file(s) to KiFS:
+
+{/* Source: /examples/bash/kisql_examples.out (lines 138) */}
+``` Upload Files Command
+Kinetica (user) => UPLOAD FILES 'products.csv' INTO 'kisql_dir';
+```
+
+Finally, load your file into a table:
+
+{/* Source: /examples/bash/kisql_examples.out (lines 139) */}
+``` Load Data Command
+Kinetica (user) => LOAD INTO kisql_example.product FROM FILE PATHS 'kifs://kisql_dir/products.csv';
+```

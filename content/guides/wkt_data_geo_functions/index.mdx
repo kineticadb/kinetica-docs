@@ -1,0 +1,608 @@
+---
+title: Using WKT Data and Geospatial Functions
+description: Learn how to ingest and use WKT geometry with geospatial functions
+slug: wkt_data_geo_functions
+# time_estimate: 15 MIN
+---
+
+The following sections demonstrate how to ingest and work with WKT data as well
+as how to use geospatial functions via SQL and the *Kinetica Python* API.
+Details about the geospatial functions can be found under
+[Geospatial/Geometry Functions](/content/location_intelligence/geo_functions). All geospatial functions
+are compatible in both native API and SQL.
+
+
+## Prerequisites
+
+
+* [KiSQL](/content/tools/kisql)
+  *(if running the SQL examples)*
+
+* [Python API](/content/guides/python_guide#python-api-installation)
+  *(if running the Python examples)*
+
+* Sample CSV data files, which should be downloaded & copied to the host running
+  the SQL client.  The data files can be downloaded here:
+
+  * [NYC Neighborhood](/examples/data/nyc_neighborhood.csv)
+  * [Taxi Trip Data](/examples/data/taxi_trip_data.csv)
+  * [Taxi Zone](/examples/data/taxi_zone.csv)
+
+
+### Loading Sample Data
+
+
+Data loading will be done via SQL.  First log in to the database:
+
+```bash
+kisql --url <kinetica_url> --user <username> --pwd <password>
+```
+
+Create a [schema](/content/sql/ddl#sql-create-schema) to house the example tables.
+
+{/* Source: /examples/sql/geospatial_init.kisql (lines 19) */}
+```sql Create Geospatial Example Schema
+CREATE SCHEMA example_geospatial
+```
+
+Create tables for geospatial & temporal data within the *schema*.
+
+{/* Source: /examples/sql/geospatial_init.kisql (lines 24-39) */}
+```sql Create NYC Neighborhood Shape Table
+CREATE OR REPLACE REPLICATED TABLE example_geospatial.nyc_neighborhood
+(
+  gid INT NOT NULL,
+  geom WKT NOT NULL,
+  CTLabel VARCHAR(16) NOT NULL,
+  BoroCode VARCHAR(16) NOT NULL,
+  BoroName VARCHAR(16) NOT NULL,
+  CT2010 VARCHAR(16) NOT NULL,
+  BoroCT2010 VARCHAR(16) NOT NULL,
+  CDEligibil VARCHAR(16) NOT NULL,
+  NTACode VARCHAR(16) NOT NULL,
+  NTAName VARCHAR(64) NOT NULL,
+  PUMA VARCHAR(16) NOT NULL,
+  Shape_Leng DOUBLE NOT NULL,
+  Shape_Area DOUBLE NOT NULL
+)
+```
+
+{/* Source: /examples/sql/geospatial_init.kisql (lines 42-55) */}
+```sql Create NYC Taxi Trip Table
+CREATE OR REPLACE REPLICATED TABLE example_geospatial.taxi_trip_data
+(
+  transaction_id LONG NOT NULL,
+  payment_id LONG NOT NULL,
+  vendor_id VARCHAR(4) NOT NULL,
+  pickup_datetime TYPE_TIMESTAMP,
+  dropoff_datetime TYPE_TIMESTAMP,
+  passenger_count TINYINT,
+  trip_distance REAL,
+  pickup_longitude REAL,
+  pickup_latitude REAL,
+  dropoff_longitude REAL,
+  dropoff_latitude REAL
+)
+```
+
+{/* Source: /examples/sql/geospatial_init.kisql (lines 58-68) */}
+```sql Create NYC Taxi Zone Shape Table
+CREATE OR REPLACE TABLE example_geospatial.taxi_zone
+(
+  geom WKT NOT NULL,
+  objectid SMALLINT NOT NULL,
+  shape_length DOUBLE NOT NULL,
+  shape_area DOUBLE NOT NULL,
+  zone VARCHAR(64) NOT NULL,
+  locationid INT NOT NULL,
+  borough VARCHAR(16) NOT NULL,
+  PRIMARY KEY (objectid)
+)
+```
+
+Populate the example tables with source data.  The files are staged into
+[KiFS](/content/sql/kifs) from the directory that is local to where *KiSQL*
+is running.  From there, each is loaded into its respective table.  Modify these
+statements as necessary to reflect the location of the data files on the client
+machine.
+
+{/* Source: /examples/sql/geospatial_init.kisql (lines 76) */}
+```sql Create KiFS Directory for Geospatial Data Files
+CREATE DIRECTORY 'geo_data'
+```
+
+{/* Source: /examples/sql/geospatial_init.kisql (lines 84-85) */}
+```sql Stage NYC Neighborhood Data
+UPLOAD FILE '../data/nyc_neighborhood.csv'
+INTO 'geo_data'
+```
+{/* Source: /examples/sql/geospatial_init.kisql (lines 88-89) */}
+```sql Load NYC Neighborhood Data
+LOAD INTO example_geospatial.nyc_neighborhood
+FROM FILE PATHS 'kifs://geo_data/nyc_neighborhood.csv'
+```
+
+{/* Source: /examples/sql/geospatial_init.kisql (lines 93-94) */}
+```sql Stage NYC Taxi Trip Data
+UPLOAD FILE '../data/taxi_trip_data.csv'
+INTO 'geo_data'
+```
+{/* Source: /examples/sql/geospatial_init.kisql (lines 97-98) */}
+```sql Load NYC Taxi Trip Data
+LOAD INTO example_geospatial.taxi_trip_data
+FROM FILE PATHS 'kifs://geo_data/taxi_trip_data.csv'
+```
+
+{/* Source: /examples/sql/geospatial_init.kisql (lines 102-103) */}
+```sql Stage NYC Taxi Zone Data
+UPLOAD FILE '../data/taxi_zone.csv'
+INTO 'geo_data'
+```
+{/* Source: /examples/sql/geospatial_init.kisql (lines 106-107) */}
+```sql Load NYC Taxi Zone Data
+LOAD INTO example_geospatial.taxi_zone
+FROM FILE PATHS 'kifs://geo_data/taxi_zone.csv'
+```
+
+
+## Examples via SQL
+
+
+### Creating a Table and Inserting WKT Data
+
+
+First, a points-of-interest table is created and loaded with sample WKT data.
+
+{/* Source: /examples/sql/geospatial_examples.kisql (lines 11-15) */}
+```sql Create POI Table
+CREATE OR REPLACE TABLE example_geospatial.points_of_interest
+(
+  src1_poi WKT NOT NULL,
+  src2_poi WKT NOT NULL
+)
+```
+
+Then, data is inserted into the WKT table.
+
+{/* Source: /examples/sql/geospatial_examples.kisql (lines 20-25) */}
+```sql Populate POI Table
+INSERT INTO example_geospatial.points_of_interest
+VALUES
+  ('POINT(-73.8455003 40.7577272)','POINT(-73.84550029 40.75772724)'),
+  ('POLYGON((-73.9258506 40.8287493, -73.9258292 40.828723, -73.9257795 40.8287387, -73.925801 40.8287635,-73.9258506 40.8287493))','POLYGON((-73.9257795 40.8287387, -73.925801 40.8287635, -73.9258506 40.8287493, -73.9258506 40.8287493,-73.9258292 40.828723))'),
+  ('LINESTRING(-73.9942208 40.7504289, -73.993856 40.7500753, -73.9932525 40.7499941)','LINESTRING(-70.9942208 42.7504289, -72.993856 43.7500753, -73.9932525 44.7499941)'),
+  ('LINESTRING(-73.9760944 40.6833433, -73.9764404 40.6830626, -73.9763761 40.6828897)','LINESTRING(-70.9761 41.6834, -72.9765 39.6831, -76.9764 38.6829)')
+```
+
+
+### Scalar Functions
+
+
+For the complete list of scalar functions, see both
+[Scalar Functions](/content/sql/query#sql-geo-functions-scalar) and
+[Enhanced Performance Scalar Functions](/content/sql/query#sql-geo-functions-scalar-ep).
+
+{/* Source: /examples/sql/geospatial_examples.kisql (lines 41-46) */}
+```sql GEODIST Example
+-- Using GEODIST(), calculate the distance between pickup and dropoff points to
+-- see where the calculated distance is less than the recorded trip distance
+
+SELECT *
+FROM example_geospatial.taxi_trip_data
+WHERE GEODIST(pickup_longitude, pickup_latitude, dropoff_longitude, dropoff_latitude) < trip_distance
+```
+
+{/* Source: /examples/sql/geospatial_examples.kisql (lines 52-59) */}
+```sql ST_AREA Example
+-- Calculate the area of each taxi zone and find the five largest zones
+
+SELECT TOP 5
+  objectid AS "Zone_ID",
+  zone AS "Zone_Name",
+  DECIMAL(ST_AREA(geom, 1) / 1000000) AS "Zone_Area_in_Square_Kilometers"
+FROM example_geospatial.taxi_zone
+ORDER BY 3 DESC
+```
+
+
+### Aggregation Functions
+
+
+For the complete list of aggregation functions, see
+[Aggregation Functions](/content/sql/query#sql-geo-functions-aggregation).
+
+{/* Source: /examples/sql/geospatial_examples.kisql (lines 66-72) */}
+```sql ST_DISSOLVE Example
+-- Dissolve the boundaries between Queens neighborhood tabulation areas to
+-- create a single borough boundary
+
+SELECT
+  ST_DISSOLVE(geom) AS neighborhoods
+FROM example_geospatial.nyc_neighborhood
+WHERE BoroName = 'Queens'
+```
+
+Below is a picture of the dissolved neighborhood boundaries:
+
+
+![queens_neighborhoods.png](/content/guides/wkt_data_geo_functions/queens_neighborhoods.png)
+
+
+### Joins
+
+
+Many geospatial/geometry functions can be used to join data sets.  For the
+complete list of join and other scalar functions, see both
+[Scalar Functions](/content/sql/query#sql-geo-functions-scalar) and
+[Enhanced Performance Scalar Functions](/content/sql/query#sql-geo-functions-scalar-ep).
+
+{/* Source: /examples/sql/geospatial_examples.kisql (lines 84-92) */}
+```sql Implicit Geospatial Containment Join
+SELECT TOP 25
+  vendor_id AS "Pickup_Vendor_ID",
+  passenger_count AS "Total_Passengers",
+  pickup_longitude AS "Pickup_Longitude",
+  pickup_latitude AS "Pickup_Latitude",
+  BoroName AS "Pickup_Borough",
+  NTAName AS "Pickup_NTA"
+FROM example_geospatial.taxi_trip_data, example_geospatial.nyc_neighborhood
+WHERE STXY_CONTAINS(geom, pickup_longitude, pickup_latitude) = 1
+```
+
+{/* Source: /examples/sql/geospatial_examples.kisql (lines 98-110) */}
+```sql Explicit Geospatial Intersection Join
+-- Find the top 10 neighborhood pickup locations
+
+SELECT TOP 10
+  ntaname AS "Pickup_NTA",
+  COUNT(*) AS "Total_Pickups"
+FROM
+  example_geospatial.taxi_trip_data
+  JOIN example_geospatial.nyc_neighborhood
+    ON STXY_INTERSECTS(pickup_longitude, pickup_latitude, geom) = 1
+GROUP BY
+  ntaname
+ORDER BY
+  "Total_Pickups" DESC
+```
+
+In some cases, it may be useful to aggregate on the geospatial column itself,
+applying standard aggregation functions to other joined columns.
+
+{/* Source: /examples/sql/geospatial_examples.kisql (lines 115-128) */}
+```sql Explicit Geospatial Intersection Join with Geospatial Aggregation
+-- Find the geospatial objects representing the top 10 neighborhoods,
+-- measured by distance covered over all taxi trips originating in them
+
+SELECT TOP 10
+  SUM(trip_distance) AS "Total_Trip_Distance",
+  geom AS "Pickup_Geo"
+FROM
+  example_geospatial.taxi_trip_data
+  JOIN example_geospatial.nyc_neighborhood
+    ON STXY_INTERSECTS(pickup_longitude, pickup_latitude, geom) = 1
+GROUP BY
+  geom
+ORDER BY
+  "Total_Trip_Distance" DESC
+```
+
+
+### Equality
+
+
+There are three ways of checking if two geometries are equal, which each have
+different thresholds:
+
+* `ST_EQUALS()`
+* `ST_ALMOSTEQUALS()`
+* `ST_EQUALSEXACT()`
+
+For details on these functions see [Scalar Functions](/content/sql/query#sql-geo-functions-scalar).
+
+The data inserted in the first section includes two POINTs that vary slightly
+in precision, two POLYGONs that vary in the ordering of their boundary points,
+and two pairs of LINESTRINGs that vary in both precision and scale. Each of
+these geometry types is compared to see if each given pair is spatially equal as
+defined by the equality functions:
+
+{/* Source: /examples/sql/geospatial_examples.kisql (lines 137-144) */}
+```sql Equality Comparisons Between Two Points
+SELECT
+  ST_GEOMETRYTYPE(src1_poi) AS "Source_1_Type",
+  ST_GEOMETRYTYPE(src2_poi) AS "Source_2_Type",
+  ST_ALMOSTEQUALS(src1_poi, src2_poi, 7) AS "Almost_Equals",
+  ST_EQUALS(src1_poi, src2_poi) AS "Equals",
+  ST_EQUALSEXACT(src1_poi, src2_poi, 4) AS "Equals_Exact"
+FROM example_geospatial.points_of_interest
+ORDER BY 1
+```
+
+
+## Examples via the Python API
+
+
+### Creating a Table and Inserting WKT Data
+
+
+First, a points-of-interest table is created and loaded with sample WKT data.
+
+{/* Source: /examples/python/geospatial_examples.py (lines 38-48) */}
+```python Create POI Table
+# Create a type using the GPUdbRecordType object
+columns = [gpudb.GPUdbRecordColumn("src1_poi", "string",
+                                   [gpudb.GPUdbColumnProperty.WKT]),
+           gpudb.GPUdbRecordColumn("src2_poi", "string",
+                                   [gpudb.GPUdbColumnProperty.WKT])]
+poi_record_type = gpudb.GPUdbRecordType(columns, label="poi_record_type")
+poi_record_type.create_type(kinetica)
+poi_type_id = poi_record_type.type_id
+# Create a table from the poi_record_type
+response = kinetica.create_table(table_name=poi_table, type_id=poi_type_id)
+print(f"Table created: {response['status_info']['status']}")
+```
+
+Then, data is inserted into the WKT table, and the insertion is verified.
+
+{/* Source: /examples/python/geospatial_examples.py (lines 50-73) */}
+```python Populate POI Table
+# Prepare the data to be inserted
+pois = [
+    "POINT(-73.8455003 40.7577272)",
+    "POLYGON((-73.9258506 40.8287493, -73.9258292 40.828723, -73.9257795 40.8287387, -73.925801 40.8287635, "
+    "-73.9258506 40.8287493))",
+    "LINESTRING(-73.9942208 40.7504289, -73.993856 40.7500753, -73.9932525 40.7499941)",
+    "LINESTRING(-73.9760944 40.6833433, -73.9764404 40.6830626, -73.9763761 40.6828897)"
+]
+pois_compare = [
+    "POINT(-73.84550029 40.75772724)",
+    "POLYGON((-73.9257795 40.8287387, -73.925801 40.8287635, -73.9258506 40.8287493, -73.9258506 40.8287493, "
+    "-73.9258292 40.828723))",
+    "LINESTRING(-70.9942208 42.7504289, -72.993856 43.7500753, -73.9932525 44.7499941)",
+    "LINESTRING(-70.9761 41.6834, -72.9765 39.6831, -76.9764 38.6829)"
+]
+# Insert the data into the table using a list
+encoded_obj_list = []
+for val in range(0, 4):
+    poi1_val = pois[val]
+    poi2_val = pois_compare[val]
+    record = gpudb.GPUdbRecord(poi_record_type, [poi1_val, poi2_val])
+    encoded_obj_list.append(record.binary_data)
+response = kinetica.insert_records(table_name=poi_table, data=encoded_obj_list, list_encoding="binary")
+print(f"Number of records inserted:  {response['count_inserted']}\n")
+```
+
+
+### Scalar Functions
+
+
+For the complete list of scalar functions, see both
+[Scalar Functions](/content/location_intelligence/geo_functions#geo-functions-scalar) and
+[Enhanced Performance Scalar Functions](/content/location_intelligence/geo_functions#geo-functions-scalar-ep).
+
+{/* Source: /examples/python/geospatial_examples.py (lines 80-88) */}
+```python GEODIST Example
+""" Using GEODIST(), calculate the distance between pickup and dropoff points to see where the calculated distance
+    is less than the recorded trip distance """
+response = kinetica.filter(
+        table_name=taxi_trip_table,
+        view_name=dist_check_view,
+        expression="GEODIST(pickup_longitude, pickup_latitude, dropoff_longitude, dropoff_latitude) "
+                    "< trip_distance"
+)
+print(f"Number of trips where geographic distance < recorded distance: {response['count']}\n")
+```
+
+{/* Source: /examples/python/geospatial_examples.py (lines 92-110) */}
+```python ST_AREA Example
+# Calculate the area of each taxi zone and copy the selected data to a projection
+kinetica.create_projection(
+        table_name=taxi_zones_table,
+        projection_name=zones_by_area_proj,
+        column_names=["objectid", "zone", "ST_AREA(geom,1) / 1000000 AS area"],
+        options={"order_by": "area desc", "limit": "5"}
+)
+# Display the top 5 largest taxi zones
+large_zones = kinetica.get_records(
+        table_name=zones_by_area_proj,
+        offset=0, limit=gpudb.GPUdb.END_OF_SET,
+        encoding="json",
+        options={"sort_by":"area", "sort_order": "descending"}
+)['records_json']
+print("Top 5 largest taxi zones:")
+print("{:<7s} {:<27s} {:<30s}".format("Zone_ID", "Zone_Name", "Zone_Area_in_Square_Kilometers"))
+print("{:=<7s} {:=<27s} {:=<30s}".format("", "", ""))
+for zone in large_zones:
+    print("{objectid:>7d} {zone:<27s} {area:>30.4f}".format(**json.loads(zone)))
+```
+
+
+### Aggregation Functions
+
+
+For the complete list of aggregation functions, see
+[Aggregation Functions](/content/location_intelligence/geo_functions#geo-functions-aggregation).
+
+{/* Source: /examples/python/geospatial_examples.py (lines 115-126) */}
+```python ST_DISSOLVE Example
+# Dissolve the boundaries between Queens neighborhood tabulation areas to create a single borough boundary
+response = kinetica.aggregate_group_by(
+        table_name=nyc_nta_table,
+        column_names=["ST_DISSOLVE(geom) AS neighborhoods"],
+        offset=0, limit=1,
+        encoding="json",
+        options={
+                "expression": "BoroName = 'Queens'",
+                "result_table": queens_agb
+        }
+)
+print(f"Queens neighborhood boundaries dissolved:  {response['status_info']['status']}")
+```
+
+Below is a picture of the dissolved neighborhood boundaries:
+
+
+![queens_neighborhoods.png](/content/guides/wkt_data_geo_functions/queens_neighborhoods.png)
+
+
+### Joins
+
+
+Many geospatial/geometry functions can be used to join data sets.  For the
+complete list of join and other scalar functions, see both
+[Scalar Functions](/content/location_intelligence/geo_functions#geo-functions-scalar) and
+[Enhanced Performance Scalar Functions](/content/location_intelligence/geo_functions#geo-functions-scalar-ep).
+
+{/* Source: /examples/python/geospatial_examples.py (lines 133-157) */}
+```python Implicit Geospatial Containment Join
+# Locate which borough and neighborhood taxi pickup points occurred
+kinetica.create_join_table(
+        join_table_name=pickup_point_location,
+        table_names=[taxi_trip_table + " AS t", nyc_nta_table + " AS n"],
+        column_names=[
+                "t.vendor_id", "t.passenger_count",
+                "t.pickup_longitude", "t.pickup_latitude",
+                "n.BoroName", "n.NTAName"
+        ],
+        expressions=["STXY_CONTAINS(n.geom, t.pickup_longitude, t.pickup_latitude)"]
+)
+# Display a subset of the pickup point locations
+pickup_points = kinetica.get_records(
+        table_name=pickup_point_location,
+        offset=0, limit=25,
+        encoding="json",
+        options={"sort_by":"pickup_longitude"}
+)['records_json']
+print("Subset of pickup point neighborhood locations:")
+print("{:<10s} {:<12s} {:<13s} {:<12s} {:<11s} {:<43s}".format("Vendor ID", "Pass. Count", "Pickup Long.",
+                                                               "Pickup Lat.", "Borough", "NTA"))
+print("{:=<10s} {:=<12s} {:=<13s} {:=<12s} {:=<11s} {:=<43s}".format("", "", "", "", "", ""))
+for point in pickup_points:
+    print("{vendor_id:<10s} {passenger_count:<12d} {pickup_longitude:<13f} {pickup_latitude:<12f} "
+          "{BoroName:<11s} {NTAName:<43s}".format(**json.loads(point)))
+```
+
+{/* Source: /examples/python/geospatial_examples.py (lines 162-189) */}
+```python Implicit Geospatial Intersection Join
+# Find the top neighborhood pickup locations
+kinetica.create_join_table(
+        join_table_name=top_pickup_locations_by_frequency,
+        table_names=[taxi_trip_table + " AS t", nyc_nta_table + " AS n"],
+        column_names=["n.NTAName AS NTAName"],
+        expressions=["((STXY_INTERSECTS(t.pickup_longitude, t.pickup_latitude, n.geom) = 1))"]
+)
+# Aggregate the neighborhoods and the count of records per neighborhood
+kinetica.aggregate_group_by(
+        table_name=top_pickup_locations_by_frequency,
+        column_names=["NTAName AS Pickup_NTA", "COUNT(*) AS Total_Pickups"],
+        offset=0, limit=gpudb.GPUdb.END_OF_SET,
+        options={"result_table": pickup_agb}
+)
+# Display the top 10 neighborhood pickup locations
+response = kinetica.get_records_by_column(
+        table_name=pickup_agb,
+        column_names=["Pickup_NTA", "Total_Pickups"],
+        offset=0, limit=10,
+        encoding="json",
+        options={"order_by": "Total_Pickups desc"}
+)
+data = kinetica.parse_dynamic_response(response)['response']
+print("Top 10 neighborhood pickup locations:")
+print("{:<43s} {:<14s}".format("Pickup NTA", "Total Pickups"))
+print("{:=<43s} {:=<14s}".format("", ""))
+for pickupLocs in zip(data["Pickup_NTA"], data["Total_Pickups"]):
+    print("{:<43s} {:<14d}".format(*pickupLocs))
+```
+
+In some cases, it may be useful to aggregate on the geospatial column itself,
+applying standard aggregation functions to other joined columns.
+
+{/* Source: /examples/python/geospatial_examples.py (lines 194-209) */}
+```python Implicit Geospatial Intersection Join with Geospatial Aggregation
+# Find the geospatial objects representing the top 10 neighborhoods by
+# distance covered over all taxi trips originating in them
+response = kinetica.create_join_table(
+        join_table_name=top_pickup_locations_by_distance,
+        table_names=[taxi_trip_table + " AS t", nyc_nta_table + " AS n"],
+        column_names=["n.geom AS geom", "t.trip_distance AS trip_distance"],
+        expressions=["((STXY_INTERSECTS(t.pickup_longitude, t.pickup_latitude, n.geom) = 1))"]
+)
+# Aggregate the neighborhoods and the count of records per neighborhood
+response = kinetica.aggregate_group_by(
+        table_name=top_pickup_locations_by_distance,
+        column_names=["geom AS Pickup_Geo", "SUM(trip_distance) AS Total_Trip_Distance"],
+        encoding = "json",
+        offset = 0, limit = 10,
+        options = {"sort_by":"value", "sort_order":"descending"}
+)
+```
+
+
+### Equality
+
+
+There are three ways of checking if two geometries are equal, which each have
+different thresholds:
+
+* `ST_EQUALS()`
+* `ST_ALMOSTEQUALS()`
+* `ST_EQUALSEXACT()`
+
+For details on these functions see
+[Scalar Functions](/content/location_intelligence/geo_functions#geo-functions-scalar).
+
+The data inserted in the first section includes two POINTs that vary slightly
+in precision, two POLYGONs that vary in the ordering of their boundary points,
+and two pairs of LINESTRINGs that vary in both precision and scale. Each of
+these geometry types is compared to see if each given pair is spatially equal as
+defined by the equality functions:
+
+{/* Source: /examples/python/geospatial_examples.py (lines 222-246) */}
+```python Equality Comparisons Between Two Points
+# Calculate types of geospatial equality for differing sources of geometry
+kinetica.create_projection(
+    table_name=poi_table,
+    projection_name=poi_comp_table,
+    column_names=[
+        "ST_GEOMETRYTYPE(src1_poi) AS src1type",
+        "ST_GEOMETRYTYPE(src2_poi) AS src2type",
+        "ST_ALMOSTEQUALS(src1_poi, src2_poi, 7) AS almostequals",
+        "ST_EQUALS(src1_poi, src2_poi) AS equals",
+        "ST_EQUALSEXACT(src1_poi, src2_poi, 4) AS equalsexact"
+    ]
+)
+equality_comps = kinetica.get_records(
+        table_name=poi_comp_table,
+        offset=0, limit=10,
+        encoding="json",
+        options={"sort_by":"src1type"}
+)['records_json']
+print("Comparing ST_ALMOSTEQUALS(), ST_EQUALS(), and ST_EQUALSEXACT():")
+print("{:<13s} {:<13s} {:<13s} {:<6s} {:<12s}".format(
+        "Source_1_Type", "Source_2_Type", "Almost_Equals", "Equals", "Equals_Exact"
+))
+print("{:=<13s} {:=<13s} {:=<13s} {:=<6s} {:=<12s}".format("", "", "", "", ""))
+for comp in equality_comps:
+    print("{src1type:<13s} {src2type:<13s} {almostequals:>13d} {equals:>6d} {equalsexact:>12d}".format(**json.loads(comp)))
+```
+
+<a id="geospatial-examples-complete-samples"></a>
+
+
+## Complete Samples
+
+
+Included below are complete examples containing all the above requests and the
+output.
+
+* Python *(see* [Python Developer Guide](/content/guides/python_guide) *for configuration & execution*
+  *details)*
+
+  * [geospatial_examples.py](/examples/python/geospatial_examples.py)
+  * [Python Output](/examples/python/geospatial_examples.out)
+
+* SQL *(see* [ODBC/JDBC Connector](/content/connectors/sql_guide)
+  *for configuration & execution details)*
+
+  * [geospatial_examples.kisql](/examples/sql/geospatial_examples.kisql)
+  * [SQL Output](/examples/sql/geospatial_examples.out)

@@ -1,0 +1,873 @@
+---
+title: User Defined Functions (UDFs)
+sidebarTitle: UDFs
+---
+
+<a id="sql-udf"></a>
+
+
+Kinetica provides support for
+[User-Defined Function (UDF)](/content/udf_overview) creation and management
+in SQL.  Unlike conventional UDFs, Kinetica UDFs are external programs that
+can be managed via SQL and may run in distributed fashion across the cluster.
+
+A UDF that is defined to return a specific table type is known as a
+*User-Defined Table Function (UDTF)*, which can be used within a `SELECT`
+statement to return the output of the function as a query result set.
+
+Package management for Python UDFs is available via the UDF environment feature.
+
+
+UDF/UDTF features accessible via SQL include:
+
+* [CREATE FUNCTION](/content/sql/udf#sql-create-function)
+* [Executing Functions](/content/sql/udf#sql-execute-function)
+* [DROP FUNCTION](/content/sql/udf#sql-drop-function)
+* [SHOW FUNCTION](/content/sql/udf#sql-show-function)
+* [SHOW FUNCTION STATUS](/content/sql/udf#sql-show-function-status)
+* [DESCRIBE FUNCTION](/content/sql/udf#sql-describe-function)
+
+For UDF/UDTF execute permission management, see:
+
+* [GRANT Function (UDF/UDTF) Permission](/content/sql/security#sql-security-priv-mgmt-udf-grant)
+* [REVOKE Function (UDF/UDTF) Permission](/content/sql/security#sql-security-priv-mgmt-udf-revoke)
+
+UDF/UDTF environment management features accessible via SQL include:
+
+* [CREATE FUNCTION ENVIRONMENT](/content/sql/udf#sql-create-function-environment)
+* [ALTER FUNCTION ENVIRONMENT](/content/sql/udf#sql-alter-function-environment)
+* [DROP FUNCTION ENVIRONMENT](/content/sql/udf#sql-drop-function-environment)
+* [SHOW FUNCTION ENVIRONMENT](/content/sql/udf#sql-show-function-environment)
+* [DESCRIBE FUNCTION ENVIRONMENT](/content/sql/udf#sql-desc-function-environment)
+
+
+<a id="sql-create-function"></a>
+
+
+## CREATE FUNCTION
+
+
+Creates a new [UDF/UDTF](/content/sql/udf#sql-udf) with the given options.  A
+UDTF is simply a UDF defined to return a single table, using the
+`RETURNS TABLE` clause.
+
+```sql title="CREATE FUNCTION Syntax"
+CREATE [OR REPLACE] FUNCTION <function name>
+[RETURNS TABLE (<column definition list>)]
+[MODE = '<execution mode>']
+[RUN_COMMAND = '<command>']
+[RUN_COMMAND_ARGS = '<command args>']
+FILE PATHS '<file paths>'
+[WITH OPTIONS (<option name> = '<option value>'[,...])]
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="OR REPLACE" id="or-replace" defaultOpen>
+
+Any existing UDF with the same name will be dropped before creating this one
+
+</Accordion>
+
+<Accordion title="&lt;function name&gt;" id="<function-name>" defaultOpen>
+
+Name of the UDF, which can be referenced in subsequent commands
+
+</Accordion>
+
+<Accordion title="RETURNS TABLE" id="returns-table" defaultOpen>
+
+Specifies that the UDF returns a table after execution and defines the column names and types
+to which the function's output data is expected to conform
+
+
+<Note>
+This defines the UDF as a *User-Defined Table Function (UDTF)*, which allows
+the function to be called within a SQL query; see
+[Executing Functions](/content/sql/udf#sql-execute-function) for details.
+</Note>
+
+</Accordion>
+
+<Accordion title="MODE" id="mode" defaultOpen>
+
+Name of the execution mode for the UDF; the following modes are available:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Constant</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>DISTRIBUTED</code></td>
+    <td>The function's processing will be distributed among the nodes in the cluster</td>
+  </tr>
+  <tr>
+    <td><code>NONDISTRIBUTED</code></td>
+    <td>The function's processing will be completed on a single node in the cluster</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="RUN_COMMAND" id="run_command" defaultOpen>
+
+The command used to execute the files associated with the UDF; e.g., `python`
+
+</Accordion>
+
+<Accordion title="RUN_COMMAND_ARGS" id="run_command_args" defaultOpen>
+
+The arguments supplied alongside the given `RUN_COMMAND`; e.g.:
+
+```
+'udf.py','--username','jdoe','--password','jdoe123'
+```
+</Accordion>
+
+<Accordion title="FILE PATHS" id="file-paths" defaultOpen>
+
+A comma-separated list of single-quoted file paths from which the function and any additional
+files will be loaded; the file paths should be [KiFS](/content/tools/kifs) locations and exist
+prior to the UDF/UDTF creation.
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of option/value assignments will follow
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>max_concurrency_per_node</code></td>
+    <td>The maximum number of concurrent instances of the function that will be executed per node. Setting to <code>0</code> allows unlimited concurrency. The default value is <code>0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>set_environment</code></td>
+    <td>The [Python UDF environment](/content/sql/udf#sql-create-function-environment) to use for this Python UDF.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+Before creating a UDF/UDTF, upload the function file,
+<Badge color="gray">udf_st.py</Badge> to a new directory, <Badge color="gray">udf</Badge>, in
+*KiFS*:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 43) */}
+```sql Create UDF Directory Example
+CREATE DIRECTORY 'udf';
+```
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 79-80) */}
+```sql UPLOAD UDF FILE Example
+UPLOAD FILE 'udf_st.py'
+INTO 'udf'
+```
+
+To create a distributed Python `udf_st` UDF that uses that file:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 126-131) */}
+```sql CREATE FUNCTION (UDF) Example
+CREATE FUNCTION udf_st
+MODE = 'distributed'
+RUN_COMMAND = 'python'
+RUN_COMMAND_ARGS = 'udf/udf_st.py'
+FILE PATHS 'kifs://udf/udf_st.py'
+WITH OPTIONS (SET_ENVIRONMENT = 'udfe_st')
+```
+
+To create the same function as a UDTF that returns a result set instead:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 137-147) */}
+```sql CREATE FUNCTION (UDTF) Example
+CREATE FUNCTION UDTF_ST
+RETURNS TABLE
+(
+	id SMALLINT NOT NULL,
+	score REAL
+)
+MODE = 'distributed'
+RUN_COMMAND = 'python'
+RUN_COMMAND_ARGS = 'udf/udf_st.py'
+FILE PATHS 'kifs://udf/udf_st.py'
+WITH OPTIONS (SET_ENVIRONMENT = 'udfe_st')
+```
+
+
+<a id="sql-execute-function"></a>
+
+
+## Executing Functions
+
+
+An existing [UDF/UDTF](/content/sql/udf#sql-udf) can be executed using
+the `EXECUTE FUNCTION` command.  Additionally, a
+[UDTF](/content/sql/udf#sql-create-function) can be executed as a table function
+within a `SELECT` statement.
+
+```sql title="Execute UDF/UDTF Syntax"
+EXECUTE FUNCTION <function name>
+(
+   <function parameter 1> => <function value 1>,
+   ...
+   <function parameter N> => <function value N>
+)
+```
+
+```sql title="Execute UDTF Table Function Syntax"
+SELECT * FROM TABLE
+(
+   <function name>
+   (
+      <function parameter 1> => <function value 1>,
+      ...
+      <function parameter N> => <function value N>
+   )
+)
+```
+
+The `<function name>` should be the name of an existing UDF.
+
+
+<Tip>
+To preserve the runtime statistics of a UDF/UDTF, use the
+`KI_HINT_SAVE_UDF_STATS` hint in the call to it; see
+[below](/content/sql/udf#sql-execute-function-examples) for an example.
+</Tip>
+
+
+### Function Parameters
+
+
+The following are the available function parameters that may be passed to a
+UDF in an `EXECUTE FUNCTION` or table function call, along with their
+corresponding function values.
+
+<AccordionGroup>
+
+<Accordion title="INPUT_TABLE_NAMES" id="input_table_names" defaultOpen>
+
+Optional set of "tables" that will be used as input to the UDF/UDTF, specified as a set of
+queries defining the source data for each "table".  The value of this parameter is either the
+`INPUT_TABLE` or `INPUT_TABLES` function, depending on the number of input "tables".
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>INPUT_TABLE(&lt;query&gt;)</code></td>
+    <td>If only one input table is needed, it can be passed by query or by name to the <code>INPUT_TABLE</code> function; e.g.: <pre><code>INPUT_TABLE(customer)&#10;INPUT_TABLE(SELECT id, name FROM customer)</code></pre></td>
+  </tr>
+  <tr>
+    <td><code>INPUT_TABLES(&lt;queries&gt;)</code></td>
+    <td>If more than one input table is needed, each can be passed via query as a list to the <code>INPUT_TABLES</code> function; e.g.: <pre><code>INPUT_TABLES&#10;(&#10;(SELECT id, name FROM customer),&#10;(SELECT id, customer_id FROM order)&#10;)</code></pre></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="OUTPUT_TABLE_NAMES" id="output_table_names" defaultOpen>
+
+Optional set of tables that will be used as output, specified as a set of names passed as a
+comma-delimited list of strings to the `OUTPUT_TABLES` function; e.g.:
+
+```
+OUTPUT_TABLES('sales_summary', 'customer_profile')
+```
+</Accordion>
+
+<Accordion title="PARAMS" id="params" defaultOpen>
+
+Optional list of parameters to pass to the function, specified as a set of key/value pairs
+passed  as a comma-delimited list of `<key> = '<value>'` assignments to the `KV_PAIRS`
+function; e.g.:
+
+```
+KV_PAIRS(customer_id = '1', report_type = 'yearly')
+```
+</Accordion>
+
+<Accordion title="OPTIONS" id="options" defaultOpen>
+
+Optional list of function execution options, specified as a set of key/value pairs passed as a
+comma-delimited list of `<key> = '<value>'` assignments to the `KV_PAIRS` function; e.g.:
+
+```
+KV_PAIRS(run_tag = 'my-udf')
+```
+All valid options from [Execute Proc](/content/feature_overview/execute_proc_feature_overview#execute-proc-feature-overview)
+can be used here.
+
+</Accordion>
+
+</AccordionGroup>
+
+<a id="sql-execute-function-examples"></a>
+
+
+### Examples
+
+
+To execute the `udf_st` UDF, specifying an input and output table and the hint
+to save runtime statistics:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 159-164) */}
+```sql Execute UDF Example
+EXECUTE FUNCTION udf_st /* KI_HINT_SAVE_UDF_STATS */
+(
+    INPUT_TABLE_NAMES => INPUT_TABLE(example.udf_st_in),
+    OUTPUT_TABLE_NAMES => OUTPUT_TABLES('example.udf_st_out'),
+    PARAMS => KV_PAIRS(sentence = 'I live in a neighborhood in a small town.')
+)
+```
+
+To execute the `UDTF_ST` UDTF, specifying an input table and
+returning the output as the result set of a `SELECT` statement:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 179-191) */}
+```sql Execute UDTF Table Function Example
+SELECT TOP 5 score, sentence
+FROM
+	example.udf_st_in i,
+	TABLE
+	(
+	    UDTF_ST
+	    (
+	        INPUT_TABLE_NAMES => INPUT_TABLE(example.udf_st_in),
+	        PARAMS => KV_PAIRS(sentence = 'I live in a neighborhood in a small town.')
+	    )
+	) o
+WHERE i.id = o.id
+ORDER BY score DESC
+```
+
+
+<a id="sql-drop-function"></a>
+
+
+## DROP FUNCTION
+
+
+Removes an existing [UDF/UDTF](/content/sql/udf#sql-udf).
+
+```sql title="DROP FUNCTION Syntax"
+DROP FUNCTION <function name>
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;function name&gt;" id="<function-name>-2" defaultOpen>
+
+Name of the UDF to remove
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To drop the `UDF_SOS_PY_PROC` UDF:
+
+{/* Source: /examples/sql/udf/udf.kisql (lines 235) */}
+```sql DROP FUNCTION Example
+DROP FUNCTION UDF_SOS_PY_PROC
+```
+
+
+<a id="sql-show-function"></a>
+
+
+## SHOW FUNCTION
+
+
+Outputs the configuration of one or more existing
+[UDFs/UDTFs](/content/sql/udf#sql-udf). Users with `SYSTEM ADMIN` or `ADMIN`
+permission on the UDF (or all UDFs) will see the entire UDF configuration, while
+users with `EXECUTE` permissions will only see the name of the UDF & its
+execution mode.
+
+```sql title="SHOW FUNCTION Syntax"
+SHOW FUNCTION < <function name> | * >
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;function name&gt;" id="<function-name>-3" defaultOpen>
+
+Name of the UDF whose configuration will be output.  Use `*` instead to output the DDL of
+all UDFs.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<Info>
+The response to `SHOW FUNCTION` is a single-column result set
+with the DDL statement as the value in the `DDL` column.
+</Info>
+
+
+### Examples
+
+
+To show the `UDF_SOS_PY_PROC` UDF:
+
+{/* Source: /examples/sql/udf/udf.kisql (lines 150) */}
+```sql SHOW FUNCTION Example
+SHOW FUNCTION UDF_SOS_PY_PROC
+```
+
+
+<a id="sql-show-function-status"></a>
+
+
+## SHOW FUNCTION STATUS
+
+
+Outputs the status of one or more running, or previously running,
+[UDFs/UDTFs](/content/sql/udf#sql-udf).  Users with `SYSTEM ADMIN` or `ADMIN`
+permission on all UDFs will see all current & historical UDF runs, while users
+with `EXECUTE` or `ADMIN` permissions on individual UDFs will only see the
+current & historical runs for UDFs/UDTFs that they have executed themselves.
+Historical run data is preserved when a UDF/UDTF is executed with the
+`KI_HINT_SAVE_UDF_STATS` hint.
+
+```sql title="SHOW FUNCTION STATUS Syntax"
+SHOW FUNCTION STATUS [VERBOSE] [FOR '<run ID>']
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="VERBOSE" id="verbose" defaultOpen>
+
+Specifies verbose output mode.  This modifies the response as noted below.
+
+</Accordion>
+
+<Accordion title="FOR '&lt;run ID&gt;'" id="for-<run-id>" defaultOpen>
+
+Specifies that only the status of UDF/UDTF execution with run ID `<run ID>` should be output.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<Info>
+The response to `SHOW FUNCTION STATUS` depends on whether the
+`VERBOSE` option was specified.
+
+* No `VERBOSE` - output is a three-column result set:
+
+  * `FUNCTION_NAME` - name of the UDF/UDTF
+  * `RUN_ID` - ID associated with a given execution of the UDF/UDTF
+  * `OVERALL_STATUS` - completion status of UDF/UDTF
+
+* `VERBOSE` - output is a single-column, single-row result set with a list
+  of all UDF/UDTF statuses, each as a formatted block of information in the
+  `FUNCTION_STATUSES` column
+</Info>
+
+
+### Examples
+
+
+To show the status of all UDF/UDTF runs:
+
+{/* Source: /examples/sql/udf/udf.kisql (lines 163) */}
+```sql SHOW FUNCTION STATUS Example
+SHOW FUNCTION STATUS
+```
+
+To show the verbose status of a UDF/UDTF with run ID *1000*:
+
+{/* Source: /examples/sql/udf/udf.kisql (lines 172) */}
+```sql SHOW FUNCTION STATUS By Run ID Example
+SHOW FUNCTION STATUS VERBOSE FOR '1000'
+```
+
+
+<a id="sql-describe-function"></a>
+
+
+## DESCRIBE FUNCTION
+
+
+Displays the attributes of the given
+[UDF/UDTF](/content/sql/udf#sql-udf) in tabular format. Users with `SYSTEM ADMIN`
+or `ADMIN` permission on the UDF (or all UDFs) will see the entire UDF
+configuration, while users with `EXECUTE` permissions will only see the name
+of the UDF & its execution mode.
+
+```sql title="DESCRIBE FUNCTION Syntax"
+DESC[RIBE] FUNCTION < <function name> | * >
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;function name&gt;" id="<function-name>-4" defaultOpen>
+
+Name of the UDF whose attributes will be output.  Use `*` instead to output the attributes
+of all UDFs.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Response
+
+
+The response to `DESCRIBE FUNCTION` is a six-column result set:
+
+| Output Column | Description |
+| --- | --- |
+| `FUNCTION_NAME` | Name of the UDF/UDTF |
+| `MODE` | Execution mode of the function; distributed or nondistributed |
+| `RUN_COMMAND` | Command used to run the function |
+| `RUN_COMMAND_ARGS` | Command arguments used to run the function |
+| `FILE_PATHS` | List of files involved in the execution of the function |
+| `WITH_OPTIONS` | List of key/value pairs of options used to create the function |
+
+
+### Examples
+
+
+To describe the `UDF_SOS_PY_PROC` UDF:
+
+{/* Source: /examples/sql/udf/udf.kisql (lines 156) */}
+```sql DROP FUNCTION Example
+DESCRIBE FUNCTION UDF_SOS_PY_PROC
+```
+
+
+<a id="sql-create-function-environment"></a>
+
+
+## CREATE FUNCTION ENVIRONMENT
+
+
+Creates a new [function environment](/content/udf/python/writing#udf-python-func-env) for
+[UDFs/UDTFs](/content/sql/udf#sql-udf) written using the Python UDF API, where any
+packages required by the Python UDF can be installed and used.  Packages can be
+installed with the [ALTER FUNCTION ENVIRONMENT](/content/sql/udf#sql-alter-function-environment) command.
+
+```sql title="CREATE FUNCTION ENVIRONMENT Syntax"
+CREATE [OR REPLACE] FUNCTION ENVIRONMENT <environment name>
+```
+
+
+<Info>
+UDFs running with no function environment specified run in the
+default function environment, `kinetica-default-environment`.  See
+[Pre-installed Libraries on the Cluster](/content/udf/python/writing#udf-python-libs) for the list of pre-installed Python packages.
+</Info>
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="OR REPLACE" id="or-replace-2" defaultOpen>
+
+Any existing UDF environment with the same name will be dropped before creating this one
+
+</Accordion>
+
+<Accordion title="&lt;environment name&gt;" id="<environment-name>" defaultOpen>
+
+Name of the UDF environment, which can be referenced in subsequent commands
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To create the Python UDF environment `udfe_st`:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 88) */}
+```sql CREATE FUNCTION ENVIRONMENT Example
+CREATE FUNCTION ENVIRONMENT udfe_st;
+```
+
+
+<a id="sql-alter-function-environment"></a>
+
+
+## ALTER FUNCTION ENVIRONMENT
+
+
+Manages the installed Python packages associated with the given
+[Python UDF/UDTF environment](/content/sql/udf#sql-create-function-environment).
+Packages are given as a space-separated list of names; and for installations, an
+optional version number per package can be specified.
+
+```sql title="ALTER FUNCTION ENVIRONMENT (Install Package) Syntax"
+ALTER FUNCTION ENVIRONMENT <environment name>
+INSTALL PYTHON PACKAGE '<package name>[==<package version>] [...]>'
+```
+
+```sql title="ALTER FUNCTION ENVIRONMENT (Uninstall Package) Syntax"
+ALTER FUNCTION ENVIRONMENT <environment name>
+UNINSTALL PYTHON PACKAGE '<package name> [...]>'
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;environment name&gt;" id="<environment-name>-2" defaultOpen>
+
+Name of the UDF environment to manage
+
+</Accordion>
+
+<Accordion title="&lt;package name&gt;" id="<package-name>" defaultOpen>
+
+Name of the Python package to install into or uninstall from the UDF environment
+
+</Accordion>
+
+<Accordion title="&lt;package version&gt;" id="<package-version>" defaultOpen>
+
+Version number of the Python package to install
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To install the `sentence-transformers` package into the Python UDF environment
+`udfe_st`:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 100-101) */}
+```sql Install Python Package Example
+ALTER FUNCTION ENVIRONMENT udfe_st
+INSTALL PACKAGE 'sentence-transformers'
+```
+
+To uninstall the `sentence-transformers` package from the Python UDF
+environment `udfe_st`:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 218-219) */}
+```sql Uninstall Python Package Example
+ALTER FUNCTION ENVIRONMENT udfe_st
+UNINSTALL PACKAGE 'sentence-transformers'
+```
+
+
+<a id="sql-drop-function-environment"></a>
+
+
+## DROP FUNCTION ENVIRONMENT
+
+
+Removes an existing
+[Python UDF/UDTF environment](/content/sql/udf#sql-create-function-environment).
+
+```sql title="DROP FUNCTION ENVIRONMENT Syntax"
+DROP FUNCTION ENVIRONMENT <environment name>
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;environment name&gt;" id="<environment-name>-3" defaultOpen>
+
+Name of the UDF environment to remove
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To remove the Python UDF environment `udfe_st`:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 225) */}
+```sql DROP FUNCTION ENVIRONMENT Example
+DROP FUNCTION ENVIRONMENT udfe_st
+```
+
+
+<a id="sql-show-function-environment"></a>
+
+
+## SHOW FUNCTION ENVIRONMENT
+
+
+Outputs the [CREATE FUNCTION ENVIRONMENT](/content/sql/udf#sql-create-function-environment) statement used to
+create the given
+[Python UDF/UDTF environment(s)](/content/sql/udf#sql-create-function-environment).
+
+```sql title="SHOW FUNCTION ENVIRONMENT Syntax"
+SHOW FUNCTION ENVIRONMENT < <environment name> | * >
+```
+
+
+<Info>
+The response to `SHOW FUNCTION ENVIRONMENT` is a single-column
+result set with the DDL statement as the value in the `DDL` column.
+</Info>
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;environment name&gt;" id="<environment-name>-4" defaultOpen>
+
+Name of the UDF environment whose `CREATE` statement will be output. Use `*` instead to
+output the `CREATE` statements of all UDF environments.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To show the Python UDF environment `udfe_st`:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 107) */}
+```sql SHOW FUNCTION ENVIRONMENT Example
+SHOW FUNCTION ENVIRONMENT udfe_st
+```
+
+To show all Python UDF environments:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 110) */}
+```sql SHOW FUNCTION ENVIRONMENT (All Environments) Example
+SHOW FUNCTION ENVIRONMENT *
+```
+
+
+<a id="sql-desc-function-environment"></a>
+
+
+## DESCRIBE FUNCTION ENVIRONMENT
+
+
+Displays the Python package listing for the given
+[Python UDF/UDTF environment(s)](/content/sql/udf#sql-create-function-environment).
+
+```sql title="DESCRIBE FUNCTION ENVIRONMENT Syntax"
+DESC[RIBE] FUNCTION ENVIRONMENT < <environment name> | * >
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;environment name&gt;" id="<environment-name>-5" defaultOpen>
+
+Name of the UDF environment whose Python packages will be output. Use `*` instead to output
+the Python packages of all UDF environments.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Response
+
+
+The response to `DESCRIBE FUNCTION ENVIRONMENT` is a two-column result set:
+
+| Output Column | Description |
+| --- | --- |
+| `ENVIRONMENT_NAME` | Name of the function environment |
+| `PACKAGES` | Names & versions of the Python packages installed in the function environment; this includes both user-installed packages and those installed by default |
+
+
+### Examples
+
+
+To list the packages in the Python UDF environment `udfe_st`:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 116) */}
+```sql DESC FUNCTION ENVIRONMENT Example
+DESC FUNCTION ENVIRONMENT udfe_st
+```
+
+To list the packages in all Python UDF environments:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 119) */}
+```sql DESC FUNCTION ENVIRONMENT (All Environments) Example
+DESC FUNCTION ENVIRONMENT *
+```

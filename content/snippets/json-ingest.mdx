@@ -1,0 +1,465 @@
+---
+title: JSON Ingest
+description: Copy-paste examples of ingesting JSON data with the /insert/records/json endpoint
+# time_estimate: 5 MIN
+---
+
+The [/insert/records/json](/content/api/rest/insert_records_json_rest) REST
+endpoint can be called directly, or with a convenient wrapper in the Java API.
+
+See [Overview](/content/api/rest/insert_records_json_rest) for call details
+and [Responses](/content/api/rest/insert_records_json_rest#insert-records-json-response) for return values.
+
+
+## Basic Ingest from File
+
+
+<CodeGroup>
+
+{/* Source: /examples/bash/insert_records_json.sh (lines 24 28-30 32-33 90-93) */}
+```bash cURL
+KINETICA_URL=http://localhost:9191
+USERNAME=auser
+PASSWORD=apassword
+TABLE_NAME=product
+JSON_FILE_NAME=products.json
+
+curl -sS -X POST --header "Content-Type: application/json" \
+--user "${USERNAME}:${PASSWORD}" \
+-d @${JSON_FILE_NAME} \
+${KINETICA_URL}/insert/records/json?table_name=${TABLE_NAME}
+```
+
+{/* Source: /examples/python/json_ingest.py (lines 14 18-19 27 29  41 20 43-44  45) */}
+```python Python
+kinetica_url = "http://localhost:9191"
+username = "auser"
+password = "apassword"
+kinetica = gpudb.GPUdb([kinetica_url], username = username, password = password)
+
+table_name = "example.product"
+json_file_name = "products.json"
+records = open(json_file_name,"r").read();
+
+response = kinetica.insert_records_from_json(records, table_name)
+```
+
+{/* Source: /examples/java/json/src/main/java/JsonExampleInsertFile.java (lines 50-52  30 21 31 25-26 34-35  55-56) */}
+```java Java
+// Read in JSON data
+String json = String.join("", Files.readAllLines(Paths.get(CSV_FILE_DIR + "/products.json")));
+
+// Connect to database
+String url = "http://localhost:9191"
+GPUdb.Options options = new GPUdb.Options();
+options.setUsername("auser");
+options.setPassword("apassword");
+GPUdb kdb = new GPUdb(url, options);
+
+// Issue JSON ingest call
+Map<String, Object> respObj = kdb.insertRecordsFromJson(json, tableName);
+```
+
+{/* Source: /examples/java/json/src/main/java/JsonExampleBulkInsertFile.java (lines 53-61  35 26 36 30-31 39-40  66-67  70-78) */}
+```java Java (Distributed Ingest)
+// Read in JSON data
+ObjectMapper om = new ObjectMapper();
+JsonNode jsonTree = om.readTree(new File(CSV_FILE_DIR + "/products.json"));
+
+// Construct JSON data
+List<String> jsonObjects = new ArrayList<>();
+for (JsonNode jsonNode : jsonTree)
+	jsonObjects.add(om.writeValueAsString(jsonNode));
+
+// Connect to database
+String url = "http://localhost:9191"
+GPUdb.Options options = new GPUdb.Options();
+options.setUsername("auser");
+options.setPassword("apassword");
+GPUdb kdb = new GPUdb(url, options);
+
+// Set batch size
+int batchSize = 10000;
+
+// Issue BulkInserter JSON ingest call
+try (BulkInserter<String> bi = new BulkInserter<>(
+		kdb, tableName, Type.fromTable(kdb, tableName),
+		batchSize, null, new WorkerList(kdb) ))
+{
+	for (String jsonObject : jsonObjects)
+		bi.insert(jsonObject);
+}
+```
+
+{/* Source: /examples/javascript/json_ingest.js (lines 6 10-11 22-24  12-13  39-50) */}
+```javascript JavaScript
+const kinetica_url = 'http://localhost:9191'
+const username = 'auser'
+const password = 'apassword'
+const db = new GPUdb([kinetica_url], {'username': username, 'password': password});
+
+let tableName = 'product';
+
+const file = inputForm.filename.files[0];
+const reader = new FileReader();
+reader.readAsText(file, "UTF-8");
+reader.onload = function (evt)
+{
+	const records = evt.target.result;
+	db.insert_records_from_json(records, tableName, null, null, (err,  response) => {
+		if (err)
+			console.error(err);
+		else
+			console.info("Records inserted: " + response.count_inserted);
+	});
+}
+```
+
+{/* Source: /examples/nodejs/json_ingest.js (lines 6 10-11 23-25  30-31 34-37  47-52) */}
+```javascript Node.js
+const kinetica_url = 'http://localhost:9191'
+const username = 'auser'
+const password = 'apassword'
+const db = new GPUdb([kinetica_url], {'username': username, 'password': password});
+
+let tableName = 'product';
+
+let fileName = 'products.json';
+const fs = require('fs');
+const path = require('path');
+const records = fs.readFileSync(path.join(__dirname, fileName), { encoding: 'utf8' });
+
+db.insert_records_from_json(records, tableName, null, null, (err,  response) => {
+	if (err)
+		console.error(err);
+	else
+		console.info("Records inserted: " + response.count_inserted);
+});
+```
+
+</CodeGroup>
+
+
+## Ingest from File with Options
+
+
+<CodeGroup>
+
+{/* Source: /examples/bash/insert_records_json.sh (lines 24 28-29 31-33 100-101 103-106) */}
+```bash cURL
+KINETICA_URL=http://localhost:9191
+USERNAME=auser
+PASSWORD=apassword
+OPTS_TABLE_NAME=product_options
+JSON_FILE_NAME=products.json
+
+# Quote the URL when passing multiple options, or the & will stop the URL
+#   parsing and run the URL parsed up to that point as a background job
+curl -sS -X POST --header "Content-Type: application/json" \
+--user "${USERNAME}:${PASSWORD}" \
+-d @${JSON_FILE_NAME} \
+"${KINETICA_URL}/insert/records/json?table_name=${OPTS_TABLE_NAME}&batch_size=10000&columns_to_load=name,category,description&truncate_table=true"
+```
+
+{/* Source: /examples/python/json_ingest.py (lines 14 18-19 27 29  59 20 61-67  68) */}
+```python Python
+kinetica_url = "http://localhost:9191"
+username = "auser"
+password = "apassword"
+kinetica = gpudb.GPUdb([kinetica_url], username = username, password = password)
+
+table_name = "example.product_options"
+json_file_name = "products.json"
+records = open(json_file_name,"r").read();
+opts = {
+    "batch_size": "10000",
+    "columns_to_load": "name, category, description",
+    "truncate_table": "true"
+}
+
+response = kinetica.insert_records_from_json(records, table_name, options = opts)
+```
+
+{/* Source: /examples/java/json/src/main/java/JsonExampleInsertFileOpts.java (lines 50-52  30 21 31 25-26 34-35  55-61  62-63) */}
+```java Java
+// Read in JSON data
+String json = String.join("", Files.readAllLines(Paths.get(CSV_FILE_DIR + "/products.json")));
+
+// Connect to database
+String url = "http://localhost:9191"
+GPUdb.Options options = new GPUdb.Options();
+options.setUsername("auser");
+options.setPassword("apassword");
+GPUdb kdb = new GPUdb(url, options);
+
+// Set options
+GPUdb.JsonOptions jsonOpts = GPUdb.JsonOptions.defaultOptions();
+Map<String, String> insertOpts = new LinkedHashMap<>();
+insertOpts.put(GPUdb.InsertRecordsJsonRequest.Options.BATCH_SIZE, "10000");
+insertOpts.put(GPUdb.InsertRecordsJsonRequest.Options.COLUMNS_TO_LOAD, "name,category,description");
+insertOpts.put(GPUdb.InsertRecordsJsonRequest.Options.TRUNCATE_TABLE, "true");
+
+// Issue JSON ingest call
+Map<String, Object> respObj = kdb.insertRecordsFromJson(json, tableName, jsonOpts, null, insertOpts);
+```
+
+{/* Source: /examples/java/json/src/main/java/JsonExampleBulkInsertFileOpts.java (lines 53-61  35 26 36 30-31 39-40  66-70  73-81) */}
+```java Java (Distributed Ingest)
+// Read in JSON data
+ObjectMapper om = new ObjectMapper();
+JsonNode jsonTree = om.readTree(new File(CSV_FILE_DIR + "/products.json"));
+
+// Construct JSON data
+List<String> jsonObjects = new ArrayList<>();
+for (JsonNode jsonNode : jsonTree)
+	jsonObjects.add(om.writeValueAsString(jsonNode));
+
+// Connect to database
+String url = "http://localhost:9191"
+GPUdb.Options options = new GPUdb.Options();
+options.setUsername("auser");
+options.setPassword("apassword");
+GPUdb kdb = new GPUdb(url, options);
+
+// Set options
+GPUdb.JsonOptions jsonOpts = GPUdb.JsonOptions.defaultOptions();
+Map<String, String> insertOpts = new LinkedHashMap<>();
+insertOpts.put(GPUdb.InsertRecordsJsonRequest.Options.COLUMNS_TO_LOAD, "name,category,description");
+int batchSize = 10000;
+
+// Issue BulkInserter JSON ingest call
+try (BulkInserter<String> bi = new BulkInserter<>(
+		kdb, tableName, Type.fromTable(kdb, tableName),
+		batchSize, insertOpts, new WorkerList(kdb), jsonOpts))
+{
+	for (String jsonObject : jsonObjects)
+		bi.insert(jsonObject);
+}
+```
+
+{/* Source: /examples/javascript/json_ingest.js (lines 6 10-11 22-24  12-13  59-76) */}
+```javascript JavaScript
+const kinetica_url = 'http://localhost:9191'
+const username = 'auser'
+const password = 'apassword'
+const db = new GPUdb([kinetica_url], {'username': username, 'password': password});
+
+let tableName = 'product';
+
+const file = inputForm.filename.files[0];
+const options = {
+	"batch_size": 10000,
+	"columns_to_load": "name, category, description",
+	"truncate_table": true
+}
+
+const reader = new FileReader();
+reader.readAsText(file, "UTF-8");
+reader.onload = function (evt)
+{
+	const records = evt.target.result;
+	db.insert_records_from_json(records, tableName, null, options, (err,  response) => {
+		if (err)
+			console.error(err);
+		else
+			console.info("Records inserted: " + response.count_inserted);
+	});
+}
+```
+
+{/* Source: /examples/nodejs/json_ingest.js (lines 6 10-11 23-25  30-31 34-37  61-72) */}
+```javascript Node.js
+const kinetica_url = 'http://localhost:9191'
+const username = 'auser'
+const password = 'apassword'
+const db = new GPUdb([kinetica_url], {'username': username, 'password': password});
+
+let tableName = 'product';
+
+let fileName = 'products.json';
+const fs = require('fs');
+const path = require('path');
+const records = fs.readFileSync(path.join(__dirname, fileName), { encoding: 'utf8' });
+
+const options = {
+	"batch_size": 10000,
+	"columns_to_load": "name, category, description",
+	"truncate_table": true
+}
+
+db.insert_records_from_json(records, tableName, null, options, (err,  response) => {
+	if (err)
+		console.error(err);
+	else
+		console.info("Records inserted: " + response.count_inserted);
+});
+```
+
+</CodeGroup>
+
+
+## Ingest from JSON String
+
+
+<CodeGroup>
+
+{/* Source: /examples/bash/insert_records_json.sh (lines 24 28-30 33 114-123) */}
+```bash cURL
+KINETICA_URL=http://localhost:9191
+USERNAME=auser
+PASSWORD=apassword
+TABLE_NAME=product
+
+curl -sS -X POST --header "Content-Type: application/json" \
+--user "${USERNAME}:${PASSWORD}" \
+-d '{
+	"id": "15",
+	"category": "Technology",
+	"name": "DVDs",
+	"description": "Lightweight storage for low-res screenplays and licensed software",
+	"stock": "5000"
+}' \
+${KINETICA_URL}/insert/records/json?table_name=${TABLE_NAME}
+```
+
+{/* Source: /examples/python/json_ingest.py (lines 14 18-19 27 29  82-92  93) */}
+```python Python
+kinetica_url = "http://localhost:9191"
+username = "auser"
+password = "apassword"
+kinetica = gpudb.GPUdb([kinetica_url], username = username, password = password)
+
+table_name = "example.product"
+records = """
+{
+    "id":          "15",
+    "category":    "Technology",
+    "name":        "DVDs",
+    "description": "Lightweight storage for low-res screenplays and licensed software",
+    "stock":       "5000"
+}
+"""
+
+response = kinetica.insert_records_from_json(records, table_name)
+```
+
+{/* Source: /examples/java/json/src/main/java/JsonExampleInsertRaw.java (lines 44-55  28 19 29 23-24 32-33  58-59) */}
+```java Java
+// Construct JSON data
+Map<String,String> data = new HashMap<>();
+data.put("id", "15");
+data.put("category", "Technology");
+data.put("name", "DVDs");
+data.put("description", "Lightweight storage for low-res screenplays and licensed software");
+data.put("stock", "5000");
+
+// Convert map to JSON
+ObjectMapper om = new ObjectMapper();
+String json = om.writeValueAsString(data);
+
+// Connect to database
+String url = "http://localhost:9191"
+GPUdb.Options options = new GPUdb.Options();
+options.setUsername("auser");
+options.setPassword("apassword");
+GPUdb kdb = new GPUdb(url, options);
+
+// Issue JSON ingest call
+Map<String, Object> respObj = kdb.insertRecordsFromJson(json, tableName);
+```
+
+{/* Source: /examples/java/json/src/main/java/JsonExampleBulkInsertRaw.java (lines 49-66  33 24 34 28-29 37-38  71-72  75-83) */}
+```java Java (Distributed Ingest)
+// Construct JSON data
+int numRecords = 100;
+ObjectMapper om = new ObjectMapper();
+List<String> jsonObjects = new ArrayList<>();
+
+for (int i = 0; i < numRecords; i++)
+{
+	Map<String,String> data = new HashMap<>();
+	data.put("id", Integer.toString(i));
+	data.put("category", "Technology");
+	data.put("name", "DVD #" + i);
+	data.put("description", "Lightweight storage for low-res screenplays and licensed software, #" + i);
+	data.put("stock", Integer.toString(i + 5000));
+
+	// Convert map to JSON and add to list
+	jsonObjects.add(om.writeValueAsString(data));
+}
+
+// Connect to database
+String url = "http://localhost:9191"
+GPUdb.Options options = new GPUdb.Options();
+options.setUsername("auser");
+options.setPassword("apassword");
+GPUdb kdb = new GPUdb(url, options);
+
+// Set batch size
+int batchSize = 10000;
+
+// Issue BulkInserter JSON ingest call
+try (BulkInserter<String> bi = new BulkInserter<>(
+		kdb, tableName, Type.fromTable(kdb, tableName),
+		batchSize, null, new WorkerList(kdb) ))
+{
+	for (String jsonObject : jsonObjects)
+		bi.insert(jsonObject);
+}
+```
+
+{/* Source: /examples/javascript/json_ingest.js (lines 6 10-11 22-24  83-99) */}
+```javascript JavaScript
+const kinetica_url = 'http://localhost:9191'
+const username = 'auser'
+const password = 'apassword'
+const db = new GPUdb([kinetica_url], {'username': username, 'password': password});
+
+let tableName = 'product';
+
+const records = [
+	{
+		"id": "15",
+		"category": "Technology",
+		"name": "DVDs",
+		"description": "Lightweight storage for low-res screenplays and licensed software",
+		"stock": "5000"
+	}
+]
+
+db.insert_records_from_json(records, tableName, null, null, (err,  response) => {
+	if (err)
+		console.error(err);
+	else
+		console.info("Records inserted: " + response.count_inserted);
+});
+```
+
+{/* Source: /examples/nodejs/json_ingest.js (lines 6 10-11 23-25  79-95) */}
+```javascript Node.js
+const kinetica_url = 'http://localhost:9191'
+const username = 'auser'
+const password = 'apassword'
+const db = new GPUdb([kinetica_url], {'username': username, 'password': password});
+
+let tableName = 'product';
+
+const records = [
+	{
+		"id": 15,
+		"category": "Technology",
+		"name": "DVDs",
+		"description": "Lightweight storage for low-res screenplays and licensed software",
+		"stock": 5000
+	}
+]
+
+db.insert_records_from_json(records, tableName, null, null, (err,  response) => {
+	if (err)
+		console.error(err);
+	else
+		console.info("Records inserted: " + response.count_inserted);
+});
+```
+
+</CodeGroup>

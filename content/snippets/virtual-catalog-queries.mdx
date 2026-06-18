@@ -1,0 +1,207 @@
+---
+title: Useful Catalog Queries
+description: Copy-paste examples of how to utilize metadata in virtual catalogs with SQL
+# time_estimate: 5 MIN
+---
+
+The catalog tables allow for some useful information to be extracted from the
+database.  See [Virtual Catalogs](/content/catalogs) for a complete listing.
+
+
+<a id="snippet-sql-vc-table-resource"></a>
+
+
+## Table Resource Usage
+
+
+### Table RAM Usage
+
+
+{/* Source: /examples/sql/catalog/kinetica/queries.kisql (lines 19-23 11 25-26) */}
+```sql Kinetica Catalog
+SELECT
+	IF(GROUPING(source_rank) = 1,'Total',STRING(source_rank)) AS "Rank",
+	SUM(size) AS "Bytes"
+FROM ki_catalog.ki_tiered_objects
+WHERE tier = 'RAM'
+AND outer_object = '[<schema name>.]<table name>'
+GROUP BY ROLLUP(source_rank)
+ORDER BY INT(source_rank) NULLS LAST
+```
+
+
+### Table Disk Usage
+
+
+{/* Source: /examples/sql/catalog/kinetica/queries.kisql (lines 32-36 11 38-40) */}
+```sql Kinetica Catalog
+SELECT
+	IF(GROUPING(source_rank) = 1,'Total',STRING(source_rank)) AS "Rank",
+	SUM(size) AS "Bytes"
+FROM ki_catalog.ki_tiered_objects
+WHERE tier = 'PERSIST'
+AND outer_object = '[<schema name>.]<table name>'
+AND id NOT LIKE 'Wal%'
+GROUP BY ROLLUP(source_rank)
+ORDER BY INT(source_rank) NULLS LAST
+```
+
+
+<a id="snippet-sql-vc-mv-dep"></a>
+
+
+## Materialized View Dependencies
+
+
+### Specified Materialized View Dependencies
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/catalog/ansi/queries.kisql (lines 20-25 13-14 28) */}
+```sql ANSI (INFORMATION_SCHEMA) Catalog
+SELECT
+    dest_table_schema||'.'||dest_table_name AS child_name,
+    source_table_schema||'.'||source_table_name AS parent_name,
+    source_table_kind AS parent_table_kind
+FROM INFORMATION_SCHEMA.MV_DEPENDENCIES
+WHERE
+	mv_schema = '<mv_schema_name>' AND
+	mv_name = '<mv_name>'
+ORDER BY 1, 2
+```
+
+{/* Source: /examples/sql/catalog/kinetica/queries.kisql (lines 46-53 13-14 56-58) */}
+```sql Kinetica Catalog
+SELECT
+    child.schema_name||'.'||child.object_name AS child_name,
+    d.dep_obj_kind AS child_object_kind,
+    parent.schema_name||'.'||parent.object_name AS parent_name,
+    d.src_obj_kind AS parent_object_kind
+FROM ki_catalog.ki_depend d
+JOIN ki_catalog.ki_objects root ON
+	root.oid = mv_oid AND
+	schema_name = '<mv_schema_name>' AND
+	object_name = '<mv_name>'
+JOIN ki_catalog.ki_objects parent ON parent.oid = src_obj_oid
+JOIN ki_catalog.ki_objects child ON child.oid = dep_obj_oid
+ORDER BY 1, 3
+```
+
+</CodeGroup>
+
+
+### All Materialized View Dependencies
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/catalog/ansi/queries.kisql (lines 34-40) */}
+```sql ANSI (INFORMATION_SCHEMA) Catalog
+SELECT
+    mv_schema||'.'||mv_name AS mv_name,
+    dest_table_schema||'.'||dest_table_name AS child_name,
+    source_table_schema||'.'||source_table_name AS parent_name,
+    source_table_kind AS parent_table_kind
+FROM INFORMATION_SCHEMA.MV_DEPENDENCIES
+ORDER BY 1, 2, 3
+```
+
+{/* Source: /examples/sql/catalog/kinetica/queries.kisql (lines 63-73) */}
+```sql Kinetica Catalog
+SELECT
+    root.schema_name || '.' || root.object_name AS mv_name,
+    child.schema_name||'.'||child.object_name AS child_name,
+    d.dep_obj_kind AS child_object_kind,
+    parent.schema_name||'.'||parent.object_name AS parent_name,
+    d.src_obj_kind AS parent_object_kind
+FROM ki_catalog.ki_depend d
+JOIN ki_catalog.ki_objects root ON root.oid = mv_oid
+JOIN ki_catalog.ki_objects parent ON parent.oid = src_obj_oid
+JOIN ki_catalog.ki_objects child ON child.oid = dep_obj_oid
+ORDER BY 1, 2, 4
+```
+
+</CodeGroup>
+
+<a id="snippet-sql-vc-sql-queries"></a>
+
+
+## 10 Most Recent SQL Queries
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/catalog/ansi/queries.kisql (lines 46-50) */}
+```sql ANSI (INFORMATION_SCHEMA) Catalog
+SELECT user_name, query_text, start_time
+FROM INFORMATION_SCHEMA.KI_QUERY_HISTORY
+WHERE query_text <> ''
+ORDER BY start_time DESC
+LIMIT 10
+```
+
+{/* Source: /examples/sql/catalog/kinetica/queries.kisql (lines 78-82) */}
+```sql Kinetica Catalog
+SELECT user_name, query_text, start_time
+FROM ki_catalog.ki_query_history
+WHERE query_text <> ''
+ORDER BY start_time DESC
+LIMIT 10
+```
+
+</CodeGroup>
+
+<a id="snippet-sql-vc-import-errors"></a>
+
+
+## Import/Export Jobs with Errors in the Past Hour
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/catalog/ansi/queries.kisql (lines 56-58) */}
+```sql ANSI (INFORMATION_SCHEMA) Catalog
+SELECT *
+FROM INFORMATION_SCHEMA.KI_LOAD_HISTORY
+WHERE num_error > 0 AND start_time >= TIMESTAMPADD(HOUR, -1, NOW())
+```
+
+{/* Source: /examples/sql/catalog/kinetica/queries.kisql (lines 87-89) */}
+```sql Kinetica Catalog
+SELECT *
+FROM ki_catalog.ki_load_history
+WHERE num_errors > 0 AND start_time >= TIMESTAMPADD(HOUR, -1, NOW())
+```
+
+</CodeGroup>
+
+<a id="snippet-sql-vc-security-restrictions"></a>
+
+
+## Users with Row/Column Security Restrictions
+
+
+{/* Source: /examples/sql/catalog/kinetica/queries.kisql (lines 94-100) */}
+```sql Kinetica Catalog
+SELECT
+	role_name,
+	object_schema_name || '.' || object_name AS object_name,
+	cls AS column_level_security,
+	rls AS row_level_security
+FROM ki_catalog.ki_object_permissions
+WHERE permission_type = 'table_read' AND (rls <> '' OR cls <> '')
+```
+
+<a id="snippet-sql-vc-roles-size"></a>
+
+
+## Role Assignments
+
+
+{/* Source: /examples/sql/catalog/kinetica/queries.kisql (lines 105-107) */}
+```sql Kinetica Catalog
+SELECT role_name AS assigned_role_name, member_name AS assignee_name
+FROM ki_catalog.ki_role_members
+ORDER BY 1, 2 DESC
+```

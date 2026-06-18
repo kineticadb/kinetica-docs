@@ -1,0 +1,42 @@
+---
+title: Filter by Value
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="filter-byvalue-feature-overview"></a>
+
+
+Calculates which objects from a table has a particular value for a particular
+column. The input parameters provide a way to specify either a String or a
+Double valued column and a desired value for the column on which the filter is
+performed. The operation is synchronous, meaning that a response will not be
+returned until all the objects are fully available. The response payload
+provides the count of the resulting set. A new result view which satisfies the
+input filter restriction specification is also created with a view name passed
+in as part of the input payload.  Although this functionality can also be
+accomplished with the standard filter function, it is more efficient.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of an existing table on which to perform the calculation, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). |
+| view_name | string | If provided, then this will be the name of the view containing the results, in [schema_name.]view_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution) and meeting [table naming criteria](../../concepts/tables/#table-naming-criteria). Must not be an already existing table or view. <br/> <br/> The default value is ''. |
+| is_string | boolean | Indicates whether the value being searched for is string or numeric. |
+| value | double | The value to search for. <br/> <br/> The default value is 0. |
+| value_str | string | The string value to search for. <br/> <br/> The default value is ''. |
+| column_name | string | Name of a column on which the filter by value would be applied. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> create_temp_table: If *true*, a unique temporary table name will be generated in the sys_temp schema and used in place of input parameter *view_name*. This is always allowed even if the caller does not have permission to create tables. The generated name is returned in *qualified_view_name*. The default value is `false`. The supported values are: * true * false <br/> <br/> collection_name: [DEPRECATED--please specify the containing schema for the view as part of input parameter *view_name* and use [Create Schema](/content/feature_overview/create_schema_feature_overview#create-schema-feature-overview) to create the schema if non-existent] Name of a schema for the newly created view. If the schema is non-existent, it will be automatically created. |
+
+
+## Output Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| count | long | The number of records passing the value filter. |
+| info | map of string to strings | Additional information. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> qualified_view_name: The fully qualified name of the view (i.e. including the schema). |

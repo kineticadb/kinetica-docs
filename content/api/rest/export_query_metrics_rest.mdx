@@ -1,0 +1,36 @@
+---
+title: /export/query/metrics
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="export-query-metrics-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/export/query/metrics
+```
+Export query metrics to a given destination. Returns query metrics.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> expression: Filter for multi query export. <br/> <br/> filepath: Path to export target specified as a filename or existing directory. <br/> <br/> format: Specifies which format to export the metrics. The default value is `json`. +----------------+-------------------------------------+ \|Supported Values\|Description \| +================+=====================================+ \|json \|Generic JSON output. \| \| \| \| +----------------+-------------------------------------+ \|json_trace_event\|Chromium/Perfetto trace event format.\| \| \| \| +----------------+-------------------------------------+ <br/> <br/> job_id: Export query metrics for the currently running job. <br/> <br/> limit: Record limit per file for multi query export. |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'export_query_metrics_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /export/query/metrics endpoint: <br/> <br/> info: [map of string to strings] Additional information. The default value is an empty map ( \{\} ). +--------------+---------------------------------------------------------+ \|Supported \|Parameter Description \| \|Parameters \| \| \|(keys) \| \| +==============+=========================================================+ \|exported_files\|Comma separated list of filenames exported if applicable.\| \| \| \| +--------------+---------------------------------------------------------+ \|output \|Exported metrics if no other destination specified. \| \| \| \| +--------------+---------------------------------------------------------+ <br/> <br/> Empty string in case of an error. |

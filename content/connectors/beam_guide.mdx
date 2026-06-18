@@ -1,0 +1,103 @@
+---
+title: Beam Developer Manual
+---
+
+The following guide provides step-by-step instructions to get started
+integrating *Kinetica* with *Beam*.
+
+This project is aimed to make *Kinetica* accessible to *Beam* pipelines, both
+for ingest and egress, meaning data can be transformed from a
+
+*Kinetica* [table](/content/concepts/tables) or to a *Kinetica table* via a
+*Beam* pipeline.
+
+
+<Note>
+The *Kinetica Beam* connector currently only supports *Java Beam* pipelines
+</Note>
+
+The two generic classes that integrate *Kinetica* with *Beam* are:
+
+* `com.kinetica.beam.io.KineticaIO.Read<T>` -- A class that takes a standard
+  *Kinetica table* [type class](/content/guides/java_guide#java-create-type) to enable reading the
+  data from the given *table type*
+* `com.kinetica.beam.io.KineticaIO.Write<T>` -- A class that takes a standard
+  *Kinetica table* [type class](/content/guides/java_guide#java-create-type) to enable writing data
+  to the given *table type*
+
+Source code for the connector can be found in the
+[Kinetica Beam Project on GitHub](https://github.com/kineticadb/kinetica-connector-beam).
+
+
+## Installation
+
+
+One JAR file is produced by this project:
+
+* `apache-beam-kineticaio-<ver>.jar` -- complete connector JAR
+
+To install and use the connector:
+
+1. Copy the `apache-beam-kineticaio-<ver>.jar` library to the target server
+2. Build your pipeline project against the JAR
+
+
+<Note>
+Because of the *Kinetica Beam* connector's dependence on the *Kinetica table*
+*type* class, your pipeline code requires access to the *Kinetica Java* API
+</Note>
+
+
+## Transforming Data from Kinetica into a Pipeline
+
+
+The `Read<T>` class (and its respective method `.<T>read()`) is used to
+transform data read from a [table](/content/concepts/tables) in *Kinetica* into
+a *Beam* pipeline using a *Beam* `PCollection` class object. A `PCollection`
+represents the data set the *Beam* pipeline will operate on. To access the data
+in *Kinetica*, a `PCollection` backed by the *Kinetica table*
+[type class](/content/guides/java_guide#java-create-type) is necessary; once the `PCollection` is
+established, the `.<T>read()` transform method is applied to the
+`PCollection`.
+
+The `.<T>read()` transform method is configured using the following methods
+that are sourced from a `Read<T>` class object:
+
+| Method Name | Required | Description |
+| --- | --- | --- |
+| `withHeadNodeURL()` | Y | The URL of the Kinetica head node (host and port) |
+| `withUsername()` | N | Username for authentication |
+| `withPassword()` | N | Password for authentication |
+| `withTable()` | Y | The name of the table in the database |
+| `withEntity()` | Y | The name of the table class |
+| `withCoder()` | Y | A serializable coder of the table class |
+
+
+## Transforming Data from a Pipeline into Kinetica
+
+
+The `Write<T>` class (and its respective method `.<T>write()`) is used to
+transform data from a *Beam* pipeline (backed by a *Beam* `PCollection`
+class object) and write it to a [table](/content/concepts/tables) in *Kinetica*.
+A `PCollection` represents the data set the *Beam* pipeline will operate on.
+To access the data in the pipeline, the *table* in *Kinetica* needs
+to be mapped to the pipeline using the `.<T>write()` transform method.
+
+The `.<T>write()` transform method is configured using the following methods
+that are sourced from a `Write<T>` class object:
+
+| Method Name | Required | Description |
+| --- | --- | --- |
+| `withHeadNodeURL()` | Y | The URL of the Kinetica head node (host and port) |
+| `withUsername()` | N | Username for authentication |
+| `withPassword()` | N | Password for authentication |
+| `withTable()` | Y | The name of the table in the database |
+| `withEntity()` | Y | The name of the table class |
+
+
+<Note>
+Before attempting to use a pipeline to write to a *table* in *Kinetica*, the
+*table* must be created. It does not matter if the *table* is created within
+the pipeline code (since the *Beam* connector requires the *Java* API
+anyway) or before the pipeline is used.
+</Note>

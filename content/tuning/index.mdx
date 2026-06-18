@@ -1,0 +1,42 @@
+---
+title: Performance Optimization
+---
+
+<a id="tuning-io"></a>
+
+
+## I/O
+
+
+Since *Kinetica* is designed to work with big data sets and many-node setups, a
+*distributed* input (*multi-head ingest*) and output (*multi-head egress*)
+mechanism are provided for fast data ingestion and fast record retrieval. Most
+interactions are done through the single *head node*, and from there, parceled
+out to the rest of the cluster. However, *distributed* operations allow
+insertion and retrieval of data through transactions with cluster nodes
+directly, bypassing the *head node* and improving performance.
+
+* [Distributed Ingest](/content/tuning/multihead/multihead_ingest)
+* [Distributed Key Lookup](/content/tuning/multihead/multihead_egress)
+* [Distributed Ingest & Key Lookup Use Case](/content/tuning/multihead/multihead_use_case)
+
+
+## Queries
+
+
+The performance of queries can be improved in several ways.
+
+The most important of these is via *sharding*.  This data distribution method
+allows aggregations on *sharded* columns to be distributed evenly across the
+cluster, minimizing the need to share data between nodes to complete the
+processing.  It also allows *joins* to be performed between *sharded* columns
+on each node, again alleviating the need to redistribute the data to complete
+processing.
+
+Many geospatial queries can be accelerated by geo-partitioning the queried data,
+which effectively groups spatial entities by location and allows for more
+effective geospatial processing.  Queries involving constant filters can also
+be restructured to take advantage of this performance improvement.
+
+* [Sharding](/content/concepts/tables#sharding)
+* [Geospatial Queries](/content/tuning/cs/geo)

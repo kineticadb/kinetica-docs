@@ -1,0 +1,2147 @@
+---
+title: Loading Data
+sidebarTitle: Loading Data
+---
+
+<a id="sql-load-file"></a>
+
+
+*Kinetica* supports loading of data via SQL from a variety of file types and
+through several mechanisms.  There are two primary paths:
+
+* [Loading server-accessible data sets](/content/sql/load#sql-load-file-server) via
+  SQL (or the [/execute/sql](/content/api/rest/execute_sql_rest) endpoint call) that
+  either:
+
+  * can be reached by *Kinetica* via an
+    [external data source](/content/sql/ddl#sql-create-data-source) object
+  * have been uploaded to *Kinetica* via
+    [SQL](/content/sql/kifs#sql-kifs-upload-file) or
+    [API](/content/api/rest/insert_records_fromfiles_rest#insert-records-fromfiles-rest)
+
+* [Loading client-side files](/content/sql/load#sql-load-file-client) via ODBC/JDBC
+
+
+<a id="sql-load-file-server"></a>
+
+<a id="sql-load-into"></a>
+
+
+## LOAD INTO
+
+
+*Kinetica* can load either internal or external data into a table, using a
+`LOAD INTO` statement.
+
+```sql title="LOAD INTO Syntax"
+<COPY | LOAD> [DATA] INTO [<schema name>.]<table name>
+<
+   FROM REMOTE QUERY '<source data query>'
+   |
+   FROM FILE PATHS <file paths>
+      [FORMAT <[DELIMITED] TEXT [(<delimited text options>)] | AVRO | JSON | PARQUET | SHAPEFILE>]
+>
+[WITH OPTIONS (<load option name> = '<load option value>'[,...])]
+[<table property clause>]
+```
+
+
+<Info>
+For contextualized examples, see [Examples](/content/sql/load#sql-load-file-server-examples).
+For copy/paste examples, see [Loading Data](/content/snippets/load-data).  For an overview
+of loading data into *Kinetica*, see [Data Loading Concepts](/content/load_data/concepts).
+</Info>
+
+
+The data can be sourced through either of the following:
+
+* local files uploaded into [KiFS](/content/tools/kifs)
+* a [data source](/content/sql/ddl#sql-create-data-source) configured to allow
+  access to:
+
+  * remote files on *Azure*, *GCS*, *HDFS*, or *S3*
+  * remote messages on a *Kafka* topic
+  * a remote database queryable via *JDBC*
+
+A `LOAD INTO` that uses a *data source* can perform a one-time load upon
+creation and optionally subscribe for updates on an interval, depending on the
+*data source* provider:
+
+| Provider | Description | One-Time Load | Subscription |
+| --- | --- | --- | --- |
+| *Azure* | Microsoft blob storage | Yes | Yes |
+| *Confluent* | Confluent Kafka streaming feed (JSON, GeoJSON, or Avro) |  | Yes |
+| *GCS* | Google Cloud Storage | Yes | Yes |
+| *HDFS* | Apache Hadoop Distributed File System | Yes |  |
+| *JDBC* | Java DataBase Connectivity; using a user-supplied driver or one of the drivers on the list [supported list](/content/concepts/jdbc_drivers) | Yes | Yes |
+| *Kafka* | Apache Kafka streaming feed (JSON, GeoJSON, or Avro) |  | Yes |
+| *S3* | Amazon S3 Bucket | Yes | Yes |
+
+See [Manage Subscription](/content/sql/ddl#sql-alter-table-manage-sub) for pausing, resuming, &
+canceling subscriptions on the target table.
+
+The use of `LOAD INTO` with [ring resiliency](/content/ha)
+has additional [considerations](/content/ha/ha_configuration#ring-extdata).
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="DATA" id="data" defaultOpen>
+
+Optional keyword for compatibility
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the [schema](/content/sql/ddl#sql-create-schema) containing the table into which data will be
+loaded
+
+</Accordion>
+
+<Accordion title="&lt;table name&gt;" id="<table-name>" defaultOpen>
+
+Name of the [table](/content/sql/ddl#sql-create-table) into which data will be loaded
+
+</Accordion>
+
+<Accordion title="FROM REMOTE QUERY" id="from-remote-query" defaultOpen>
+
+Source data specification clause, where `<source data query>` is a SQL query selecting the data
+which will be loaded.
+
+
+<Info>
+This clause is mutually exclusive with the `FROM FILE PATHS` clause, and is only
+applicable to JDBC *data sources*.
+</Info>
+
+The query should meet the following criteria:
+
+* Any column expression used is given a column alias.
+* The first column is not a `WKT` or unlimited length `VARCHAR` type.
+* The columns and expressions queried should match the order, number, & type of the columns in
+  the target table.  If the target table doesn't exist, it will be created using the names and
+  data types of the queried columns in the order in which they appear in the query.
+
+Any query resulting in more than *10,000* records will be distributed and loaded in parallel
+(unless directed otherwise) using the following rule sequence:
+
+1. If `REMOTE_QUERY_NO_SPLIT` is `TRUE`, the query will not be distributed.
+2. If a valid `REMOTE_QUERY_PARTITION_COLUMN` is specified, the query will be distributed by partitioning on the
+   given column's values
+3. If a valid `REMOTE_QUERY_ORDER_BY` is specified, the query will be distributed by ordering the data
+   accordingly and then partitioning into sequential blocks from the first record
+4. If a non-null numeric/date/time column exists, the query will be distributed by partitioning
+   on the first such column's values
+5. The query will be distributed by sorting the data on the first column and then partitioning
+   into sequential blocks from the first record
+
+Type inferencing is limited by the available JDBC types.  To take advantage of Kinetica-specific
+types and properties, create the target table manually before loading data.
+
+</Accordion>
+
+<Accordion title="FROM FILE PATHS" id="from-file-paths" defaultOpen>
+
+Source file specification clause, where `<file paths>` is a comma-separated list of
+single-quoted file paths from which data will be loaded; all files specified are presumed to have
+the same format and data types.
+
+
+<Info>
+This clause is mutually exclusive with the `FROM REMOTE QUERY` clause, and is not
+applicable to JDBC *data sources*.
+</Info>
+
+The form of a file path is dependent on the source referenced:
+
+* *Data Source*:  If a *data source* is specified in the [load options](/content/sql/load#sql-load-file-server-load-opt), these file paths must resolve
+  to accessible files at that *data source* location.  A "path prefix" can be specified instead,
+  which will cause all files whose path begins with the given prefix to be included.
+
+  For example, a "path prefix" of `/data/ge` for `<file paths>` would match all of the
+  following:
+
+  * `/data/geo.csv`
+  * `/data/geo/flights.csv`
+  * `/data/geo/2021/airline.csv`
+
+  If using an HDFS *data source*, the "path prefix" must be the name of an HDFS directory.
+
+* [KiFS](/content/tools/kifs):  The path must resolve to an accessible file path within *KiFS*.
+  A "path prefix" can be specified instead, which will cause all files whose path begins with the
+  given prefix to be included.
+
+  For example, a "path prefix" of `kifs://data/ge` would match all of the following files under
+  the *KiFS* `data` directory:
+
+  * `kifs://data/geo.csv`
+  * `kifs://data/geo/flights.csv`
+  * `kifs://data/geo/2021/airline.csv`
+
+</Accordion>
+
+<Accordion title="FORMAT" id="format" defaultOpen>
+
+Optional indicator of source file type, for file-based data sources; will be inferred from the
+file extension if not given.
+
+Supported formats include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Keyword</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>[DELIMITED] TEXT</code></td>
+    <td>Any text-based, delimited field data file (CSV, PSV, TSV, etc.); a comma-delimited list of options can be given to specify the way in which the data file(s) should be parsed, including the delimiter used, whether headers are present, etc.  Records spanning multiple lines are not supported. See [Delimited Text Options](/content/sql/load#sql-load-file-server-delim-opt) for the complete list of <code>&lt;delimited text options&gt;</code>.</td>
+  </tr>
+  <tr>
+    <td><code>AVRO</code></td>
+    <td>*Apache Avro* data file</td>
+  </tr>
+  <tr>
+    <td><code>JSON</code></td>
+    <td>Either a *JSON* or *GeoJSON* data file See [JSON/GeoJSON Limitations](/content/load_data/concepts#ingest-json-limitations) for the supported data types.</td>
+  </tr>
+  <tr>
+    <td><code>PARQUET</code></td>
+    <td>*Apache Parquet* data file See [Parquet Limitations](/content/load_data/concepts#ingest-parquet-limitations) for the supported data types.</td>
+  </tr>
+  <tr>
+    <td><code>SHAPEFILE</code></td>
+    <td>*ArcGIS* shapefile</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of connection & global option/value assignments
+will follow.
+
+See [Load Options](/content/sql/load#sql-load-file-server-load-opt) for the complete list of options.
+
+</Accordion>
+
+<Accordion title="&lt;table property clause&gt;" id="<table-property-clause>" defaultOpen>
+
+Optional comma-separated list of table properties, from a subset of those available, to the table
+to load into, if it is created by this call.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-load-file-server-delim-opt"></a>
+
+
+### Delimited Text Options
+
+
+The following options can be specified when loading data from delimited text
+files.  When reading from multiple files, options specific to the source file
+will be applied to each file being read.
+
+<AccordionGroup>
+
+<Accordion title="COMMENT = '&lt;string&gt;'" id="comment-<string>" defaultOpen>
+
+Treat lines in the source file(s) that begin with `string` as comments and skip.
+
+The default comment marker is `#`.
+
+</Accordion>
+
+<Accordion title="DELIMITER = '&lt;char&gt;'" id="delimiter-<char>" defaultOpen>
+
+Use `char` as the source file field delimiter.
+
+The default delimiter is a comma, unless a source file has one of these extensions:
+
+* `.psv` - will cause `|` to be the delimiter
+* `.tsv` - will cause the tab character to be the delimiter
+
+See [Delimited Text Option Characters](/content/sql/load#sql-load-file-server-delim-opt-char) for allowed characters.
+
+</Accordion>
+
+<Accordion title="ESCAPE = '&lt;char&gt;'" id="escape-<char>" defaultOpen>
+
+Use `char` as the source file data escape character.  The escape character preceding any
+other character, in the source data, will be converted into that other character, except
+in the following special cases:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Source Data String</th>
+    <th>Representation when Loaded into the Database</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>&lt;char&gt;a</code></td>
+    <td>ASCII bell</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;b</code></td>
+    <td>ASCII backspace</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;f</code></td>
+    <td>ASCII form feed</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;n</code></td>
+    <td>ASCII line feed</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;r</code></td>
+    <td>ASCII carriage return</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;t</code></td>
+    <td>ASCII horizontal tab</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;v</code></td>
+    <td>ASCII vertical tab</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+For instance, if the escape character is `\`, a `\t` encountered in
+the data will be converted to a tab character when stored in the database.
+
+The escape character can be used to escape the quoting character, and will be treated as
+an escape character whether it is within a quoted field value or not.
+
+There is no default escape character.
+
+</Accordion>
+
+<Accordion title="HEADER DELIMITER = '&lt;char&gt;'" id="header-delimiter-<char>" defaultOpen>
+
+Use `char` as the source file header field name/property delimiter, when the source file
+header contains both names and properties.  This is largely specific to the Kinetica
+export to delimited text feature, which will, within each field's header, contain the
+field name and any associated properties, delimited by the pipe `|` character.
+
+An example *Kinetica* header in a CSV file:
+
+{/* Source: /examples/data/products.kh.min.csv (lines 1) */}
+```
+id|int|data,category|string|data|char16,name|string|data|char32
+```
+
+The default is the `|` (pipe) character.  See
+[Delimited Text Option Characters](/content/sql/load#sql-load-file-server-delim-opt-char) for allowed characters.
+
+
+<Info>
+The `DELIMITER` character will still be used to separate
+field name/property sets from each other in the header row
+</Info>
+
+</Accordion>
+
+<Accordion title="INCLUDES HEADER = &lt;TRUE|FALSE&gt;" id="includes-header-<true|false>" defaultOpen>
+
+Declare that the source file(s) will or will not have a header.
+
+The default is `TRUE`.
+
+</Accordion>
+
+<Accordion title="NULL = '&lt;string&gt;'" id="null-<string>" defaultOpen>
+
+Treat `string` as the indicator of a null source field value.
+
+The default is `\N`.
+
+</Accordion>
+
+<Accordion title="QUOTE = '&lt;char&gt;'" id="quote-<char>" defaultOpen>
+
+Use `char` as the source file data quoting character, for enclosing field values.
+Usually used to wrap field values that contain embedded delimiter characters, though any
+field may be enclosed in quote characters *(for clarity, for instance)*.  The quote
+character must appear as the first and last character of a field value in order to be
+interpreted as quoting the value.  Within a quoted value, embedded quote characters may be
+escaped by preceding them with another quote character or the escape character specified
+by `ESCAPE`, if given.
+
+The default is the `"` (double-quote) character.  See
+[Delimited Text Option Characters](/content/sql/load#sql-load-file-server-delim-opt-char) for allowed characters.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-load-file-server-delim-opt-char"></a>
+
+
+#### Delimited Text Option Characters
+
+
+For `DELIMITER`, `HEADER DELIMITER`, `ESCAPE`, & `QUOTE`, any single
+character can be used, or any one of the following escaped characters:
+
+| Escaped Char | Corresponding Source File Character |
+| --- | --- |
+| `''` | Single quote |
+| `\a` | ASCII bell |
+| `\b` | ASCII backspace |
+| `\f` | ASCII form feed |
+| `\t` | ASCII horizontal tab |
+| `\v` | ASCII vertical tab |
+
+For instance, if two single quotes (`''`) are specified for a `QUOTE`
+character, the parser will interpret *single quotes* in the source file as
+*quoting* characters; specifying `\t` for `DELIMITER` will cause the parser
+to interpret *ASCII horizontal tab* characters in the source file as *delimiter*
+characters.
+
+
+<a id="sql-load-file-server-load-opt"></a>
+
+
+### Load Options
+
+
+The following options can be specified to modify the way data is loaded (or not
+loaded) into the target table.
+
+<AccordionGroup>
+
+<Accordion title="BAD RECORD TABLE" id="bad-record-table" defaultOpen>
+
+Name of the table containing records that failed to be loaded into the target table.  This
+bad record table will include the following columns:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Column Name</th>
+    <th>Source Data Format Codes</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>line_number</code></td>
+    <td>Number of the line in the input file containing the failed record</td>
+  </tr>
+  <tr>
+    <td><code>char_number</code></td>
+    <td>Position of character within a failed record that is assessed as the beginning of the portion of the record that failed to process</td>
+  </tr>
+  <tr>
+    <td><code>filename</code></td>
+    <td>Name of file that contained the failed record</td>
+  </tr>
+  <tr>
+    <td><code>line_rejected</code></td>
+    <td>Text of the record that failed to process</td>
+  </tr>
+  <tr>
+    <td><code>error_msg</code></td>
+    <td>Error message associated with the record processing failure</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+<Info>
+This option is not applicable for an `ON ERROR` mode of `ABORT`.  In that
+mode, processing stops at the first error and that error is returned to the user.
+</Info>
+
+</Accordion>
+
+<Accordion title="BATCH SIZE" id="batch-size" defaultOpen>
+
+Use an ingest batch size of the given number of records.
+
+The default batch size is *50,000*.
+
+</Accordion>
+
+<Accordion title="COLUMN FORMATS" id="column-formats" defaultOpen>
+
+Use the given type-specific formatting for the given column when parsing source data being
+loaded into that column.  This should be a map of column names to format specifications,
+where each format specification is map of column type to data format, all formatted as a
+JSON string.
+
+Supported column types include:
+
+
+<Tabs>
+  <Tab title="date">
+Apply the given date format to the given column.
+
+Common date format codes follow.  For the complete list, see
+[Date/Time Conversion Codes](/content/sql/query#sql-datetime-conversion-codes).
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Code</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>YYYY</code></td>
+    <td>4-digit year</td>
+  </tr>
+  <tr>
+    <td><code>MM</code></td>
+    <td>2-digit month, where *January* is <code>01</code></td>
+  </tr>
+  <tr>
+    <td><code>DD</code></td>
+    <td>2-digit day of the month, where the *1st* of each month is <code>01</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+  </Tab>
+  <Tab title="time">
+Apply the given time format to the given column.
+
+Common time format codes follow.  For the complete list, see
+[Date/Time Conversion Codes](/content/sql/query#sql-datetime-conversion-codes).
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Code</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>HH24</code></td>
+    <td>24-based hour, where *12:00 AM* is <code>00</code> and *7:00 PM* is <code>19</code></td>
+  </tr>
+  <tr>
+    <td><code>MI</code></td>
+    <td>2-digit minute of the hour</td>
+  </tr>
+  <tr>
+    <td><code>SS</code></td>
+    <td>2-digit second of the minute</td>
+  </tr>
+  <tr>
+    <td><code>MS</code></td>
+    <td>milliseconds</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+  </Tab>
+  <Tab title="datetime">
+Apply the given date/time format to the given column.
+  </Tab>
+</Tabs>
+
+
+For example, to load dates of the format `2010.10.30` into date column *d* and times of
+the 24-hour format `18:36:54.789` into time column *t*:
+
+```
+{
+    "d": {"date": "YYYY.MM.DD"},
+    "t": {"time": "HH24:MI:SS.MS"}
+}
+```
+
+<Info>
+This option is not available for *data sources* configured for *JDBC*.
+</Info>
+
+</Accordion>
+
+<Accordion title="DATA SOURCE" id="data-source" defaultOpen>
+
+Load data from the given [data source](/content/sql/ddl#sql-create-data-source).
+[Data source connect privilege](/content/sql/security#sql-security-priv-mgmt-ds-grant) is required when
+loading from a *data source*.
+
+</Accordion>
+
+<Accordion title="DEFAULT COLUMN FORMATS" id="default-column-formats" defaultOpen>
+
+Use the given formats for source data being loaded into target table columns with the
+corresponding column types.   This should be a map of target column type to source format
+for data being loaded into columns of that type, formatted as a JSON string.
+
+Supported column properties and source data formats are the same as those
+listed in the description of the `COLUMN FORMATS` option.
+
+For example, to make the default format for loading source data dates like `2010.10.30`
+and 24-hour times like `18:36:54.789`:
+
+```
+{
+    "date": "YYYY.MM.DD",
+    "time": "HH24:MI:SS.MS",
+    "datetime": "YYYY.MM.DD HH24:MI:SS.MS"
+}
+```
+
+<Info>
+This option is not available for *data sources* configured for *JDBC*.
+</Info>
+
+</Accordion>
+
+<Accordion title="FIELDS IGNORED BY" id="fields-ignored-by" defaultOpen>
+
+Choose a comma-separated list of fields from the source file(s) to ignore, loading only
+those fields that are not in the identified list in the order they appear in the file.
+Fields can be identified by either `POSITION` or `NAME`.  If ignoring by `NAME`, the
+specified names must match the source file field names exactly.
+
+* Identifying by Name:
+
+  ```
+  FIELDS IGNORED BY NAME(Category, Description)
+  ```
+* Identifying by Position:
+
+  ```
+  FIELDS IGNORED BY POSITION(3, 4)
+  ```
+
+<Info>
+* When ignoring source data file fields, the set of fields that are not ignored must
+  align, in type & number in their order in the source file, with the target table
+  columns into which the data will be loaded.
+* Ignoring fields by `POSITION` is only supported for delimited text files.
+</Info>
+
+</Accordion>
+
+<Accordion title="FIELDS MAPPED BY" id="fields-mapped-by" defaultOpen>
+
+Choose a comma-separated list of fields from the source file(s) to load, in the specified
+order, identifying fields by either `POSITION` or `NAME`.  If mapping by `NAME`, the
+specified names must match the source file field names exactly.
+
+* Identifying by Name:
+
+  ```
+  FIELDS MAPPED BY NAME(ID, Name, Stock)
+  ```
+* Identifying by Position:
+
+  ```
+  FIELDS MAPPED BY POSITION(1, 2, 5)
+  ```
+
+<Info>
+* When mapping source data file fields and the target table exists, the set of fields
+  that are identified must align, in type & number in the specified order, with the
+  target table columns into which data will be loaded.
+* Mapping fields by `POSITION` is only supported for delimited text files.
+</Info>
+
+</Accordion>
+
+<Accordion title="FLATTEN_COLUMNS" id="flatten_columns" defaultOpen>
+
+Specify the policy for handling nested columns within JSON data.
+
+The default is `FALSE`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TRUE</code></td>
+    <td>Break up nested columns into multiple columns.</td>
+  </tr>
+  <tr>
+    <td><code>FALSE</code></td>
+    <td>Treat nested columns as JSON columns instead of flattening.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="IGNORE_EXISTING_PK" id="ignore_existing_pk" defaultOpen>
+
+Specify the error suppression policy for inserting duplicate primary key values into a
+table with a primary key.  If the specified table does not have a primary key or the
+`UPDATE_ON_EXISTING_PK` option is used, then this options has no effect.
+
+The default is `FALSE`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TRUE</code></td>
+    <td>Suppress errors when inserted records and existing records' PKs match.</td>
+  </tr>
+  <tr>
+    <td><code>FALSE</code></td>
+    <td>Return errors when inserted records and existing records' PKs match.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="INGESTION MODE" id="ingestion-mode" defaultOpen>
+
+Whether to do a full ingest of the data or perform a *dry run* or *type inference* instead.
+
+The default mode is `FULL`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>DRY RUN</code></td>
+    <td>No data will be inserted, but the file will be read with the applied <code>ON ERROR</code> mode and the number of valid records that would normally be inserted is returned.</td>
+  </tr>
+  <tr>
+    <td><code>FULL</code></td>
+    <td>Data is fully ingested according to the active <code>ON ERROR</code> mode.</td>
+  </tr>
+  <tr>
+    <td><code>TYPE INFERENCE</code></td>
+    <td>Infer the type of the source data and return, without ingesting any data. The inferred type is returned in the response, as the output of a <code>SHOW TABLE</code> command.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="JDBC_FETCH_SIZE" id="jdbc_fetch_size" defaultOpen>
+
+Retrieve this many records at a time from the remote database.  Lowering this number will
+help tables with large record sizes fit into available memory during ingest.
+
+The default is *50,000*.
+
+
+<Info>
+This option is only available for *data sources* configured for *JDBC*.
+</Info>
+
+</Accordion>
+
+<Accordion title="JDBC_SESSION_INIT_STATEMENT" id="jdbc_session_init_statement" defaultOpen>
+
+Run the single given statement before the initial load is performed.  Also run it before
+each subsequent reload, if `SUBSCRIBE` is `TRUE`.
+
+For example, to set the time zone to *UTC* before running each load, use:
+
+```
+JDBC_SESSION_INIT_STATEMENT = 'SET TIME ZONE ''UTC'''
+```
+
+<Info>
+This option is only available for *data sources* configured for *JDBC*.
+</Info>
+
+</Accordion>
+
+<Accordion title="KAFKA_CONSUMERS_PER_RANK" id="kafka_consumers_per_rank" defaultOpen>
+
+Number of *Kafka* consumer threads per rank; valid range is `1` through `6`.
+
+The default is `1`.
+
+</Accordion>
+
+<Accordion title="KAFKA_GROUP_ID" id="kafka_group_id" defaultOpen>
+
+Consumer group ID to use for *data sources* configured for *Kafka*.  If not specified, one
+will be randomly generated.
+
+</Accordion>
+
+<Accordion title="KAFKA_OPTIMISTIC_INGEST" id="kafka_optimistic_ingest" defaultOpen>
+
+Enable optimistic ingestion where *Kafka* topic offsets and table data are committed
+independently to achieve parallelism.
+
+The default is `FALSE`.
+
+</Accordion>
+
+<Accordion title="KAFKA_OFFSET_RESET_POLICY" id="kafka_offset_reset_policy" defaultOpen>
+
+Whether to start a *Kafka* subscription at the earliest or latest offset, for
+*data sources* configured for *Kafka*.  The default is `earliest`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>earliest</code></td>
+    <td>Start streaming from the oldest message in the queue.</td>
+  </tr>
+  <tr>
+    <td><code>latest</code></td>
+    <td>Start streaming from the newest message in the queue.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="KAFKA_SUBSCRIPTION_CANCEL_AFTER" id="kafka_subscription_cancel_after" defaultOpen>
+
+Optional number of minutes after which a *Kafka* subscription will be cancelled, for
+*data sources* configured for *Kafka*.
+
+</Accordion>
+
+<Accordion title="KAFKA_TYPE_INFERENCE_FETCH_TIMEOUT" id="kafka_type_inference_fetch_timeout" defaultOpen>
+
+Maximum time to collect *Kafka* messages before type inferencing on the set of them.
+
+The default is generally `30` seconds.
+
+</Accordion>
+
+<Accordion title="MAX_RECORDS_TO_LOAD" id="max_records_to_load" defaultOpen>
+
+Limit the number of records to load in this request.  If the number is larger than
+`BATCH SIZE`, the number of records loaded will be limited to the next whole number of
+`BATCH SIZE` (per working thread).
+
+</Accordion>
+
+<Accordion title="NUM_SPLITS_PER_RANK" id="num_splits_per_rank" defaultOpen>
+
+The number of remote query partitions to assign each *Kinetica* worker process.  The
+queries assigned to a worker process will be executed by the tasks allotted to the process.
+
+To decrease memory pressure, increase the number of splits per rank.
+
+The default is *8* splits per rank.
+
+
+<Info>
+This option is only available for *data sources* configured for *JDBC*.
+</Info>
+
+</Accordion>
+
+<Accordion title="NUM_TASKS_PER_RANK" id="num_tasks_per_rank" defaultOpen>
+
+The number of tasks to use on each *Kinetica* worker process to process remote queries.
+The tasks assigned to a worker process will execute any remote query partitions assigned to
+it.
+
+To decrease memory pressure, decrease the number of tasks per rank.
+
+The default is *8* tasks per rank.
+
+
+<Info>
+This option is only available for *data sources* configured for *JDBC*.
+</Info>
+
+</Accordion>
+
+<Accordion title="ON ERROR" id="on-error" defaultOpen>
+
+When an error is encountered loading a record, handle it using either of the
+following modes.  The default mode is `ABORT`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>SKIP</code></td>
+    <td>If an error is encountered parsing a source record, skip the record.</td>
+  </tr>
+  <tr>
+    <td><code>ABORT</code></td>
+    <td>If an error is encountered parsing a source record, stop the data load process.  Primary key collisions are considered abortable errors in this mode.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="POLL_INTERVAL" id="poll_interval" defaultOpen>
+
+Interval, in seconds, at which a *data source* is polled for updates.  The number of
+seconds must be passed as a single-quoted string.
+
+The default interval is *60* seconds.  This option is only applicable when `SUBSCRIBE` is
+`TRUE`.
+
+
+<Info>
+This option is not available for *data sources* configured for *Kafka*.
+</Info>
+
+</Accordion>
+
+<Accordion title="PRIMARY KEY" id="primary-key" defaultOpen>
+
+Optional [primary key](/content/concepts/tables#primary-key) specification clause, where the value is a
+parenthesized comma-separated list of columns to use as the *primary key* for the *table*:
+
+```
+PRIMARY KEY = ('id', 'dept_id')
+```
+</Accordion>
+
+<Accordion title="REMOTE_QUERY_INCREASING_COLUMN" id="remote_query_increasing_column" defaultOpen>
+
+For a JDBC query *change data capture* loading scheme, the remote query column that will be
+used to determine whether a record is new and should be loaded or not.  This column should
+have an ever-increasing value and be of an integral or date/timestamp type.  Often, this
+column will be a sequence-based ID or create/modify timestamp.
+
+This option is only applicable when `SUBSCRIBE` is `TRUE`.
+
+
+<Info>
+This option is only available for *data sources* configured for *JDBC*.
+</Info>
+
+</Accordion>
+
+<Accordion title="REMOTE_QUERY_NO_SPLIT" id="remote_query_no_split" defaultOpen>
+
+Whether to not distribute the retrieval of remote data and issue queries for blocks of data
+at time in parallel.
+
+The default is `FALSE`.
+
+
+<Info>
+This option is only available for *data sources* configured for *JDBC*
+</Info>
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TRUE</code></td>
+    <td>Issue the remote data retrieval as a single query.</td>
+  </tr>
+  <tr>
+    <td><code>FALSE</code></td>
+    <td>Distribute and parallelize the remote data retrieval in queries for blocks of data at a time.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="REMOTE_QUERY_ORDER_BY" id="remote_query_order_by" defaultOpen>
+
+Ordering expression to use in partitioning remote data for retrieval.  The remote data will
+be ordered according to this expression and then retrieved in sequential blocks from the
+first record.  This is potentially less performant than using `REMOTE_QUERY_PARTITION_COLUMN`.
+
+If `REMOTE_QUERY_NO_SPLIT` is `TRUE`, a valid `REMOTE_QUERY_PARTITION_COLUMN` is specified, or the column given is
+invalid, this option is ignored.
+
+
+<Info>
+This option is only available for *data sources* configured for *JDBC*
+</Info>
+
+</Accordion>
+
+<Accordion title="REMOTE_QUERY_PARTITION_COLUMN" id="remote_query_partition_column" defaultOpen>
+
+Column to use to partition remote data for retrieval.  The column must be numeric and
+should be relatively evenly distributed so that queries using values of this column to
+partition data will retrieve relatively consistently-sized result sets.
+
+If `REMOTE_QUERY_NO_SPLIT` is `TRUE` or the column given is invalid, this option is ignored.
+
+
+<Info>
+This option is only available for *data sources* configured for *JDBC*
+</Info>
+
+</Accordion>
+
+<Accordion title="SCHEMA_REGISTRY_SCHEMA_NAME" id="schema_registry_schema_name" defaultOpen>
+
+Name of the Avro schema in the schema registry to use when reading Avro records.
+
+
+<Info>
+This option is not available for *data sources* configured for *Kafka*.
+</Info>
+
+</Accordion>
+
+<Accordion title="SHARD KEY" id="shard-key" defaultOpen>
+
+Optional [shard key](/content/concepts/tables#shard-key) specification clause, where the value is a
+parenthesized comma-separated list of columns to use as the *shard key* for the *table*:
+
+```
+SHARD KEY = ('id')
+```
+</Accordion>
+
+<Accordion title="SKIP_LINES" id="skip_lines" defaultOpen>
+
+Skip this number of lines when loading from a source file.
+
+</Accordion>
+
+<Accordion title="SUBSCRIBE" id="subscribe" defaultOpen>
+
+Whether to subscribe to the [data source](/content/sql/ddl#sql-create-data-source) specified in the
+`DATA SOURCE` option.
+
+The default is `FALSE`.
+
+
+<Info>
+This option is not available for *data sources* configured for *HDFS*.
+</Info>
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TRUE</code></td>
+    <td>Stream data from the specified *data source*.</td>
+  </tr>
+  <tr>
+    <td><code>FALSE</code></td>
+    <td>Load all data once from the specified *data source*.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="TRUNCATE_STRINGS" id="truncate_strings" defaultOpen>
+
+Specify the string truncation policy for inserting text into `VARCHAR` columns that are
+not large enough to hold the entire text value.
+
+The default is `FALSE`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TRUE</code></td>
+    <td>Truncate any inserted string value at the maximum size for its column.</td>
+  </tr>
+  <tr>
+    <td><code>FALSE</code></td>
+    <td>Reject any record with a string value that is too long for its column.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="TRUNCATE_TABLE" id="truncate_table" defaultOpen>
+
+Specify whether to truncate the target table before beginning the load or subscription.
+
+The default is `FALSE` (don't truncate the target table).
+
+</Accordion>
+
+<Accordion title="TYPE_INFERENCE_MODE" id="type_inference_mode" defaultOpen>
+
+When making a type inference of the data values in order to define column types for the
+target table, use one of the following modes.
+
+The default mode is `SPEED`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>ACCURACY</code></td>
+    <td>Scan all available data to arrive at column types that are the narrowest possible that can still hold all the data.</td>
+  </tr>
+  <tr>
+    <td><code>SPEED</code></td>
+    <td>Pick the widest possible column types from the minimum data scanned in order to quickly arrive at column types that should fit all data values.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="UPDATE_ON_EXISTING_PK" id="update_on_existing_pk" defaultOpen>
+
+Specify the record collision policy for inserting into a table with a primary key.
+If the specified table does not have a primary key, then this options has no effect.
+
+The default is `FALSE`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TRUE</code></td>
+    <td>Update existing records with records being inserted, when PKs match.</td>
+  </tr>
+  <tr>
+    <td><code>FALSE</code></td>
+    <td>Discard records being inserted when existing records' PKs match.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-load-file-server-table-prop"></a>
+
+
+### Table Property Clause
+
+
+A comma-separated list of options for creating the target table, if it doesn't
+exist **and** if the source data file has *Kinetica* headers, can be specified.
+
+*Kinetica* headers contain column type information, which are used in creating
+the target table if it doesn't exist.  An example *Kinetica* header:
+
+{/* Source: /examples/data/products.kh.csv (lines 1) */}
+```
+id|int|data,category|string|data|char16,name|string|data|char32,description|string|data|char128|nullable,stock|int|data|nullable
+```
+
+```sql title="LOAD INTO Table Property Clause"
+USING TABLE PROPERTIES
+(
+    <table property> = <value>,
+    ...
+    <table property> = <value>
+)
+```
+
+<AccordionGroup>
+
+<Accordion title="CHUNK COLUMN MEMORY" id="chunk-column-memory" defaultOpen>
+
+Size of the blocks of memory holding the data, when loaded; specified as the
+maximum number of bytes any one column should hold.
+
+
+<Info>
+The size of dictionary-encoded columns is estimated.
+</Info>
+
+</Accordion>
+
+<Accordion title="CHUNK MEMORY" id="chunk-memory" defaultOpen>
+
+Size of the blocks of memory holding the data, when loaded; specified as the
+maximum total number of bytes all columns should hold.
+
+
+<Info>
+The size of dictionary-encoded columns is estimated.
+</Info>
+
+</Accordion>
+
+<Accordion title="CHUNK SIZE" id="chunk-size" defaultOpen>
+
+Size of the blocks of memory holding the data, when loaded; specified as the
+maximum number of records each block of memory should hold
+
+</Accordion>
+
+<Accordion title="COMPRESSION_CODEC" id="compression_codec" defaultOpen>
+
+The default [compression](/content/concepts/column_compression) type to apply
+to columns of this table not explicitly given one.
+
+</Accordion>
+
+<Accordion title="TTL" id="ttl" defaultOpen>
+
+The [time-to-live (TTL)](/content/concepts/ttl) for the *table*; if not set,
+the *table* will not expire
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-load-file-server-examples"></a>
+
+
+### Examples
+
+
+#### File Paths
+
+
+<p><strong>Single File</strong></p>
+
+
+To load a CSV file of product data named <Badge color="gray">products.csv</Badge> in the
+*KiFS* directory <Badge color="gray">data</Badge>, into a table named `product`:
+
+{/* Source: /examples/sql/load/formats.kisql (lines 70-71) */}
+```sql LOAD INTO (Single File) Example
+LOAD DATA INTO example.product
+FROM FILE PATHS 'kifs://data/products.csv'
+```
+
+
+<p><strong>Multiple Files</strong></p>
+
+
+When loading files from multiple paths, specify a comma-delimited list of those
+file paths.  To load one file named <Badge color="gray">products.csv</Badge> and one file
+named <Badge color="gray">products.kh.csv</Badge>, both under the *KiFS* directory
+<Badge color="gray">data</Badge>, into a table named `product`:
+
+{/* Source: /examples/sql/load/formats.kisql (lines 127-128) */}
+```sql LOAD INTO (Multiple Files) Example
+LOAD DATA INTO example.product
+FROM FILE PATHS 'kifs://data/products.csv', 'kifs://data/products.kh.csv'
+```
+
+
+#### File Formats
+
+
+<p><strong>Single File - No Header</strong></p>
+
+
+To load a headerless CSV file of product data named
+<Badge color="gray">products.nh.csv</Badge> in the *KiFS* directory <Badge color="gray">data</Badge>, into
+a table named `product`:
+
+{/* Source: /examples/sql/load/formats.kisql (lines 92-94) */}
+```sql LOAD INTO (No Header) Example
+LOAD DATA INTO example.product
+FROM FILE PATHS 'kifs://data/products.nh.csv'
+FORMAT TEXT (INCLUDES HEADER = FALSE)
+```
+
+
+<p><strong>Delimited Text Options</strong></p>
+
+
+To load data from a product data file with the following options:
+
+* data file named <Badge color="gray">products.ssv</Badge> located in the *KiFS* directory
+  <Badge color="gray">data</Badge>
+* the file has a header
+* the field delimiter is a semicolon
+* data requiring quotes will have single quotes as the quoting character
+* the escape character is the backtick
+* the data file represents *null* values as `<null>`
+* data file comments are on lines starting with `--`
+* when parse errors are encountered, the record will be skipped
+
+{/* Source: /examples/sql/load/formats.kisql (lines 148-159) */}
+```sql LOAD INTO with Delimited Text Options Example
+LOAD DATA INTO example.product
+FROM FILE PATHS 'kifs://data/products.ssv'
+FORMAT TEXT
+(
+	COMMENT = '--',
+	DELIMITER = ';',
+	ESCAPE = '`',
+	INCLUDES HEADER = TRUE,
+	NULL = '<null>',
+	QUOTE = ''''
+)
+WITH OPTIONS (ON ERROR = SKIP)
+```
+
+
+<a id="sql-load-file-server-examples-kh"></a>
+
+
+<p><strong>Kinetica Headers</strong></p>
+
+
+A CSV file with *Kinetica* headers can be used to specify the column types of
+the target table when creating it if it doesn't exist.
+
+To load such a file of product data with the following conditions:
+
+* data file named <Badge color="gray">products.kh.csv</Badge> located in the *KiFS* directory
+  <Badge color="gray">data</Badge>
+* data file contains a *Kinetica* header
+* target table named `product_create_on_load`
+* target table will be created if it doesn't exist
+
+{/* Source: /examples/sql/load/options.kisql (lines 26-27) */}
+```sql LOAD INTO (Kinetica Header) Example
+LOAD DATA INTO example.product_create_on_load
+FROM FILE PATHS 'kifs://data/products.kh.csv'
+```
+
+
+<p><strong>Parquet File</strong></p>
+
+
+To load a *Parquet* file of employee data, <Badge color="gray">employee.parquet</Badge>,
+in the *KiFS directory* <Badge color="gray">data</Badge>, into a table named
+`example.employee_2000`:
+
+{/* Source: /examples/sql/load/prd.kisql (lines 246-248) */}
+```sql LOAD INTO (Parquet) Example
+LOAD DATA INTO example.employee_2000
+FROM FILE PATHS 'kifs://data/employee.parquet'
+FORMAT PARQUET
+```
+
+
+<p><strong>Kafka</strong></p>
+
+
+To subscribe to a *Kafka* data feed with the following conditions:
+
+* *Kafka* remote source is represented by the `kafka_ds` *data source*
+* data will be continuously streamed from the *Kafka* source
+* target table named `orders`
+
+{/* Source: /examples/sql/load/load_into_format_kafka.sql (lines 3-5) */}
+```sql LOAD INTO (Kafka) Example
+LOAD DATA INTO example.orders
+FORMAT JSON
+WITH OPTIONS (DATA SOURCE = 'kafka_ds', SUBSCRIBE = TRUE)
+```
+
+
+#### Table Options
+
+
+If the target table doesn't exist, the `LOAD INTO` command will create it
+using the given table options and data type inferencing for the column types.
+
+See [Kinetica Headers](/content/sql/load#sql-load-file-server-examples-kh) for an example of loading a
+file with *Kinetica* headers to define the column types of the created table.
+
+
+<p><strong>Primary/Shard Keys</strong></p>
+
+
+A CSV file can be used to create a target table with primary & shard keys if it
+doesn't exist.
+
+To load such a file of employee data with the following conditions:
+
+* data file named <Badge color="gray">employee.csv</Badge> located in the *KiFS* directory
+  <Badge color="gray">data</Badge>
+* data file does not contain a *Kinetica* header
+* target table named `example.employee`
+* target table will be created if it doesn't exist
+* target table will have a composite *primary key* on the `id` & `dept_id`
+  columns and a *shard key* on `id` column, if it is created by this load
+  command
+
+{/* Source: /examples/sql/load/pksk.kisql (lines 56-62) */}
+```sql LOAD INTO (Primary/Shard Key) Example
+LOAD INTO example.employee
+FROM FILE PATHS 'kifs://data/employee.csv'
+WITH OPTIONS
+(
+    PRIMARY KEY = (id, dept_id),
+    SHARD KEY = (id)
+)
+```
+
+
+<Note>
+The data must have no nulls in any columns designated as
+*primary key* columns.
+</Note>
+
+
+<p><strong>Creation Options</strong></p>
+
+
+Table creation options can be used to define characteristics of a table when
+creating it if it doesn't exist.
+
+To load such a file of product data with the following conditions:
+
+* data file named <Badge color="gray">products.kh.csv</Badge> located in the *KiFS* directory
+  <Badge color="gray">data</Badge>
+* data file does not contain a *Kinetica* header
+* target table named `product_create_options`
+* target table will be created if it doesn't exist
+* target table will have a chunk size of *1,000,000* records, if it is created
+  by this load command
+* target table will have a *TTL* of *5* minutes, and will be dropped if unused
+  for any 5-minute span, if it is created by this load command
+
+{/* Source: /examples/sql/load/options.kisql (lines 70-72) */}
+```sql LOAD INTO (Create Table) Example
+LOAD DATA INTO example.product_create_options
+FROM FILE PATHS 'kifs://data/products.csv'
+USING TABLE PROPERTIES (CHUNK SIZE = 1000000, TTL = 5)
+```
+
+
+#### Column Options
+
+
+<p><strong>Column/Field Names</strong></p>
+
+
+To load specific fields from a product data file, with the following conditions:
+
+* data file named <Badge color="gray">products.title-case.csv</Badge> located in the *KiFS*
+  directory <Badge color="gray">data</Badge>
+* data file contains a header with fields named `ID`, `Category`, `Name`,
+  `Description`, & `Stock`
+* target table named `product_name_stock`
+* target columns named `id`, `name`, & `stock`
+* only load fields `ID`, `Name`, & `Stock` into columns `id`, `name`,
+  & `stock`
+* skip records that fail to load successfully
+
+{/* Source: /examples/sql/load/formats.kisql (lines 138-140) */}
+```sql LOAD INTO (Column/Field Names) Example
+LOAD DATA INTO example.product_name_stock
+FROM FILE PATHS 'kifs://data/products.title-case.csv'
+WITH OPTIONS (ON ERROR = SKIP, FIELDS MAPPED BY NAME(ID, Name, Stock))
+```
+
+
+<Info>
+When specifying source data file field names, the set of source data
+file fields selected must align, in type & number, with the target table
+columns into which data will be loaded.
+</Info>
+
+
+<p><strong>Date/Time Column Types</strong></p>
+
+
+To apply a specific date format to the `hire_date` field:
+
+{/* Source: /examples/sql/load/options.kisql (lines 51-59) */}
+```sql LOAD INTO (Date/Time Column Types) Example
+LOAD INTO example.employee
+FROM FILE PATHS 'kifs://data/employee.csv'
+WITH OPTIONS
+(
+	COLUMN FORMATS = '
+	{
+		"hire_date": {"date": "YYYY-MM-DD"}
+	}'
+)
+```
+
+
+#### Dry Run
+
+
+To perform a dry run of a load of a CSV file, <Badge color="gray">products.csv</Badge>, in
+the *KiFS directory* <Badge color="gray">data</Badge>, into a table named
+`example.product`:
+
+{/* Source: /examples/sql/load/options.kisql (lines 38-40) */}
+```sql LOAD INTO (Dry Run) Example
+LOAD DATA INTO example.product
+FROM FILE PATHS 'kifs://data/products.csv'
+WITH OPTIONS (INGESTION MODE = DRY RUN)
+```
+
+
+<Info>
+The dry run will return the number of records that would have been
+loaded, but not actually insert any records into the target table.
+</Info>
+
+
+#### Data Sources
+
+
+<p><strong>File-Based</strong></p>
+
+
+To load a CSV file, <Badge color="gray">products.csv</Badge>, from the *data source*
+<Badge color="gray">example.product_ds</Badge>, into a table named `example.product`:
+
+{/* Source: /examples/sql/load/remote_file.kisql (lines 52-54) */}
+```sql LOAD INTO (Data Source File) Example
+LOAD DATA INTO example.product
+FROM FILE PATHS 'products.csv'
+WITH OPTIONS (DATA SOURCE = 'example.product_ds')
+```
+
+
+<p><strong>Query-Based</strong></p>
+
+
+To load the results of a remote query of employees in department *2* from the
+JDBC *data source* <Badge color="gray">example.jdbc_ds</Badge>, into a local table named
+`example.employee_dept2`:
+
+{/* Source: /examples/sql/load/remote_query.kisql (lines 59-61) */}
+```sql LOAD INTO (Data Source Query) Example
+LOAD INTO example.employee_dept2
+FROM REMOTE QUERY 'SELECT * FROM example.employee WHERE dept_id = 2'
+WITH OPTIONS (DATA SOURCE = 'example.jdbc_ds')
+```
+
+
+#### Change Data Capture
+
+
+<p><strong>File-Based</strong></p>
+
+
+To load a set of order data in a change data capture scheme with the following
+conditions:
+
+* data pulled through a *data source*, <Badge color="gray">example.order_ds</Badge>
+* data files contained with an <Badge color="gray">orders</Badge> directory
+* initially, all files in the directory will be loaded; subsequently, only those
+  files that have been updated since the last check will be reloaded
+* files will be polled for updates every *5* minutes
+* target table named `example.orders`
+* target table will be created if it doesn't exist
+
+{/* Source: /examples/sql/load/remote_file_sub.kisql (lines 34-43) */}
+```sql LOAD INTO (File Change Data Capture) Example
+-- Load files in the orders directory with timestamps newer than the time of the
+--   previous poll interval; poll every 5 minutes
+LOAD DATA INTO example.orders
+FROM FILE PATHS 'orders/'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.order_ds',
+	SUBSCRIBE = TRUE,
+	POLL_INTERVAL = 300
+)
+```
+
+
+<p><strong>Query-Based</strong></p>
+
+
+To load the data from a remote query of orders in a change data capture scheme
+with the following conditions:
+
+* data pulled through a *data source*, <Badge color="gray">example.jdbc_ds</Badge>
+* data contained with an `example.orders` table, where only orders for product
+  with ID *42* will be loaded into the target table
+* initially, all orders will be loaded; subsequently, only those orders with an
+  `order_id` column value higher than the highest one on the previous poll
+  cycle will be loaded
+* remote table will be polled for updates every *60* seconds
+* target table named `example.order_product42`
+* target table will be created if it doesn't exist
+
+{/* Source: /examples/sql/load/remote_query_cdc.kisql (lines 57-62 64-67) */}
+```sql LOAD INTO (Query Change Data Capture) Example
+-- Load new orders for product 42 continuously into a table
+--   order_id is an ever-increasing sequence allotted to each new order
+LOAD INTO example.order_product42
+FROM REMOTE QUERY 'SELECT * FROM example.orders WHERE product_id = 42'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.jdbc_ds',
+	SUBSCRIBE = TRUE,
+	REMOTE_QUERY_INCREASING_COLUMN = 'order_id'
+)
+```
+
+
+<a id="sql-load-file-client"></a>
+
+
+## INSERT INTO ... SELECT ... FROM FILE
+
+
+*Kinetica* can load data from text-based data files that are local to the client
+into existing tables using a modified `INSERT INTO ... SELECT` statement.
+
+
+<Info>
+This command is only available through
+[KiSQL](/content/tools/kisql) or database clients configured with
+the [Kinetica ODBC/JDBC driver](/content/connectors/sql_guide#odbc-jdbc).
+</Info>
+
+When reading data from a file, *Kinetica* assumes the following format, able to
+be overridden using command [options](/content/sql/load#sql-load-file-client-options):
+
+* If there is a header row, it is either:
+
+  * a simple list of comma-delimited column names:
+
+        {/* Source: /examples/data/products.csv (lines 1) */}
+    ```
+    id,category,name,description,stock
+    ```
+
+  * the *Kinetica* standard format:
+
+        {/* Source: /examples/data/products.kh.csv (lines 1) */}
+    ```
+    id|int|data,category|string|data|char16,name|string|data|char32,description|string|data|char128|nullable,stock|int|data|nullable
+    ```
+
+* The data fields are comma-delimited
+* Strings are optionally enclosed in double-quotes; double-quotes must be
+  used when the data contains commas; two consecutive double-quotes are used as
+  an escape code for double-quoted string data containing double-quotes; e.g.:
+
+  `"This string contains a "" quote mark and a "","" double-quoted comma."`
+
+  This would be loaded into a single string column in *Kinetica* as:
+
+  `This string contains a " quote mark and a "," double-quoted comma.`
+
+```sql title="INSERT INTO ... SELECT ... FROM FILE Syntax"
+INSERT INTO [<schema name>.]<table name> [( <column list> )]
+SELECT <field list>
+FROM FILE."<file name | file name expression>"
+[ <option list> ]
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>-2" defaultOpen>
+
+Name of the [schema](/content/sql/ddl#sql-create-schema) containing the *table* into which data will
+be inserted
+
+</Accordion>
+
+<Accordion title="&lt;table name&gt;" id="<table-name>-2" defaultOpen>
+
+Name of the [table](/content/sql/ddl#sql-create-table) into which data will be inserted
+
+</Accordion>
+
+<Accordion title="&lt;column list&gt;" id="<column-list>" defaultOpen>
+
+Optional list of target table columns into which data will be inserted; if not specified,
+all target table columns will be assumed.  Whether specified or implied, this list needs
+to match the fields specified in `<field list>` in number, order, & type.
+
+</Accordion>
+
+<Accordion title="&lt;field list&gt;" id="<field-list>" defaultOpen>
+
+List of the source data file field names from which data will be extracted; use `*` to
+extract all columns *(this wildcard must be used when a source file has no header which*
+*defines field names)*.  This list needs to match all the target table columns *(or*
+*those specified in the* `<column list>` *option)* in number, order, & type.
+
+</Accordion>
+
+<Accordion title="&lt;file name | file name expression&gt;" id="<file-name-|-file-name-expression>" defaultOpen>
+
+Name of the source data file or set of source data files from which records will be
+extracted; wildcards (`*`) can be used to specify a group of files
+
+</Accordion>
+
+<Accordion title="&lt;option list&gt;" id="<option-list>" defaultOpen>
+
+Optional list of whitespace-separated
+[processing options](/content/sql/load#sql-load-file-client-options)
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-load-file-client-options"></a>
+
+
+### Options
+
+
+The following options can be specified when loading data from files.  When
+reading from multiple files (using wildcards when specifying the file names),
+options specific to the source file will be applied to each file being read.
+
+<AccordionGroup>
+
+<Accordion title="BATCH_SIZE=&lt;n&gt;" id="batch_size<n>" defaultOpen>
+
+Use an ingest batch size of `n` records.
+
+The default batch size is *10,000*.
+
+</Accordion>
+
+<Accordion title="COMMENT='&lt;string&gt;'" id="comment<string>" defaultOpen>
+
+Treat lines in the source file that begin with `string` as comments and skip.
+
+The default comment marker is `#`.
+
+</Accordion>
+
+<Accordion title="DELIMITER='&lt;char&gt;'" id="delimiter<char>" defaultOpen>
+
+Use `char` as the source file field delimiter.
+
+The default delimiter is `,`, unless the source file has one of these extensions:
+
+* `.psv` - will cause `|` to be the delimiter
+* `.tsv` - will cause the tab character to be the delimiter
+
+See [Option Characters](/content/sql/load#sql-load-file-client-option-chars) for allowed characters.
+
+</Accordion>
+
+<Accordion title="ESCAPE='&lt;char&gt;'" id="escape<char>" defaultOpen>
+
+Use `char` as the source file data escape character.  The escape character
+preceding any other character, in the source data, will be converted into that
+other character, except in the following special cases:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Source Data String</th>
+    <th>Representation when Loaded into the Database</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>&lt;char&gt;a</code></td>
+    <td>ASCII bell</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;b</code></td>
+    <td>ASCII backspace</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;f</code></td>
+    <td>ASCII form feed</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;n</code></td>
+    <td>ASCII line feed</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;r</code></td>
+    <td>ASCII carriage return</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;t</code></td>
+    <td>ASCII horizontal tab</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;v</code></td>
+    <td>ASCII vertical tab</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+For instance, if the escape character is `\`, a `\t` encountered in the data
+will be converted to a tab character when stored in the database.
+
+The escape character can be used to escape the quoting character, and will be
+treated as an escape character whether it is within a quoted field value or not.
+
+There is no default escape character.  See
+[Option Characters](/content/sql/load#sql-load-file-client-option-chars) for allowed characters.
+
+</Accordion>
+
+<Accordion title="HEADER=&lt;Y|N&gt;" id="header<y|n>" defaultOpen>
+
+Declare that the source file has or does not have a header.  If
+not given, that determination will be intuited.
+
+</Accordion>
+
+<Accordion title="INITIAL_CLEAR" id="initial_clear" defaultOpen>
+
+Truncate the target table before loading data.
+
+The default is to not truncate the target table.
+
+</Accordion>
+
+<Accordion title="LIMIT=&lt;n&gt;" id="limit<n>" defaultOpen>
+
+Limit the total number of records inserted into the target table
+to `n`.  If reading from multiple source files, this count is
+assessed across all files being read.  For example, if `n` is
+*15* and the three files being read have *10* records each, all of
+the records from the *1st* file and the first *5* records from the
+*2nd* file will be loaded.  The remaining records in the *2nd*
+file and all of the records from the *3rd* file will be skipped.
+
+The default is no limit.
+
+</Accordion>
+
+<Accordion title="NULL='&lt;string&gt;'" id="null<string>" defaultOpen>
+
+Treat `string` as the indicator of a null source field value.
+
+The default is `\N`.
+
+</Accordion>
+
+<Accordion title="ON_ERROR=&lt;mode&gt;" id="on_error<mode>" defaultOpen>
+
+When an error is encountered loading a record, handle it using the given `<mode>`; one of
+the following:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Mode</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>PERMISSIVE</code></td>
+    <td>If an error is encountered parsing a source record, attempt to insert as much of the valid fields from the record as possible.</td>
+  </tr>
+  <tr>
+    <td><code>SKIP</code></td>
+    <td>If an error is encountered parsing a source record, skip the record.</td>
+  </tr>
+  <tr>
+    <td><code>ABORT</code></td>
+    <td>If an error is encountered parsing a source record, stop the data load process.  Primary key collisions are considered abortable errors in this mode.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+The default mode is `SKIP`.
+
+</Accordion>
+
+<Accordion title="QUOTE='&lt;char&gt;'" id="quote<char>" defaultOpen>
+
+Use `char` as the source file data quoting character, for enclosing field values. Usually
+used to wrap field values that contain embedded delimiter characters, though any field may
+be enclosed in quote characters *(for clarity, for instance)*.  The quote character must
+appear as the first and last character of a field value in order to be interpreted as
+quoting the value.  Within a quoted value, embedded quote characters may be escaped by
+preceding them with another quote character or the escape character specified by
+`ESCAPE`, if given.
+
+The default is the `"` (double-quote) character.  See
+[Option Characters](/content/sql/load#sql-load-file-client-option-chars) for allowed characters.
+
+</Accordion>
+
+<Accordion title="SKIP=&lt;n&gt;" id="skip<n>" defaultOpen>
+
+Skip the first `n` source file data lines read, not including header and comment lines.
+If reading from multiple source files, this count is assessed across all files being read.
+For example, if `n` is *15* and the first two files read have *10* records each, the
+first record to be loaded (not skipped) will be the *6th* record of the *2nd* file.
+
+The default is to skip no records.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-load-file-client-option-chars"></a>
+
+
+### Option Characters
+
+
+For `DELIMITER`, `ESCAPE`, & `QUOTE`, any single character can be used, or
+any one of the following escaped characters:
+
+| Escaped Char | Corresponding Source File Character |
+| --- | --- |
+| `''` | Single quote |
+| `\\` | Backslash |
+| `\a` | ASCII bell |
+| `\b` | ASCII backspace |
+| `\f` | ASCII form feed |
+| `\t` | ASCII horizontal tab |
+| `\v` | ASCII vertical tab |
+
+For instance, if two single quotes (`''`) are specified for a `QUOTE`
+character, the parser will interpret *single quotes* in the source file as
+*quoting* characters; specifying `\t` for `DELIMITER` will cause the parser
+to interpret *ASCII horizontal tab* characters in the source file as *delimiter*
+characters.
+
+
+### Examples
+
+
+#### File Paths
+
+
+<p><strong>Single File</strong></p>
+
+
+To load a CSV file of product data located at <Badge color="gray">../data/products.csv</Badge>
+into a table named `product`:
+
+{/* Source: /examples/sql/csv.kisql (lines 30-32) */}
+```sql INSERT INTO ... SELECT ... FROM FILE (Single File) Example
+INSERT INTO example.product
+SELECT *
+FROM FILE."../data/products.csv"
+```
+
+
+<p><strong>Multiple Files</strong></p>
+
+
+To load all files whose names begin with `products` and end in a `csv`
+extension, located under <Badge color="gray">../data</Badge>, into a table named `product`:
+
+{/* Source: /examples/sql/csv.kisql (lines 65-67) */}
+```sql INSERT INTO ... SELECT ... FROM FILE (Multiple File) Example
+INSERT INTO example.product
+SELECT *
+FROM FILE."../data/products*csv"
+```
+
+
+#### Options
+
+
+<p><strong>Column/Field Names</strong></p>
+
+
+To load specific fields from a product data file located at
+<Badge color="gray">../data/products.csv</Badge> into specific target table columns:
+
+{/* Source: /examples/sql/csv.kisql (lines 73-75) */}
+```sql INSERT INTO ... SELECT ... FROM FILE (Column/Field Names) Example
+INSERT INTO example.product (id, stock, category, name)
+SELECT ID, Stock, Category, Name
+FROM FILE."../data/products.csv"
+```
+
+
+<Info>
+When specifying source data file field names, it is not required that
+target table column names also be specified, or vice versa.  The only
+requirement is that the set of source data file fields selected align with
+the target table columns into which data will be inserted.
+</Info>
+
+
+<p><strong>Load Options</strong></p>
+
+
+To load data from a product data file with the following options:
+
+* file located at <Badge color="gray">../data/products.csv</Badge>
+* only records *4* through *10* will be loaded
+* any error will cause the insert to fail
+* the target table will be truncated before loading
+* records will be inserted into the table in groups of *2*
+
+{/* Source: /examples/sql/csv.kisql (lines 81-88) */}
+```sql INSERT INTO ... SELECT ... FROM FILE with Load Options Example
+INSERT INTO example.product
+SELECT *
+FROM FILE."../data/products.csv"
+BATCH_SIZE=2
+INITIAL_CLEAR
+LIMIT=7
+ON_ERROR=abort
+SKIP=3
+```
+
+To load data from a product data file with the following options:
+
+* file located at <Badge color="gray">../data/products.ssv</Badge>
+* the file has a header
+* the field delimiter is a semicolon
+* data requiring quotes will have single quotes as the quoting character
+* the escape character is the backtick
+* the data file represents *null* values as `<null>`
+* data file comments are on lines starting with `--`
+
+{/* Source: /examples/sql/csv.kisql (lines 93-101) */}
+``` INSERT INTO ... SELECT ... FROM FILE with Parse Options Example
+INSERT INTO example.product
+SELECT *
+FROM FILE."../data/products.ssv"
+COMMENT='--'
+DELIMITER=';'
+ESCAPE='`'
+HEADER=Y
+NULL='<null>'
+QUOTE='\''
+```
+
+
+### Considerations
+
+
+*Multi-Head*
+
+* If [Multi-Head Ingest](/content/tuning/multihead/multihead_ingest) has been
+  [enabled on the database server](/content/tuning/multihead/multihead_ingest#multi-head-ingest-configuration), file
+  loading through ODBC/JDBC will automatically leverage it, when
+  [applicable](/content/tuning/multihead/multihead_ingest#multi-head-ingest-considerations).
+
+*Blank Lines*
+
+* A blank line in a source data file will be treated as a valid record and will
+  be inserted into the target table as a record with all null fields.  If blank
+  lines should not be considered as data, they should be prefixed with the
+  comment marker in order to be skipped by the loading process.
+
+*GAdmin*
+
+* While [GAdmin](/content/admin/gadmin/query#gadmin-sql) does not support this command, it
+  does support [importing data](/content/admin/gadmin/data#import-data) from client-local
+  files directly.
+
+[/execute/sql](/content/api/rest/execute_sql_rest) *endpoint*
+
+* While SQL file ingestion is available to ODBC/JDBC clients;
+  it is not supported within the [/execute/sql](/content/api/rest/execute_sql_rest) endpoint,
+  either as a REST call directly or as an API call (like the *Python* API's
+  `execute_sql()` function).

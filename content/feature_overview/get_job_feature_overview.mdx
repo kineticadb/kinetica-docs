@@ -1,0 +1,40 @@
+---
+title: Get Asynchronous Job Result
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="get-job-feature-overview"></a>
+
+
+Get the status and result of asynchronously running job.  See the
+[Create Asynchronous Job](/content/feature_overview/create_job_feature_overview#create-job-feature-overview) for
+starting an asynchronous job.  Some fields of the response are filled only
+after the submitted job has finished execution.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| job_id | long | A unique identifier for the job whose status and result is to be fetched. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> job_tag: Job tag returned in call to create the job. |
+
+
+## Output Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| endpoint | string | The endpoint which is being executed asynchronously.  E.g. '/alter/table'. |
+| job_status | string | Status of the submitted job. <br/> <br/> RUNNING: The job is currently executing. <br/> <br/> DONE: The job execution has successfully completed and the response is included in the output parameter *job_response* or output parameter *job_response_str* field. <br/> <br/> ERROR: The job was attempted, but an error was encountered. The output parameter *status_map* contains the details of the error in error_message. <br/> <br/> CANCELLED: Job cancellation was requested while the execution was in progress. |
+| running | boolean | True if the end point is still executing. |
+| progress | int | Approximate percentage of the job completed. |
+| successful | boolean | True if the job execution completed and no errors were encountered. |
+| response_encoding | string | The encoding of the job result (contained in output parameter *job_response* or output parameter *job_response_str*. <br/> <br/> binary: The job result is binary-encoded. It is contained in output parameter *job_response*. <br/> <br/> json: The job result is JSON-encoded. It is contained in output parameter *job_response_str*. |
+| job_response | bytes | The binary-encoded response of the job. This field is populated only when the job has completed and output parameter *response_encoding* is *binary*. |
+| job_response_str | string | The json-encoded response of the job.  This field is populated only when the job has completed and output parameter *response_encoding* is *json*. |
+| status_map | map of string to strings | Map of various status strings for the executed job. <br/> <br/> error_message: Explains what error occurred while running the job asynchronously. This entry only exists when the job status is *ERROR*. |
+| info | map of string to strings | Additional information. |

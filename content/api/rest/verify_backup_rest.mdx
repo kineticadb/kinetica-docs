@@ -1,0 +1,44 @@
+---
+title: /verify/backup
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="verify-backup-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/verify/backup
+```
+Inspects the requested database
+[backup(s)](../../../admin/backup_restore/#database-backup) for conformity
+at the remote file store accessible via the
+[data source](../../../concepts/data_sources/) specified by input parameter
+*datasource_name*. By default all snapshots are inspected unless the option
+*backup_id* is used to target a specific instance. Returns backup verification
+results.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| backup_name | string | Name of the backup. An empty string or '*' will check all existing backups. Any text followed by a '*' will inspect backups whose name starts with that text. <br/> <br/> The default value is ''. |
+| datasource_name | string | Data source through which the backup is accessible. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> backup_id: ID of the snapshot to verify. Set to '-1' to verify only the most recent snapshot in the backup. Leave empty to verify all snapshots. The default value is `-1`. |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'verify_backup_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /verify/backup endpoint: <br/> <br/> backup_name: [string] Value of input parameter *backup_name*. <br/> <br/> backup_names: [array of strings] Backup name(s). <br/> <br/> backup_ids: [array of arrays of longs] IDs of individual snapshots per backup name. <br/> <br/> errors: [array of arrays of strings] Any errors detected from the inspection of each backup. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

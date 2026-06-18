@@ -1,0 +1,238 @@
+---
+title: Unpivot
+---
+
+<a id="unpivot"></a>
+
+
+The *unpivot* operation works much the same as the SQL concept: "rotating" a
+set of column headers (and the associated values) into rows to create a more
+normalized table that's longer and narrower. It is nearly the opposite of
+the [pivot](/content/concepts/pivot) operation, though it will not be able to unmerge
+records and restore nulls that were aggregated by the *pivot* operation. You can
+perform *unpivot* operations using [/aggregate/unpivot](/content/api/rest/aggregate_unpivot_rest#aggregate-unpivot-rest) or
+via the SQL [UNPIVOT](/content/sql/query#sql-unpivot) function.  Visit the [Aggregation](/content/concepts/aggregation)
+documentation to review details on aggregating data.
+
+An *unpivot* operation could be used to convert a table like this:
+
+{/* Source: /examples/python/unpivot.out (lines 7-12) */}
+```
++--------+--------------+--------------+--------------+
+| name   | home_phone   | work_phone   | cell_phone   |
+|--------+--------------+--------------+--------------|
+| Jane   | 123-456-7890 | 111-222-3333 |              |
+| John   | 123-456-7890 |              | 333-222-1111 |
++--------+--------------+--------------+--------------+
+```
+
+into a table like this:
+
+{/* Source: /examples/python/unpivot.out (lines 29-38) */}
+```
++--------+--------------+----------------+
+| name   | phone_type   | phone_number   |
+|--------+--------------+----------------|
+| Jane   | Cell         |                |
+| Jane   | Home         | 123-456-7890   |
+| Jane   | Work         | 111-222-3333   |
+| John   | Cell         | 333-222-1111   |
+| John   | Home         | 123-456-7890   |
+| John   | Work         |                |
++--------+--------------+----------------+
+```
+
+Each original record will become three records in the unpivoted version, one for
+each phone type & number associated with the name.  Note that nulls in the
+source data will still result in an output record being produced; e.g., a
+contact with no cell phone number will still have a record in the unpivoted
+output attributing a null phone number with the cell phone type to that contact.
+
+The results of an *unpivot* may be written to a separate
+[memory-only table](/content/concepts/tables_memory_only) using the `result_table` option.
+This table can be persisted (like normal [tables](/content/concepts/tables)) using the
+`result_table_persist` option.
+
+A *memory-only table* name must adhere to the standard
+[naming criteria](/content/concepts/tables#table-naming-criteria). Each *memory-only table*
+exists within a [schema](/content/concepts/schemas) and follows the standard
+[name resolution rules](/content/concepts/tables#table-name-resolution) for *tables*.
+
+
+## Examples
+
+
+### Customer
+
+
+Given a source table `customer_contact`, which lists the name, ID, and home,
+work, & cell phone numbers for each customer in the table:
+
+{/* Source: /examples/python/unpivot.out (lines 7-12) */}
+```
++--------+--------------+--------------+--------------+
+| name   | home_phone   | work_phone   | cell_phone   |
+|--------+--------------+--------------+--------------|
+| Jane   | 123-456-7890 | 111-222-3333 |              |
+| John   | 123-456-7890 |              | 333-222-1111 |
++--------+--------------+--------------+--------------+
+```
+
+An *unpivot* operation can be performed like so, creating separate
+home, work, & cell phone records for each customer without copying over their
+names:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/unpivot.kisql (lines 49-62) */}
+```sql SQL
+SELECT *
+FROM
+(
+    SELECT
+        name,
+        Home_Phone AS Home,
+        Work_Phone AS Work,
+        Cell_Phone AS Cell
+    FROM
+        example.customer_contact
+)
+UNPIVOT (
+    phone_number FOR phone_type IN (Home, Work, Cell)
+)
+```
+
+{/* Source: /examples/python/unpivot.py (lines 108-120) */}
+```python Python
+kinetica.aggregate_unpivot(
+    table_name= "example.customer_contact",
+    column_names= ["name"],
+    variable_column_name = "phone_type",
+    value_column_name = "phone_number",
+    pivoted_columns = [
+        "home_phone AS Home",
+        "work_phone AS Work",
+        "cell_phone AS Cell"
+    ],
+    encoding= "json",
+    options= {"order_by": "name, phone_type"}
+)
+```
+
+</CodeGroup>
+
+The resulting table looks like this
+
+{/* Source: /examples/python/unpivot.out (lines 29-38) */}
+```
++--------+--------------+----------------+
+| name   | phone_type   | phone_number   |
+|--------+--------------+----------------|
+| Jane   | Cell         |                |
+| Jane   | Home         | 123-456-7890   |
+| Jane   | Work         | 111-222-3333   |
+| John   | Cell         | 333-222-1111   |
+| John   | Home         | 123-456-7890   |
+| John   | Work         |                |
++--------+--------------+----------------+
+```
+
+
+### Student
+
+
+Given a source table `student_grade`, which lists each student's quarterly
+grades as separate columns in a single record:
+
+{/* Source: /examples/python/unpivot.out (lines 16-22) */}
+```
++--------------+------------+------------+------------+------------+
+|   student_id |   q1_grade |   q2_grade |   q3_grade |   q4_grade |
+|--------------+------------+------------+------------+------------|
+|            1 |         80 |         90 |         85 |         95 |
+|            2 |         82 |            |         87 |         92 |
+|            3 |         73 |         77 |         97 |            |
++--------------+------------+------------+------------+------------+
+```
+
+Performing an *unpivot* operation on the table converts
+it into a table with separate records for each quarterly grade:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/unpivot.kisql (lines 68-73) */}
+```sql SQL
+SELECT *
+FROM example.student_grade
+UNPIVOT
+(
+    grade FOR quarter IN (q1_grade, q2_grade, q3_grade, q4_grade)
+)
+```
+
+{/* Source: /examples/python/unpivot.py (lines 140-153) */}
+```python Python
+kinetica.aggregate_unpivot(
+    table_name = "example.student_grade",
+    column_names = ["*"],
+    variable_column_name = "quarter",
+    value_column_name = "grade",
+    pivoted_columns = [
+        "q1_grade AS q1",
+        "q2_grade AS q2",
+        "q3_grade AS q3",
+        "q4_grade AS q4"
+    ],
+    encoding= "json",
+    options= {"order_by": "student_id"}
+)
+```
+
+</CodeGroup>
+
+The resulting table looks like this:
+
+{/* Source: /examples/python/unpivot.out (lines 42-57) */}
+```
++--------------+-----------+---------+
+|   student_id | quarter   |   grade |
+|--------------+-----------+---------|
+|            1 | q1        |      80 |
+|            1 | q2        |      90 |
+|            1 | q3        |      85 |
+|            1 | q4        |      95 |
+|            2 | q1        |      82 |
+|            2 | q2        |         |
+|            2 | q3        |      87 |
+|            2 | q4        |      92 |
+|            3 | q1        |      73 |
+|            3 | q2        |      77 |
+|            3 | q3        |      97 |
+|            3 | q4        |         |
++--------------+-----------+---------+
+```
+
+
+## Limitations
+
+
+* The *unpivot* operation cannot be applied to *vector* or *array*
+  [data types](/content/concepts/types), meaning they cannot appear in the
+  `pivoted_columns` list.
+* The column types for the `pivoted_columns` must match, e.g., `int8` to
+  `int8`, `char4` to `char4`, etc.
+
+
+### Unpivot Memory-Only Tables
+
+
+* Creating a *memory-only table* results in an entirely new data set, so be
+  mindful of the memory usage implications.
+* If an *unpivot memory-only table* is created and its source data set's rows
+  are updated (or removed), the *memory-only table* will not be updated to
+  reflect the changes in the source data set.
+* An *unpivot memory-only table* is transient, by default, and will expire after
+  the default [TTL](/content/concepts/ttl) setting.
+* An *unpivot memory-only table* is not persisted, by default, and will not
+  survive a database restart; specifying a `result_table_persist` option of
+  `true` will make the *table* permanent and not expire.

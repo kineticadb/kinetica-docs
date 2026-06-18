@@ -1,0 +1,1025 @@
+---
+title: Python Developer Guide
+description: Step-by-step instructions on writing Python applications with Kinetica
+slug: python_guide
+# time_estimate: 30 MIN
+---
+
+<a id="um-python-label"></a>
+
+
+The following guide provides step-by-step instructions to get started writing
+*Python* applications using *Kinetica*. This guide demonstrates only a small set
+of the available API.  A detailed description of the complete interface is
+available under [Python API Reference](/content/api/python).
+
+
+## Prerequisites
+
+
+The prerequisites for running the match graph example are listed below:
+
+* Python API
+* [Tutorial script](/examples/python/python_tutorial.py)
+* [Taxi trip data CSV file](/examples/data/taxi_trip_data.csv)
+
+
+<a id="python-api-installation"></a>
+
+
+### Python API Installation
+
+
+   When using this include, precede it with the following heading:
+
+
+### Python API Installation
+
+
+Depending on the target operating system, a Python virtual environment may need
+to be installed first:
+
+* [Python Virtual Environment](#python-virtual-environment)
+
+The native *Kinetica Python API* is accessible through the following means:
+
+* [PyPI](#pypi)
+* [Git](#git)
+
+
+#### Python Virtual Environment
+
+
+A Python virtual environment is necessary to install in an operating environment
+where Python is externally managed.
+
+1. Install a Python virtual environment:
+
+
+   ```bash
+   python3 -m venv .venv
+   ```
+
+2. Activate the Python virtual environment:
+
+
+   ```bash
+   source .venv/bin/activate
+   ```
+
+
+#### PyPI
+
+
+1. Install the API:
+
+
+   ```bash
+   pip3 install gpudb
+   ```
+
+2. Test the installation:
+
+
+   ```python
+   python3 -c "import gpudb;print('Import Successful')"
+   ```
+
+   If *Import Successful* is displayed, the API has been installed as is ready
+   for use.
+
+
+#### Git
+
+
+1. In the desired directory, run the following, but be sure to replace
+   `<kinetica-version>` with the name of the installed Kinetica version,
+   e.g., `v7.2`:
+
+
+   ```bash
+   git clone -b release/<kinetica-version> --single-branch https://github.com/kineticadb/kinetica-api-python.git
+   ```
+
+2. Change directory into the newly downloaded repository:
+
+
+   ```bash
+   cd kinetica-api-python
+   ```
+
+3. In the root directory of the unzipped repository, install the Kinetica API:
+
+
+   ```bash
+   sudo pip3 install .
+   ```
+
+4. Test the installation (*Python3* is necessary for running the API example):
+
+
+   ```bash
+   python3 examples/example.py
+   ```
+
+
+### Data File
+
+
+The tutorial script references the <Badge color="gray">taxi_trip_data.csv</Badge> data file,
+mentioned in the [Prerequisites](#prerequisites), in the current local directory, by default.
+This directory can specified as a parameter when running the script.
+
+
+## Connecting to the Database
+
+
+To interact with Kinetica, you must first instantiate an object of the
+[GPUdb](../../api/python/?source/gpudb.html) class while providing the
+connection URL, username, & password to the database server.  For more details
+on connecting to the database, see [Connecting via API](/content/api/concepts#api-conn).
+
+{/* Source: /examples/python/python_tutorial.py (lines 1090) */}
+```python Connect to the Database
+kdb = gpudb.GPUdb(host = args.url, username = args.username, password = args.password)
+```
+
+
+## Creating a Schema
+
+
+All [tables](/content/concepts/tables) &
+[views](/content/concepts/views) must be created within a
+[schema](/content/concepts/schemas).  So, the first step will be to create
+a *schema* to contain all of the *tables* & *views* created within this
+tutorial.
+
+{/* Source: /examples/python/python_tutorial.py (lines 25 62) */}
+```python Create Tutorial Schema
+schema = "tutorial_python"
+kdb.create_schema(schema)
+```
+
+
+## Creating a Type
+
+
+Before a *table* can be created and any data can be loaded into it, a
+[type](/content/concepts/types) needs to be defined.  The *type* is the set
+of column definitions for the *table*, structured as a list of lists, where each
+contained list corresponds to a single column definition.  Each column
+comprises at least two values:  a column name (always the first value) and a
+*base type* (always the second value).  Any subsequent values are column
+properties.  You can also use the
+[GPUdbColumnProperty](../../api/python/?source/gpudbcolumnproperty.html)
+object in addition to literal string values to help define a column.
+
+For this tutorial, three *types* will be used to create three corresponding
+*tables*:
+
+* A base *table* containing a sample of NYC taxi cab ride data
+* A lookup *table* containing sample cab vendor information (created in the
+  example below)
+* A 1-to-1 relation *table* containing payment information for a subset of the
+  cab-ride transactions
+
+The definition of the *type* for the `vendor` *table* follows:
+
+{/* Source: /examples/python/python_tutorial.py (lines 75-99) */}
+```python Define a Type
+vendor_columns = [
+    # column types and properties can be listed as strings
+    ["vendor_id", "string", "char4", "primary_key"],
+    ["vendor_name", "string", "char64"],
+    ["phone", "string", "char16", "nullable"],
+    ["email", "string", "char64", "nullable"],
+    ["hq_street", "string", "char64"],
+    # column properties can also be listed using the GPUdbColumnProperty
+    # object
+    [
+        "hq_city",
+        "string",
+        gpudb.GPUdbColumnProperty.CHAR8,
+        gpudb.GPUdbColumnProperty.DICT
+    ],
+    [
+        "hq_state",
+        "string",
+        gpudb.GPUdbColumnProperty.CHAR8,
+        gpudb.GPUdbColumnProperty.DICT
+    ],
+    ["hq_zip", "int"],
+    ["num_emps", "int"],
+    ["num_cabs", "int"]
+]
+```
+
+
+<Info>
+While the type is just defined here, it will be created implicitly
+when first used to create a table, shown below.
+</Info>
+
+
+## Creating a Table
+
+
+After you've defined a *type* list, you can create a *table* using the
+[GPUdbTable](../../api/python/?source/gpudbtable.html) interface, passing in
+the *type*, the name of the *table*, any *table* options, and a handle to the
+database connection.
+
+{/* Source: /examples/python/python_tutorial.py (lines 108-113) */}
+```python Create a Table
+table_vendor_obj = gpudb.GPUdbTable(
+    _type = vendor_columns,
+    name = table_vendor,
+    options = {"is_replicated": "true"},
+    db = kdb
+)
+```
+
+To pass in table creation options, you can either specify a Python map, as
+above, or you can use the
+[GPUdbTableOptions](../../api/python/?source/gpudbtableoptions.html) object
+instead:
+
+{/* Source: /examples/python/python_tutorial.py (lines 121) */}
+```python Use GPUdbTableOptions Instead of Raw Map for Options
+creation_options = gpudb.GPUdbTableOptions.default().is_replicated(True)
+```
+
+
+<Note>
+At this point in the tutorial, a `payment` and
+`taxi_trip_data` type and table are also created.
+</Note>
+
+To acquire a [GPUdbTable](../../api/python/?source/gpudbtable.html) object for
+a *table* that already exists, pass in a `_type` of `None`:
+
+{/* Source: /examples/python/python_tutorial.py (lines 124) */}
+```python Get a Handle to an Existing Table
+table_vendor_obj = gpudb.GPUdbTable(_type=None, name=table_vendor, db=kdb)
+```
+
+
+## Inserting Data
+
+
+You can insert single records or multiple records using the
+[insert_records](../../api/python/?source/gpudbtable.html#gpudb.GPUdbTable.insert_records)
+method. As mentioned previously, the number and order of values must match the
+column declarations found in the [type creation](#creating-a-type) step. In
+*Python*, you can pass a value of `None` for null values, but the column must
+be declared nullable when creating the *type* schema.
+
+
+<Info>
+The following methods are not the only way to insert records, but they
+are the simplest.  There is a convenience class called
+[GPUdbIngestor](../../api/python/?source/gpudbingestor.html) and an
+automatic multi-head capability available through
+[GPUdbTable](../../api/python/?source/gpudbtable.html), which facilitate
+inserting records into a table in batches; see
+[Distributed Ingest](/content/tuning/multihead/multihead_ingest) for details.
+</Info>
+
+
+### Key/Value Record
+
+
+In this example, a dictionary object will be used to map key/value pairs to
+table column values.
+
+{/* Source: /examples/python/python_tutorial.py (lines 188-202) */}
+```python Insert by Dictionary
+# Create ordered dictionary for keys & values of record
+payment_datum = collections.OrderedDict()
+payment_datum["payment_id"] = 189
+payment_datum["payment_type"] = "No Charge"
+payment_datum["credit_type"] = None
+payment_datum["payment_timestamp"] = None
+payment_datum["fare_amount"] = 6.5
+payment_datum["surcharge"] = 0
+payment_datum["mta_tax"] = 0.6
+payment_datum["tip_amount"] = 0
+payment_datum["tolls_amount"] = 0
+payment_datum["total_amount"] = 7.1
+
+# Insert the record into the table
+table_payment_obj.insert_records(payment_datum)
+```
+
+
+### In-Line Record
+
+
+In this example, records will be defined in-line and added to a list.  They can
+either be inserted as a single list of lists, as is done here, or as individual
+lists, one per record.
+
+{/* Source: /examples/python/python_tutorial.py (lines 207-230) */}
+```python Insert by List
+# Create a list of in-line records. The order of the values must match the
+# column order in the type
+vendor_records = [
+    ["VTS", "Vine Taxi Service", "9998880001", "admin@vtstaxi.com",
+     "26 Summit St.", "Flushing", "NY", 11354, 450, 400],
+    ["YCAB", "Yes Cab", "7895444321", None, "97 Edgemont St.", "Brooklyn",
+     "NY", 11223, 445, 425],
+    ["NYC", "New York City Cabs", None, "support@nyc-taxis.com",
+     "9669 East Bayport St.", "Bronx", "NY", 10453, 505, 500],
+    ["DDS", "Dependable Driver Service", None, None,
+        "8554 North Homestead St.", "Bronx", "NY", 10472, 200, 124],
+    ["CMT", "Crazy Manhattan Taxi", "9778896500",
+     "admin@crazymanhattantaxi.com", "950 4th Road Suite 78", "Brooklyn",
+     "NY", 11210, 500, 468],
+    ["TNY", "Taxi New York", None, None, "725 Squaw Creek St.", "Bronx",
+     "NY", 10458, 315, 305],
+    ["NYMT", "New York Metro Taxi", None, None, "4 East Jennings St.",
+     "Brooklyn", "NY", 11228, 166, 150],
+    ["5BTC", "Five Boroughs Taxi Co.", "4566541278", "mgmt@5btc.com",
+     "9128 Lantern Street", "Brooklyn", "NY", 11229, 193, 175]
+]
+
+# Insert the records into the Vendor table
+table_vendor_obj.insert_records(vendor_records)
+```
+
+
+### CSV
+
+
+CSV and other data files can be loaded into Kinetica via
+[KiFS](/content/tools/kifs) using two lines of code:
+
+1. Upload the local file to *KiFS* using
+   [upload_files](../../api/python/?source/gpudb.html#gpudb.GPUdb.upload_files),
+   passing the *KiFS* path to upload to and the bytes of the file to upload.
+2. Insert the data from the uploaded file in *KiFS* using
+   [insert_records_from_files](../../api/python/?source/gpudb.html#gpudb.GPUdb.insert_records_fromfiles),
+   passing the name of the table to load data into and the *KiFS* path to the
+   source file.
+
+{/* Source: /examples/python/python_tutorial.py (lines 275-276) */}
+```python Insert from File
+kdb.upload_files("/data/" + CSV_FILE, open(csv_path, "rb").read())
+kdb.insert_records_from_files(table_taxi, ["kifs://data/" + CSV_FILE])
+```
+
+
+<Info>
+The *KiFS* directory must already exist before uploading a file into
+it.  The
+[create_directory](../../api/python/?source/gpudb.html#gpudb.GPUdb.create_directory)
+method can be used to create this directory.
+</Info>
+
+
+## Retrieving Data
+
+
+Once the [table](/content/concepts/tables) is populated with data, the data can be
+retrieved using binary encoding or JSON encoding. Binary encoding is more
+efficient than JSON encoding. The example below uses the
+[GPUdbTable.get_records](../../api/python/?source/gpudbtable.html#gpudb.GPUdbTable.get_records)
+method and binary encoding:
+
+{/* Source: /examples/python/python_tutorial.py (lines 284-312) */}
+```python Retrieve Records (Binary Encoding via GPUdbTable class)
+# Retrieve no more than 10 records from the Payment table using the
+# GPUdbTable interface with binary encoding
+print("{:>10s} {:<12s} {:<11s} {:<17s} {:<11s} {:<9s} {:<7s} {:<10s} {:<12s} {:<12s}".format(
+        "Payment ID", "Payment Type", "Credit Type", "Payment Timestamp", "Fare Amount",
+        "Surcharge", "MTA Tax", "Tip Amount", "Tolls Amount", "Total Amount"
+))
+print("{:=>10s} {:=<12s} {:=<11s} {:=<17s} {:=<11s} {:=<9s} {:=<7s} {:=<10s} {:=<12s} {:=<12s}".format(
+        "", "", "", "", "", "", "", "", "", ""
+))
+for record in table_payment_obj.get_records(
+    offset = 0,
+    limit = 10,
+    encoding = "binary",
+    options = {"sort_by": "payment_id"}
+):
+    print("{payment_id:>10d} {payment_type:<12s} {credit_type:<11s} {payment_timestamp:>17} " \
+        "{fare_amount:11.2f} {surcharge:9.2f} {mta_tax:7.2f} {tip_amount:10.2f} " \
+        "{tolls_amount:12.2f} {total_amount:12.2f}".format(
+            payment_id=record["payment_id"],
+            payment_type=(record["payment_type"] or ""),
+            credit_type=(record["credit_type"] or ""),
+            payment_timestamp=(record["payment_timestamp"] or ""),
+            fare_amount=record["fare_amount"],
+            surcharge=record["surcharge"],
+            mta_tax=record["mta_tax"],
+            tip_amount=record["tip_amount"],
+            tolls_amount=record["tolls_amount"],
+            total_amount=record["total_amount"]
+    ))
+```
+
+This example demonstrates JSON encoding record retrieval, using the
+[GPUdb.get_records](../../api/python/?source/gpudb.html#gpudb.GPUdb.get_records)
+method:
+
+{/* Source: /examples/python/python_tutorial.py (lines 315-335) */}
+```python Retrieve Records (JSON Encoding via GPUdb class)
+# Retrieve all records from the Vendor table using the GPUdb interface with JSON encoding
+print("{:<9s} {:<26s} {:<11s} {:<29s} {:<24s} {:<8s} {:<8s} {:<6s} {:<11s} {:<6s}".format(
+        "Vendor ID", "Vendor Name", "Phone", "Email", "HQ Street",
+        "HQ City", "HQ State", "HQ Zip", "# Employees", "# Cabs"
+))
+print("{:=<9s} {:=<26s} {:=<11s} {:=<29s} {:=<24s} {:=<8s} {:=<8s} {:=<6s} {:=<11s} {:=<6s}".format(
+        "", "", "", "", "", "", "", "", "", ""
+))
+vendor_records_gpudb = kdb.get_records(
+    table_name = table_vendor,
+    offset = 0,
+    limit = gpudb.GPUdb.END_OF_SET,
+    encoding = "json",
+    options = {"sort_by": "vendor_id"}
+)["records_json"]
+for record in vendor_records_gpudb:
+    rec = json.loads(record)
+    rec["phone"] = rec["phone"] or ""
+    rec["email"] = rec["email"] or ""
+    print("{vendor_id:<9s} {vendor_name:<26s} {phone:<11} {email:<29s} {hq_street:<24s} " \
+        "{hq_city:<8s} {hq_state:<8s} {hq_zip:<6d} {num_emps:11d} {num_cabs:6d}".format(**rec))
+```
+
+For large *tables*, the data can be easily be retrieved in smaller blocks by
+using the `offset` and `limit` parameters.  The returned response also
+contains the *type* (column definitions) of the results.
+
+
+## Updating Records
+
+
+Using any [GPUdbTable](../../api/python/?source/gpudbtable.html) object, you can
+update records via the
+[update_records](../../api/python/?source/gpudbtable.html#gpudb.GPUdbTable.update_records)
+method.
+
+{/* Source: /examples/python/python_tutorial.py (lines 341-350) */}
+```python Update Records
+# Update the e-mail of, and add two employees and one cab to, the DDS vendor
+table_vendor_obj.update_records(
+    expressions = ["vendor_id = 'DDS'"],
+    new_values_maps = {
+        "email": "'management@ddstaxico.com'",
+        "num_emps": "num_emps + 2",
+        "num_cabs": "num_cabs + 1"
+    },
+    options = {"use_expressions_in_new_values_maps":"true"}
+)
+```
+
+
+## Deleting Records
+
+
+You can delete records using the
+[delete_records](../../api/python/?source/gpudbtable.html#gpudb.GPUdbTable.delete_records)
+method.  This method allows you to specify multiple filter expressions--note
+that each expression is used to delete records independently from the others
+(i.e., a record only needs to meet any one expression's criteria to be deleted
+from the table).  Set `delete_all_records` to `True` in the `options` map
+to delete all records in the table.
+
+{/* Source: /examples/python/python_tutorial.py (lines 392 395 397) */}
+```python Delete Records
+# Delete payment 189
+delete_expr = ["payment_id = 189"]
+table_payment_obj.delete_records(expressions=delete_expr)
+```
+
+
+## Alter Table
+
+
+Some properties can be altered or added after *table* creation, using
+[alter_table](../../api/python/?source/gpudbtable.html#gpudb.GPUdbTable.alter_table),
+including [indexes](/content/concepts/indexes) and
+[dictionary encoding](/content/concepts/dictionary_encoding).
+
+
+### Indexes
+
+
+Using the
+[alter_table](../../api/python/?source/gpudbtable.html#gpudb.GPUdbTable.alter_table)
+method, you can create *indexes* on columns using the `create_index` *action*
+paired with a column name.
+
+{/* Source: /examples/python/python_tutorial.py (lines 408-412) */}
+```python Index Columns
+# Add column indexes on:
+#   - payment table, fare_amount (for query-chaining filter example)
+#   - taxi table, passenger_count (for filter-by-range example)
+table_payment_obj.alter_table(action="create_index", value="fare_amount")
+table_taxi_obj.alter_table(action="create_index", value="passenger_count")
+```
+
+
+### Dictionary Encoding
+
+
+Applying *dictionary encoding* via
+[alter_table](../../api/python/?source/gpudbtable.html#gpudb.GPUdbTable.alter_table)
+involves adding a new property to a column.
+
+{/* Source: /examples/python/python_tutorial.py (lines 427-432) */}
+```python Dictionary Encode Column
+# Apply dictionary encoding to the vendor_id column
+at_resp = table_taxi_obj.alter_table(
+    action = "change_column",
+    value = "vendor_id",
+    options = {"column_properties": "char4,dict"}
+)
+```
+
+
+<Note>
+To add a new property, all existing column properties must be
+listed along with any new properties.
+</Note>
+
+
+## Filters
+
+
+Filters are an easy way to reduce larger *tables* into more concise
+[views](/content/concepts/views) using
+[expressions](/content/concepts/expressions).
+
+{/* Source: /examples/python/python_tutorial.py (lines 457-459) */}
+```python Count Value-Filtered Records
+# Filter for only payments with no corresponding payment type, returning the
+# count of records found; allow Kinetica to assign a random name to the view
+f1_count = table_payment_obj.filter(expression="IS_NULL(payment_type)").size()
+```
+
+{/* Source: /examples/python/python_tutorial.py (lines 464-469) */}
+```python Count Using Filter Chaining; Name the Backing Views
+# Using GPUdbTable query chaining, filter null payment type records with a fare amount greater than 8
+f2_count = table_payment_obj.filter(
+    view_name = view_example1, expression = "IS_NULL(payment_type)"
+).filter(
+    view_name = view_example2, expression = "fare_amount > 8"
+).size()
+```
+
+{/* Source: /examples/python/python_tutorial.py (lines 474-477) */}
+```python Count List-Filtered Records
+# Filter by list where vendor ID is either NYC or YCAB
+f3_count = table_taxi_obj.filter_by_list(
+    view_name = view_example3, column_values_map = {"vendor_id": ["NYC", "YCAB"]}
+).size()
+```
+
+{/* Source: /examples/python/python_tutorial.py (lines 482-485) */}
+```python Count Range-Filtered Records
+# Filter by range trip with passenger count between 1 and 3
+f4_count = table_taxi_obj.filter_by_range(
+    view_name = view_example4, column_name = "passenger_count", lower_bound = 1, upper_bound = 3
+).size()
+```
+
+
+## Aggregates
+
+
+*Kinetica* supports various aggregate and group-by queries, which group and
+aggregate your data to return counts and useful statistics.
+
+{/* Source: /examples/python/python_tutorial.py (lines 494-502) */}
+```python Calculate Count/Min/Mean/Max
+# Aggregate count, min, mean, and max on the trip distance
+a1_resp = table_taxi_obj.aggregate_statistics(
+    column_name = "trip_distance",
+    stats = "count,min,max,mean"
+)["stats"]
+
+print("Statistics of values in the trip_distance column:")
+print("\tCount: {count:5.0f}\n\tMin:   {min:5.2f}\n\tMean:  {mean:5.2f}\n\tMax:   {max:5.2f}\n" \
+    "".format(**a1_resp))
+```
+
+{/* Source: /examples/python/python_tutorial.py (lines 505-515) */}
+```python Retrieve Unique Values
+# Find unique taxi vendor IDs
+a2_resp = table_taxi_obj.aggregate_unique(
+    column_name = "vendor_id",
+    offset = 0,
+    limit = gpudb.GPUdb.END_OF_SET,
+    encoding = "json"
+)["data"]["vendor_id"]
+
+print("Unique vendor IDs in the taxi trip table:")
+for vendor in a2_resp:
+    print("\t* {}".format(vendor))
+```
+
+{/* Source: /examples/python/python_tutorial.py (lines 519-529) */}
+```python Report Number of Records per Group
+# Find number of trips per vendor
+a3_resp = table_taxi_obj.aggregate_group_by(
+    column_names = ["vendor_id", "COUNT(vendor_id)"],
+    offset = 0,
+    limit = gpudb.GPUdb.END_OF_SET,
+    options = {"sort_by": "key"}
+)["data"]
+
+print("Trips per vendor:")
+for vendor in zip(a3_resp["vendor_id"], a3_resp["COUNT(vendor_id)"]):
+    print("\t{:<6s} {:3d}".format(vendor[0] + ":", vendor[1]))
+```
+
+{/* Source: /examples/python/python_tutorial.py (lines 533-546) */}
+```python Generate Histogram
+# Create a histogram for the different groups of passenger counts
+a4_resp = table_taxi_obj.aggregate_histogram(
+    column_name = "passenger_count",
+    start = 1,
+    end = 6,
+    interval = 1
+)["counts"]
+
+print("Passenger count groups by size:")
+print("{:<10s} {:<11s}".format("Passengers", "Total Trips"))
+print("{:=<10s} {:=<11s}".format("", ""))
+
+for histo_group in zip([1, 2, 3, 4, '>5'], a4_resp):
+    print("{:>10} {:11.0f}".format(*histo_group))
+```
+
+
+## Joins
+
+
+[Joins](/content/concepts/joins) allow you to link multiple *tables* together,
+along their relations, retrieving associated information from any or all of
+them.  Tables can only be *joined* if they're [sharded](/content/concepts/tables#sharded)
+similarly or [replicated](/content/concepts/tables#replicated).    All join types can be
+performed using the
+[create_join_table](../../api/python/?source/gpudbtable.html#gpudb.GPUdbTable.create_join_table)
+method.  This method is static and is not called with a corresponding
+[GPUdbTable](../../api/python/?source/gpudbtable.html) object.
+
+An *inner join* returns only records that have matching values in both *tables*.
+
+{/* Source: /examples/python/python_tutorial.py (lines 560-580) */}
+```python Inner Join
+# Retrieve payment information for rides having more than three passengers
+gpudb.GPUdbTable.create_join_table(
+    join_table_name = join_table_inner,
+    table_names = [
+        schema + ".taxi_trip_data as t",
+        schema + ".payment as p"
+    ],
+    column_names = [
+        "t.payment_id",
+        "payment_type",
+        "total_amount",
+        "passenger_count",
+        "vendor_id",
+        "trip_distance"
+    ],
+    expressions = [
+        "t.payment_id = p.payment_id",
+        "passenger_count > 3"
+    ],
+    db = kdb
+)
+```
+
+A *left join* returns all of the records an *inner join* does, but additionally,
+for each record in the table on the *left* side of the *join* that has no match
+along the relation to a record in the table on the *right* side of the *join*, a
+corresponding record will be returned with "left-side" columns populated with
+the "left-side" record data and the "right-side" columns populated with *nulls*.
+Note the usage of `left join` in the given expression.
+
+{/* Source: /examples/python/python_tutorial.py (lines 620-641) */}
+```python Left Join
+# Retrieve cab ride transactions and the full name of the associated vendor
+# (if available--blank if vendor name is unknown) for transactions with
+# associated payment data, sorting by increasing values of transaction ID.
+gpudb.GPUdbTable.create_join_table(
+    join_table_name = join_table_left,
+    table_names = [
+        schema + ".taxi_trip_data as t",
+        schema + ".vendor as v"
+    ],
+    column_names = [
+        "transaction_id",
+        "pickup_datetime",
+        "trip_distance",
+        "t.vendor_id",
+        "vendor_name"
+    ],
+    expressions = [
+        "LEFT JOIN t, v ON (t.vendor_id = v.vendor_id)",
+        "payment_id <> 0"
+    ],
+    db = kdb
+)
+```
+
+
+<Info>
+Full outer *joins* require both tables to be replicated or joined on
+their shard keys. Set merges that perform deduplication of records, like
+[Union Distinct](/content/concepts/unions),
+[Intersect](/content/concepts/intersect), and
+[Except](/content/concepts/except) also need to use replicated tables to
+ensure the correct results, so a replicated version of the taxi
+(`taxi_trip_data_replicated`) *table* is created at this point in the
+tutorial using
+[create_projection](../../api/python/?source/gpudbtable.html#gpudb.GPUdbTable.create_projection).
+</Info>
+
+{/* Source: /examples/python/python_tutorial.py (lines 681-698) */}
+```python Create Replicated Table for Full Outer Join
+kdb.create_projection(
+    table_name = table_taxi,
+    projection_name = table_taxi_replicated,
+    column_names = [
+        "transaction_id",
+        "payment_id",
+        "vendor_id",
+        "pickup_datetime",
+        "dropoff_datetime",
+        "passenger_count",
+        "trip_distance",
+        "pickup_longitude",
+        "pickup_latitude",
+        "dropoff_longitude",
+        "dropoff_latitude"
+    ],
+    options = {"is_replicated": "true"}
+)
+```
+
+A *full outer join* returns all of the records a *left join* does, but
+additionally, for each record in the table on the *right* side of the *join*
+that has no match along the relation to a record in the table on the *left* side
+of the *join*, a corresponding record will be returned with "right-side" columns
+populated with the "right-side" record data and the "left-side" columns
+populated with *nulls*.
+
+{/* Source: /examples/python/python_tutorial.py (lines 703-718) */}
+```python Full Outer Join
+# Retrieve the vendor IDs of known vendors with no recorded cab ride
+# transactions, as well as the vendor ID and number of transactions for
+# unknown vendors with recorded cab ride transactions
+gpudb.GPUdbTable.create_join_table(
+    join_table_name = join_table_outer,
+    table_names = [
+        schema + ".taxi_trip_data_replicated as t",
+        schema + ".vendor as v"
+    ],
+    column_names = [
+        "t.vendor_id as vendor_id",
+        "v.vendor_id as vendor_id_1"
+    ],
+    expressions = ["FULL_OUTER JOIN t,v ON ((v.vendor_id = t.vendor_id))"],
+    db = kdb
+)
+```
+
+
+## Projections
+
+
+You can create [projections](/content/concepts/projections) using the
+[create_projection](../../api/python/?source/gpudbtable.html#gpudb.GPUdbTable.create_projection)
+method.
+
+{/* Source: /examples/python/python_tutorial.py (lines 761-777) */}
+```python Create a Temporary Projection
+# Create a projection containing all payments by credit card
+table_payment_obj.create_projection(
+    projection_name = projection_example1,
+    column_names = [
+        "payment_id",
+        "payment_type",
+        "credit_type",
+        "payment_timestamp",
+        "fare_amount",
+        "surcharge",
+        "mta_tax",
+        "tip_amount",
+        "tolls_amount",
+        "total_amount"
+    ],
+    options = {"expression": "payment_type = 'Credit'"}
+)
+```
+
+To persist a *projection*:
+
+{/* Source: /examples/python/python_tutorial.py (lines 829-846) */}
+```python Create a Permanent Projection
+# Create a persisted table with cab ride transactions greater than 5 miles
+# whose trip started during lunch hours
+table_taxi_obj.create_projection(
+    projection_name = projection_example2,
+    column_names = [
+        "HOUR(pickup_datetime) as hour_of_day",
+        "vendor_id",
+        "passenger_count",
+        "trip_distance"
+    ],
+    options = {
+        "expression":
+            "(HOUR(pickup_datetime) >= 11) AND "
+            "(HOUR(pickup_datetime) <= 14) AND "
+            "(trip_distance > 5)",
+        "persist": "true"
+    }
+)
+```
+
+
+## Union, Intersect, & Except
+
+
+[Union](/content/concepts/unions) can be used to combine homogeneous data
+sets into one larger data set.  When calling the
+[create_union](../../api/python/?source/gpudbtable.html#gpudb.GPUdbTable.create_union)
+method, a `mode` of `union` or `union_distinct` will both combine data
+sets, but only retain the records that are unique across the chosen columns,
+removing all duplicates. Using `union_all` will combine data sets, retaining
+all records from the source data sets.
+
+{/* Source: /examples/python/python_tutorial.py (lines 893-949) */}
+```python Set Union Retaining Duplicates
+# Calculate the average number of passengers, as well as the shortest,
+# average, and longest trips for all trips in
+# each of the two time periods--from April 1st through the 15th, 2015 and
+# from April 16th through the 23rd, 2015--and return those two sets of
+# statistics in a single result set.
+table_taxi_obj.aggregate_group_by(
+    column_names = [
+        "AVG(passenger_count) as avg_pass_count",
+        "AVG(trip_distance) as avg_trip_dist",
+        "MIN(trip_distance) as min_trip_dist",
+        "MAX(trip_distance) as max_trip_dist"
+    ],
+    offset = 0,
+    limit = gpudb.GPUdb.END_OF_SET,
+    options = {
+        "expression":
+            "(pickup_datetime >= '2015-04-01') AND "
+            "(pickup_datetime <= '2015-04-15 23:59:59.999')",
+        "result_table": agg_grpby_union_all_src1
+    }
+)
+table_taxi_obj.aggregate_group_by(
+    column_names = [
+        "AVG(passenger_count) as avg_pass_count",
+        "AVG(trip_distance) as avg_trip_dist",
+        "MIN(trip_distance) as min_trip_dist",
+        "MAX(trip_distance) as max_trip_dist"
+    ],
+    offset = 0,
+    limit = gpudb.GPUdb.END_OF_SET,
+    options = {
+        "expression":
+            "(pickup_datetime >= '2015-04-16') AND "
+            "(pickup_datetime <= '2015-04-23 23:59:59.999')",
+        "result_table": agg_grpby_union_all_src2
+    }
+)
+gpudb.GPUdbTable.create_union(
+    table_name = union_all_table,
+    table_names = [
+        agg_grpby_union_all_src1,
+        agg_grpby_union_all_src2
+    ],
+    input_column_names = [
+        ["'2015-04-01 - 2015-04-15'", "avg_pass_count", "avg_trip_dist", "min_trip_dist", "max_trip_dist"],
+        ["'2015-04-16 - 2015-04-23'", "avg_pass_count", "avg_trip_dist", "min_trip_dist", "max_trip_dist"]
+    ],
+    output_column_names = [
+        "pickup_window_range",
+        "avg_pass_count",
+        "avg_trip",
+        "min_trip",
+        "max_trip"
+    ],
+    options = {"mode": "union_all"},
+    db = kdb
+)
+```
+
+Calling the
+[create_union](../../api/python/?source/gpudbtable.html#gpudb.GPUdbTable.create_union)
+method with a `mode` of `intersect` will perform a set
+[intersection](/content/concepts/intersect), which will combine data sets
+but only include the records found in both data sets, removing duplicate result
+records.  Using `intersect_all` will retain intersecting duplicates from both
+sets.
+
+{/* Source: /examples/python/python_tutorial.py (lines 985-999) */}
+```python Set Intersection
+# Retrieve locations (as lat/lon pairs) that were both pick-up and drop-off points
+gpudb.GPUdbTable.create_union(
+    table_name = union_intersect_table,
+    table_names = [
+        table_taxi_replicated,
+        table_taxi_replicated
+    ],
+    input_column_names = [
+        ["pickup_latitude", "pickup_longitude"],
+        ["dropoff_latitude", "dropoff_longitude"]
+    ],
+    output_column_names = ["latitude", "longitude"],
+    options = {"mode": "intersect"},
+    db = kdb
+)
+```
+
+Calling the
+[create_union](../../api/python/?source/gpudbtable.html#gpudb.GPUdbTable.create_union)
+method with a `mode` of `except` will perform a set
+[except](/content/concepts/except) (subtraction), which will return records
+that appear in the first data set but not the second data set.  Note that the
+data sets on each side of the *except* will have duplicates removed *first*, and
+then the set subtraction will be processed.  Using `except_all` will retain
+duplicates from the first set.
+
+{/* Source: /examples/python/python_tutorial.py (lines 1024-1059) */}
+```python Set Exception (Subtraction)
+# Show vendors that operate before noon, but not after noon: retrieve the
+# unique list of IDs of vendors who provided cab rides between midnight
+# and noon, and remove from that list the IDs of any vendors who provided
+# cab rides between noon and midnight
+table_taxi_replicated_obj.create_projection(
+    projection_name = projection_except_src1,
+    column_names = ["vendor_id"],
+    options = {
+        "expression":
+            "(HOUR(pickup_datetime) >= 0) AND "
+            "(HOUR(pickup_datetime) <= 11)"
+    }
+)
+table_taxi_replicated_obj.create_projection(
+    projection_name = projection_except_src2,
+    column_names = ["vendor_id"],
+    options = {
+        "expression":
+            "(HOUR(pickup_datetime) >= 12) AND "
+            "(HOUR(pickup_datetime) <= 23)"
+    }
+)
+gpudb.GPUdbTable.create_union(
+    table_name = union_except_table,
+    table_names = [
+        projection_except_src1,
+        projection_except_src2
+    ],
+    input_column_names = [
+        ["vendor_id"],
+        ["vendor_id"]
+    ],
+    output_column_names = ["vendor_id"],
+    options = {"mode": "except"},
+    db = kdb
+)
+```
+
+
+<a id="complete-sample-python"></a>
+
+
+## Download & Run
+
+
+Included below is a complete example containing all the above requests, the data
+file, and output.
+
+* [Python Tutorial Script](/examples/python/python_tutorial.py)
+* [Taxi Data File](/examples/data/taxi_trip_data.csv)
+* [Python Output](/examples/python/python_tutorial.out)
+
+To run the complete sample, ensure that:
+
+* the <Badge color="gray">python_tutorial.py</Badge> script is in the current directory
+* the <Badge color="gray">taxi_trip_data.csv</Badge> file is in the current directory or use
+  the `data_dir` parameter to specify the local directory containing it
+
+Then, run the following:
+
+```bash title="Run Example"
+python python_tutorial.py [--url <kinetica_url>] --username <username> --password <password> [--data_dir <data_file_directory>]
+```
+
+
+<Info>
+As this script creates a schema and several database objects within
+it, [system admin permission](/content/security/sec_concepts#security-concepts-permissions-system) is
+required to run it.
+</Info>

@@ -1,0 +1,338 @@
+---
+title: C++ UDF API
+---
+
+<a id="udf-cpp-writing-label"></a>
+
+
+The information below includes all the information one needs to know to begin
+writing *UDFs* using the *C++ UDF* API. For more information on executing
+*C++ UDFs*, see [Running C++ UDFs](/content/udf/cpp/running).
+
+
+## Dependencies
+
+
+To begin writing *C++ UDFs*, access to the *Kinetica C++ UDF* API is
+required. In default *Kinetica* installations, the *C++ UDF* API is
+located in the `/opt/gpudb/udf/api/cpp` directory.
+
+If developing *UDFs* without a local *Kinetica* installation, the API can be
+downloaded from the [C++ UDF API repo on GitHub](https://github.com/kineticadb/kinetica-udf-api-cpp.git).
+After downloading, see the <Badge color="gray">README.md</Badge> in the *UDF* API directory created
+for further setup instructions.
+
+The *UDF C++ API* consists of two files: <Badge color="gray">Proc.hpp</Badge> & <Badge color="gray">Proc.cpp</Badge>.
+These need to be included in the *make* process and the header file,
+<Badge color="gray">Proc.hpp</Badge> needs to be included in the *UDF* source code.  There are no
+external dependencies beyond the *C++ standard library*.
+
+To take advantage of GPU processing within a *UDF*, the *CUDA Toolkit* must be
+downloaded & installed from the
+[Nvidia Developer Zone](http://docs.nvidia.com/cuda/index.html).
+
+
+## Initializing
+
+
+A *UDF* must get a handle to `ProcData` using `kinetica::ProcData::get()`.
+This will parse the primary control file and set up all the necessary
+structures.  It will return a `kinetica::ProcData*` instance, which is used to
+access everything else.  All configuration information is cached, so repeated
+calls to `kinetica::ProcData::get()` will not reload any configuration files.
+
+
+<Note>
+When you get a handle to `ProcData`, the handle is actually
+to the data given to that instance (OS process) of the *UDF* on the
+*Kinetica* host; therefore, there will be a `ProcData` handle for every
+instance of the *UDF* on your *Kinetica* host
+</Note>
+
+
+## Column Types
+
+
+Unlike the other *Kinetica APIs*, the *UDF C++ API* does not process data using
+records or schemas, operating in terms of columns of data instead.  The raw
+column values returned closely map to the data types used in the *tables* being
+accessed:
+
+### Numeric
+
+| Column Type | UDF C++ Type |
+| --- | --- |
+| int | int32_t |
+| int8 | int8_t |
+| int16 | int16_t |
+| long | int64_t |
+| float | float |
+| double | double |
+| decimal | int64_t |
+
+### String
+
+| Column Type | UDF C++ Type |
+| --- | --- |
+| string | char* |
+| char[N] | char* |
+| ipv4 | uint32_t |
+
+### Date/Time
+
+| Column Type | UDF C++ Type |
+| --- | --- |
+| date | kinetica::Date |
+| datetime | kinetica::DateTime |
+| time | kinetica::Time |
+| timestamp | int64_t |
+
+### Binary
+
+| Column Type | UDF C++ Type |
+| --- | --- |
+| bytes | uint8_t* |
+
+
+While `CharN` column values are arrays of N *chars*, there is a template
+class, `kinetica::CharN<N>`, that makes accessing these easier (it does
+automatic to and from string conversions and provides accessors that make the
+*chars* appear to be in the expected order).  To access column values, use:
+
+```
+column.getValue<T>
+```
+For example, to retrieve the value for the 10th record as a *double*:
+
+```
+column.getValue<double>(10)
+```
+
+<Info>
+No type-checking is performed, so the correct type for the column
+must be used in this call.
+</Info>
+
+Both *string* & *bytes* columns are variable-length and are not able to be
+accessed directly by index.  To access *string* & *bytes* columns, use these two
+methods, respectively:
+
+```
+column.getVarString(n)
+column.getVarBytes(n)
+```
+To determine if a particular value of a *nullable* column is `null`, use:
+
+```
+isNull(n)
+```
+Calling `getValue`, `getVarString`, or `getVarBytes` on a `null` value
+causes undefined behavior, so always check first.  Calling `isNull` on a
+non-nullable column will always return false.
+
+For debugging purposes, there is also a `column.toString(n)` method that
+converts a specified column value to a string, regardless of type.
+
+
+## Reading Input Data
+
+
+| Call | Type | Description |
+| --- | --- | --- |
+| `procData->getInputData()` | Object | Returns an `InputDataSet` object for accessing input *table* data that was passed into the *UDF* |
+| `procData->getRequestInfo()` | Map of strings to strings | Returns a map of basic information about the [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) request, map values being accessed using: <br/> <br/> `procData->getRequestInfo().at(<map_key>)` <br/> <br/> The full set of map keys is listed below, under                     . |
+| `procData->getParams()` | Map of strings to strings | Returns a map of string-valued parameters that were passed into the *UDF* |
+| `procData->getBinParams()` | Map of strings to bytes | Returns a map of binary-valued parameters that were passed into the *UDF* |
+
+
+### Accessing Input Values
+
+
+The `InputDataSet` object returned from `procData->getInputData()` contains
+the `InputTable` object, which in turn contains `InputColumn`, holding the
+actual data set. Tables and columns can be accessed by index or by name. For
+example, given a `customer` table at `InputDataSet` index `5` and a
+`name` column at that `InputTable`'s index `1`, either of the following
+calls will retrieve the column values associated with `customer.name`:
+
+```
+procData.getInputData().getTable("customer").getColumn("name")
+procData.getInputData().getTable(5).getColumn(1)
+```
+
+### Request Info Keys
+
+
+The request info keys are returned from calling `proc_data.request_info`.
+These keys include a variety of details about the executing *UDF* from the
+request information map made available to each running *UDF*.
+
+
+#### General Information
+
+
+| Map Key | Description |
+| --- | --- |
+| `proc_name` | The name of the *UDF* being executed. |
+| `run_id` | The run ID of the *UDF* being executed. This is also displayed in *GAdmin* on the **UDF** page in the **Status** section as a link you can click on to get more detailed information; note that although this is an integer, it should not be relied upon as such, as its format may change in the future. |
+| `rank_number` | The processing node container number on which the current UDF instance is executing.  For distributed UDFs, *[1..n]*; for non-distributed UDFs, *0*. |
+| `tom_number` | The processing node number within the processing node container on which the current UDF instance is executing. For distributed UDFs, *[0..n-1]*, where *n* is the number of processing nodes per processing node container. For non-distributed UDFs it is not provided, since these do not run on a processing node. |
+| `<option_name>` | Any options passed in the `options` map in the [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) request will also be in the request info map. |
+
+
+#### CUDA Information
+
+
+When executing UDFs that utilize CUDA, additional request information is
+returned.
+
+| Map Key | Description |
+| --- | --- |
+| `cuda_devices` | The number of CUDA devices currently in use. |
+| `cuda_free` | The amount of CUDA memory available. |
+
+
+#### Data Segment Information
+
+
+Data is passed into *UDFs* in *segments*.  Each *segment* consists of the
+entirety of the data on a single *TOM* and is processed by the *UDF* instance
+executing on that *TOM*.  Thus, there is a 1-to-1 mapping of *data segment* and
+executing *UDF* instance, though this relationship may change in the future.
+
+Running the same *UDF* multiple times should result in the same set of
+*segments*, assuming the same environment and system state across runs.
+
+| Map Key | Description |
+| --- | --- |
+| `data_segment_id` | A unique identifier for the *segment* of the currently executing *UDF* instance. All of the *data segment IDs* for a given *UDF* execution are displayed in *GAdmin* when you click on the **run ID**; note that although it is possible to identify *rank* and *TOM* numbers from this ID, it should not be relied upon, as its format may change in the future. |
+| `data_segment_count` | The total cluster-wide count of *data segments* for distributed *UDFs*; for non-distributed *UDFs*, *1*. |
+| `data_segment_number` | The number of the current *data segment* or executing *UDF* instance *[0..data_segment_count-1]*. |
+
+
+#### Kinetica API Connection Parameters
+
+
+These can be used to connect back to *Kinetica* using the regular API endpoint
+calls.  Use with caution in distributed *UDFs*, particularly in large clusters,
+to avoid overwhelming the head node.  Also note, multi-head ingest may not work
+from a *UDF* in some cases without overriding the worker URLs to use internal IP
+addresses.
+
+| Map Key | Description |
+| --- | --- |
+| `head_url` | The URL to connect to. |
+| `username` | Randomly generated temporary username used to execute the *UDF*. |
+| `password` | Randomly generated temporary password used to execute the *UDF*. |
+
+
+<Note>
+Since `username` and `password` are randomly-generated
+temporary credentials, for security reasons, they should not be
+printed or output to logs.
+</Note>
+
+
+## Writing Output Data
+
+
+To output data to a *table*, the size of the *table* must be set in order to
+allocate enough space in all of the columns to hold the correct number of
+values.  To do this, call:
+
+```
+table.setSize()
+```
+| Call | Description |
+| --- | --- |
+| `procData->getResults()` | Returns a map that can be populated with string-valued results to be returned from the *UDF* |
+| `procData->getBinResults()` | Returns a map that can be populated with binary-valued results to be returned from the *UDF* |
+| `procData->getOutputData()` | Returns an `OutputDataSet` object for writing output *table* data that will be written to the database |
+
+
+### Setting Output Values
+
+
+The `OutputDataSet` object returned from `procData.getOutputData()` contains
+the `OutputTable` object, which in turn contains `OutputColumn`, holding the
+actual data set. Tables and columns are accessed the same way as
+`InputDataSet`:
+
+```
+procData->getOutputData().getTable("customer").getColumn("name")
+procData->getOutputData().getTable(5).getColumn(1)
+```
+There are two approaches to loading values into *Kinetica*:
+
+* appending a series of values to each table column
+* setting table column values by index
+
+The following methods are called on each `OutputColumn` of the
+`OutputTable`:
+
+* *Appending* (required for variable-length data)
+
+  * `appendValue(value)`
+  * `appendVarString(value)`
+  * `appendVarBytes(value)`
+  * `appendNull()`
+
+* *Setting by Index* (non-variable length data only)
+
+  * `setValue(n, value)`
+  * `setNull(n, value)`
+
+
+## Status Reporting
+
+
+The `procData->getStatus()` property can be set to a string value to help
+convey status information during *UDF* execution, e.g.,
+`procData->getStatus("25% complete")`. The [/show/proc/status](/content/api/rest/show_proc_status_rest#show-proc-status-rest)
+endpoint will return any status messages set for each data segment -- one data
+segment per processing node if in distributed mode, or one data segment total
+in non-distributed mode. These messages are subject to the following scenarios:
+
+* If the user-provided *UDF* code is executing and has set a status message,
+  `/show/proc/status` will return the last message that was set
+* If the user-provided *UDF* code finishes executing successfully, the status
+  message is cleared
+
+
+  <Info>
+  The *UDF* may not show as "complete" yet since any data written by
+  the *UDF* (in distributed mode) still has to be inserted into the
+  database, but the status set by the *UDF* code isn't relevant to
+  this process
+  </Info>
+
+* If the *UDF* is killed while executing user-provided *UDF* code,
+  `/show/proc/status` will return the last message that was set
+* If the user-provided *UDF* code errors out, `/show/proc/status` will return
+  the error message and the last status message that was set in parentheses
+
+
+## Complete
+
+
+The *UDF* must finish with a call to `procData->complete()`.  This writes out
+some final control information to indicate that the *UDF* completed
+successfully.
+
+
+<Info>
+If this call is not made, the database will assume that the *UDF*
+didn’t finish and will return an error to the caller.
+</Info>
+
+
+## Logging
+
+
+Any output from the *UDF* to is written to two places:
+
+* The [system log file](/content/install/kagent_install#logging-ref) on the head node
+* The <Badge color="gray">/opt/gpudb/core/logs/gpudb.log</Badge> file local to the processing
+  node container
+
+Logging output location for *UDFs* is currently not configurable.

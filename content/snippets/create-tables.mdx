@@ -1,0 +1,920 @@
+---
+title: Creating Tables
+description: Copy-paste examples of how to create tables with SQL
+# time_estimate: 5 MIN
+---
+
+For the full table creation syntax, see [CREATE TABLE](/content/sql/ddl#sql-create-table).
+
+
+<a id="snippet-sql-create-table-column-types"></a>
+
+
+## Column Types
+
+
+For the full set of column types, see [Column Types](/content/sql/ddl#sql-column-types).
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_types.kisql (lines 24-35) */}
+```sql Numeric
+CREATE TABLE column_types_numeric
+(
+	b   BOOLEAN,          -- Native "boolean" type
+	ti  TINYINT,          -- Native "int8" type
+	si  SMALLINT,         -- Native "int16" type
+	i   INT,              -- Native "integer" type
+	bi  BIGINT,           -- Native "long" type
+	ub  UNSIGNED BIGINT,  -- Native "ulong" type
+	r   REAL,             -- Native "float" type
+	d   DOUBLE,           -- Native "double" type
+	dc  DECIMAL(18, 4)    -- Native "decimal" type
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_types.kisql (lines 42-48) */}
+```sql Text (Simple)
+CREATE TABLE column_types_text_simple
+(
+	c_min  VARCHAR(1),    -- Native "char1" type
+	c_max  VARCHAR(256),  -- Native "char256" type
+	s      VARCHAR,       -- Native "string" type
+	sn     VARCHAR(512)   -- Native "string" type
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_types.kisql (lines 55-60) */}
+```sql Text (Complex)
+CREATE TABLE column_types_text_complex
+(
+	ip  IPV4,  -- Native "ipv4" column property on "string" type
+	ui  UUID,  -- Native "uuid" type
+	j   JSON   -- Native "json" type
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_types.kisql (lines 67-73) */}
+```sql Date/Time
+CREATE TABLE column_types_date_time
+(
+	td  DATE,      -- Native "date" type
+	dt  DATETIME,  -- Native "datetime" type
+	tt  TIME,      -- Native "time" type
+	ts  TIMESTAMP  -- Native "timestamp" type
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_types.kisql (lines 80-83) */}
+```sql Binary
+CREATE TABLE column_types_binary
+(
+	b  BLOB  -- Native "bytes" type
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_types.kisql (lines 90-94) */}
+```sql Geospatial
+CREATE TABLE column_types_geospatial
+(
+	geo  GEOMETRY,  -- Native "wkt" subtype of "string" type
+	bw   BLOB(WKT)  -- Native "wkt" subtype of "bytes" type
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_types.kisql (lines 101-111) */}
+```sql Array
+CREATE TABLE column_types_array
+(
+	ab    BOOLEAN[3],          -- Native "array(boolean, 3)" subtype of "string" type
+	ai    INT[3],              -- Native "array(int, 3)" subtype of "string" type
+	abi   BIGINT[3],           -- Native "array(long, 3)" subtype of "string" type
+	aubi  UNSIGNED BIGINT[3],  -- Native "array(ulong, 3)" subtype of "string" type
+	avec  VECTOR(3),           -- Native "vector(3)" type
+	ar    REAL[3],             -- Native "array(float, 3)" subtype of "string" type
+	ad    DOUBLE[3],           -- Native "array(double, 3)" subtype of "string" type
+	avar  VARCHAR[3]           -- Native "array(string, 3)" subtype of "string" type
+)
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-table-column-features"></a>
+
+
+## Column Features
+
+
+Any column type can have the nullability modified or have a comment applied.
+[Column properties](/content/sql/ddl#sql-column-properties) like
+[dictionary encoding](/content/concepts/dictionary_encoding),
+[text searchability](/content/concepts/full_text_search), and the initial
+value modifiers are shown with all applicable column types.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_features.kisql (lines 24-41) */}
+```sql Nullability
+CREATE TABLE column_features_nullability
+(
+	b      BOOLEAN       NOT NULL,
+	i      INT               NULL,
+	r      REAL          NOT NULL,
+	d      DOUBLE            NULL,
+	v      VARCHAR       NOT NULL,
+	c_min  VARCHAR(1)        NULL,
+	c_max  VARCHAR(256)  NOT NULL,
+	ip     IPV4              NULL,
+	ui     UUID          NOT NULL,
+	td     DATE              NULL,
+	bl     BLOB          NOT NULL,
+	geo    GEOMETRY          NULL,
+	bw     BLOB(WKT)     NOT NULL,
+	ai     INT[3]            NULL,
+	avec   VECTOR(3)     NOT NULL
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_features.kisql (lines 48-66) */}
+```sql Compression
+CREATE TABLE column_features_compression
+(
+	b      BOOLEAN(COMPRESS(LZ4(12))),
+	i      INT(COMPRESS(NONE)),
+	r      REAL(COMPRESS(SNAPPY)),
+	d      DOUBLE(COMPRESS(ZSTD(7))),
+	dc     DECIMAL(18,4,COMPRESS(LZ4)),
+	v      VARCHAR(COMPRESS(ZSTD(3))),
+	c_min  VARCHAR(1,COMPRESS(SNAPPY)),
+	c_max  VARCHAR(256,COMPRESS(ZSTD)),
+	ip     IPV4(COMPRESS(SNAPPY)),
+	ui     UUID(COMPRESS(ZSTD)),
+	td     DATE(COMPRESS(LZ4(1))),
+	bl     BLOB(COMPRESS(NONE)),
+	geo    GEOMETRY(COMPRESS(ZSTD(22))),
+	bw     BLOB(WKT,COMPRESS(SNAPPY)),
+	ai     INT[3](COMPRESS(ZSTD(-1))),
+	avec   VECTOR(3,COMPRESS(ZSTD(17)))
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_features.kisql (lines 73-94) */}
+```sql Dictionary Encoding
+CREATE TABLE column_features_dictionary_encoding
+(
+	b      BOOLEAN(DICT),
+	ti     TINYINT(DICT),
+	si     SMALLINT(DICT),
+	i      INT(DICT),
+	bi     BIGINT(DICT),
+	r      REAL(DICT),
+	d      DOUBLE(DICT),
+	dc     DECIMAL(10,4,DICT),
+	v      VARCHAR(DICT),
+	c_min  VARCHAR(1,DICT),
+	c_max  VARCHAR(256,DICT),
+	ub     UNSIGNED BIGINT(DICT),
+	ip     IPV4(DICT),
+	ui     UUID(DICT),
+	td     DATE(DICT),
+	dt     DATETIME(DICT),
+	tt     TIME(DICT),
+	ts     TIMESTAMP(DICT),
+	bl     BLOB(DICT)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_features.kisql (lines 101-111) */}
+```sql Text Search
+CREATE TABLE column_features_text_search
+(
+	v      VARCHAR(TEXT_SEARCH),
+	c_min  VARCHAR(1,TEXT_SEARCH),
+	c_max  VARCHAR(256,TEXT_SEARCH),
+	td     DATE(TEXT_SEARCH),
+	tt     TIME(TEXT_SEARCH),
+	dt     DATETIME(TEXT_SEARCH),
+	ip     IPV4(TEXT_SEARCH),
+	ui     UUID(TEXT_SEARCH)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_features.kisql (lines 118-125) */}
+```sql Initial Values
+CREATE TABLE column_features_init_values
+(
+	ui  UUID(INIT_WITH_UUID),
+	td  DATE(INIT_WITH_NOW),
+	dt  DATETIME(INIT_WITH_NOW),
+	tt  TIME(INIT_WITH_NOW),
+	ts  TIMESTAMP(INIT_WITH_NOW)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_features.kisql (lines 132-138) */}
+```sql Update Values
+CREATE TABLE column_features_update_values
+(
+	td  DATE(UPDATE_WITH_NOW),
+	dt  DATETIME(UPDATE_WITH_NOW),
+	tt  TIME(UPDATE_WITH_NOW),
+	ts  TIMESTAMP(UPDATE_WITH_NOW)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_features.kisql (lines 145-162) */}
+```sql Comment
+CREATE TABLE column_features_comments
+(
+	b      BOOLEAN      COMMENT 'Native "boolean" type',
+	i      INT          COMMENT 'Native "int" type',
+	r      REAL         COMMENT 'Native "float" type',
+	d      DOUBLE       COMMENT 'Native "double" type',
+	v      VARCHAR      COMMENT 'Native "string" type',
+	c_min  VARCHAR(1)   COMMENT 'Native "char1" type',
+	c_max  VARCHAR(256) COMMENT 'Native "char256" type',
+	ip     IPV4         COMMENT 'Native "ipv4" column property on "string" type',
+	ui     UUID         COMMENT 'Native "uuid" type',
+	td     DATE         COMMENT 'Native "date" type',
+	bl     BLOB         COMMENT 'Native "bytes" type',
+	geo    GEOMETRY     COMMENT 'Native "wkt" subtype of "string" type',
+	bw     BLOB(WKT)    COMMENT 'Native "wkt" subtype of "bytes" type',
+	ai     INT[3]       COMMENT 'Native "array(int, 3)" subtype of "string" type',
+	avec   VECTOR(3)    COMMENT 'Native "vector(3)" type'
+)
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-table-keys"></a>
+
+
+## Keys
+
+
+[Primary keys](/content/concepts/tables#primary-key),
+[shard keys](/content/concepts/tables#shard-key), &
+[foreign keys](/content/concepts/tables#foreign-key), are applicable to most column types.
+See the respective sections for details.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_keys.kisql (lines 28-38) */}
+```sql Primary
+CREATE TABLE pk
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE,
+	PRIMARY KEY (id)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_keys.kisql (lines 45-55) */}
+```sql Soft Primary
+CREATE TABLE pk_soft
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE,
+	SOFT PRIMARY KEY (id)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_keys.kisql (lines 62-73) */}
+```sql On-Disk Primary
+CREATE TABLE pk_disk
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE,
+	PRIMARY KEY (id)
+)
+USING TABLE PROPERTIES (PRIMARY_KEY_TYPE = 'disk')
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_keys.kisql (lines 80-90) */}
+```sql Shard
+CREATE TABLE sk
+(
+	id         TINYINT,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE,
+	SHARD KEY (dept_id)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_keys.kisql (lines 97-108) */}
+```sql Primary/Shard
+CREATE TABLE pk_sk
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT NOT NULL,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE,
+	PRIMARY KEY (id, dept_id),
+	SHARD KEY (dept_id)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_keys.kisql (lines 122-133) */}
+```sql Foreign
+CREATE TABLE fk
+(
+	id         TINYINT,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE,
+	SHARD KEY (dept_id),
+	FOREIGN KEY (dept_id) REFERENCES fk_pk(id)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_keys.kisql (lines 140-150) */}
+```sql Composite Primary
+CREATE TABLE pk_comp
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT NOT NULL,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE,
+	PRIMARY KEY (id, dept_id)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_keys.kisql (lines 157-167) */}
+```sql Composite Shard
+CREATE TABLE sk_comp
+(
+	id         TINYINT,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE,
+	SHARD KEY (id, dept_id)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_keys.kisql (lines 182-193) */}
+```sql Composite Foreign
+CREATE TABLE fk_comp
+(
+	id         TINYINT,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE,
+	SHARD KEY (id, dept_id),
+	FOREIGN KEY (id, dept_id) REFERENCES fk_pk_comp(id, dept_id)
+)
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-table-indexes"></a>
+
+
+## Indexes
+
+
+[Column](/content/concepts/indexes#column-index) &
+[low-cardinality](/content/concepts/indexes#low-cardinality-index) indexes have wide column
+type applicability; while [chunk skip](/content/concepts/indexes#chunk-skip-index),
+[geospatial](/content/concepts/indexes#geospatial-index),
+[CAGRA](/content/concepts/indexes#cagra-index), & [HNSW](/content/concepts/indexes#hnsw-index) indexes
+are shown with all applicable column types.  See the respective sections for
+details.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_indexes.kisql (lines 23-34) */}
+```sql Column (Attribute)
+CREATE TABLE indexes_column
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE
+)
+INDEX(id)
+INDEX(dept_id)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_indexes.kisql (lines 41-52) */}
+```sql Low-Cardinality
+CREATE TABLE indexes_low_cardinality
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT NOT NULL,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE
+)
+LOW CARDINALITY INDEX(dept_id)
+LOW CARDINALITY INDEX(manager_id)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_indexes.kisql (lines 59-79) */}
+```sql Chunk Skip
+CREATE TABLE indexes_chunk_skip
+(
+	i      INTEGER,
+	bi     BIGINT,
+	ub     UNSIGNED BIGINT,
+	c_min  VARCHAR(1),
+	c_max  VARCHAR(256),
+	td     DATE,
+	dt     DATETIME,
+	tt     TIME,
+	ts     TIMESTAMP
+)
+CHUNK SKIP INDEX(i)
+CHUNK SKIP INDEX(bi)
+CHUNK SKIP INDEX(ub)
+CHUNK SKIP INDEX(c_min)
+CHUNK SKIP INDEX(c_max)
+CHUNK SKIP INDEX(td)
+CHUNK SKIP INDEX(dt)
+CHUNK SKIP INDEX(tt)
+CHUNK SKIP INDEX(ts)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_indexes.kisql (lines 86-98) */}
+```sql Geospatial
+CREATE TABLE indexes_geospatial
+(
+	low_res_x   REAL,
+	low_res_y   REAL,
+	high_res_x  DOUBLE,
+	high_res_y  DOUBLE,
+	geo         GEOMETRY,
+	bw          BLOB(WKT)
+)
+GEOSPATIAL INDEX(low_res_x, low_res_y)
+GEOSPATIAL INDEX(high_res_x, high_res_y)
+GEOSPATIAL INDEX(geo)
+GEOSPATIAL INDEX(bw)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_indexes.kisql (lines 105-112) */}
+```sql CAGRA
+CREATE TABLE indexes_cagra
+(
+	v_def  VECTOR(100),
+	v_opt  VECTOR(1000)
+)
+CAGRA INDEX(v_def)
+CAGRA INDEX(v_opt)
+	WITH OPTIONS (INDEX_OPTIONS = 'itopk_size: 128, graph_build_algo: ivf_pq')
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_column_indexes.kisql (lines 119-126) */}
+```sql HNSW
+CREATE TABLE indexes_hnsw
+(
+	v_def  VECTOR(100),
+	v_opt  VECTOR(1000)
+)
+HNSW INDEX(v_def)
+HNSW INDEX(v_opt)
+	WITH OPTIONS (INDEX_OPTIONS = 'm: 32, ef: 128, ef_construction: 16')
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-table-collision-options"></a>
+
+
+## Collision Options (Table Exists)
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_collision.kisql (lines 20-29) */}
+```sql No Error
+CREATE TABLE IF NOT EXISTS collision_options_no_error
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_collision.kisql (lines 53-62) */}
+```sql Replace
+CREATE OR REPLACE TABLE collision_options_replace
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE
+)
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-table-distribution"></a>
+
+
+## Distribution
+
+
+See sections on [replicated](/content/concepts/tables#replication),
+[sharded](/content/concepts/tables#sharding), &
+[randomly sharded](/content/concepts/tables#random-sharding) tables for details.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_distribution.kisql (lines 21-30) */}
+```sql Replicated
+CREATE REPLICATED TABLE distribution_replicated
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_distribution.kisql (lines 37-47) */}
+```sql Sharded (Explicit via Shard Key)
+CREATE TABLE distribution_sharded_explicit
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE,
+	SHARD KEY(id)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_distribution.kisql (lines 54-64) */}
+```sql Sharded (Implicit via Primary Key)
+CREATE TABLE distribution_sharded_implicit
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE,
+	PRIMARY KEY(id)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_distribution.kisql (lines 71-80) */}
+```sql Randomly Sharded
+CREATE TABLE distribution_random
+(
+	id         TINYINT,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE
+)
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-table-properties"></a>
+
+
+## Properties
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_table_properties.kisql (lines 21-30) */}
+```sql Memory Only (Temporary)
+CREATE TEMP TABLE properties_memory_only
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_table_properties.kisql (lines 37-47) */}
+```sql Chunk Size
+CREATE TABLE properties_chunk_size
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE
+)
+USING TABLE PROPERTIES(CHUNK SIZE = 1000000)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_table_properties.kisql (lines 54-64) */}
+```sql Compression
+CREATE TABLE properties_compression
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT(COMPRESS(LZ4)),
+	manager_id TINYINT(COMPRESS(NONE)),
+	first_name VARCHAR(32,COMPRESS(SNAPPY)),
+	last_name  VARCHAR(64,COMPRESS(LZ4(12))),
+	salary     DECIMAL(18,4,COMPRESS(ZSTD(7))),
+	hire_date  DATE
+)
+USING TABLE PROPERTIES(COMPRESSION_CODEC = 'zstd(22)')
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_table_properties.kisql (lines 71-81) */}
+```sql TTL
+CREATE TABLE properties_ttl
+(
+	id         TINYINT NOT NULL,
+	dept_id    TINYINT,
+	manager_id TINYINT,
+	first_name VARCHAR(32),
+	last_name  VARCHAR(64),
+	salary     DECIMAL(18, 4),
+	hire_date  DATE
+)
+USING TABLE PROPERTIES(TTL = 15)
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-table-partitions"></a>
+
+
+## Partitions
+
+
+See section on [partitioning](/content/sql/ddl#sql-create-table-partition) for details.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_partitioning.kisql (lines 24-38) */}
+```sql Range
+CREATE TABLE partition_range_by_year
+(
+	id           INT NOT NULL,
+	customer_id  INT NOT NULL,
+	total_price  DECIMAL(10,2),
+	purchase_ts  TIMESTAMP NOT NULL
+)
+PARTITION BY RANGE (YEAR(purchase_ts))
+PARTITIONS
+(
+	order_2014_2016 MIN(2014) MAX(2017),
+	order_2017                MAX(2018),
+	order_2018                MAX(2019),
+	order_2019                MAX(2020)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_partitioning.kisql (lines 45-56) */}
+```sql Interval
+CREATE TABLE partition_interval_by_day
+(
+	id           INT NOT NULL,
+	customer_id  INT NOT NULL,
+	total_price  DECIMAL(10,2),
+	purchase_ts  TIMESTAMP
+)
+PARTITION BY INTERVAL (purchase_ts)
+PARTITIONS
+(
+	STARTING AT ('2014-01-01') INTERVAL (INTERVAL '1' DAY)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_partitioning.kisql (lines 63-77) */}
+```sql List (Manual)
+CREATE TABLE partition_list_manual_by_year
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP NOT NULL
+)
+PARTITION BY LIST (YEAR(purchase_ts))
+PARTITIONS
+(
+    order_2014_2016 VALUES (2014, 2015, 2016),
+    order_2017      VALUES (2017),
+    order_2018      VALUES (2018),
+    order_2019      VALUES (2019)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_partitioning.kisql (lines 84-96) */}
+```sql List (Manual w/ Multiple Columns)
+CREATE TABLE partition_list_manual_by_year_and_month
+(
+	id           INT NOT NULL,
+	customer_id  INT NOT NULL,
+	total_price  DECIMAL(10,2),
+	purchase_ts  TIMESTAMP NOT NULL
+)
+PARTITION BY LIST (YEAR(purchase_ts), MONTH(purchase_ts))
+PARTITIONS
+(
+	order_2016_0203 VALUES ((2016, 2), (2016, 3)),
+	order_2020_03   VALUES ((2020, 3))
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_partitioning.kisql (lines 103-111) */}
+```sql List (Automatic)
+CREATE TABLE partition_list_automatic_by_year_and_month
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP NOT NULL
+)
+PARTITION BY LIST (YEAR(purchase_ts), MONTH(purchase_ts))
+AUTOMATIC
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_partitioning.kisql (lines 118-126) */}
+```sql Hash
+CREATE TABLE partition_hash
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP NOT NULL
+)
+PARTITION BY HASH (YEAR(purchase_ts), MONTH(purchase_ts))
+PARTITIONS 10
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_partitioning.kisql (lines 133-142) */}
+```sql Series
+CREATE TABLE partition_series
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP NOT NULL,
+    SHARD KEY (customer_id)
+)
+PARTITION BY SERIES (customer_id)
+PERCENT_FULL 25
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-table-tier-strategy"></a>
+
+
+## Tier Strategy
+
+
+See section on the [tier strategy](/content/sql/ddl#sql-create-table-tier-strategy)
+clause for details.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_tier_strategy.kisql (lines 22-31) */}
+```sql Priorities
+CREATE TABLE tier_strategy_priorities
+(
+	id           INT NOT NULL,
+	name         VARCHAR(128) NOT NULL,
+	last_seen    DATETIME
+)
+TIER STRATEGY
+(
+	( ( VRAM 1, RAM 7, PERSIST 5 ) )
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_tier_strategy.kisql (lines 38-47) */}
+```sql Disk Cache
+CREATE TABLE tier_strategy_disk_cache
+(
+	id           INT NOT NULL,
+	name         VARCHAR(128) NOT NULL,
+	last_seen    DATETIME
+)
+TIER STRATEGY
+(
+	( ( VRAM 1, RAM 7, DISK0 6, PERSIST 4 ) )
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_tier_strategy.kisql (lines 54-63) */}
+```sql Cold Storage
+CREATE TABLE tier_strategy_cold_storage
+(
+	id           INT NOT NULL,
+	name         VARCHAR(128) NOT NULL,
+	last_seen    DATETIME
+)
+TIER STRATEGY
+(
+	( ( VRAM 1, RAM 7, DISK0 6, PERSIST 4, COLD5 5) )
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_tier_strategy.kisql (lines 70-82) */}
+```sql Expression-Based
+CREATE TABLE tier_strategy_expression_based
+(
+	id           INT NOT NULL,
+	name         VARCHAR(128) NOT NULL,
+	last_seen    DATETIME
+)
+TIER STRATEGY
+(
+	(
+		(VRAM 1, RAM 7) WHERE last_seen > TIMESTAMPADD(WEEK, -1, NOW()),
+		(RAM 6)
+	)
+)
+```
+
+{/* Source: /examples/sql/table/snippets/create_table_snippets_tier_strategy.kisql (lines 89-105) */}
+```sql Per-Column
+CREATE TABLE tier_strategy_column_vs_global
+(
+	id           INT NOT NULL,
+	name         VARCHAR(128) NOT NULL,
+	last_seen    DATETIME
+)
+TIER STRATEGY
+(
+	(
+		(VRAM 1, RAM 9) WHERE last_seen > TIMESTAMPADD(DAY, -3, NOW()),
+		(VRAM 1, RAM 8, DISK0 7)
+	),
+	(
+		COLUMNS id, name
+			(VRAM 2, RAM 10) WHERE last_seen > TIMESTAMPADD(MINUTE, -1, NOW())
+	)
+)
+```
+
+</CodeGroup>

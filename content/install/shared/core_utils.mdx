@@ -1,0 +1,82 @@
+---
+title: Core Utils
+---
+
+## Core Utilities
+
+
+*Kinetica* comes packaged with many helpful server and support executables that
+can be found in `/opt/gpudb/core/bin/` and `/opt/gpudb/bin`. Note that any
+of the `gpudb_hosts_*.sh` scripts will operate on the hosts specified in
+`gpudb.conf`. Run any of the following with the `-h` option for usage
+information.
+
+
+<Note>
+For most of the utilities that use passwordless SSH, an AWS PEM
+file can be specified instead using the `-i` option (with the exception
+being the `gpudb_hosts_persist_*` scripts). If passwordless SSH is not
+setup and no PEM file is specified, you will be prompted for a password
+on each host.
+</Note>
+
+
+### Environment Configuration and Tools
+
+
+Some of the most commonly used and important utilities are also available in the
+`/opt/gpudb/bin` directory.
+
+
+<Info>
+This directory also contains the [KI Tools suite](/content/tools)
+</Info>
+
+| Utility / Script | Uses Passwordless SSH | Description |
+| --- | --- | --- |
+| `gpudb_alter_password` | No | Script to change a given user's password |
+| `gpudb_env` | No | Utility to run a program and its given arguments after setting the `PATH`, `LD_LIBRARY_PATH`, `PYTHON_PATH`, and others to the appropriate `/opt/gpudb/` directories. Use this script or `/opt/gpudb/bin/gpudb_python`  to correctly setup the environment to run *Kinetica's* packaged *Python* version. You can also run `source /opt/gpudb/core/bin/gpudb_env.sh` to have the current environment updated. |
+| `gpudb_pip` | Yes | Script to run *Kinetica's* packaged `pip` version. Runs on all hosts. This can be used in place of `pip`, e.g., `/opt/gpudb/bin/gpudb_pip install gpudb` |
+| `gpudb_python` | No | Script to correctly setup the environment to run *Kinetica's* packaged *Python* version. This can be used in place of the `python` command, e.g., `/opt/gpubd/bin/gpudb_python my_python_file.py` |
+| `gpudb_udf_distribute_thirdparty` | No | Utility to mirror the local `/opt/gpudb/udf/thirdparty` to remote hosts. Creates a dated backup on the remote host before copying |
+
+
+### Helper Scripts
+
+
+Additional helper scripts and utilities are available in
+`/opt/gpudb/core/bin`.
+
+| Utility / Script | Uses Passwordless SSH | Description |
+| --- | --- | --- |
+| `gpudb` | No | Run as `gpudb` user or root. The *Kinetica* system start/restart/stop/status script |
+| `gpudb_alter_password.py` | No | Script to change a given user's password |
+| `gpudb_cluster_cuda` | No | Server executable for CUDA clusters. Displays version and configuration information. This should only be run by the `gpudb` executable (see above). |
+| `gpudb_cluster_intel` | No | Server executable for *Intel* clusters. Displays version and configuration information. This should only be run by the `gpudb` executable (see above). |
+| `gpudb_conf_parser.py` | No | Run using `/opt/gpudb/bin/gpudb_python`. Utility for parsing the `/opt/gpudb/core/etc/gpudb.conf` file and printing the settings and values. |
+| `gpudb_config_compare.py` | No | Script to compare two configuration files: a "modified" configuration file and a "baseline" configuration file. The script can also merge the files after outputting the diff. The merged file will use the "modified" file's settings values if the "modified" configuration settings match the "baseline" configuration settings; if a setting value is present in the "modified" file but **not** in the "baseline" file, the "baseline" setting value will be used. Supports `.ini`, `.conf`, `.config`, `.py`, and `.json` files. |
+| `gpudb_decrypt.sh` | No | Utility for decrypting text encrypted by `gpudb_encrypt.sh`.  See [Obfuscating Plain-Text Passwords](/content/security/sec_hardening) for details. |
+| `gpudb_disk_mount_azure.sh` | No | Utility used for attaching and detaching data volumes for Kinetica clusters running in Microsoft Azure. |
+| `gpudb_encrypt.sh` | No | Utility for encrypting text.  See [Obfuscating Plain-Text Passwords](/content/security/sec_hardening) for details. |
+| `gpudb_env.sh` | No | Utility to run a program and its given arguments after setting the `PATH`, `LD_LIBRARY_PATH`, `PYTHON_PATH`, and others to the appropriate `/opt/gpudb/` directories. Use this script or `/opt/gpudb/bin/gpudb_python`  to correctly setup the environment to setup the environment to run *Kinetica's* packaged *Python* version. You can also run `source /opt/gpudb/core/bin/gpudb_env.sh` to have the current environment updated. |
+| `gpudb_file_integrity_check.py` | No | Utility to test the consistency of the `/opt/gpudb/persist` directory |
+| `gpudb_generate_key.sh` | No | Utility for generating an encryption key.  See [Obfuscating Plain-Text Passwords](/content/security/sec_hardening) for details. |
+| `gpudb_host_manager` | No | The host daemon process that starts and manages any *Kinetica* processes. |
+| `gpudb_hosts_addresses.sh` | Yes | Prints all the unique hostnames (or IPs) specified in `gpudb.conf` |
+| `gpudb_hosts_diff_file.sh` | Yes | Run as `gpudb` user or root. Utility to diff a given file from the current machine to the specified destination file on one or more hosts |
+| `gpudb_hosts_logfile_cleanup.sh` | Yes | Run as `gpudb` user or root. Script to delete old log files and optionally keep the last *n* logs |
+| `gpudb_hosts_persist_clear.sh` | Yes | Run as `gpudb` user or root. Script to clear the database persist files (location specified in `gpudb.conf`) <br/> <br/> **Important**: Only run this while the database is stopped. |
+| `gpudb_hosts_rsync_to.sh` | Yes | Run as `gpudb` user. Script to copy files from this server to the remove servers using `rsync` |
+| `gpudb_hosts_ssh_copy_id.sh` | Yes | Run as `gpudb` user or root. Script to distribute the `gpudb` user's public SSH keys to the other hosts defined in `gpudb.conf` to allow password-less SSH. This script should only be run from the head node. <br/> <br/> **Important**: This script should be re-run after changing the host configuration to redistribute the keys |
+| `gpudb_hosts_ssh_execute.sh` | Yes | Run as `gpudb` user or root. Script to execute a program with arguments on all hosts specified in `gpudb.conf`, e.g., `./gpudb_hosts_ssh_execute.sh "ps aux"` or `./gpudb_hosts_ssh_execute.sh "hostname"` |
+| `gpudb_hosts_ssh_setup_passwordless.sh` | Yes | Script to add an authorized SSH key for a given user across a set of hosts. |
+| `gpudb_keygen` | No | Executable to generate and print a machine key. You can use the key to obtain a license from support@kinetica.com |
+| `gpudb_log_plot_job_completed_time.sh` | No | Plots job completion time statistics using `gnuplot` |
+| `gpudb_machine_info.sh` | No | Script to print OS config information that affects performance as well as suggestions to improve performance |
+| `gpudb_migrate_persistence.py` | No | Utility to migrate data from a local persist directory into the database |
+| `gpudb_nvidia_setup.sh` | No | Utility to configure the Nvidia GPU devices for best performance or restore defaults. Root permission is required to change values. Utility reports informational settings and permission errors when run as user |
+| `gpudb_open_files.sh` | No | Script to print the files currently open by the database |
+| `gpudb_process_monitor.py` | No | Script to check a process list against a matching regular expression and print a log to stdout when the process is started or stopped. The script can also run a program, send emails, and/or SNMP alerts when the process starts or stops. The script can be configured using a configuration file, but note that some settings can be overridden from the command line. |
+| `gpudb_sysinfo.sh` | No | More information when run as root. Script to print a variety of information about the system and hardware for debugging. You can also make a `.tgz` file of the output. Rerun this program as needed to keep records of the system. Use a visual diff program to compare two or more system catalogs |
+| `gpudb_udf_distribute_thirdparty.sh` | Yes | Utility to mirror the local `/opt/gpudb/udf/thirdparty` to remote hosts. Creates a dated backup on the remote host before copying |
+| `gpudb_useradd.sh` | No | Script to create the `gpudb:gpudb` and `gpudb_proc:gpudb_proc` user:groups and SSH id. This script can be rerun as needed to restore the user:groups and ssh config. Be sure to rerun (on the head node only) `gpudb_hosts_ssh_copy_id.sh` to redistribute the SSH keys if desired whenever the SSH keys are changed |

@@ -1,0 +1,517 @@
+---
+title: Resource Management Usage
+---
+
+## Overview
+
+
+Within *Resource Management*, there are three main areas of usage that take
+place while the database is online:
+
+1. [Tiered Storage](#tiered-storage)
+2. [Resource Groups](#resource-groups)
+3. [Tier Strategies](#tier-strategies)
+
+For configuration that must be performed while the database is offline, see
+[Resource Management Configuration](/content/rm/configuration).
+
+
+## Tiered Storage
+
+
+Once the database has started, only a limited set of configuration parameters
+are able to be modified for any [tier](/content/rm/concepts#rm-concepts-tiers):
+
+* **capacity** - the maximum capacity of the *tier*
+* **high_watermark** - the high watermark, as a percentage, to use for
+  [watermark-based eviction](/content/rm/concepts#rm-concepts-wb-eviction)
+* **low_watermark** - the low watermark, as a percentage, to use for
+  [watermark-based eviction](/content/rm/concepts#rm-concepts-wb-eviction)
+
+
+<Note>
+The capacity of the *VRAM Tier* cannot be changed at runtime.
+</Note>
+
+If after modifying the *tier*, its usage is above the high watermark,
+*watermark-based eviction* will commence.
+
+
+### Altering a Tier
+
+
+To modify a *tier*, use the [/alter/tier](/content/api/rest/alter_tier_rest) endpoint.
+
+For example, in *Python*, to resize a *Disk Cache Tier* instance with ID
+**disk2** to 500MB and set the high & low watermark percentages to 95% & 90%,
+respectively:
+
+{/* Source: /examples/python/resource_management.py (lines 9-16) */}
+```python
+kinetica.alter_tier(
+    name = 'DISK2',
+    options = {
+        'capacity': '524288000',
+        'high_watermark': '95',
+        'low_watermark': '90'
+    }
+)
+```
+
+
+### Viewing a Tier
+
+
+To view all *tier* layouts & attributes, use the
+[/show/resource/statistics](/content/api/rest/show_resource_statistics_rest) endpoint.
+
+For example, in *Python*, to show the per-rank statistics of all *tiers*:
+
+{/* Source: /examples/python/resource_management.py (lines 36) */}
+```python
+ranks = json.loads(kinetica.show_resource_statistics()['statistics_map']['ranks'])
+```
+
+
+### Viewing a Table's Tier Distribution
+
+
+To view a table's per-rank tier distribution, use the **table_names**
+option of the [/show/resource/statistics](/content/api/rest/show_resource_statistics_rest) endpoint,
+specifying the name of the table as the value.
+
+For example, in *Python*, to show the per-rank tier distribution of the
+**preferred_customer** table:
+
+{/* Source: /examples/python/resource_management.py (lines 140-141) */}
+```python
+options = {'table_names': 'example.preferred_customer'}
+ranks = json.loads(kinetica.show_resource_statistics(options)['statistics_map']['ranks'])
+```
+
+To process the response and format it into a table, using <Badge color="blue-destructive">tabulate</Badge>,
+organized by rank and tier, first remove the entry for *rank0* (which contains
+no tables) and iterate through the remaining ranks:
+
+{/* Source: /examples/python/resource_management.py (lines 145-166) */}
+```python
+distribution_headers = ['Rank', 'Tier', 'ID', 'Size (bytes)', 'Priority', 'Evictable?']
+distribution_data = []
+
+# Remove the entry for rank0, as it contains no table data
+del ranks["0"]
+
+for rank in ranks:
+    tiers = json.loads(ranks[rank])['tiers']
+
+    for tier in (
+        ['VRAM', 'RAM'] +
+        ' DISK'.join(' 0123456789').split(' ') +
+        ['PERSIST'] +
+         ' COLD'.join(' 0123456789').split(' ')
+    ):
+        if tier in tiers:
+            rank_tier_data = tiers[tier]['tables']['example.preferred_customer']
+
+            if rank_tier_data:
+                distribution_data.extend([[rank, tier, item['id'], item['size'], item['pri'], item['ev']] for item in rank_tier_data])
+
+print( tabulate( distribution_data , headers = distribution_headers, tablefmt = 'grid') )
+```
+
+This produces a report similar to the following:
+
+{/* Source: /examples/python/resource_management.out (lines 242-280) */}
+```
+                num_unevictable_objs: 0
+            stats:
+                pins: 0
+                unpins: 0
+                watermark_cycles: 0
+                evictions: 0
+                reads: 0
+                writes: 0
+                deletes: 0
+        DISK2:
+            overall:
+                limit: 524288000
+                used: 0
+                free: 524288000
+                percent_used: 0
+                num_evictable_objs: 0
+                num_unevictable_objs: 0
+            stats:
+                pins: 0
+                unpins: 0
+                watermark_cycles: 0
+                evictions: 0
+                reads: 0
+                writes: 0
+                deletes: 0
+    resource_groups:
+        <system>:
+            thread_running_count: 1
+            data: 1363054904
+        execution_over_memory:
+            thread_running_count: 0
+            data: 0
+        memory_over_execution:
+            thread_running_count: 0
+            data: 0
+        <default>:
+            thread_running_count: 0
+            data: 0
+Rank 0
+```
+
+
+## Resource Groups
+
+
+Any [resource groups](/content/rm/concepts#rm-concepts-resource-groups) can be created via the
+API or *GAdmin* while the database is running.  The following *resource groups*
+will exist in every *Kinetica* instance:
+
+1. *system*: used by the database for scheduling its own resources; cannot be
+   modified
+2. *default*: [default resource group](/content/rm/configuration#rm-config-resource-group-default);
+   can be modified when the database is stopped and will take effect when the
+   database is subsequently started
+
+
+### Managing Resource Groups
+
+
+To create a *resource group*, use the [/create/resourcegroup](/content/api/rest/create_resourcegroup_rest)
+endpoint.
+
+For example, in *Python*, to create a system administrator *resource group*
+named **memory_over_execution**, which favors memory usage over execution speed
+& priority, using the following criteria:
+
+* 10GB of allowed VRAM usage
+* 100GB of allowed RAM usage
+* Maximum servicing worker thread count of 5
+* Maximum [scheduling priority](/content/rm/concepts#rm-concepts-scheduling-priority) of 30
+
+{/* Source: /examples/python/resource_group.py (lines 21-32) */}
+```python
+kinetica.create_resource_group(
+    name = 'memory_over_execution',
+    tier_attributes = {
+        'VRAM': {'max_memory': '10737418240'},
+        'RAM': {'max_memory': '107374182400'}
+    },
+    ranking = '',
+    options = {
+        'max_cpu_concurrency': '5',
+        'max_scheduling_priority': '30'
+    }
+)
+```
+
+
+To view the attributes of a *resource group*, use the
+[/show/resourcegroups](/content/api/rest/show_resourcegroups_rest) endpoint.
+
+For example, in *Python*, to view the attributes of the *resource group* named
+**memory_over_execution**:
+
+{/* Source: /examples/python/resource_group.py (lines 38-45) */}
+```python
+resource_groups = kinetica.show_resource_groups(
+    names = ['memory_over_execution'],
+    options = {'show_default_group': 'false'}
+)["groups"]
+
+print("Resource group <memory_over_execution> properties:")
+for resource_group_prop in sorted(resource_groups[0]):
+    print('  {:s} = {:s}'.format(resource_group_prop, resource_groups[0][resource_group_prop]))
+```
+
+
+To modify a *resource group*, use the [/alter/resourcegroup](/content/api/rest/alter_resourcegroup_rest)
+endpoint.
+
+For example, in *Python*, to modify the *resource group* that favors memory over
+execution (created above), using the follow criteria:
+
+* Increasing the VRAM allowance to 20GB
+* Increasing the RAM allowance to 200GB
+* Increasing the maximum allowable
+  [scheduling priority](/content/rm/concepts#rm-concepts-scheduling-priority) to 40
+* Setting the maximum
+  [eviction priority](/content/rm/concepts#rm-concepts-eviction-priority) group members are
+  allowed to assign objects to 4
+
+{/* Source: /examples/python/resource_group.py (lines 51-61) */}
+```python
+kinetica.alter_resource_group(
+    name = 'memory_over_execution',
+    tier_attributes = {
+        'VRAM': {'max_memory': '21474836480'},
+        'RAM': {'max_memory': '214748364800'}
+    },
+    options = {
+        'max_scheduling_priority': '40',
+        'max_tier_priority': '4'
+    }
+)
+```
+
+
+To delete a *resource group*, use the [/delete/resourcegroup](/content/api/rest/delete_resourcegroup_rest)
+endpoint.
+
+For example, in *Python*, to delete the *resource group* created above:
+
+{/* Source: /examples/python/resource_group.py (lines 67) */}
+```python
+kinetica.delete_resource_group('memory_over_execution')
+```
+
+
+### Assigning Resource Groups to Users
+
+
+To assign a *resource group* to a user, upon creation, use the
+[/create/user/internal](/content/api/rest/create_user_internal_rest) endpoint.
+
+For example, in *Python*, to create a user named **jsmith** and
+assign the *resource group* named **memory_over_execution**:
+
+{/* Source: /examples/python/resource_group.py (lines 74-80) */}
+```python
+kinetica.create_user_internal(
+    name = 'jsmith',
+    password = 'password',
+    options = {
+        'resource_group': 'memory_over_execution'
+    }
+)
+```
+
+
+To assign a *resource group* to a user after creation, use the
+[/alter/user](/content/api/rest/alter_user_rest) endpoint.
+
+For example, in *Python*, to assign the *resource group* named
+**memory_over_execution** to a user named **jsmith**:
+
+{/* Source: /examples/python/resource_group.py (lines 87-91) */}
+```python
+kinetica.alter_user(
+    name = 'jsmith',
+    action = 'set_resource_group',
+    value = 'memory_over_execution'
+)
+```
+
+
+To unassign a user's *resource group*, use the [/alter/user](/content/api/rest/alter_user_rest)
+endpoint.
+
+For example, in *Python*, to unassign the *resource group* from a user named
+**jsmith**:
+
+{/* Source: /examples/python/resource_group.py (lines 97-101) */}
+```python
+kinetica.alter_user(
+    name = 'jsmith',
+    action = 'set_resource_group',
+    value = ''
+)
+```
+
+
+To show the *resource groups* assigned to a user, use the
+[/show/security](/content/api/rest/show_security_rest) endpoint.
+
+For example, in *Python*, to show the *resource group* assigned directly to a
+user named **jsmith**, and subsequently, *resource groups* assigned indirectly
+through the user's roles:
+
+{/* Source: /examples/python/resource_group.py (lines 189-198) */}
+```python
+print('User <jsmith> resource groups:')
+user_security = kinetica.show_security(['jsmith'])
+
+print('  {:s}'.format(user_security['resource_groups']['jsmith']))
+
+for role in user_security['roles']['jsmith']:
+    if role not in ['authenticated','public']:
+        role_security = kinetica.show_security([role])
+
+        print('  {:s}'.format(role_security['resource_groups'][role]))
+```
+
+
+### Assigning Resource Groups to Roles
+
+
+To assign a *resource group* to a role, upon creation, use the
+[/create/role](/content/api/rest/create_role_rest) endpoint.
+
+For example, in *Python*, to create a role named **executive** and assign the
+*resource group* named **execution_over_memory**:
+
+{/* Source: /examples/python/resource_group.py (lines 138-143) */}
+```python
+kinetica.create_role(
+    name = 'executive',
+    options = {
+        'resource_group': 'execution_over_memory'
+    }
+)
+```
+
+
+To assign a *resource group* to a role after creation, use the
+[/alter/role](/content/api/rest/alter_role_rest) endpoint.
+
+For example, in *Python*, to assign the *resource group* named
+**execution_over_memory** to a role named **executive**:
+
+{/* Source: /examples/python/resource_group.py (lines 149-153) */}
+```python
+kinetica.alter_role(
+    name = 'executive',
+    action = 'set_resource_group',
+    value = 'execution_over_memory'
+)
+```
+
+
+To unassign a role's *resource group*, use the [/alter/role](/content/api/rest/alter_role_rest)
+endpoint.
+
+For example, in *Python*, to unassign the *resource group* from a role named
+**executive**:
+
+{/* Source: /examples/python/resource_group.py (lines 159-163) */}
+```python
+kinetica.alter_role(
+    name = 'executive',
+    action = 'set_resource_group',
+    value = ''
+)
+```
+
+
+To show the *resource group* assigned to a role, use the
+[/show/security](/content/api/rest/show_security_rest) endpoint.
+
+For example, in *Python*, to show the *resource group* assigned to a role named
+**executive**:
+
+{/* Source: /examples/python/resource_group.py (lines 206-209) */}
+```python
+print('Role <executive> resource groups:')
+role_security = kinetica.show_security(['executive'])
+
+print('  {:s}'.format(role_security['resource_groups']['executive']))
+```
+
+
+## Tier Strategies
+
+
+To assign a *tier strategy* to a table upon creation, use the
+[/create/table](/content/api/rest/create_table_rest#create-table-rest) endpoint.
+
+For example, in *Python*, to create a table named **preferred_customer** and
+assign a *tier strategy* with the default *VRAM Tier* and below-average
+*RAM Tier* [eviction priorities](/content/rm/concepts#rm-concepts-eviction-priority):
+
+{/* Source: /examples/python/resource_management.py (lines 52-63) */}
+```python
+table_customer_obj = gpudb.GPUdbTable(
+    _type = [
+        ['id', gpudb.GPUdbRecordColumn._ColumnType.INT, gpudb.GPUdbColumnProperty.PRIMARY_KEY],
+        ['name', gpudb.GPUdbRecordColumn._ColumnType.STRING, gpudb.GPUdbColumnProperty.CHAR32],
+        ['last_seen', gpudb.GPUdbRecordColumn._ColumnType.LONG, gpudb.GPUdbColumnProperty.TIMESTAMP]
+    ],
+    name = 'example.preferred_customer',
+    options = {
+        'strategy_definition': '((VRAM 1, RAM 3))'
+    },
+    db = kinetica
+)
+```
+
+
+To assign a *tier strategy* to a table after creation, use the
+[/alter/table](/content/api/rest/alter_table_rest) endpoint.
+
+For example, in *Python*, to modify the **preferred_customer** table's tier
+strategy to an above-average RAM eviction priority for customers seen in the
+last week, and a moderately elevated RAM eviction priority for all other
+customers:
+
+{/* Source: /examples/python/resource_management.py (lines 86-95) */}
+```python
+tier_strategy = """
+    (
+        (VRAM 1, RAM 7) WHERE last_seen > TIMESTAMPADD(WEEK, -1, NOW()),
+        (RAM 6)
+    )
+"""
+table_customer_obj.alter_table(
+    action = 'set_strategy_definition',
+    value = tier_strategy
+)
+```
+
+
+To reset a table's *tier strategy* to the
+[default tier strategy](/content/rm/configuration#rm-config-tier-strategy-default):
+
+{/* Source: /examples/python/resource_management.py (lines 78-81) */}
+```python
+table_customer_obj.alter_table(
+    action = 'set_strategy_definition',
+    value = ''
+)
+```
+
+To modify a table's *tier strategy* to have the following setup:
+
+* For **id** & **name** column data associated with customers seen in the last
+  minute, cache those column in VRAM and make them unevictable from the
+  *RAM Tier*
+* For all other data associated with customers seen in the last three days, give
+  the data the highest evictable priority within the *RAM Tier*
+* For all remaining data, decrease the *eviction priority* within the *RAM Tier*
+  slightly, while adding an above-average priority backing cache on the
+  *Disk Cache Tier* instance named **disk2**
+
+{/* Source: /examples/python/resource_management.py (lines 99-112) */}
+```python
+tier_strategy = """
+    (
+        (VRAM 1, RAM 9) WHERE last_seen > TIMESTAMPADD(DAY, -3, NOW()),
+        (VRAM 1, RAM 8, DISK2 7)
+    ),
+    (
+        COLUMNS id, name
+            (VRAM 2, RAM 10) WHERE last_seen > TIMESTAMPADD(MINUTE, -1, NOW())
+    )
+"""
+table_customer_obj.alter_table(
+    action = 'set_strategy_definition',
+    value = tier_strategy
+)
+```
+
+To show a table's *tier strategy*, use the [/show/table](/content/api/rest/show_table_rest)
+endpoint.
+
+For example, in *Python*, to show the *tier strategy* of a customer table:
+
+{/* Source: /examples/python/resource_management.py (lines 123-126) */}
+```python
+# Show the customer table's tier strategy
+customer_tier_strategy = table_customer_obj.show_table()['additional_info'][0]['strategy_definition']
+
+print("Tier strategy for preferred_customer table: {}".format(customer_tier_strategy))
+```

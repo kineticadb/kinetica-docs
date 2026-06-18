@@ -1,0 +1,42 @@
+---
+title: /check/table
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="check-table-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/check/table
+```
+Scans the requested tables as specified in input parameter *table_names* for
+integrity. Any table chunks which fail the check will be marked as corrupt. By
+default the database will automatically repair corrupt tables (via truncating).
+Note that since this reads every table column from disk it may be a potentially
+long-running operation. The option *local_only* can be used to skip any table
+files already written to a remote storage. Returns table corruption results.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_names | array of strings | List of tables to query. An asterisk returns all tables. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> local_only: If *true* only locally persisted files will be checked. The default value is `false`. The supported values are: * true * false <br/> <br/> show_detail: If *true* reports individual chunk errors. The default value is `true`. The supported values are: * true * false |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'check_table_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /check/table endpoint: <br/> <br/> table_names: [array of strings] <br/> <br/> ids: [array of strings] <br/> <br/> locations: [array of strings] <br/> <br/> errors: [array of strings] <br/> <br/> info: [map of string to strings] Additional information. The default value is an empty map ( \{\} ). <br/> <br/> Empty string in case of an error. |

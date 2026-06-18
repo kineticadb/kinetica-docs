@@ -1,0 +1,48 @@
+---
+title: /get/records
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="get-records-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/get/records
+```
+Retrieves records from a given table, optionally filtered by an expression
+and/or sorted by a column. This operation can be performed on tables and views.
+Records can be returned encoded as binary, json, or geojson.
+
+This operation supports paging through the data via the input parameter
+*offset* and input parameter *limit* parameters.  Note that when paging through
+a table, if the table (or the underlying table in case of a view) is updated
+(records are inserted, deleted or modified) the records retrieved may differ
+between calls based on the updates applied.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of the table or view from which the records will be fetched, in [schema_name.]table_name format, using standard [name resolution rules](../../../concepts/tables/#table-name-resolution). |
+| offset | long | A positive integer indicating the number of initial results to skip (this can be useful for paging through the results). <br/> <br/> The default value is 0. The minimum allowed value is 0. The maximum allowed value is MAX_INT. |
+| limit | long | A positive integer indicating the maximum number of results to be returned, or END_OF_SET (-9999) to indicate that the maximum number of results allowed by the server should be returned.  The number of records returned will never exceed the server's own limit, defined by the [max_get_records_size](../../../config/#config-main-general) parameter in the server configuration. Use output parameter *has_more_records* to see if more records exist in the result to be fetched, and input parameter *offset* and input parameter *limit* to request subsequent pages of results. <br/> <br/> The default value is -9999. |
+| encoding | string | Specifies the encoding for returned records; one of *binary*, *json*, or *geojson*. <br/> <br/> The default value is `binary`. <br/> <br/> The supported values are: <br/> <br/> * binary <br/> * json <br/> * geojson <br/> * arrow |
+| options | map of string to strings | The default value is an empty map ( \{\} ). <br/> <br/> expression: Filter expression to apply to the table. <br/> <br/> fast_index_lookup: Indicates if indexes should be used to perform the lookup for a given expression if possible. Only applicable if there is no sorting, the expression contains only equivalence comparisons based on existing tables indexes and the range of requested values is from [0 to END_OF_SET]. The default value is `true`. The supported values are: * true * false <br/> <br/> sort_by: Column that the data should be sorted by. Empty by default (i.e. no sorting is applied). <br/> <br/> sort_order: String indicating how the returned values should be sorted <br/> - ascending or descending. If sort_order is provided, sort_by has to be provided. The default value is `ascending`. The supported values are: * ascending * descending |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'get_records_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /get/records endpoint: <br/> <br/> table_name: [string] Value of input parameter *table_name*. <br/> <br/> type_name: [string] <br/> <br/> type_schema: [string] Avro schema of output parameter *records_binary* or output parameter *records_json*. <br/> <br/> records_binary: [array of bytes] If the input parameter *encoding* was 'binary', then this list contains the binary encoded records retrieved from the table, otherwise not populated. <br/> <br/> records_json: [array of strings] If the input parameter *encoding* was 'json', then this list contains the JSON encoded records retrieved from the table. If the input parameter *encoding* was 'geojson' this list contains a single entry consisting of a GeoJSON FeatureCollection containing a feature per record. Otherwise not populated. <br/> <br/> total_number_of_records: [long] Total/Filtered number of records. <br/> <br/> has_more_records: [boolean] Too many records. Returned a partial set. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

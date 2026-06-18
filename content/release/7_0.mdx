@@ -1,0 +1,1771 @@
+---
+title: 7.0 Release Notes
+slug: 7.0
+---
+
+*Publish Date: 01/31/2019*
+
+
+## Features
+
+
+### Active Analytics Workbench
+
+
+* The Active Analytics Workbench (AAW) platform is now
+  available. A brand new API and UI are available to improve existing
+  machine learning workflows. For machine learning, *Tensorflow* and *Blackbox*
+  (using *Docker* containers) *models* are supported. *AAW* also supports
+  continuous deployments, on-demand deployments (via an inferencing REST
+  endpoint), and audits of both *TensorFlow* models trained internally and
+  imported *models*. AAW has a new ingestion interface that allows ingesting
+  data from variety of sources and methods, including *Kinetica*, *PostgreSQL*,
+  and *Kafka*.
+
+
+### Core
+
+
+* Kinetica now supports [Resource Management](/content/rm). Resource
+  management involves the three following resources:
+
+  * [Storage Tiers](/content/rm/concepts#rm-concepts-tiers): Data containment layers within the
+    database (VRAM, RAM, Disk Cache, Cold Storage)
+  * [Tier Strategies](/content/rm/concepts#rm-concepts-tier-strategy): Data object eviction
+    priorities within each storage tier to help define memory usage and data
+    priorities
+  * [Resource Groups](/content/rm/concepts#rm-concepts-resource-groups): Resource fencing --
+    process scheduling priorities and other limits imposed on specific groups
+    of users
+
+* The ability to alter multiple columns in a single call is possible via the
+  new [/alter/table/columns](/content/api/rest/alter_table_columns_rest)
+  endpoint.
+
+
+### Geospatial / Network Graph
+
+
+* *Kinetica* now includes a
+  [graph](/content/graph_solver/network_graph_solver) server. The
+  graph server provides a generic and extensible design of networks with the aim
+  of being tailored or used for various real-life applications, including
+  transportation, utility, social, and geospatial.
+* Kinetica now offers a Vector Tile Service ([VTS](/content/api/rest/vts_rest)) to
+  generate Vector Tiles and support client-side visualization of geospatial data
+  contained within the tiles. Generating Vector Tiles using *Kinetica* involves
+  passing in the *VTS* URL to the client-side renderer.
+* The [/wms](/content/api/rest/wms_rest) endpoint now supports contour plot
+  visualization functionality
+
+
+### KAgent
+
+
+* The [Kinetica Agent (KAgent)](/content/install/kagent_install) UI is now
+  available to automate *Kinetica* installation and configuration. *KAgent* can
+  automatically install *Nvidia* drivers for *CUDA* installations, the
+  *Active Analytics Workbench* (*AAW*) and *Kubernetes* (required for *AAW*),
+  configure the cluster for *SSL* and/or external authentication and high
+  availability. *KAgent* is also cloud ready and able to provision and/or deploy
+  to instances in *Amazon Web Services* (*AWS*), *Google Cloud Platform*
+  (*GCP*), or *Microsoft Azure*. *KAgent* also allows one to configure the
+  location of the *head node*, *AAW*, and the graph server within the cluster.
+  Upgrades will now be managed using *KAgent*.
+
+
+### SQL / OLAP
+
+
+* *Kinetica* is now packaged with a new and improved SQL interpreter.
+* A new [/execute/sql](/content/api/rest/execute_sql_rest) endpoint is available.
+  You can now send SQL commands to the native API without an *ODBC* driver.
+* The SQL engine uses a query planner that analyzes an entire query for the many
+  different ways it can be solved (e.g., performing a
+  [filter](/content/concepts/filtered_views) before a
+  [join](/content/concepts/joins), performing a *filter* after a *join*, etc.) and
+  selecting the plan that is the most efficient. Once this plan is utilized,
+  it's cached so the plan can be used again without having to re-compute it when
+  the same query is received again.
+* Complex SQL queries that involve multiple operations are now analyzed for
+  interdependency. Any operations that have no dependencies on others are
+  executed in parallel.
+* Distributed operations, such as `UNIONs` between *sharded* and *replicated*
+  *tables* or distributed `JOINs`, are now possible using SQL syntax or
+  `/execute/sql`. The database will automatically re-shard or replicate tables
+  temporarily as necessary to help process the query. Note that the distributed
+  query can be slower and use more memory than a traditional non-distributed
+  operation. The `sql.distributed_joins` setting in
+  <Badge color="gray">/opt/gpudb/core/etc/gpudb.conf</Badge> controls the ability to use distributed
+  operations.
+* Correlated sub-queries are now supported.
+* New SQL support for:
+
+  * EXPLAIN
+  * [Partitions](/content/sql/ddl#sql-create-table-partition)
+  * Tier Strategy Definitions
+  * Logging Levels
+
+* [Partitioning](/content/concepts/tables#partitioning) is now available. *Table* data that is
+  *sharded* or *replicated* can be partitioned to aid storage tiering and data
+  skipping. The two types of supported partitioning schemes are:
+
+  * Range
+  * Interval
+
+
+### UI
+
+
+* The *Kinetica Administration Application* ([GAdmin](/content/admin/gadmin))
+  has undergone a visual refresh and now supports functionality for managing
+  [resource groups](/content/rm/concepts#rm-concepts-resource-groups), interfacing with
+  [tier strategies](/content/rm/concepts#rm-concepts-tier-strategy) and
+  [partitions](/content/concepts/tables#partitioning), reviewing
+  [graph](/content/graph_solver/network_graph_solver) node and edge counts, and
+  deleting graphs.
+* *Kinetica* [Reveal](/content/bi/reveal) service has undergone a
+  visual refresh as well as received some usability improvements.
+
+
+## Version 7.0.20
+
+
+*Build Date: 11/11/20*
+
+
+### SQL/OLAP
+
+
+* Added support for *partitioning* [track tables](/content/location_intelligence/geo_objects#geospatial-tracks)
+  (by `TRACKID`); automatic list [partitioning](/content/concepts/tables#partitioning),
+  hash *partitioning*, and series *partitioning* schemes can be used
+* Added support for `IGNORE NULLS` and `RESPECT NULLS` in the following
+  [window](/content/concepts/window) function types:
+
+  * `FIRST_VALUE`
+  * `LAST_VALUE`
+  * `LEAD`
+  * `LAG`
+
+* Added additional framing options for `PRODUCT` *window* functions
+* Added support for `JOIN` and subqueries during `SQL UPDATE`
+  [operations](/content/sql/dml#sql-update)
+* Added support for SQL procedures to be executed as another user using the
+  `EXECUTE AS` syntax
+* Added four new functions:
+
+  * `LOG1P(expr)` -- Returns the natural logarithm of one plus `expr`
+    (a `double`). Effectively evalutes as `log(1+expr)`
+  * `LOG2(expr)` -- Returns the binary (base-2) logarithm of the given
+    expression `expr` (a `double`)
+  * `LOG1PF(expr)` -- Returns the natural logarithm of one plus `expr`
+    (a `float`). Effectively evalutes as `log(1+expr)`
+  * `LOG2F(expr)` -- Returns the binary (base-2) logarithm of the given
+    expression `expr` (a `float`)
+
+* Added support for short-circuiting errors using the conditional function
+  `IF` and operators `AND` & `OR`
+* Improved performance of `JOIN` operations involving inequalities between
+  columns in different tables
+* Added support for [/insert/records](/content/api/rest/insert_records_rest) returning any
+  records not inserted due to conflicting primary keys. This is achieved when
+  the user provides *either* the `allow_partial_batch` or
+  `return_individual_errors` flag when `update_on_existing_pk` is set to
+  `false`
+* Improved performance of [/append/records](/content/api/rest/append_records_rest)
+  operations; i.e., `SQL INSERT` with `SELECT`
+* Added support for returning an error when a timestamp is out of range
+* Added support for `init_with_now` within `/append/records`
+* Removed support for using temporary tables within procedures
+
+
+### Geospatial/Network Graph/Visualization
+
+
+* Improved performance of feature and classbreak rendering in large clusters
+* Added support for symbology in classbreak feature rendering
+* Added support for track head symbology in non-classbreak feature rendering
+
+
+### AAW
+
+
+* Added support for *Kafka Cloud* SASL credentials
+
+
+### APIs/Tools/Connectors
+
+
+* Python API
+
+  * Added support for custom headers, which enables SQL-like
+    [user impersonation](/content/sql/security#sql-security-impersonation) at the native
+    API level
+  * Improved and simplified the table monitor API
+  * Added support for sharding on `UUID` [type](/content/concepts/types)
+    columns in [multihead](/content/tuning) egress/ingest
+
+* JavaScript API
+
+  * Added support for custom headers, which enables SQL-like
+    [user impersonation](/content/sql/security#sql-security-impersonation) at the native
+    API level
+
+* Node.js API
+
+  * Added support for custom headers, which enables SQL-like
+    [user impersonation](/content/sql/security#sql-security-impersonation) at the native
+    API level
+
+
+### UI
+
+
+* Reveal
+
+  * Added support for sorting histogram columns by field name
+
+
+## Version 7.0.19
+
+
+*Build Date: 08/06/20*
+
+
+### SQL/OLAP
+
+
+* Added three new functions:
+
+  * `IF_ERROR(expr, val)` -- Evaluates the given expression `expr`. If it
+    resolves to infinity or `NaN`, return `val`; otherwise return the
+    evaluated expression
+  * `IF_INF(expr, val)` -- Evaluates the given expression `expr`. If it
+    resolves to infinity, return `val`; otherwise return the evaluated
+    expression
+  * `IF_NAN(expr, val)` -- Evaluates the given expression `expr`. If it
+    resolves to `NaN`, return `val`; otherwise return the evaluated
+    expression
+
+
+### Geospatial/Network Graph/Visualization
+
+
+* Added new local turn restriction and penalty identifiers that can be specified
+  at creation time or during solve, query, or match operations and will locally
+  override the `*_turn_penalty` and `intersection_penalty` options (if set):
+
+  * `WEIGHTS_FROM_EDGE_ID`
+  * `WEIGHTS_TO_EDGE_ID`
+  * `RESTRICTIONS_FROM_EDGE_ID`
+  * `RESTRICTIONS_TO_EDGE_ID`
+
+* Added support for using symbol and TRACKs simultaneously in
+  [/wms](/content/api/rest/wms_rest)
+* Added support for using expressions during classbreak raster style `/wms`
+  operations
+* Added support for imposing weights using WKT POINTs as a factor with the new
+  identifier combination, `WEIGHTS_WKTPOINT, WEIGHTS_FACTORSPECIFIED`
+* Added new options to [/solve/graph](/content/api/rest/solve_graph_rest) for `SHORTEST_PATH`
+  solutions:
+
+  * `output_edge_path` -- adds a column to the solution table containing the
+    concatenated edge IDs for each source and target pair
+  * `output_wkt_path` -- adds a column to the solution table containing the
+    concatenated edge WKT line segments for each source and target pair
+
+* Improved the `/solve/graph` endpoint's `SHORTEST_PATH` solution type
+  accuracy particularly in cases of directed social graphs
+* Corrected WKT POINT decimal inaccuracies for purportedly coincident vertices
+  while generating graph nodes
+* Removed constraints for matching the number of `source_nodes` and
+  `destination_nodes` pairs when using the `SHORTEST_PATH` solution type
+  in `/solve/graph`
+
+
+### AAW
+
+
+* Added support for deploying models from private model repositories
+  (*Docker Hub* and *Docker Registry*)
+* Added support for incorporating two types of feature engineering transforms
+  into feature sets to prepare model input data: inline transforms, which are
+  common feature preparation techniques (e.g., normalization, encoding,
+  bucketing), and relational transforms, which leverage materialized views to
+  support constantly changing data. Complete data lineage, including feature
+  engineering, is now available in the audit results
+* Added support for restarting models without redeploying
+* Improved performance for batch inferencing and audit queries
+* Removed support for the *TensorFlow* model type. Trained *TensorFlow* models
+  can still be deployed as Blackbox models using the Blackbox SDK
+
+
+### UI
+
+
+#### Reveal
+
+
+* Added support for renaming dashboards and slice tables prior to importing
+
+
+#### GAdmin
+
+
+* Added support for custom raster tile server configuration for all map
+  widget basemaps
+* Added support for configuring SQL procedure permissions from the user and role
+  management screens
+
+
+## Version 7.0.18
+
+
+*Build Date: 07/06/20*
+
+
+### SQL/OLAP
+
+
+* Added support for the `PRODUCT()` aggregate and window function. For
+  window functions, the `PRODUCT()` aggregate is only supported when using
+  default framing.
+* Added support for additional optimizations that utilize dictionary encoding
+
+
+### Geospatial/Network Graph/Visualization
+
+
+* Significantly improved speed and handling of class breaks with many classes
+* Improved [/match/graph](/content/api/rest/match_graph_rest) Multiple Supply Demand solver
+  operations utilizing the `SAMPLE_PRIORITY`
+  [match identifier](/content/graph_solver/network_graph_solver#match-identifiers)
+* Added two new geospatial functions:
+
+  * `ST_FORCE2D` -- A geospatial function that returns the 2-dimensional
+    version (e.g., X and Y coordinates) of all provided geometries
+  * `ST_FORCE3D` -- A geospatial function that returns the 3-dimensional
+    version (e.g., X, Y, and Z coordinates) of all provided geometries; if
+    the geometry does not have a Z value already, a `0` will be
+    registered as its Z value. An optional second argument can be provided
+    to register a constant Z value for all provided geometries or to register
+    a column's values as Z values for all provided geometries
+
+
+### APIs/Tools/Connectors
+
+
+* KIO
+
+  * Added support for setting the Kinetica password interactively, i.e. avoiding
+    supplying the password via the command line
+
+
+## Version 7.0.17
+
+
+*Build Date: 06/03/20*
+
+
+### SQL/OLAP
+
+
+* Improved the `SHOW SECURITY` command to display the following:
+
+  * a roll-up of roles & permissions granted indirectly (via roles) to the
+    requested user or role
+  * when the `enable_authorization`
+    [configuration setting](/content/config#config-main-security) is set to false,
+    indicating that no authorization restrictions are in effect
+
+* Added a warning when a user attempts to `GRANT` permission while the
+  `enable_authorization` [configuration setting](/content/config#config-main-security)
+  is set to false, indicating that the `GRANT` will have no effect since no
+  authorization restrictions are in effect
+* Improved performance for more operations that involve
+  [dictionary encoded](/content/concepts/dictionary_encoding) columns
+* Added support for list and hash [partitioning](/content/concepts/tables#partitioning)
+  [TRACK tables](/content/location_intelligence/geo_objects#geospatial-tracks)
+
+
+### Infrastructure
+
+
+* Added a new `timeout` option to every endpoint that can be used
+  to override the global `request_timeout`
+  [configuration setting](/content/config#config-main-general)
+
+
+### Geospatial/Network Graph/Visualization
+
+
+* Added support for [/match/graph](/content/api/rest/match_graph_rest) endpoint operations to
+  utilize multiple CPU threads using a new `max_num_threads` option
+* Added a new `enable_truck_reuse` option for the
+  [/match/graph](/content/api/rest/match_graph_rest) Multiple Supply Demand solver that enables
+  the scheduling of multiple rounds for a truck from the same originating depot
+* Added a new `truck_service_limit` option for the
+  [/match/graph](/content/api/rest/match_graph_rest) Multiple Supply Demand solver that enables
+  users to add constraints to the optimization based on the total cost of any
+  truck's delivery routing
+* Improved transparency handling in ordered class breaks of points
+* Improved rendering of tracks
+* Improved handling of shapes wrapping over the dateline
+
+
+### APIs/Tools/Connectors
+
+
+* Python API
+
+  * Added a new `GPUdbTableMonitor` class that assists in handling table
+    monitors
+
+
+## Version 7.0.16
+
+
+*Build Date: 05/06/20*
+
+
+### SQL/OLAP
+
+
+* Added support for a new `SHOW PROCEDURES *` command that shows all
+  [SQL procedures](/content/sql/procedure#sql-procedures)
+* Added a new `RowsPerInsertion` parameter to the ODBC and JDBC drivers
+  to control bulk insertion batch sizes
+* Added support for materialized views within logical views
+* Removed the `--password` and `--truststorepwd` options from
+  [KiSQL](/content/tools/kisql). If the respective environment variables are not
+  set, the user will be prompted for a password instead
+* Enhanced performance [/append/records](/content/api/rest/append_records_rest) operations now
+  support store only data and unbound strings in additional cases
+* Improved handling of multi-line SQL procedures in *KiSQL*
+* Improved ODBC and JDBC CSV parsing to better and more consistently handle
+  escape sequences and quoted fields
+* Improved handling of inconsistent errors and ignored invalid entries within
+  `INSERT` statements
+
+
+### Geospatial/Visualization
+
+
+* Added a new priority-based identifier combination for the
+  [/match/graph](/content/api/rest/match_graph_rest) Multiple Supply Demand solver that enables
+  timely delivery scheduling to customer locations
+* Added a new option, `unit_unloading_cost`, to the
+  [/match/graph](/content/api/rest/match_graph_rest) endpoint that accounts for unloading time
+  in the overall solution cost and optimization
+* Added support for WMS rendering wrapping the world seam in all raster and
+  class break raster modes
+* Improved line track rendering
+
+
+### APIs/Tools/Connectors
+
+
+* Kafka Connector
+
+  * Added support for *Kafka* version 2.4; added support for triple properties
+  * Added support for multiple topics defined with a `topics.regex` parameter
+    that will sink to a single table
+  * Added support for converting boolean values to integers
+  * Added support for `.` characters in topic names
+  * Added support for flattening nested messages
+
+
+### UI
+
+
+#### GAdmin
+
+
+* Improved the information displayed for SQL procedures
+* Added support for automatically adjusting the available solve and match
+  options based on the selected solver
+
+
+## Version 7.0.15
+
+
+*Build Date: 04/09/20*
+
+
+### Geospatial
+
+
+* Added new optimization option to
+  [/match/graph](/content/api/rest/match_graph_rest) endpoint for the
+  `MATCH_SUPPLY_DEMAND` solver that allows users to control the global max
+  trip cost allowed for any supplier (truck) assigned to a demand (depot)
+* Added support for LINESTRING and MULTILINESTRING geometries in the
+  `ST_DISSOLVE` geospatial function
+* Improved accuracy of [map matching](/content/api/rest/match_graph_rest) results
+
+
+## Version 7.0.14
+
+
+*Build Date: 03/17/20*
+
+
+### SQL/OLAP
+
+
+* Improved `GROUP BY` operations' output for `EXPLAIN [VERBOSE|ANALYZE]`
+
+
+### Geospatial
+
+
+* Added two new geospatial functions:
+
+  * `ST_POLYGONIZE` -- A geospatial function that creates a geometry
+    collection containing polygons formed from given (MULTI)LINESTRING
+    geometries
+  * `ST_DISSOLVEOVERLAPPING` -- A geospatial aggregate function that operates
+    similarly to `ST_DISSOLVE` but is optimized for overlapping polygons
+
+
+## Version 7.0.13
+
+
+*Build Date: 02/17/20*
+
+
+### SQL/OLAP
+
+
+* Improved the output of the `SHOW SECURITY` command
+* Added support for enabling
+  [column-level security functions](/content/security/sec_concepts#sec-concepts-perm-table-col-func) for
+  `decimal` and `ulong` [type](/content/concepts/types) columns
+* Added support for missing leading zeroes for the month, day, and/or hour
+  portions of `date` and `datetime` [type](/content/concepts/types) values
+* Added support for `T` and `Z` in `datetime` values to enable
+  interpretation of UTC time expressions, e.g., `2018-01-01T10:11:12Z`
+* Added support for the following `TO_CHAR` formats:
+
+  * `DAY` -- full name of the day, e.g., `Wednesday`
+  * `M` -- non-leading-zero month
+  * `C` -- non-leading-zero calendar day
+  * `H24` -- non-leading-zero 24-hour format
+  * `H12` -- non-leading-zero 12-hour format
+  * `H` -- non-leading-zero hour
+
+* Added support for `date`, `datetime`, and `time` columns to the
+  [/aggregate/minmax](/content/api/rest/aggregate_minmax_rest) endpoint
+* Improved the output of `SQL EXPLAIN` plans for `GROUP BY` operations
+
+
+### Geospatial
+
+
+* Added support for turn penalties and restrictions to
+  [/create/graph](/content/api/rest/create_graph_rest), [/match/graph](/content/api/rest/match_graph_rest),
+  [/modify/graph](/content/api/rest/modify_graph_rest), and [/solve/graph](/content/api/rest/solve_graph_rest)
+* Added new geospatial aggregate function `ST_LINESTRINGFROMORDEREDPOINTS3D`.
+  This function creates 3D WKT LINESTRINGs (or POINTs)
+* Added support for class break rendering track data based on a given attribute
+  column. One value is allowed per track
+* Improved the performance of the `ST_DISSOLVE`, `ST_INTERSECTS`, and
+  `ST_DIFFERENCE` geospatial functions
+
+
+## Version 7.0.12
+
+
+*Build Date: 01/15/20*
+
+
+### SQL/OLAP
+
+
+* Added warnings for when a user attempts to `GRANT` a permission the user
+  already has or when a user attempts to `REVOKE` a permission they do not
+  have
+* Added support for KiSQL returning a Linux error status code when a query
+  fails
+* Table monitors are now persisted through database restart; detailed
+  information about existing table monitors on a particular table can be
+  found in the [/show/table](/content/api/rest/show_table_rest) response
+
+
+### Infrastructure
+
+
+* Added support for setting memory limits for rank 0 in the tiered storage
+  configuration section of the database configuration file
+
+
+### Geospatial
+
+
+* Added new `RESTRICTIONS_EDGE_DIRECTION` [identifier](/content/graph_solver/network_graph_solver#identifiers) for
+  use in the [/create/graph](/content/api/rest/create_graph_rest) and
+  [/modify/graph](/content/api/rest/modify_graph_rest) endpoints
+* Improved memory management and empty string handling for geospatial
+  `ST` functions
+* Added anti-aliasing support to smooth and enhance the appearance of lines
+  and polygon boundaries in WMS imagery
+
+
+### APIs/Tools/Connectors
+
+
+* KIO:
+
+  * Added a `--s-drop-malformed-rows` flag that skips ingesting rows of a
+    CSV file that do not fit the schema of the table into which they are being
+    ingested. This flag is currently only valid for transfers from CSV files
+    to Kinetica using the Spark engine
+
+
+## Version 7.0.11
+
+
+*Build Date: 12/11/19*
+
+
+### Highlights
+
+
+* Added support for [row-level security](/content/security/sec_concepts#sec-concepts-perm-table-row) via
+  the native APIs and SQL. Row-level security is achieved through restricting or
+  granting access to certain rows of a table to a user or role based on
+  expressions
+* Added support for [column-level security](/content/security/sec_concepts#sec-concepts-perm-table-col)
+  via the native APIs and SQL. Column-level security is achieved through
+  restricting or granting access to  certain columns in a table to a user or
+  role
+* Added [data masking and obfuscation](/content/security/sec_concepts#sec-concepts-perm-table-col-func)
+  on a per-user or role basis to support row- and column-level security. Data
+  masking will mask part of a value or the entire value; data obfuscation will
+  obfuscate a value via hashing, with the hash being able to be grouped on for
+  aggregation purposes
+
+
+### SQL/OLAP
+
+
+* Added support for [loading from local CSV files](/content/sql/load#sql-load-file-server)
+  into a new or existing table
+* Added support for `CHAR`, `LOWER`, and `UPPER` functions in JDBC
+  escape sequences
+
+
+### Infrastructure
+
+
+* Added a new [/insert/records/fromfiles](/content/api/rest/insert_records_fromfiles_rest#insert-records-fromfiles-rest)
+  endpoint that enables fast ingest of local CSV files into new or existing
+  tables
+
+
+### Geospatial / Network Graph
+
+
+* Added a new [/modify/graph](/content/api/rest/modify_graph_rest#modify-graph-rest) endpoint to enable
+  non-streaming graph updates and deletes
+* Added support for many-to-many queries via
+  [/query/graph](/content/api/rest/query_graph_rest#query-graph-rest). These queries are also performant at
+  scale
+* Added support for label index recycling when node or edge label restrictions
+  are enabled
+
+
+### APIs/Tools/Connectors
+
+
+* APIs:
+
+  * Added support for synchronicity override headers in the Python and C++ APIs
+
+* KIO:
+
+  * Added a version (`-v` / `--version`) flag to KIO
+
+* Kinetica Spark Connector:
+
+  * Added new egress processor option `egress.batch_size` to control the batch
+    size
+  * Added support for the egress processor to use lazy iterators for streaming
+    data into partitions
+
+
+### AAW
+
+
+* Added support to the Blackbox SDK for multi-row inferencing for performance
+  gains
+* Added support for container event lifecycle tracking at the container replica
+  level
+* Added support for capturing and tracking container inference and round-trip
+  metrics and throughput
+* Improved authentication support on Blackbox models
+* Added expanded ML frameworks and libraries by default for the AAW RAPIDS Lab
+
+
+### DevOps
+
+
+* Improved performance for cluster verification
+* Improved performance for cluster activities on very large clusters
+
+
+### UI
+
+
+#### AAW
+
+
+* Added support for exporting and/or backing-up the current JupyterLab session
+  to a file
+
+
+#### KAgent
+
+
+* Added support for specifying an external Kubernetes installation's IP address
+  during [cluster setup](/content/install/kagent_install#kagent-ui-cluster)
+* Improved log formatting and the ability to copy logs
+
+
+#### GAdmin
+
+
+* Added support for
+  [configuring row- and column-level security](/content/admin/gadmin/data#gadmin-row-col-security)
+* Improved logging level management
+* Added support for uploading a local file to import as a source for
+  *Advanced Import* (KIO)
+
+
+#### Reveal
+
+
+* Added a new map slice multi-layer information modal
+* Added support for class break auto-generation on map slices
+
+
+### Security
+
+
+* Sanitized the input to the `/gadmin/gpudbManager/getLogs` endpoint of
+  *GAdmin* to address a command-injection vulnerability. *(as of 7.0.11.5)*
+
+
+## Version 7.0.10
+
+
+*Build Date: 11/13/19*
+
+
+### SQL/OLAP
+
+
+* Added support for using wildcard characters (`*`) in place of schema and
+  table names for `GRANT` and `REVOKE` statements
+* Added support for exposing detailed join filter plan information when using
+  `EXPLAIN ANALYZE VERBOSE` with operations that do not explicitly join
+  tables but are processed using joins to achieve the desired result
+* Added support for using escape characters in `LIKE` statements
+* Added support for the following bitwise operators:
+
+  * `&` (`AND`)
+  * `|` (`OR`)
+  * `^` (exclusive `OR`)
+  * `<<` (left shift)
+  * `>>` (right shift)
+  * `~` (`NOT`)
+
+* Added new `ipv4_part` function that enables extraction of any of the four
+  parts of an IPV4 address
+
+
+### Geospatial / Network Graph
+
+
+* Added support for batch solving several node and destination pairs using the
+  `SHORTEST_PATH` solver in [/solve/graph](/content/api/rest/solve_graph_rest) or using the
+  `MATCH_BATCH_SOLVES` solver (with the appropriate [Match Identifier Combinations](/content/graph_solver/network_graph_solver#match-combinations))
+  in [/match/graph](/content/api/rest/match_graph_rest)
+* Added a new `modify` option to [/create/graph](/content/api/rest/create_graph_rest) that
+  enables an existing graph to be updated with new options or new nodes, edges,
+  weights, and/or restrictions from new/updated data in its source tables
+* Increased the maximum number of cells that can be produced by the `ST_*GRID`
+  functions to 100 million (from 20 million)
+
+
+### APIs/Tools/Connectors
+
+
+* Added new `assume_no_nulls` to the RKinetica connector that optimizes
+  JSON deserialization when the expected result is not expected to contain
+  `NULL` values
+* Added new `offset` and `limit` options to the Spark connector egress
+  processor to enable batch/paginated reading
+
+
+### UI
+
+
+#### AAW
+
+
+* Added support for JSON input when creating a feature set
+* Added support for an embeddable Map/WMS viewer in the
+  *Rapids Notebook Workspace*
+
+
+#### KAgent
+
+
+* Added support for cloning the data, users, and authorization settings from
+  an existing cluster to a new one provisioned through *KAgent*
+* Added support for adding nodes to a new cluster that only have Rabbit MQ
+  installed
+
+
+#### GAdmin
+
+
+* Added support for session management, allowing users to limit concurrent
+  sessions
+* Added support for managing SQL Procedures through a new *Procs* interface
+  associated with the [Query tool](/content/admin/gadmin/query)
+* Added a new `--s-batch-iterator-column-name` flag to the *GAdmin KIO*
+  tool, which takes a column and uses it to iterate over data when ingesting
+  into Kinetica from PostgreSQL--using this feature will provide better ingest
+  performance
+
+
+#### Reveal
+
+
+* Added support for the following to the Map slice:
+
+  * Multi-layer custom query string parameters
+  * Multi-layer legend
+
+
+## Version 7.0.9
+
+
+*Build Date: 10/16/19*
+
+
+### General
+
+
+* Improved performance for repeated group-by queries
+* Added three new options to [/insert/records](/content/api/rest/insert_records_rest):
+
+  * `return_individual_errors` -- if set to `true`, any error that occurred
+    when inserting an individual record will be returned
+  * `allow_partial_batch` -- if set to `true`, all records that did not
+    error during insertion will be inserted and all records that did error
+    will be rejected and reported
+  * `dry_run` -- if set to `true`, no records will be inserted and any
+    errors will be returned
+
+* Added support for flushing column data from memory to persist using the
+  new `evict_columns` option in the
+  [/alter/system/properties](/content/api/rest/alter_system_properties_rest) endpoint
+
+
+### AAW
+
+
+* Improved NVIDIA RAPIDS support thanks to Jupyter Notebook integration,
+  multi-tenancy, and fast workspace persistence
+* Added support for selecting either a CPU- or GPU-bound container when
+  deploying a model in the *Active Analytics Workbench* (*AAW*)
+
+
+### SQL/OLAP
+
+
+* Added support for *SQL procedures*.  There is currently no support for
+  variables or input/output parameters, but a given procedure may return a
+  single result set or output-producing statement.
+
+
+### Geospatial / Network Graph
+
+
+* Improved error message logging for the graph server
+* Aligned the [/solve/graph](/content/api/rest/solve_graph_rest) endpoint parameters with the
+  other graph endpoints for consistency
+* Improved the performance and reliability of the `match_supply_demand`
+  solver in the [/match/graph](/content/api/rest/match_graph_rest) endpoint
+
+
+### APIs/Tools/Connectors
+
+
+* Added HA failover support for servers returning a 503 error (offline) to the
+  Java, C++, and Python APIs
+* Improved performance for batch reading from PostgreSQL for ingestion
+  into Kinetica via KIO
+
+
+### UI
+
+
+#### AAW
+
+
+* Improved the user interface for the NVIDIA RAPIDS notebook/model workflow
+
+
+#### KAgent
+
+
+* Added support for reserving GPUs to be used by AAW
+
+
+#### GAdmin
+
+
+* Added querying, solving, and matching graph interfaces; each interface follows
+  a WYSIWYG format with access to statement history (including the option to
+  re-use any previous statements) and the ability to manually select from a map
+  any WKT point that can be used as an [identifier](/content/graph_solver/network_graph_solver#identifiers)
+  throughout a graph's lifecycle
+* Added support for assigning additional roles to a new or existing role via the
+  role configuration interface
+* Added support for selecting and detailing features within the WMS viewer
+* Added support for selecting a cluster when using the SQL tool in a High
+  Availability (HA) environment
+
+
+#### Reveal
+
+
+* Improved support for the map slice:
+
+  * Class break definition and styling enhancements
+  * Row/record identification and detailing enhancements
+  * Map layer configuration enhancements
+
+* Enhanced support for classbreak styling
+* Added option to include legend labels for classbreak
+* Added support for external WMS layers
+
+
+## Version 7.0.8
+
+
+*Build Date: 10/07/19*
+
+
+### General
+
+
+* Operations that consist of dividing by 0 will now throw an error
+* Enabled support for using the following endpoints with join views and
+  materialized views:
+
+  * /filter/byarea
+  * /filter/byarea/geometry
+  * /filter/bybox
+  * /filter/bybox/geometry
+  * /filter/bygeometry
+  * /filter/bylist
+  * /filter/byradius
+  * /filter/byradius/geometry
+  * /filter/byrange
+  * /filter/byseries
+  * /filter/bytable
+  * /filter/byvalue
+
+* Added support for dates containing the year `9999`, sometimes used to mark
+  a date as unknown or in the future; however, year values between `2900` and
+  `9999` are not supported
+
+
+### SQL/OLAP
+
+
+* Improved performance for count distinct operations involving a dictionary
+  encoded column
+* Improved CSV support for the ODBC/JDBC connector through the following
+  features:
+
+  * Wildcards are now supported in filenames
+  * Tab delimiters are the default for TSV files; pipe delimiters are the
+    default for PSV files
+  * Comments are now supported
+  * Custom null string is now supported
+  * Custom quote character is now supported
+  * Custom escape character is now supported
+  * Option to clear table prior to ingest is now available
+  * Option to skip the first *n* rows of the file is now available
+  * Option to limit the ingest to *n* new rows is now available
+  * Option to specify error handing mode is now available:
+
+    * `Permissive` -- *Kinetica* will attempt to ingest all rows regardless
+      of error
+    * `Skip` -- *Kinetica* will attempt to ingest all rows that did not
+      error during validation
+    * `Abort` -- *Kinetica* will stop ingest upon encountering an error
+
+
+### Infrastructure
+
+
+* Added support for user impersonation features when external authentication
+  and/or *HTTPD* is enabled
+
+
+### Geospatial / Network Graph
+
+
+* Improved performance of double precision WKT rendering
+
+
+### APIs/Tools/Connectors
+
+
+* Added support for users to select a graceful failure mode when ingesting
+  CSV files via KIO:
+
+  * `permissive` -- *KIO* will attempt to ingest all rows regardless of error
+  * `dropmalformed` -- *KIO* will drop malformed records
+
+* Added support for unsigned long values to the C# API
+
+
+### UI
+
+
+#### GAdmin
+
+
+* Added support for tagging a UDF during execution; this tag can be referenced
+  when displaying the status of or killing UDFs
+* Added support for searching through the SQL query history
+* *Advanced Import*:
+
+  * Added support for PostGIS-related columns
+  * Enabled additional SSL support
+  * Added support for killing long-running import jobs
+
+
+#### Reveal
+
+
+* Added support for primary map layer reordering
+* Added support for syncing viewport of multiple maps on a dashboard
+
+
+## Version 7.0.7
+
+
+*Build Date: 08/21/2019*
+
+
+### General
+
+
+* Enabled a new *system user admin* role that allows management of
+  user passwords, assignment of roles and groups, and access control of other
+  users
+* Enabled the unsigned long data type
+
+
+### AAW
+
+
+* Added support for importing data via Bring Your Own Container (BYOC) ingests
+
+
+### SQL/OLAP
+
+
+* Added various new security functions for identifying current user and
+  associated roles
+* Added support for executing queries as a provided user
+* Implemented support for unsigned long values
+* Added support for performing SQL `UPDATE` and `DELETE` operations using
+  distributed queries (`IN` sub-queries)
+* Wider support for `is true` comparisons
+* Added new hints to force executing a particular SQL statement
+  synchronously or asynchronously on other clusters in a High Availability ring:
+
+  * `KI_HINT_REPL_SYNC` - when a server receives a SQL statement with this
+    hint included, the HA process will execute the SQL statement across the
+    cluster synchronously
+  * `KI_HINT_REPL_ASYNC` - when a server receives a SQL statement with this
+    hint included, the HA process will execute the SQL statement across the
+    cluster asynchronously
+
+* Added support for displaying the definition of materialized views using
+  `SHOW <materialized_view_name>`. Only applies to materialized views created
+  using SQL
+* Various performance improvements to `HAVING` clauses and
+  `/aggregate/unique`-related operations
+* Enabled inclusion of post-mortem information to SQL `EXPLAIN` plans should
+  a query fail
+* Added support for multi-column `LIST` partition key
+* Added the `USER ADMIN` permission in support of the new
+  *system user admin* role
+* Added support for replicating the right table when joining two randomly
+  distributed tables, i.e. neither sharded nor replicated
+
+
+### Infrastructure
+
+
+* Various performance improvements to cluster start-up
+* Implemented support for the *system user admin* role
+* Added support for tagging a UDF during UDF execution; this tag can be
+  referenced when displaying the status of a UDF or killing a UDF
+
+
+### Geospatial / Network Graph
+
+
+* Added support for cancelling graph server jobs
+* Implemented a generic multiple supply-demand optimization solver to
+  [/match/graph](/content/api/rest/match_graph_rest)
+* Various performance improvements to class break operations in WMS
+
+
+### APIs/Tools/Connectors
+
+
+* Added the `system_user_admin` permission in support of the new
+  *system user admin* role
+* Implemented support for unsigned long values in multi-head I/O operations to
+  the native APIs
+* KIO enhancements:
+
+  * Added custom parameter support for ingesting CSV data into Kinetica, e.g.,
+    null, quote, and comment characters
+  * Added support for transferring data from Kinetica to PostgreSQL via the Spark
+    engine
+  * Added support for schemas in PostgreSQL URIs
+
+
+### UI
+
+
+#### AAW
+
+
+* Added functionality for Bring Your Own Container (BYOC) ingest elements,
+  importable Blackbox containers, entity cloning, model training metrics and
+  logs, and deployment environment variables
+* Lambda function transformations are now handled via database operations
+* Feature fitting functionality is now automatically integrated into the
+  dataset training process.
+
+
+#### KAgent
+
+
+* Added new interface for previewing KAgent command line interface commands
+  that are run in the background during installation
+* Improved the console logs' show/hide detail functionality
+
+
+#### GAdmin
+
+
+* Added support for creating a graph
+* Added support for the new *system user admin* role/permission
+* Added support for skipping the header row in a CSV file and for importing a
+  CSV file from a local directory when using Advanced CSV import
+
+
+#### Reveal
+
+
+* Enabled the viewport to automatically adjust its size based on the WKT data
+  contained within
+
+
+## Version 7.0.6
+
+
+*Publish Date: 07/24/2019*
+
+
+### AAW
+
+
+* Added support for persisting training metrics during Model Training for model
+  performance comparisons
+
+
+### SQL / OLAP
+
+
+* Added support for grouping by WKT columns
+* Added support for character delimiters and specifying columns in a file or
+  destination table when using insert from CSV functionality, e.g.,
+
+  ```
+  INSERT INTO employee (first_name, last_name, date_of_birth)
+  SELECT fname, lname, dob
+  FROM FILE."/home/gpudb/data/emp_2017.csv"
+  DELIMITER=',';
+  ```
+* Added support for converting various charN types to other types, e.g.,
+  `char64` to `date`
+
+
+### Infrastructure
+
+
+* User name and source IP address are now included with job information
+
+
+### Geospatial / Network Graph
+
+
+* Added support for preventing conflicting graph component configurations
+* Added new `All Paths` solver for querying all paths between two nodes
+* Added two new query identifiers to retrieve edges or nodes associated with
+  the given labels:
+
+  * `QUERY_NODE_LABEL`
+  * `QUERY_EDGE_LABEL`
+
+
+### APIs / Tools / Connectors
+
+
+* Added all `/get/records` options to the `RecordRetriever` class for the
+  Java, Python, and C++ APIs
+* Added date, datetime, and time parsing convenience support to the Java API
+
+
+### UI
+
+
+#### AAW
+
+
+* Performance improvements for entity list pages
+
+
+#### KAgent
+
+
+* Added support for the following:
+
+  * Offline installations
+  * Post-installation SSL configuration
+  * High Availability configuration for single-head or multi-head clusters
+  * Job management interface for command line interface jobs
+
+* Improved the "Add Only" cluster path validation
+* Improved log parsing
+
+
+#### GAdmin
+
+
+* Improved the Jobs interface with search and sorting functionality
+* Improved the table search functionality
+* Improved the Graph interface with more detailed graph information
+* Improved the explain plan visualizer with more detailed information
+* Improved CSV import handling for incorrect formatting
+
+
+#### Reveal
+
+
+* Added a new Bubble Chart slice
+* Improved geo-filtering support for materialized views
+* Improved support for global filtering dashboards with multiple maps
+* Performance improvements for the Column Filter slice
+
+
+## Version 7.0.5
+
+
+*Publish Date: 06/25/2019*
+
+
+### AAW
+
+
+* Added support for multi-record (row) outputs to Blackbox functionality
+* Enabled cluster multi-tenancy via custom Kubernetes namespaces
+
+
+### SQL / OLAP
+
+
+* Added support for `ASOF` joins
+* Added security features to logical views
+* Added table monitor triggers for `DELETE` and `UPDATE` events
+* Added support for temporary table names via the `#` prefix, e.g.,
+  `#table_name`
+* Added support for renaming [joins](/content/concepts/joins) and
+  [views](/content/concepts/views)
+* Various performance improvements for using
+  [Tableau](/content/bi/tableau) with Kinetica
+* Various performance improvements to predicate equi-joins (joins on the basis
+  of equality)
+* Added support for converting all numeric, date, time, datetime, and timestamp
+  type values to charN
+
+
+### Geospatial / Network Graph
+
+
+* Added new [geospatial functions](/content/location_intelligence/geo_functions):
+
+  * `ST_LINELOCATIONPOINT`
+  * `ST_HEXGRID`
+  * `ST_POINTGRID`
+  * `ST_SQUAREGRID`
+  * `ST_TRIANGLEGRID`
+
+* Added a [WMS](/content/api/rest/wms_rest) handler for the
+  [/visualize/isochrone](/content/api/rest/visualize_isochrone_rest) endpoint
+* Enabled dictionary-encoded multi-property label support for improving
+  performance when using multiple `LABEL` [identifiers](/content/graph_solver/network_graph_solver#identifiers)
+* Implemented an origin-destination (OD) pair matching solver to
+  [/match/graph](/content/api/rest/match_graph_rest)
+* Various performance improvements to graph solvers and WKT class break for WMS
+
+
+### APIs / Tools / Connectors
+
+
+* Added High Availability (HA) support to multi-head input/output for the
+  C++ API
+* Added support for the `init_with_now`
+  [column property](/content/concepts/types) to the Python API
+
+
+### UI
+
+
+#### AAW
+
+
+* Added interface for multi-in/multi-out record support
+
+
+#### KAgent
+
+
+* Added support for installing KAgent as a server-side job
+
+
+#### GAdmin
+
+
+* Added support for additional KIO features and options
+* Added support for visualizing WMS via KiSQL
+* Added support for hash partitioning tables
+* Added a new *User Data* column to the list of running [Jobs](/content/admin/gadmin/jobs)
+  that displays the SQL being executed via [/execute/sql](/content/api/rest/execute_sql_rest)
+  (directly or via ODBC/JDBC)
+
+
+#### Reveal
+
+
+* Added support for conditional color styling to the Big Number slice
+
+
+## Version 7.0.4
+
+
+*Publish Date: 06/10/2019*
+
+
+### AAW
+
+
+* Improved installation diagnostics
+* Fixed timestamps on audit logs to reflect UTC time only
+
+
+### SQL / OLAP
+
+
+* Added `ROOT` and `KINETICA` to the
+  [reserved words list](/content/sql/sql_reserved_words) to align with SQL
+  standard referencing of the database catalog and *root* schema
+* Various optimizations and improvements to window functions and distributed
+  operations
+* Expanded support for the `IPV4` [type](/content/concepts/types#types-data-types)
+* Added support for propagating [dictionary encoding](/content/concepts/types#types-data-handling)
+  to result tables
+* Added support to [KiSQL](/content/tools/kisql),
+  [JDBC, and ODBC](/content/connectors/sql_guide) for designating the primary
+  processing node in a cluster
+* Added support for string concatenation of numeric columns using the `||`
+  operator
+
+
+### Geospatial / Network Graph
+
+
+* Various improvements and simplifications to [/query/graph](/content/api/rest/query_graph_rest)
+* Added a new `QUERY_TARGET_NODE_LABEL`
+  [query identifier](/content/graph_solver/network_graph_solver#query-identifiers) for simplified querying of graph
+  nodes
+
+
+### APIs / Tools / Connectors
+
+
+* Various performance improvements to the Kafka connector
+* Added support to JavaScript and NodeJS APIs for converting quoted
+  `Infinity`, `-Infinity`, and `NaN` values to `null` for `double` and
+  `float` [type](/content/concepts/types) columns
+* Added support for importing geospatial data from *SQL Server* via *KIO*
+
+
+### UI
+
+
+#### AAW
+
+
+* Various improvements to the inference audit graph tool and model setup table
+  column selection
+* Added support for exporting entities to JSON
+
+
+#### KAgent
+
+
+* Added support for Ring management (adding a cluster, removing a cluster,
+  backing up a ring)
+* Added support for repairing a failed cluster installation
+
+
+#### GAdmin
+
+
+* Added SQL `EXPLAIN` plan visualization
+* Added support for adding and removing a partition to the table edit interface
+* Added support for rolling log files
+* Added *Spark* memory parameters to the *Advanced Import* interface
+* Various improvements to the resource statistics interface
+
+
+#### Reveal
+
+
+* Added support for `VAL_ATTR` parameter in a multi-layer map
+* Added point size autoscaling in a scatterplot
+
+
+## Version 7.0.3
+
+
+*Publish Date: 05/08/2019*
+
+
+### AAW
+
+
+* Added support for NVIDIA RAPIDS to all three deployment modes
+* Improved configurations for all container assets (for inside-firewall use)
+* Bundled dependencies in the RPM
+
+
+### Core
+
+
+* Various performance improvements and bug fixes
+
+
+### SQL / OLAP
+
+
+* Added support for `RANGE` and `NULLS FIRST`/`LAST` in
+  [window functions](/content/sql/query#sql-window)
+* Added support for using `NOT IN` within an `UPDATE`/`DELETE` query
+* Added support for managing resource groups
+* Added support for CSV & Multi-head ingestion via ODBC
+* Tuning improvements, including:
+
+  * Faster [STXY_* functions](/content/location_intelligence/geo_functions),
+    geo-joins, & non-geospatial equi-joins
+  * Avoiding creating projections when paging through result sets, to reduce
+    memory
+
+
+### Geospatial / Network Graph
+
+
+* Added support for Adaptive LOD Vector Tiles (Client side VTS)
+* Added options to image/chart requests for applying log scaling for min/max
+  request parameters
+
+* Added `ST_ConcaveHull` geo function
+* Added solution type support to geo functions:
+
+  * `ST_DFullyWithin`
+  * `ST_LongestLine`
+  * `ST_MaxDistance`
+  * `ST_Segmentize` *(Euclidean)*
+
+* Graphs
+
+  * Improved interface for applying restrictions when querying
+  * Added support for constant expressions in all endpoints
+
+
+### APIs / Tools / Connectors
+
+
+* Added HA support to multi-head ingest & egress via Java API
+* Added primary cluster identification for the C++ API
+
+
+### DevOps
+
+
+* Added support for Docker EGL rendering
+* Included S3 Cold storage in backups
+
+
+### UI
+
+
+#### AAW
+
+
+* Added Blackbox container creation wizard
+* Added RAPIDS model creation, training, and deployment
+
+
+#### KAgent
+
+
+* More detailed logging and easier to use logging console
+* Added support for upgrading clusters already in KAgent from previous releases
+  of Kinetica 7.0
+
+
+#### GAdmin
+
+
+* Added support for new KIO options (Spark timeout & multi-head, etc)
+* Added support for Drag & Drop import of CSV files with Kinetica schema headers
+* Added global cluster system status
+* Added support for `init_with_now` attribute in table configuration editor
+* Added support for CSV data export from WMS preview
+* Improved application of all stats optimization recommendations
+
+
+#### Reveal
+
+
+* Added global filter on map slice extent
+* Added data export from data browser slice with authentication
+* Added support for dashboard import/export
+* Added dark theme CSS template
+
+
+## Version 7.0.2
+
+
+*Publish Date: 04/17/2019*
+
+
+### AAW
+
+
+* Added support for NVIDIA RAPIDS Model Training (Regression) and
+  Deployment/Inference
+* Added facility: BlackBox Container Wizard
+* Added auto-launcher for State Manager
+* Upgraded all endpoints to be capable of asynchronous operation
+
+
+### Core
+
+
+* Added support for assigning resource groups to roles; users will inherit
+  resource groups from roles if they have none set explicitly
+
+
+### SQL / OLAP
+
+
+* Added support for standard [SQL views](/content/sql/ddl#sql-create-view)
+* Added support for SQL UPDATE and DELETE statements that reference other tables
+  via JOIN
+* Improved efficiency of geospatial filters
+* Added JDBC support for multi-head ingest, including from CSV files
+* Various optimizations and bug fixes
+
+
+### Geospatial / Network Graph
+
+
+* Added Map Matching feature, which can map a given set of points to an
+  underlying graph
+* Added geodesic distance option to ST_buffer geospatial function
+
+
+### APIs / Tools / Connectors
+
+
+* R ODBC connector support for `row.names` and bind & query parameters
+* Added primary cluster identification for Java & Python APIs
+* KIO
+
+  * Added support for connecting to public S3 buckets
+  * Improved transfer time between Kinetica instances via Spark
+  * Added support for multi-head ingestion into Kinetica
+  * Added support for ingesting into a table within a collection
+  * Added ability to tune the JVM parameters for Spark memory limits
+  * Improved logging
+
+
+### UI
+
+
+#### AAW
+
+
+* Added image inference testing support
+* Added support for managing credentials for private docker registries
+
+
+#### KAgent
+
+
+* Added detailed progress reporting during install and other long running tasks
+* More flexible backup and restore operations
+
+
+#### GAdmin
+
+
+* Added Drag & Drop inferencing of WKT fields within CSV files
+* Added support for tab-delimited file import
+* Added support for role-based resource groups
+* Added support for list partition configuration
+
+
+#### Reveal
+
+
+* Improved dashboard global filtering performance
+* Added SDK command for removing slices from build
+* Added support for custom base map server URL for map slice
+* Added info pop-up and auto-fit data feature for scatter plot slice
+
+
+## Version 7.0.1
+
+
+*Publish Date: 03/08/2019*
+
+
+### AAW
+
+
+* Introduced Batch Model deployments
+* Added Credentials concept to handle reuseable connection profiles
+* Added support on Containerized Ingests to utilize saved Credentials concept
+* Introduced second process (state manager) to manage long-running processes
+* Added more filtering options for audit searches
+* Added Config-Driven K8s Cluster Selection
+* Added capture & searchability of stack traces on individual inferences
+* Faster inventory/entity dashboard operations
+
+
+### Core
+
+
+* Added ability to bypass *Disk Cache* tier for persistent objects when
+  *Disk Cache* & *Persist* tiers are similarly performant (tuning option)
+
+
+### KAgent
+
+
+* Improved handling of upgrading httpd 2.2 configurations (when upgrading from GPUdb 6.2)
+* Initial support for KAgent creation of Nvidia-enabled Kubernetes clusters
+
+
+### SQL / OLAP
+
+
+* Improved Partitioning
+
+  * Added List partitions
+  * Added support for Date columns
+  * Improved partition syntax
+
+* Added ability to apply the current date/time as a default for date/time columns
+* Added support for Alteryx
+* Improved support for SQL with HA
+* Various optimizations and bug fixes
+
+
+### Geospatial / Network Graph
+
+
+* Added ability to query graphs by edge/node ID constant value
+* Added Probability Rank Solver (Hidden Markov Chain)
+* Added new edge/weight configurations (identifier combos)
+* Added ST_partition geospatial function
+
+
+### APIs / Tools / Connectors
+
+
+* New R ODBC connector
+* Added high availability support to the basic client class for C++, Java, &
+  Python and to the multi-head operations for Java & Python
+* KIO
+
+  * Added support for Oracle
+  * Added support for Teradata
+  * Added support for SybaseIQ
+  * Added support for SQLServer
+
+
+### UI
+
+
+#### AAW
+
+
+* Faster loading dashboard
+* Batch model deployment
+* Entity archiving
+
+
+#### KAgent
+
+
+* Added configuration of non-core/gpudb cluster nodes for dedicated AAW or Graph server
+* Added display of cluster admin service statuses (Running, Stopped, etc)
+* Added AAW administration commands
+* Improved robustness authentication/login
+
+
+#### GAdmin
+
+
+* KIO UI support for Oracle, Teradata, Sybase IQ, and SQL Server
+
+
+#### Reveal
+
+
+* Pivot Table heatmap coloring
+* Map auto-zoom and class-break legend
+* New improved Scatter Plot with pan/zoom

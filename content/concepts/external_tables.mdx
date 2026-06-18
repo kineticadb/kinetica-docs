@@ -1,0 +1,280 @@
+---
+title: External Tables
+---
+
+An *external table* is a database object whose source data is located in one or
+more files external to the database.  The source data can be located in either
+of the following locations:
+
+* in [KiFS](/content/tools/kifs)
+* on a remote system, accessible via a [data source](/content/concepts/data_sources)
+
+*External tables* are created via the [/create/table/external](/content/api/rest/create_table_external_rest#create-table-external-rest)
+native API call.  For details on interfacing with *external tables* from SQL,
+see [CREATE EXTERNAL TABLE](/content/sql/ddl#sql-create-ext-table).
+
+Using *external tables* in an environment with
+[ring resiliency](/content/ha) enabled has additional
+[considerations](/content/ha/ha_configuration#ring-extdata).
+
+An *external table* name must adhere to the standard
+[naming criteria](/content/concepts/tables#table-naming-criteria).  Each *external table*
+exists within a [schema](/content/concepts/schemas) and follows the standard
+[name resolution rules](/content/concepts/tables#table-name-resolution) for *tables*.
+
+
+## Types
+
+
+There are two types of *external table*, distinguished by the scheme each uses
+to pull data from the external source:
+
+* *Materialized external tables* pull data from external sources and cache that
+  data in a persisted table within the database.  Data is refreshed on demand
+  and, configurably, on database startup.  This mode ensures a much quicker
+  response time, at the cost of the data being as current as the last refresh.
+* *Logical external tables* pull data from external sources upon servicing each
+  query against the *external table*.  This mode ensures queries on the external
+  table will always return the most current source data, though there will be a
+  performance penalty for reparsing & reloading the data from source files upon
+  each query.
+
+
+## Data File Formats
+
+
+There are several source data file formats supported for *external tables*:
+
+* *Parquet* - *Apache Parquet* data files--see
+  [Parquet Limitations](/content/load_data/concepts#ingest-parquet-limitations) for the supported data types
+* *Text* - delimited text files (CSV, PSV, TSV, etc.)--the parser is highly
+  configurable and can support a wide variety of delimited text schemes;
+  however, records spanning multiple lines are not supported
+* *JSON* - both standard JSON & GeoJSON files are supported--see
+  [JSON/GeoJSON Limitations](/content/load_data/concepts#ingest-json-limitations) for the supported data types
+* *Shapefile* - *ArcGIS* shapefiles
+
+Regardless of the format selected, one or more source data fields can be used in
+the creation of the *external table*.  Date/time fields can have their source
+formats specified.
+
+
+## Table Features
+
+
+An *external table* can be assigned many of the features of standard *tables*,
+some of which include:
+
+* [Distribution](/content/concepts/tables#distribution)
+* [Partitioning](/content/concepts/tables#partitioning)
+* [Tier strategy](/content/rm/concepts#rm-concepts-tier-strategy)
+* [Primary key](/content/concepts/tables#primary-key)
+* [Foreign key](/content/concepts/tables#foreign-key)
+
+While an *external table* can have a *primary key* defined, there are two
+limitations to consider when configuring one this way:
+
+* A *primary key* collision between an incoming record and one already in the
+  *external table* will result in the incoming record being rejected--there are
+  no *primary key* record updates when using *external tables*
+* A *primary key* collision between two records within the incoming data set
+  will result in one of the two records being chosen non-deterministically for
+  insert into the *external table*; assuming there is no collision between that
+  record and one already in the *external table*.
+
+*External table* names and column names must adhere to the supported
+[naming criteria](/content/concepts/tables#table-naming-criteria), and the
+[name resolution](/content/concepts/tables#table-name-resolution) follows that of *tables*.
+
+
+## Data Sources
+
+
+If an *external table* is to use a *data source*, then
+[data source connect privilege](/content/sql/security#sql-security-priv-mgmt-ds-grant)
+is required for the following actions:
+
+* Creating the *external table*
+* Refreshing the *external table*, if it is *materialized external table*
+* Querying the *external table*, if it is a *logical external table*
+
+An *external table* that uses a *data source* can perform a one-time load upon
+creation and optionally subscribe for updates on an interval, depending on the
+*data source* provider:
+
+| Provider | Description | One-Time Load | Subscription |
+| --- | --- | --- | --- |
+| *Azure* | Microsoft blob storage | Yes | Yes |
+| *GCS* | Google Cloud Storage | Yes | Yes |
+| *HDFS* | Apache Hadoop Distributed File System | Yes |  |
+| *JDBC* | Java DataBase Connectivity; using a user-supplied driver or one of the drivers on the list [supported list](/content/concepts/jdbc_drivers) | Yes | Yes |
+| *S3* | Amazon S3 Bucket | Yes | Yes |
+
+A subscription can be paused, resumed, canceled, or dropped by calling
+[/alter/table](/content/api/rest/alter_table_rest#alter-table-rest) on the *external table*.
+
+
+## Ingestion Mode
+
+
+*Materialized external tables* have three ingest modes available:
+
+* Perform a type inference (if necessary) and ingest all data
+* Perform a type inference and return the intuited table definition
+* Perform an ingest dry run, counting the number of valid records
+
+
+## Refresh on Start
+
+
+*Materialized external tables* can be directed to refresh their data when the
+database starts up.  Depending on the amount of data and the transfer, parse, &
+load time, it may be beneficial to load all data at startup, or delay the
+refresh until a later time.  If the data is not refreshed, it will be the same
+as it was before startup.
+
+
+## Error Mode
+
+
+An *error mode* can be assigned to an *external table*, instructing it on how to
+handle source data field errors in parsing & loading:
+
+* Abort - stop the load process when an error is encountered
+* Skip - skip the current record when an error is encountered
+
+
+## Creating an External Table
+
+
+To create an *external table* with the following features, using
+[KiFS](/content/tools/kifs) as the source of data:
+
+* External table named `ext_product` in the `example` schema
+* External source is in a *KiFS* directory named `data`
+* Source is a file named `products.csv`
+* Data is not refreshed on database startup
+
+<CodeGroup>
+
+{/* Source: /examples/sql/external_table/external_table.kisql (lines 85-86) */}
+```sql SQL
+CREATE EXTERNAL TABLE example.ext_product
+FILE PATHS 'kifs://data/products.csv'
+```
+
+{/* Source: /examples/python/external_table.py (lines 162-165) */}
+```python Python
+kinetica.create_table_external(
+    table_name = 'example.ext_product',
+    filepaths = 'kifs://data/products.csv'
+)
+```
+
+</CodeGroup>
+
+To create an *external table* with the following features, using
+[KiFS](/content/tools/kifs) as the source of data:
+
+* External table named `ext_employee` in the `example` schema
+* External source is in a *KiFS* directory named `data`
+* Source is a *Parquet* file named `employee.parquet`
+* External table has a *primary key* on the `id` column
+* Data is not refreshed on database startup
+
+<CodeGroup>
+
+{/* Source: /examples/sql/external_table/external_table.kisql (lines 67-70) */}
+```sql SQL
+CREATE EXTERNAL TABLE example.ext_employee
+(PRIMARY KEY (id))
+FILE PATHS 'kifs://data/employee.parquet'
+FORMAT PARQUET
+```
+
+{/* Source: /examples/python/external_table.py (lines 148-155) */}
+```python Python
+kinetica.create_table_external(
+    table_name = 'example.ext_employee',
+    filepaths = 'kifs://data/employee.parquet',
+    options = {
+        'file_type': 'parquet',
+        'primary_keys': 'id'
+    }
+)
+```
+
+</CodeGroup>
+
+To create an *external table* with the following features, using an S3
+*data source* as the source of data:
+
+* External table named `ext_product` in the `example` schema
+* External source is a *data source* named `product_ds` in the `example`
+  schema
+* Source is a file named `products.csv`
+* Data is refreshed on database startup
+
+<CodeGroup>
+
+{/* Source: /examples/sql/external_table/external_table.kisql (lines 40-46) */}
+```sql SQL
+CREATE EXTERNAL TABLE example.ext_product
+FILE PATHS 'products.csv'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.product_ds',
+	REFRESH ON START = TRUE
+)
+```
+
+{/* Source: /examples/python/external_table.py (lines 134-141) */}
+```python Python
+kinetica.create_table_external(
+    table_name = 'example.ext_product',
+    filepaths = 'products.csv',
+    options = {
+        'datasource_name': 'example.product_ds',
+        'refresh_method': 'on_start'
+    }
+)
+```
+
+</CodeGroup>
+
+To create an *external table* with the following features, using a JDBC
+*data source* as the source of data:
+
+* External table named `ext_employee_dept2` in the `example` schema
+* External source is a JDBC *data source* named `jdbc_ds` in the `example`
+  schema
+* Source data is a remote query of employees in department *2* from that
+  database's `example.ext_employee` table
+* Data is refreshed on database startup
+
+<CodeGroup>
+
+{/* Source: /examples/sql/external_table/external_table.kisql (lines 167-173) */}
+```sql SQL
+CREATE EXTERNAL TABLE example.ext_employee_dept2
+REMOTE QUERY 'SELECT * FROM example.ext_employee WHERE dept_id = 2'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.jdbc_ds',
+	REFRESH ON START = TRUE
+)
+```
+
+{/* Source: /examples/python/external_table.py (lines 173-180) */}
+```python Python
+kinetica.create_table_external(
+    table_name = 'example.ext_employee_dept2',
+    options = {
+        'datasource_name': 'example.jdbc_ds',
+        'remote_query': 'SELECT * FROM example.ext_employee WHERE dept_id = 2',
+        'refresh_method': 'on_start'
+    }
+)
+```
+
+</CodeGroup>

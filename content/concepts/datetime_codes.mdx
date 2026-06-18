@@ -1,0 +1,91 @@
+---
+title: Date/Time Conversion Codes
+---
+
+The following formatting codes can be used to convert date/time strings to
+native date/time objects (with `TO_DATE`, `TO_DATETIME`, `TO_TIME` and `TO_TIMESTAMP`)
+and for formatting date/time objects as strings (with `TO_CHAR`).
+
+These characters are interpreted literally:  `-` `/` `,` `.` `;` `:`
+
+Other characters need to be quoted in order to be interpreted literally.
+For example, `MM-DD-YYYY` can be used to convert `01-02-2022` to a date,
+while `"Today is "MM-DD-YYYY` is needed to convert `Today is 01-02-2022`.
+
+In the following table, `Opt` in the Input column indicates that the field may be empty
+when being read, and still be considered a valid input.  This can be useful when reading
+data from a source that, for example, sometimes includes milliseconds in their time strings
+and sometimes does not (e.g., the `MMM` code is `Opt`).  `Yes` in the Input column indicates
+that some data must be present in the input string to be considered valid, unless it is after
+a `$` character, in which case all input after the `$` is optional.
+
+| Format Code | Input | Output | Description |
+| --- | --- | --- | --- |
+| `_` | Yes |  | Any one character |
+| `?` | Opt |  | Zero or more non-digit characters |
+| `$` | Yes |  | Everything after this is optional; e.g., `HH:MI$:SS` would accept `12:34` and `12:34:56` |
+| `AD` |  | Yes | Era indicator without periods |
+| `A.D.` |  | Yes | Era indicator with periods |
+| `AM` | Yes | Yes | Meridian indicator without periods [`AM`, `PM`] |
+| `A.M.` | Yes | Yes | Meridian indicator with periods [`A.M.`, `P.M.`] |
+| `BC` |  | Yes | Era indicator without periods |
+| `B.C.` |  | Yes | Era indicator with periods |
+| `C` | Yes | Yes | Number of day in calendar month, with optional leading zero [`1` - `31`] |
+| `CC` |  | Yes | Century (if last 2 digits of the 4-digit year are `00`, this is the first 2 digits; otherwise, this is first 2 digits + 1) |
+| `D` | Yes | Yes | Day of week [`1` - `7`] (*Sunday* - *Saturday*) |
+| `DAY` | Yes | Yes | Day of week [`Sunday` - `Saturday`] |
+| `DD` | Yes | Yes | Number of day in month, with leading zero [`01` - `31`] |
+| `DDD` | Yes | Yes | Number of day of year [`1` - `366`] |
+| `DL` | Yes | Yes | Date long format (`DAY, MONTH C, RRRR`) |
+| `DS` | Yes | Yes | Date short format (`M/C/RRRR`) |
+| `DY` | Yes | Yes | Abbreviated day name (e.g., "Mon") |
+| `FF[1-9]` | Opt | Yes | Fractional seconds where the number of fractional second digits can be specified (default is 3 digits); when used for input, the string may contain an optional "." preceding the numbers |
+| `H` | Yes | Yes | Alias for `H12` |
+| `H12` | Yes | Yes | Hour of day in 12-hour format, with optional leading zero [`0` - `11`] |
+| `H24` | Yes | Yes | Hour of day in 24-hour format, with optional leading zero [`0` - `23`] |
+| `HH` | Yes | Yes | Alias for `HH12` |
+| `HH12` | Yes | Yes | Hour of day in 12-hour format, with leading zero [`00` - `11`] |
+| `HH24` | Yes | Yes | Hour of day in 24-hour format, with leading zero [`00` - `23`] |
+| `I` | Yes | Yes | Last digit of ISO year |
+| `ID` | Yes | Yes | ISO 8601 day of week [`1` - `7`] (*Monday* - *Sunday*) |
+| `IDDD` | Yes | Yes | ISO 8601 day of year [`001` - `371`] (where `001` is the *Monday* of the 1st ISO week) |
+| `IW` | Yes | Yes | ISO 8601 week of year [`01` - `53`] (where `01` contains the first *Thursday* of the year) |
+| `IY` | Yes | Yes | Last 2 digits of ISO year |
+| `IYY` | Yes | Yes | Last 3 digits of ISO year |
+| `IYYY` | Yes | Yes | Last 4 digits of ISO year |
+| `J` | Yes | Yes | Julian day; the number of days since *January 1, 4712 BC*.  Number specified with `J` must be integers. |
+| `LLL` | Opt | Yes | Whole milliseconds (often positioned after a colon); e.g., `12:34:56:78` =&gt; *78 milliseconds*; when used for input, the string may contain an optional "." or ":" preceding the numbers; when "." is found, this code will act like the `MMM` code |
+| `M` | Yes | Yes | Number of month in year, with optional leading zero [`1` - `12`] |
+| `MI` | Yes | Yes | Minute of hour [`00` - `59`] |
+| `MM` | Yes | Yes | Number of month in year, with leading zero [`01` - `12`] |
+| `MMM` | Opt | Yes | Fractions of a second up to milliseconds; e.g., `12:34:56.78` =&gt; *780 milliseconds*; when used for input, the string may contain an optional "." or ":" preceding the numbers; when ":" is found, this code will act like the `LLL` code |
+| `MON` | Yes | Yes | 3-character abbreviation of month in title case [`Jan` - `Dec`] |
+| `MONTH` | Yes | Yes | Full name of month [`January` - `December`] |
+| `MS` | Opt | Yes | Alias for `MMM` |
+| `OF` | Opt | Yes | Time-zone offset from UTC (`TZHTZM`) |
+| `PM` | Yes | Yes | Alias for `AM` |
+| `P.M.` | Yes | Yes | Alias for `A.M.` |
+| `Q` |  | Yes | Quarter of the year [`1` - `4`] (*January-March* - *October-December*) |
+| `RM` | Yes | Yes | Roman numeral month [`I` - `XII`] (*January* - *December*) |
+| `RR` | Yes | Yes | Rounded year.  Assume the given 2-digit year occurs in the present century, then: <br/> <br/> * If the assumed date is greater than 50 years into the future, declare the date to be in the previous century <br/> * If the assumed date is greater than 50 years into the past, declare the date to be in the next century |
+| `RRRR` | Yes | Yes | Either a 2-digit or 4-digit year; if 2-digit, equivalent to `RR` |
+| `SCC` |  | Yes | Same as `CC` |
+| `SS` | Yes | Yes | Second of minute [`00` - `59`] |
+| `SSSS` | Yes | Yes | Alias for `SSSSS` |
+| `SSSSS` | Yes | Yes | Seconds past midnight [`0` - `86399`] |
+| `SYEAR` |  | Yes | Same as `YEAR` |
+| `SYYYY` | Yes | Yes | Same as `YYYY` |
+| `TS` | Yes | Yes | Time short format (`H24:MI:SS.MMM`) |
+| `TZ` | Opt | Yes | Time zone (`TZH`) |
+| `TZH` | Opt | Yes | Time zone hour (ISO); "Z" or +/- followed by one or two digits (will always output "Z") |
+| `TZM` | Opt | Yes | Time zone minute (ISO); colon followed by one or two digits; for input, an optional colon is allowed at the front; if present, two digits must follow it |
+| `US` | Opt | Yes | Microseconds; when used for input, the string may contain an optional "." preceding the numbers |
+| `W` | Yes | Yes | Week of month [`1` - `5`], where week 1 starts on the first day of the month and ends on the seventh |
+| `WW` | Yes | Yes | Week of year [`1` - `53`], where week 1 starts on the first day of the year and continues to the seventh day of the year |
+| `X` | Yes | Yes | Local radix character (always `.`.  E.g., `HH:MI:SSXFF`) |
+| `Y` | Yes | Yes | Last 1 digit of year |
+| `Y,YYY` | Yes | Yes | Year with a comma after the thousands place |
+| `YEAR` |  | Yes | Year spelled out (e.g., "Two Thousand Twenty Five") |
+| `YY` | Yes | Yes | Last 2 digits of year |
+| `YYY` | Yes | Yes | Last 3 digits of year |
+| `YYYY` | Yes | Yes | 4-digit year |

@@ -1,0 +1,90 @@
+---
+title: Time Bucketing
+sidebarTitle: Time Bucketing
+---
+
+*Time bucketing* is the segmenting of a given data set into "buckets", based on
+some time-based column value or expression within the set.
+
+
+## TIME_BUCKET
+
+
+*Time bucketing* is accomplished through the use of the `TIME_BUCKET`
+function, which calculates the time range in which a given timestamp falls,
+based on a set of fixed-width "buckets", start-aligned to a date/time, and
+offset from that start date/time.
+
+The basic form of the `TIME_BUCKET` function is:
+
+```sql
+TIME_BUCKET(width, timestamp[, offset[, base]])
+```
+
+<AccordionGroup>
+
+<Accordion title="width" id="width" defaultOpen>
+
+The number of milliseconds each bucket should span.  An `INTERVAL` can also be used to specify
+the `width`.
+
+</Accordion>
+
+<Accordion title="timestamp" id="timestamp" defaultOpen>
+
+A date/time column or expression, the time portion of which will be used in placing the
+corresponding record within the correct time bucket.
+
+</Accordion>
+
+<Accordion title="offset" id="offset" defaultOpen>
+
+The number of milliseconds after (for a positive `offset`) or number of milliseconds before
+(for a negative `offset`) the `base` date/time to which the buckets should be aligned.  An
+`INTERVAL` can also be used to specify the `offset`.  The default is no offset.
+
+</Accordion>
+
+<Accordion title="base" id="base" defaultOpen>
+
+The starting date/time to which buckets will be aligned.  The default is
+`2000-01-03 00:00:00`.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Example
+
+
+Typically, `TIME_BUCKET` is used in the following type of query:
+
+{/* Source: /examples/sql/functions/time_bucket.kisql (lines 89-100) */}
+```sql TIME_BUCKET Example
+SELECT
+	TIME_BUCKET
+	(
+		INTERVAL 5 MINUTES,
+		ts,
+		INTERVAL -2.5 MINUTES,
+		'2023-02-28'
+	) + INTERVAL 2.5 MINUTES AS five_minute_midpoint,
+	AVG(cpu) AS avg_cpu
+FROM example.host_metrics
+GROUP BY five_minute_midpoint
+ORDER BY five_minute_midpoint
+```
+
+The result will be as follows:
+
+* Timestamps in the `ts` column of the `example.host_metrics` table will be grouped into buckets
+* Each bucket will span a `5` minute interval
+* The baseline bucket will start at `2023-02-27 23:57:30` (`2023-02-28` offset by `-2.5` minutes)
+  and continue through `2023-02-28 00:02:30` (`5` minutes from `2023-02-27 23:57:30`)
+* Buckets will extend before & after the baseline bucket in contiguous, non-overlapping fashion
+* Each result record will show the timestamp in the middle of the bucket's range
+  (`+ INTERVAL 2.5 MINUTES` from the start of each `5` minute span) and the average CPU usage
+  across the records contained within that date/time range
+* Gaps in the data will not be filled in with empty buckets--only buckets containing the timestamps
+  found in the `ts` column of `example.host_metrics` will be returned in the result set

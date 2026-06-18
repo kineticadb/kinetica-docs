@@ -1,0 +1,2068 @@
+---
+title: Graphs
+sidebarTitle: Graphs
+---
+
+<a id="sql-graph"></a>
+
+
+*Kinetica* provides support for
+[graph](/content/graph_solver/network_graph_solver) creation and management
+in SQL. Graphs represent topological relationships (both geospatial and
+non-geospatial) via nodes that are connected by edges.
+
+Graph features accessible via SQL include:
+
+
+* Query
+
+  * [SQL/PGQ](/content/sql/graph#sql-pgq)
+  * [QUERY_GRAPH](/content/sql/graph#sql-graph-query)
+
+* Solve
+
+  * [MATCH_GRAPH](/content/sql/graph#sql-graph-match)
+  * [SOLVE_GRAPH](/content/sql/graph#sql-graph-solve)
+
+* Management
+
+  * [CREATE GRAPH](/content/sql/graph#sql-graph-create)
+  * [ALTER GRAPH](/content/sql/graph#sql-graph-alter)
+  * [DROP GRAPH](/content/sql/graph#sql-graph-drop)
+  * [SHOW GRAPH](/content/sql/graph#sql-graph-show)
+  * [DESCRIBE GRAPH](/content/sql/graph#sql-graph-desc)
+
+
+<a id="sql-pgq"></a>
+
+
+## SQL/PGQ
+
+
+*SQL/PGQ* can be used to query an existing
+[graph](/content/graph_solver/network_graph_solver) using the supported
+subset of the [Cypher Query Language](https://s3.amazonaws.com/artifacts.opencypher.org/openCypher9.pdf) syntax.  A graph query can also be used
+within a SQL query to join the graph result to a data model.
+
+<CodeGroup>
+
+{/* Source: /sql/syntax/graph.sql (lines 99-104) */}
+```sql Graph Query Syntax
+GRAPH [<schema name>.]<graph name>
+MATCH <match expr>
+[WHERE <filter list>]
+RETURN <return list>
+[ORDER BY <ordering list>]
+[LIMIT <num rows>]
+```
+
+{/* Source: /sql/syntax/graph.sql (lines 107-115) */}
+```sql Query-on-Graph Syntax
+SELECT * FROM GRAPH_TABLE
+(
+    GRAPH [<schema name>.]<graph name>
+    MATCH (<match expr>)
+    [WHERE <filter list>]
+    RETURN <return list>
+    [ORDER BY <ordering list>]
+    [LIMIT <num rows>]
+)
+```
+
+</CodeGroup>
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* containing the *graph*; if no *schema* is specified, the *graph* will be
+looked for in the user's [default schema](/content/concepts/schemas#schema-default)
+
+</Accordion>
+
+<Accordion title="&lt;graph name&gt;" id="<graph-name>" defaultOpen>
+
+Name of the *graph* to query
+
+</Accordion>
+
+<Accordion title="&lt;match expr&gt;" id="<match-expr>" defaultOpen>
+
+Any supported *Cypher* `MATCH` expression.
+
+For example, to query for relationships with the following criteria:
+
+* Starting node can be referred to with `js` in the rest of the graph query
+* Starting node has both `User` & `Admin` labels
+* Starting node has property values of `Joe` & `Smith` for properties `first_name` &
+  `last_name`, respectively
+* Ending node is one hop away from the starting node
+* Ending node has a label of `User`
+
+use this `MATCH` expression:
+
+```
+(js:User:Admin {first_name: 'Joe', last_name: 'Smith'})-[]->(:User)
+```
+Individual labels, property names, and column names can be double-quoted if needed to avoid
+conflicts with the *Cypher* query syntax:
+
+```
+(n:"SYSTEM ADMIN":"BUSINESS ANALYST" {"last name": 'Smith'})
+```
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Expression</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>()</code></td>
+    <td>**Node Matcher** Matches any node.</td>
+  </tr>
+  <tr>
+    <td><code>(&lt;ref&gt;)</code></td>
+    <td>**Node Reference** Matches any node; matched nodes are able to be referenced as <code>&lt;ref&gt;</code> in the rest of the match statement.</td>
+  </tr>
+  <tr>
+    <td><code>(:&lt;label&gt;)</code></td>
+    <td>**Node Label Matcher** Matches any node with a label of <code>&lt;label&gt;</code>; any number of labels can be combined to form a composite restriction: <div><table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">  <thead>  <tr>    <th>Combination</th>    <th>Node Must Have</th>  </tr>  </thead>  <tbody>  <tr>    <td><code>:&lt;label1&gt;:&lt;label2&gt;</code></td>    <td><code>&lt;label1&gt;</code> **and** <code>&lt;label2&gt;</code></td>  </tr>  <tr>    <td><code>:&lt;label1&gt;|&lt;label2&gt;</code></td>    <td><code>&lt;label1&gt;</code> **or** <code>&lt;label2&gt;</code></td>  </tr>  </tbody></table></div></td>
+  </tr>
+  <tr>
+    <td><code>(\{&lt;name&gt;: &lt;value&gt;\})</code></td>
+    <td>**Node Property Matcher** Matches any node with a property <code>&lt;name&gt;</code> whose value is <code>&lt;value&gt;</code>; any number of properties can be combined to form a composite restriction requiring a node to have all the specified property values; e.g.: <pre><code>\{section: 12, last_name: 'Smith'\}</code></pre> <Note>Mutually exclusive with the *Node WHERE Clause Matcher*</Note></td>
+  </tr>
+  <tr>
+    <td><code>(WHERE &lt;expression&gt;)</code></td>
+    <td>**Node WHERE Clause Matcher** Matches any node that meets the restrictions of the given <code>&lt;expression&gt;</code>; this is a standard SQL <code>WHERE</code> clause that can reference a node's ID, properties, or labels, but cannot include sub-query constructs (<code>ANY</code>/<code>ALL</code>/<code>IN</code>/<code>EXISTS</code>); e.g.: <pre><code>WHERE node &lt;= 5 AND CONTAINS('MANAGER', label)</code></pre> <Note>Mutually exclusive with the *Node Property Matcher*</Note></td>
+  </tr>
+  <tr>
+    <td><code>[]</code></td>
+    <td>**Edge Matcher** Matches any edge.</td>
+  </tr>
+  <tr>
+    <td><code>[&lt;ref&gt;]</code></td>
+    <td>**Edge Reference** Matches any edge; matched edges are able to be referenced as <code>&lt;ref&gt;</code> in the rest of the match statement.</td>
+  </tr>
+  <tr>
+    <td><code>[:&lt;label&gt;]</code></td>
+    <td>**Edge Label Matcher** Matches any edge with a label of <code>&lt;label&gt;</code>; any number of labels can be combined to form a composite restriction: <div><table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">  <thead>  <tr>    <th>Combination</th>    <th>Relationship Must Have</th>  </tr>  </thead>  <tbody>  <tr>    <td><code>:&lt;label1&gt;|&lt;label2&gt;</code></td>    <td><code>&lt;label1&gt;</code> **or** <code>&lt;label2&gt;</code></td>  </tr>  </tbody></table></div> <Note>Each relationship can have only **1** label.</Note></td>
+  </tr>
+  <tr>
+    <td><code>(\{&lt;name&gt;: &lt;value&gt;\})</code></td>
+    <td>**Edge Property Matcher** Matches any edge with a property <code>&lt;name&gt;</code> whose value is <code>&lt;value&gt;</code>; any number of properties can be combined to form a composite restriction requiring an edge to have all the specified property values; e.g.: <pre><code>\{manages: true, years: 3\}</code></pre> <Note>Mutually exclusive with the *Edge WHERE Clause Matcher*</Note></td>
+  </tr>
+  <tr>
+    <td><code>[WHERE &lt;expression&gt;]</code></td>
+    <td>**Edge WHERE Clause Matcher** Matches any edge that meets the restrictions of the given <code>&lt;expression&gt;</code>; this is a standard SQL <code>WHERE</code> clause that can reference an edge's label, node IDs, or properties, but cannot include sub-query constructs (<code>ANY</code>/<code>ALL</code>/<code>IN</code>/<code>EXISTS</code>); e.g.: <pre><code>WHERE years &lt;= 5 AND label = 'MANAGES'</code></pre> <Note>Mutually exclusive with the *Edge Property Matcher*</Note></td>
+  </tr>
+  <tr>
+    <td><code>()-[]-&gt;()</code></td>
+    <td>**Path Matcher** Matches any node connected via an edge to another node. Relationships must be specified with a directional arrow indicating the direction of the relationship; however, the direction restriction specified will be ignored if the following hint is given with the query: <pre><code>KI_HINT_QUERY_GRAPH_ENDPOINT_OPTIONS(multi_paths,true)</code></pre></td>
+  </tr>
+  <tr>
+    <td><code>()-[]-&gt;\{n[,m]\}()</code></td>
+    <td>**Path Repeater** Matches any node connected via <code>n</code> number of edges to another node.  If the optional <code>m</code> is specified, the number of edges must be between <code>n</code> and <code>m</code>, inclusive.  Any restriction on the edge is in effect for all <code>n</code> to <code>m</code> intermediate edges between the start and end nodes.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;filter list&gt;" id="<filter-list>" defaultOpen>
+
+Filter expressions to apply to the entire graph query.  The expressions can include columns on
+which the graph is based, not just names & labels available in the graph itself.
+
+</Accordion>
+
+<Accordion title="&lt;return list&gt;" id="<return-list>" defaultOpen>
+
+Expressions referencing graph names, graph labels, or supporting graph table columns to use as
+the result set for the graph query.  Each expression must include a unique alias.
+
+</Accordion>
+
+<Accordion title="&lt;ordering list&gt;" id="<ordering-list>" defaultOpen>
+
+Ordering expression(s) to apply to the result set.  Columns referenced do not have to be present
+in the `RETURN` clause.
+
+</Accordion>
+
+<Accordion title="&lt;num rows&gt;" id="<num-rows>" defaultOpen>
+
+Maximum number of records to return in the result set.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+For example, to query for managers in department 6 making more than $150,000:
+
+{/* Source: /examples/sql/graph/cypher_graph_example.kisql (lines 80-84) */}
+```sql Node Query Example
+GRAPH employee_graph
+MATCH (a:MANAGER {"dept_id": 6})
+WHERE salary > 150000
+RETURN a
+ORDER BY a.node
+```
+
+To query for employees who have had the employee with ID #2 as their manager for
+three years or more:
+
+{/* Source: /examples/sql/graph/cypher_graph_example.kisql (lines 91-95) */}
+```sql Edge Query Example
+GRAPH employee_graph
+MATCH ()-[b:MANAGES {node1: 2}]->()
+WHERE years >= 3
+RETURN b
+ORDER BY b.node1, b.node2
+```
+
+To query for employees who work with each other but have different managers:
+
+{/* Source: /examples/sql/graph/cypher_graph_example.kisql (lines 101-105) */}
+```sql Path Query Example
+GRAPH employee_graph
+MATCH (m1)-[r1:MANAGES]->(e1)-[ww:"WORKS WITH"]->(e2)<-[r2:MANAGES]-(m2)
+WHERE m1 != m2
+RETURN m1, e1, e2, m2
+ORDER BY m1.node, e1.node, e2.node
+```
+
+To query with variable hops to find all managers in the management chain for
+employee with ID #14 (or at most, 10 levels of managers above the employee):
+
+{/* Source: /examples/sql/graph/cypher_graph_example.kisql (lines 112-115) */}
+```sql Variable Hop Path Query Example
+GRAPH employee_graph
+MATCH (m)-[r1:MANAGES]->{1,10}(e {node: 14})
+RETURN m, e
+ORDER BY m.node
+```
+
+To use a SQL/PGQ query as a subquery, joining the result with another table:
+
+{/* Source: /examples/sql/graph/cypher_graph_example.kisql (lines 129-138) */}
+```sql SQL/PGQ Query as a Subquery Example
+SELECT m_id, m_fullname, e_id, e_fullname, ap.prize
+FROM GRAPH_TABLE
+	(
+		GRAPH employee_graph
+		MATCH (m)-[r:MANAGES]->(e)
+		RETURN m.node AS m_id, m.full_name AS m_fullname, r.years, e.node AS e_id, e.full_name AS e_fullname
+	) eg
+JOIN anniversary_prize ap
+	ON ap.year = eg.years
+ORDER BY m_id, e_id
+```
+
+
+### Limitations & Suggestions
+
+
+* Graph must be created via SQL and must not be altered, either via SQL or a
+  native API.
+
+* Graph must be created with all nodes having:
+
+  * the same identifier combination
+  * a single column identifier
+  * the same data type
+  * the same nullability--when creating a graph with constant values, the
+    `REMOVE_NULLABLE` function can be used to make the value `NOT NULL`
+
+* Graph should be created with Node & edge `INPUT_TABLES` as regular tables or
+  materialized views instead of queries or logical views.  This will reduce the
+  complexity of query plans involving joins on the graph source data, and
+  improve the performance of SQL/PGQ queries overall.
+
+* Graph should be created with the `add_table_monitor` option if the data in
+  the graph support tables are expected to change, as those changes would
+  otherwise cause the graph and its tables to go out-of-sync, returning wrong
+  results in SQL/PGQ queries.  If the data in the support tables will not
+  change, this option can be omitted.
+
+* Querying a graph in this manner generally requires that, when the graph being
+  queried was created, no correlated subqueries were used as part of any input
+  table queries.  However, a materialized view can be created containing the
+  query, and then the view can be used in place of the query as an input table.
+
+
+<a id="sql-graph-query"></a>
+
+
+## QUERY_GRAPH
+
+
+Queries an existing [graph](/content/graph_solver/network_graph_solver)
+using unique query [identifiers](/content/graph_solver/network_graph_solver#query-identifiers) and
+[combinations](/content/graph_solver/network_graph_solver#query-combinations).  The `QUERY_GRAPH` function
+can be called either within a `SELECT` statement as a table function or within
+an `EXECUTE FUNCTION` call.
+
+<CodeGroup>
+
+{/* Source: /sql/syntax/graph.sql (lines 25-35) */}
+```sql Table Function Syntax
+SELECT * FROM TABLE
+(
+	QUERY_GRAPH
+	(
+		GRAPH => '[<schema name>.]<graph name>',
+		QUERIES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,
+		RINGS => <integer>,
+		[RESTRICTIONS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+		[OPTIONS => KV_PAIRS('<option name>' = '<option value>'[,...])]
+	)
+)
+```
+
+{/* Source: /sql/syntax/graph.sql (lines 38-46) */}
+```sql EXECUTE FUNCTION Syntax
+EXECUTE FUNCTION QUERY_GRAPH
+(
+	GRAPH => '[<graph schema name>.]<graph name>',
+	QUERIES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,
+	ADJACENCY_TABLE => '[<table schema name>.]<table name>',
+	RINGS => <integer>,
+	[RESTRICTIONS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+	[OPTIONS => KV_PAIRS('<option name>' = '<option value>'[,...])]
+)
+```
+
+</CodeGroup>
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="GRAPH" id="graph" defaultOpen>
+
+Name of the *graph* to query
+
+</Accordion>
+
+<Accordion title="QUERIES" id="queries" defaultOpen>
+
+*Nodes* or *edges* to be queried specified using the SQL `INPUT_TABLE` or `INPUT_TABLES` function; review
+[Query Identifiers](/content/graph_solver/network_graph_solver#query-identifiers) and [Query Identifier Combinations](/content/graph_solver/network_graph_solver#query-combinations) for more information.
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="ADJACENCY_TABLE" id="adjacency_table" defaultOpen>
+
+Name of the table to store the resulting adjacent *edges* in `[schema_name.]table_name` format, using standard
+[name resolution rules](/content/sql/naming#sql-name-resolution) and meeting
+[table naming criteria](/content/sql/naming#sql-naming-criteria); a table storing the resulting matching *nodes* will also
+be created, named `<ADJACENCY_TABLE>_nodes`
+
+
+<Note>
+Only applicable when using the `EXECUTE FUNCTION` syntax
+</Note>
+
+</Accordion>
+
+<Accordion title="RINGS" id="rings" defaultOpen>
+
+Sets the number of rings around (hops from) the queried *node(s)* to return matching *edges* & *nodes*
+
+
+<Note>
+Only applicable when querying on *nodes*; e.g., giving `NODE_NAME` or `NODE_LABEL`
+</Note>
+
+</Accordion>
+
+<Accordion title="RESTRICTIONS" id="restrictions" defaultOpen>
+
+Additional *restrictions* to apply to the *nodes*/*edges* of an existing graph specified using the SQL
+`INPUT_TABLE` or `INPUT_TABLES` function; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and [Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more
+information.
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+
+<Note>
+Only applicable when querying on *nodes*; e.g., giving `NODE_NAME` or `NODE_LABEL`
+</Note>
+
+</Accordion>
+
+<Accordion title="OPTIONS" id="options" defaultOpen>
+
+Optional indicator that a comma-delimited list of connection option/value assignments will follow.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>and_labels</code></td>
+    <td>If <code>true</code>, the result of the query has entities that satisfy *all* the target *labels* instead of *any* of the *labels*. The default is <code>false</code>.</td>
+  </tr>
+  <tr>
+    <td><code>find_common_labels</code></td>
+    <td>If <code>true</code>, adds a <code>LABELS</code> column to the output tables specified by <code>ADJACENCY_TABLE</code>.  When <code>RINGS</code> is *0*, all *labels* of queried *nodes* &amp; *edges* will be listed in this column; otherwise, (for many-to-many queries and multi-level traversals), all common *labels* between the source &amp; target *nodes*, as well as common *edge* *labels* in each path will be listed.  The default is <code>false</code>.</td>
+  </tr>
+  <tr>
+    <td><code>force_undirected</code></td>
+    <td>If <code>true</code>, all inbound &amp; outbound *edges* relative to the *node* will be returned. If set to <code>false</code>, only outbound *edges* relative to the *node* will be returned.  The default is <code>false</code>.  Consult [Directed Graphs](/content/graph_solver/network_graph_solver#directed-graphs) for more details. <Note>Only applicable when querying on *nodes* on a directed graph</Note></td>
+  </tr>
+  <tr>
+    <td><code>limit</code></td>
+    <td>When specified, limits the number of query results. The size of the corresponding *node* table will also be limited by this value.</td>
+  </tr>
+  <tr>
+    <td><code>output_charn_length</code></td>
+    <td>When specified, limits the size of string columns in the output tables. The default is <code>64</code>.  Valid values are between <code>1</code> &amp; <code>256</code>.</td>
+  </tr>
+  <tr>
+    <td><code>output_wkt_path</code></td>
+    <td>If *true*, adds a <code>QUERY_EDGE_WKTLINE</code> column to the specified <code>ADJACENCY_TABLE</code> so the solution can be viewed via WMS; for social and non-geospatial solutions, the <code>QUERY_EDGE_WKTLINE</code> column will be populated with spatial coordinates derived from a flattening layout algorithm so the solution can still be viewed. The default is <code>false</code>.</td>
+  </tr>
+  <tr>
+    <td><code>result_table_index</code></td>
+    <td>Indicates which result table to return results from: <ul><li><code>1</code> - Return *edge* results *(default)*</li><li><code>2</code> - Return *node* results</li></ul> <Note>Only applicable when using the table function syntax</Note></td>
+  </tr>
+  <tr>
+    <td><code>server_id</code></td>
+    <td>Indicates which graph server(s) to send the request to. Default is to send to the server, amongst those containing the corresponding graph, that has the most computational bandwidth.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+Using the `EXECUTE FUNCTION` syntax necessitates the `ADJACENCY_TABLE`
+parameter to store the query results, where using the table function syntax will
+return the results directly.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 198-207) */}
+```sql Table Function (Nodes) Example
+SELECT * FROM TABLE
+(
+	QUERY_GRAPH
+	(
+		GRAPH => 'sample_graph',
+		QUERIES => INPUT_TABLE(SELECT ST_GEOMFROMTEXT('POINT(0 0)') AS NODE_WKTPOINT),
+		RINGS => 1,
+		OPTIONS => KV_PAIRS(output_wkt_path = 'true', result_table_index = '2')
+	)
+)
+```
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 213-222) */}
+```sql Table Function (Edges) Example
+SELECT * FROM TABLE
+(
+	QUERY_GRAPH
+	(
+		GRAPH => 'sample_graph',
+		QUERIES => INPUT_TABLE(SELECT ST_GEOMFROMTEXT('POINT(0 0)') AS NODE_WKTPOINT),
+		RINGS => 1,
+		OPTIONS => KV_PAIRS(output_wkt_path = 'true')
+	)
+)
+```
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 226-233) */}
+```sql EXECUTE FUNCTION Example
+EXECUTE FUNCTION QUERY_GRAPH
+(
+	GRAPH => 'sample_graph',
+	QUERIES => INPUT_TABLE(SELECT ST_GEOMFROMTEXT('POINT(5 5)') AS NODE_WKTPOINT),
+	RINGS => 2,
+	ADJACENCY_TABLE => 'sample_graph_node_query',
+	OPTIONS => KV_PAIRS(output_wkt_path = 'true')
+)
+```
+
+</CodeGroup>
+
+
+#### Querying by Hops
+
+
+Queries can make use of a `HOP_ID`
+[identifier](/content/graph_solver/network_graph_solver#query-identifiers) to match nodes & edges at a given
+distance from the source node or edge.
+
+A graph of movies and their actors & directors can be queried, for instance, to
+return the titles & directors of movies in which James Spader has acted.  Here,
+the query starts with the James Spader actor node and uses `HOP_ID` filters
+to:
+
+* move across `acted` edges in the 1st hop to all the nodes in which James
+  Spader has acted
+* find the director nodes connected to those movies in the 2nd hop; note the
+  `-2` for the `HOP_ID` allows one-way edges to be traversed in reverse--the
+  `directed` edge connecting directors to the movies they directed is one-way,
+  from director to movie, but the query needs to move from movie to director of
+  that movie, thus the `-2` designation for the 2nd hop to follow those edges
+  in reverse
+
+Since hop-based queries return all edges along the path, the query ends by
+filtering the James Spader node out of the result set.
+
+{/* Source: /examples/sql/graph/graph_imdb.kisql (lines 134-151) */}
+```sql Query by Hop ID Example
+SELECT
+	QUERY_NODE1_NAME AS Movie,
+	QUERY_NODE2_NAME AS Director
+FROM TABLE
+(
+	QUERY_GRAPH
+	(
+		GRAPH => 'example_graph_label.imdb',
+		QUERIES => INPUT_TABLES
+		(
+			(SELECT 'James Spader'           AS NODE_NAME),
+			(SELECT  1 AS HOP_ID, 'acted'    AS EDGE_LABEL),
+			(SELECT -2 AS HOP_ID, 'directed' AS EDGE_LABEL),
+			(SELECT 'director'               AS TARGET_NODE_LABEL)
+		),
+		RINGS => 2
+	)
+)
+```
+
+
+#### Querying for Commonalities
+
+
+Queries can make use of the `find_common_labels` option to list labels shared
+by both source & target node, as well as labels shared by edges in the result
+paths.
+
+A graph of movies and their actors & directors can be queried, for instance, to
+return the common occupations within filmmaking between Al Pacino and those who
+have directed movies in which he has acted.  Here, the query starts with the Al
+Pacino actor node, looks within two hops for directors
+(Al Pacino-&gt;movie-&gt;directed by), and returns those directors along with
+occupations shared by Al Pacino and each one:
+
+{/* Source: /examples/sql/graph/graph_imdb.kisql (lines 160-175) */}
+```sql Query for Common Labels Example
+
+EXECUTE FUNCTION QUERY_GRAPH
+(
+	GRAPH => 'example_graph_label.imdb',
+	QUERIES => INPUT_TABLES
+	(
+		(SELECT 'Al Pacino' AS NODE_NAME),
+		(SELECT 'director' AS TARGET_NODE_LABEL)
+	),
+	RINGS => 2,
+	ADJACENCY_TABLE => 'example_graph_label.imdb_fcl',
+	OPTIONS => KV_PAIRS
+	(
+	    force_undirected = 'true',
+	    find_common_labels = 'true'
+	)
+```
+
+
+#### Supplementing Queried Graph Data
+
+
+As graph queries ultimately produce standard SQL result sets, they can be used
+in larger SQL queries as joins or sub-selects to add data to result sets or to
+filter data out of them.
+
+A graph of movies and their actors & directors can be queried, for instance, to
+return the actors in Jean Reno movies, and that result can be joined with a
+table of actor biographical data to also return the ages of those actors.  Here,
+the query starts with the Jean Reno actor node, looks within two hops for actors
+(Jean Reno-&gt;movie-&gt;acted in), and returns those actors along with their
+respective current ages by subtracting their corresponding date of birth
+(`dob` column) in the biographical table (`person`) from the current date:
+
+{/* Source: /examples/sql/graph/graph_imdb.kisql (lines 219-240) */}
+```sql Supplementing Graph Query Example
+
+SELECT
+	QUERY_NODE_NAME_TARGET AS Actor,
+	DATEDIFF(YEAR, p.dob, CURRENT_DATE()) AS Age
+FROM TABLE
+(
+	QUERY_GRAPH
+	(
+		GRAPH => 'example_graph_label.imdb',
+		QUERIES => INPUT_TABLES
+		(
+			(SELECT 'Jean Reno' AS NODE_NAME),
+			(SELECT 'actor' AS TARGET_NODE_LABEL)
+		),
+		RINGS => 2,
+		OPTIONS => KV_PAIRS
+		(
+			force_undirected = 'true',
+			result_table_index = '2'
+		)
+	)
+)
+```
+
+
+<a id="sql-graph-match"></a>
+
+
+## MATCH_GRAPH
+
+
+Matches an existing [graph](/content/graph_solver/network_graph_solver)
+to a dataset using one of the supported [solver types](/content/graph_solver/network_graph_solver#solvers)
+and sample points which are defined using unique match
+[identifiers](/content/graph_solver/network_graph_solver#match-identifiers) and
+[combinations](/content/graph_solver/network_graph_solver#match-combinations).  The `MATCH_GRAPH` function
+can be called either within a `SELECT` statement as a table function or within
+an `EXECUTE FUNCTION` call.
+
+<CodeGroup>
+
+{/* Source: /sql/syntax/graph.sql (lines 2-11) */}
+```sql Table Function Syntax
+SELECT * FROM TABLE
+(
+	MATCH_GRAPH
+	(
+		GRAPH => '[<schema name>.]<graph name>',
+		SAMPLE_POINTS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,
+		SOLVE_METHOD => '<solver type>',
+		[OPTIONS => KV_PAIRS('<option name>' = '<option value>'[,...])]
+	)
+)
+```
+
+{/* Source: /sql/syntax/graph.sql (lines 14-21) */}
+```sql EXECUTE FUNCTION Syntax
+EXECUTE FUNCTION MATCH_GRAPH
+(
+	GRAPH => '[<graph schema name>.]<graph name>',
+	SAMPLE_POINTS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,
+	SOLVE_METHOD => '<solver type>',
+	SOLUTION_TABLE => '[<table schema name>.]<table name>',
+	[OPTIONS => KV_PAIRS('<option name>' = '<option value>'[,...])]
+)
+```
+
+</CodeGroup>
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="GRAPH" id="graph-2" defaultOpen>
+
+Name of the *graph* to match
+
+</Accordion>
+
+<Accordion title="SAMPLE_POINTS" id="sample_points" defaultOpen>
+
+Sample points used to match an underlying geospatial graph specified using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function. Sample points are specified as [identifiers](/content/graph_solver/network_graph_solver#match-identifiers),
+which are grouped into [combinations](/content/graph_solver/network_graph_solver#match-combinations).
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to
+use specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="SOLVE_METHOD" id="solve_method" defaultOpen>
+
+The type of solve method to use for the operation; review [Match Identifier Combinations](/content/graph_solver/network_graph_solver#match-combinations) for more
+information.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Solver</th>
+    <th>Description</th>
+    <th>CPU Parallel</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>MARKOV_CHAIN</code></td>
+    <td>Matches sample points to the graph using the Hidden Markov Model (HMM)-based method, which conducts a range-tree closest-edge search to find the best combinations of possible road segments for each sample point to create the best route. The route is secured one point at a time, so the prediction is corrected after each point. This solution type is the most accurate, but also the most computationally intensive.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>MATCH_BATCH_SOLVES</code></td>
+    <td>Matches each provided sample source and destination pair using the shortest path between the points.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>MATCH_CHARGING_STATIONS</code></td>
+    <td>Matches a given sample source and destination pair to the optimal recharging stations along the route (for EVs).</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>MATCH_CLUSTERS</code></td>
+    <td>Matches the graph nodes with a cluster index using the Louvain clustering algorithm. <Note>Parallel running of this solver is experimental and can be invoked with the `parallel_clustering` option.</Note></td>
+    <td>X*</td>
+  </tr>
+  <tr>
+    <td><code>MATCH_LOOPS</code></td>
+    <td>Matches closed loops (Eulerian paths) originating and ending at each graph node between min and max hops (levels).</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>MATCH_OD_PAIRS</code></td>
+    <td>Matches sample points to find the most probable path between origin and destination (OD) pairs with given cost constraints.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>MATCH_SIMILARITY</code></td>
+    <td>Computes the Jaccard similarity between vertex pairs and N-level intersections within M hops.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>MATCH_SUPPLY_DEMAND</code></td>
+    <td>Matches sample generic supply depots to generic demand points using abstract transportation (referred to as trucks). Each route is determined by a truck's ability (size) to service demand at each demand point.</td>
+    <td>X</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="SOLUTION_TABLE" id="solution_table" defaultOpen>
+
+Only applicable when using `EXECUTE FUNCTION` syntax. Name of the table to store the solution
+in `[schema_name.]table_name` format, using standard
+[name resolution rules](/content/sql/naming#sql-name-resolution) and meeting
+[table naming criteria](/content/sql/naming#sql-naming-criteria)
+
+</Accordion>
+
+<Accordion title="OPTIONS" id="options-2" defaultOpen>
+
+Optional indicator that a comma-delimited list of connection option/value assignments will follow.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>aggregated_output</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. When set to <code>true</code> (default), each record in the output table shows a particular supplier's scheduled cumulative round-trip path (MULTILINESTRING) and the corresponding aggregated cost. Otherwise, each record shows a single scheduled supplier route (LINESTRING) towards a particular demand site with its corresponding cost.</td>
+  </tr>
+  <tr>
+    <td><code>batch_tsm_mode</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. If set to <code>true</code> (non-default), each supplier is limited to drop off 1 unit of supply at each demand site visited per trip, in order to model the *traveling* *salesman* problem.</td>
+  </tr>
+  <tr>
+    <td><code>chain_width</code></td>
+    <td>For the <code>MARKOV_CHAIN</code> solver only.  Length of the sample points lookahead window within the Markov kernel; the larger the number, the more accurate the solution. The default value is <code>9</code>.</td>
+  </tr>
+  <tr>
+    <td><code>charging_candidates</code></td>
+    <td>For the <code>MATCH_CHARGING_STATIONS</code> solver only.  Solver searches for this many stations closest to each base charging location found by capacity. The default value is <code>10</code>.</td>
+  </tr>
+  <tr>
+    <td><code>charging_capacity</code></td>
+    <td>For the <code>MATCH_CHARGING_STATIONS</code> solver only.  The maximum charging capacity of an EV (distance in meters or time in seconds, depending on the unit of the graph weights). The default value is <code>300000</code>.</td>
+  </tr>
+  <tr>
+    <td><code>charging_penalty</code></td>
+    <td>For the <code>MATCH_CHARGING_STATIONS</code> solver only.  The penalty for fully charging. The default value is <code>30000</code>.</td>
+  </tr>
+  <tr>
+    <td><code>cluster_quality_metric</code></td>
+    <td>For the <code>MATCH_CLUSTERS</code> solver only.  The quality metric for Louvain modularity optimization solver.</td>
+  </tr>
+  <tr>
+    <td><code>destination</code></td>
+    <td>Optional WKT ending point from <code>SAMPLE_POINTS</code> for the solver. The default behavior for the endpoint is to use time to determine the destination point. The default value is <code>POINT NULL</code>.</td>
+  </tr>
+  <tr>
+    <td><code>enable_reuse</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. If set to <code>true</code> (non-default), all suppliers can be scheduled for additional rounds of supply drop-off from their originating depots.</td>
+  </tr>
+  <tr>
+    <td><code>filter_folding_paths</code></td>
+    <td>For the <code>MARKOV_CHAIN</code> solver only. When set to <code>true</code> (non-default), the paths per sequence combination is checked for folding over patterns and can significantly increase the execution time depending on the chain width and the number of GPS samples.</td>
+  </tr>
+  <tr>
+    <td><code>gps_noise</code></td>
+    <td>GPS noise value (in meters) to remove redundant sample points. Use <code>-1</code> to disable noise reduction. The default value (<code>5.0</code>) accounts for 95% of point variation (±5 meters)</td>
+  </tr>
+  <tr>
+    <td><code>intersection_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>intersection</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>inverse_solve</code></td>
+    <td>For the <code>MATCH_BATCH_SOLVES</code> solver only. Solves source-destination pairs using inverse shortest path solver.</td>
+  </tr>
+  <tr>
+    <td><code>left_turn_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>left_turn</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>max_combinations</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. This is the cutoff for the number of generated combinations for sequencing the demand locations. The maximum number of combinations is <code>2000000</code>. The default value is <code>10000</code>.</td>
+  </tr>
+  <tr>
+    <td><code>max_hops</code></td>
+    <td>For the <code>MATCH_SIMILARITY</code> solver only.  Solver searches within this many hops for source and target node pairs to compute the Jaccard scores. The default value is <code>3</code>.</td>
+  </tr>
+  <tr>
+    <td><code>max_loop_level</code></td>
+    <td>For the <code>MATCH_LOOPS</code> solver only. Finds closed loops around each *node* deducible not more than this maximal hop (level) deep.</td>
+  </tr>
+  <tr>
+    <td><code>max_num_clusters</code></td>
+    <td>For the <code>MATCH_CLUSTERS</code> solver only.  If set, processing terminates when the number of clusters after a cycle is at or below this number; thus, the solution will have at most this many clusters in it.</td>
+  </tr>
+  <tr>
+    <td><code>max_num_threads</code></td>
+    <td>For the <code>MARKOV_CHAIN</code> solver only. If specified value is greater than <code>0</code> (default), the maximum number of threads will not be greater than the specified value. It can be lower due to the memory and number of cores available. The default value allows the algorithm to set the optimal number of threads within these constraints.</td>
+  </tr>
+  <tr>
+    <td><code>max_stops</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. If specified (greater than zero), a supplier can at most have this many stops (demand sites) in one round trip; otherwise, it is unlimited.  If <code>enable_reuse</code> is on, this condition will be applied separately at each round-trip use of the same supplier.</td>
+  </tr>
+  <tr>
+    <td><code>max_supply_combinations</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. This is the cutoff for the number of generated combinations for sequencing the supply locations, when <code>permute_supplies</code> is <code>true</code>.  The default value is <code>10000</code>.</td>
+  </tr>
+  <tr>
+    <td><code>max_trip_cost</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. If this constraint is greater than <code>0</code> (default), then the suppliers will skip traveling from one demand site to another if the cost between them is greater than this number (distance or time). The default value means no check is performed.</td>
+  </tr>
+  <tr>
+    <td><code>min_loop_level</code></td>
+    <td>For the <code>MATCH_LOOPS</code> solver only. Finds closed loops around each *node* deducible not less than this minimal hop (level) deep.</td>
+  </tr>
+  <tr>
+    <td><code>num_cycles</code></td>
+    <td>For the <code>MATCH_CLUSTERS</code> solver only.  If this is greater than <code>0</code> (default), then at most this many 2-step clustering exchange cycles will be performed; otherwise, processing will continue until quality does not improve across iterations.</td>
+  </tr>
+  <tr>
+    <td><code>num_loops_per_cycle</code></td>
+    <td>For the <code>MATCH_CLUSTERS</code> solver only.  If this is greater than <code>0</code> (default), then at most this many best-fit calculations for all nodes will be attempted in the first step of each cycle; otherwise, processing will continue until the overall best-fit quality does not improve beyond a pre-defined epsilon threshold value.</td>
+  </tr>
+  <tr>
+    <td><code>num_output_clusters</code></td>
+    <td>For the <code>MATCH_CLUSTERS</code> solver only.  If this is greater than <code>0</code> (default), then at most this many of the top clusters will be output after sorting them from most dense to least dense; otherwise, all clusters will be output.</td>
+  </tr>
+  <tr>
+    <td><code>num_segments</code></td>
+    <td>Maximum number of potentially matching road segments for each sample point. The default is <code>3</code>.</td>
+  </tr>
+  <tr>
+    <td><code>output_batch_size</code></td>
+    <td>For the <code>MATCH_LOOPS</code> solver only. Uses this value as the batch size of the number of loops in flushing (inserting) to the output table.</td>
+  </tr>
+  <tr>
+    <td><code>output_tracks</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. When it is <code>true</code> (non-default), the output will be in tracks format for all the round trips of each supplier in which the timestamps are populated directly from the *edge* weights starting from their originating depots.</td>
+  </tr>
+  <tr>
+    <td><code>paired_similarity</code></td>
+    <td>For the <code>MATCH_SIMILARITY</code> solver only.  When set to <code>true</code> (default), the Jaccard score will be computed between each pair; otherwise, the Jaccard score will be computed from the intersection set between the source and target nodes.</td>
+  </tr>
+  <tr>
+    <td><code>partial_loading</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. When <code>false</code> (non-default), suppliers do not off-load at the demand site side if the remainder is less than the site's demand.</td>
+  </tr>
+  <tr>
+    <td><code>permute_supplies</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only.  When <code>true</code> (default), suppliers are permuted for the demand site combinations during the optimization phase. <Note>This option increases optimization time significantly--use of `max_combinations` in tandem is recommended to prevent prohibitively long runs.</Note></td>
+  </tr>
+  <tr>
+    <td><code>restricted_type</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. If specified, this supplier type will be restricted from routes traversing edges with the <code>MSDO_ODDEVEN_RESTRICTED</code> label.  This models restrictions that exist, for example, in Jakarta, Indonesia. Possible values: <ul><li><code>none</code> - Do not apply any restrictions.</li><li><code>odd</code>  - Apply odd/even rule restrictions to odd ID suppliers</li><li><code>even</code> - Apply odd/even rule restrictions to even ID suppliers</li></ul></td>
+  </tr>
+  <tr>
+    <td><code>right_turn_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>right_turn</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>round_trip</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. When set to <code>true</code> (default), each supplier will have to return to the origination site; otherwise, the route is considered terminated at the final demand site.</td>
+  </tr>
+  <tr>
+    <td><code>search_limit</code></td>
+    <td>For the <code>MATCH_LOOPS</code> solver only. Searches within this limit of nodes per vertex to detect loops. The value zero means there is no limit.</td>
+  </tr>
+  <tr>
+    <td><code>search_radius</code></td>
+    <td>Maximum search radius used when snapping sample points onto potentially matching surrounding segments. The default value (<code>0.001</code>) corresponds to approximately 100 meters.</td>
+  </tr>
+  <tr>
+    <td><code>server_id</code></td>
+    <td>Indicates which graph server(s) to send the request to. Default is to send to the server, among those containing the corresponding graph, that has the most computational bandwidth.</td>
+  </tr>
+  <tr>
+    <td><code>service_limit</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. If specified, any supplier's total service cost (distance or time) will be limited by the specified value including multiple rounds of drop-off (if set). The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>service_radius</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. If specified, it filters the demands outside this radius, centered around the supplier's originating location (distance or time). The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>sharp_turn_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>sharp_turn</code> or <code>u_turn</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>source</code></td>
+    <td>Optional WKT starting point from <code>SAMPLE_POINTS</code> for the solver. The default behavior for the endpoint is to use time to determine the starting point. The default value is <code>POINT NULL</code>.</td>
+  </tr>
+  <tr>
+    <td><code>traversal_node_limit</code></td>
+    <td>For the <code>MATCH_SIMILARITY</code> solver only.  Limits the traversal depth if it reaches this many nodes. The default value is <code>1000</code>.</td>
+  </tr>
+  <tr>
+    <td><code>unit_unloading_cost</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. The unit cost per load amount to be delivered. If this value is greater than <code>0</code> (default) then the additional cost of this unit load multiplied by the total dropped load will be added over to the trip cost to the demand location.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+Using the `EXECUTE FUNCTION` syntax necessitates the `SOLUTION_TABLE`
+parameter to store the match results, where using the table function syntax will
+return the results directly.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 243-258) */}
+```sql Table Function Example
+SELECT * FROM TABLE
+(
+	MATCH_GRAPH
+	(
+		GRAPH => 'big_cities_graph',
+		SAMPLE_POINTS => INPUT_TABLE
+		(
+			SELECT
+				city1_location AS ORIGIN_WKTPOINT,
+				city2_location AS DESTINATION_WKTPOINT,
+				trip_time AS OD_TIME
+			FROM big_cities_map
+		),
+		SOLVE_METHOD => 'match_od_pairs'
+	)
+)
+```
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 262-275) */}
+```sql EXECUTE FUNCTION Example
+EXECUTE FUNCTION MATCH_GRAPH
+(
+	GRAPH => 'big_cities_graph',
+	SAMPLE_POINTS => INPUT_TABLE
+	(
+		SELECT
+			city1_location AS ORIGIN_WKTPOINT,
+			city2_location AS DESTINATION_WKTPOINT,
+			trip_time AS OD_TIME
+		FROM big_cities_map
+	),
+	SOLVE_METHOD => 'match_od_pairs',
+	SOLUTION_TABLE => 'big_cities_graph_matched'
+)
+```
+
+</CodeGroup>
+
+
+<a id="sql-graph-solve"></a>
+
+
+## SOLVE_GRAPH
+
+
+Solves an existing [graph](/content/graph_solver/network_graph_solver)
+using one of the supported [solver types](/content/graph_solver/network_graph_solver#solvers).  The
+`SOLVE GRAPH` function can be called either within a `SELECT` statement as a
+table function or within an `EXECUTE FUNCTION` call.
+
+<CodeGroup>
+
+{/* Source: /sql/syntax/graph.sql (lines 50-62) */}
+```sql Table Function Syntax
+SELECT * FROM TABLE
+(
+	SOLVE_GRAPH
+	(
+		GRAPH => '[<schema name>.]<graph name>',
+		SOLVER_TYPE => '<solver type>',
+		SOURCE_NODES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,
+		[DESTINATION_NODES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+		[WEIGHTS_ON_EDGES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+		[RESTRICTIONS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+		[OPTIONS => KV_PAIRS('<option name>' = '<option value>'[,...])]
+	)
+)
+```
+
+{/* Source: /sql/syntax/graph.sql (lines 65-75) */}
+```sql EXECUTE FUNCTION Syntax
+EXECUTE FUNCTION SOLVE_GRAPH
+(
+	GRAPH => '[<schema name>.]<graph name>',
+	SOLVER_TYPE => '<solver type>',
+	SOURCE_NODES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,
+	SOLUTION_TABLE => '[<schema name>.]<table name>',
+	[DESTINATION_NODES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+	[WEIGHTS_ON_EDGES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+	[RESTRICTIONS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+	[OPTIONS => KV_PAIRS('<option name>' = '<option value>'[,...])
+)
+```
+
+</CodeGroup>
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="GRAPH" id="graph-3" defaultOpen>
+
+Name of the *graph* to solve
+
+</Accordion>
+
+<Accordion title="SOLVER_TYPE" id="solver_type" defaultOpen>
+
+The type of solver to use for the operation.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Solver</th>
+    <th>Description</th>
+    <th>CPU Parallel</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>ALLPATHS</code></td>
+    <td>Determines all reasonable paths between a source and destination pair.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>BACKHAUL_ROUTING</code></td>
+    <td>Determines the optimal routes between remote asset *nodes* and fixed asset nodes.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>CENTRALITY</code></td>
+    <td>Calculates the degree of a *node* to depict how many pairs of individuals that would have to go through the *node* to reach one another in the minimum number of hops. Also known as betweenness.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>CLOSENESS</code></td>
+    <td>Calculates the centrality closeness score per *node* as the sum of the inverse shortest path costs to all *nodes* in the graph.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>INVERSE_SHORTEST_PATH</code></td>
+    <td>Determines the shortest path downstream using multiple technician routing.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>MULTIPLE_ROUTING</code></td>
+    <td>Calculates the shortest possible route between the *nodes* and returns to the origin *node* -- also known as the traveling salesman.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>PAGE_RANK</code></td>
+    <td>Calculates how connected the *nodes* are and determines which *nodes* are the most important.  Weights are not required.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>PROBABILITY_RANK</code></td>
+    <td>Calculates the probability of a *node* being connected to another *node* using hidden Markov chains.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>SHORTEST_PATH</code></td>
+    <td>Determines the shortest path upstream between given source(s) and destination(s).</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>STATS_ALL</code></td>
+    <td>Calculates graph statistics such as graph diameter, longest pairs, vertex valences, topology numbers, average and max cluster sizes, etc.</td>
+    <td>X</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="SOURCE_NODES" id="source_nodes" defaultOpen>
+
+The *node(s)* used as the origin point(s) for the solution specified using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function.
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="SOLUTION_TABLE" id="solution_table-2" defaultOpen>
+
+Only applicable when using `EXECUTE FUNCTION` syntax. Name of the table to store the solution
+in `[schema_name.]table_name` format, using standard [name resolution rules](/content/sql/naming#sql-name-resolution)
+and meeting [table naming criteria](/content/sql/naming#sql-naming-criteria)
+
+</Accordion>
+
+<Accordion title="DESTINATION_NODES" id="destination_nodes" defaultOpen>
+
+The *node(s)* used as the destination point(s) for the solution specified using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function.
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="WEIGHTS_ON_EDGES" id="weights_on_edges" defaultOpen>
+
+Additional *weights* to apply to the *edges* of an existing graph specified using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and [Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information.
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="RESTRICTIONS" id="restrictions-2" defaultOpen>
+
+Additional *restrictions* to apply to the *nodes*/*edges* of an existing graph specified using the SQL
+`INPUT_TABLE` or `INPUT_TABLES` function; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and [Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more
+information.
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="OPTIONS" id="options-3" defaultOpen>
+
+Optional indicator that a comma-delimited list of connection option/value assignments will follow.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>astar_radius</code></td>
+    <td>For <code>SHORTEST_PATH</code>, <code>INVERSE_SHORTEST_PATH</code>, <code>ALLPATHS</code>, and <code>MULTIPLE_ROUTING</code> solvers, when <code>solve_heuristic</code> is <code>astar</code>. The shortest path traversal front includes nodes only within this radius (kilometers) as it moves towards the target location. Default is <code>70</code>.</td>
+  </tr>
+  <tr>
+    <td><code>convergence_limit</code></td>
+    <td>For <code>PAGE_RANK</code> solver only; maximum percent relative threshold on the pagerank scores of each *node* between consecutive iterations to satisfy convergence. Default value is 1%.</td>
+  </tr>
+  <tr>
+    <td><code>intersection_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>intersection</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>left_turn_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>left_turn</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>max_iterations</code></td>
+    <td>For <code>PAGE_RANK</code> solver only; maximum number of pagerank iterations for satisfying convergence. Default value is 100.</td>
+  </tr>
+  <tr>
+    <td><code>max_num_combinations</code></td>
+    <td>For <code>MULTIPLE_ROUTING</code> solver only. Sets the cap on the combinatorial sequence generated. If the default value (<code>2000000</code>) is overridden, it potentially speeds up the solver.</td>
+  </tr>
+  <tr>
+    <td><code>max_runs</code></td>
+    <td>For <code>CENTRALITY</code> solver only. Sets the maximum number of shortest path runs--maximum possible value is the number of *nodes* in the graph. Default of <code>0</code> enables this value to be auto-computed by the solver.</td>
+  </tr>
+  <tr>
+    <td><code>max_solution_radius</code></td>
+    <td>For <code>SHORTEST_PATH</code>, <code>INVERSE_SHORTEST_PATH</code>, &amp; <code>ALLPATHS</code> solvers only.  Sets the maximum solution cost radius, which ignores the <code>DESTINATION_NODES</code> list and instead outputs the nodes within the radius sorted by ascending cost.  If set to <code>0.0</code> (the default), the setting is ignored.</td>
+  </tr>
+  <tr>
+    <td><code>max_solution_targets</code></td>
+    <td>For <code>SHORTEST_PATH</code>, <code>INVERSE_SHORTEST_PATH</code>, &amp; <code>ALLPATHS</code> solvers only.  Sets the maximum number of solution targets, which ignores the <code>DESTINATION_NODES</code> list and instead outputs no more than *n* number of nodes sorted by ascending cost where *n* is equal to the setting value. If set to <code>0</code> (the default), the setting is ignored.</td>
+  </tr>
+  <tr>
+    <td><code>min_solution_radius</code></td>
+    <td>For <code>SHORTEST_PATH</code>, <code>INVERSE_SHORTEST_PATH</code>, &amp; <code>ALLPATHS</code> solvers only.  Applicable when <code>max_solution_radius</code> is set.  Sets the minimum solution cost radius, which ignores the <code>DESTINATION_NODES</code> list and instead outputs the nodes within the radius sorted by ascending cost. If set to <code>0.0</code> (the default), the setting is ignored.</td>
+  </tr>
+  <tr>
+    <td><code>num_best_paths</code></td>
+    <td>For <code>MULTIPLE_ROUTING</code> solver only. Sets the number of shortest paths computed from each node. This is the heuristic criterion. If set to <code>0</code> (the default), the number will be determined automatically by the solver. Users may want to override this parameter to speed up the solver.</td>
+  </tr>
+  <tr>
+    <td><code>output_clusters</code></td>
+    <td>For <code>STATS_ALL</code> solver only; the cluster index for each *node* will be inserted as an additional column in the output.</td>
+  </tr>
+  <tr>
+    <td><code>output_edge_path</code></td>
+    <td>If set to <code>true</code>, concatenated edge IDs will be added as an <code>EDGE_PATH</code> column to the solution table for each source and target pair in the <code>SHORTEST_PATH</code> solves. The default value is <code>false</code></td>
+  </tr>
+  <tr>
+    <td><code>output_wkt_path</code></td>
+    <td>If set to <code>true</code>, WKT line segments will be added as a <code>WKTROUTE</code> column to the solution table for each source and target pair in <code>SHORTEST_PATH</code> solves. The default value is <code>false</code>.</td>
+  </tr>
+  <tr>
+    <td><code>right_turn_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>right_turn</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>server_id</code></td>
+    <td>Indicates which graph server(s) to send the request to. Default is to send to the server, amongst those containing the corresponding graph, that has the most computational bandwidth. For <code>SHORTEST_PATH</code> solver, the input is split among the server containing the corresponding graph.</td>
+  </tr>
+  <tr>
+    <td><code>sharp_turn_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>sharp_turn</code> or <code>u_turn</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>solve_heuristic</code></td>
+    <td>The heuristic search criterion to use, only for geo graphs and <code>SHORTEST_PATH</code> solves towards a single target.  Specify <code>astar</code> to use an *A-STAR* heuristic.  The default value is <code>none</code>.</td>
+  </tr>
+  <tr>
+    <td><code>uniform_weights</code></td>
+    <td>When specified, assigns the given value to all the edges in the graph. Note that weights provided using <code>weights_on_edges</code> will override this value.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+Using the `EXECUTE FUNCTION` syntax necessitates the `SOLUTION_TABLE`
+parameter to store the solve results, where using the table function syntax will
+return the results directly.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 168-178) */}
+```sql Table Function Example
+SELECT * FROM TABLE
+(
+	SOLVE_GRAPH
+	(
+		GRAPH => 'sample_graph',
+		SOLVER_TYPE => 'SHORTEST_PATH',
+		SOURCE_NODES => INPUT_TABLE(SELECT ST_GEOMFROMTEXT('POINT(0 0)') AS WKTPOINT),
+		DESTINATION_NODES => INPUT_TABLE(SELECT ST_GEOMFROMTEXT('POINT(-5 -5)') AS WKTPOINT),
+		OPTIONS => KV_PAIRS(output_edge_path = 'true')
+	)
+)
+```
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 181-189) */}
+```sql EXECUTE FUNCTION Example
+EXECUTE FUNCTION SOLVE_GRAPH
+(
+	GRAPH => 'sample_graph',
+	SOLVER_TYPE => 'SHORTEST_PATH',
+	SOURCE_NODES => INPUT_TABLE(SELECT ST_GEOMFROMTEXT('POINT(0 0)') AS WKTPOINT),
+	DESTINATION_NODES => INPUT_TABLE(SELECT ST_GEOMFROMTEXT('POINT(-5 -5)') AS WKTPOINT),
+	SOLUTION_TABLE => 'sample_graph_solved_shortest_path',
+	OPTIONS => KV_PAIRS(output_edge_path = 'true')
+)
+```
+
+</CodeGroup>
+
+
+<a id="sql-graph-create"></a>
+
+
+## CREATE GRAPH
+
+
+Creates a new [graph](/content/graph_solver/network_graph_solver). The
+nodes and edges of a graph are optionally weighted and/or restricted to aid in
+calculating various ways to traverse the graph. Graphs comprise a maximum of
+four components that each have unique specifications and ways they can be
+combined to define the graph. Review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and
+[Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information.
+
+```sql title="CREATE GRAPH Syntax"
+CREATE [OR REPLACE] [DIRECTED] GRAPH [<schema name>.]<graph name>
+(
+    EDGES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,
+    [NODES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+    [WEIGHTS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+    [RESTRICTIONS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+    [OPTIONS => <KV_PAIRS>('<option key>' = '<option value>'[,...])]
+)
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="OR REPLACE" id="or-replace" defaultOpen>
+
+Any existing *graph* with the same name will be dropped before creating this one
+
+</Accordion>
+
+<Accordion title="DIRECTED" id="directed" defaultOpen>
+
+Optional keyword used to create the *graph* as [directed](/content/graph_solver/network_graph_solver#directed-graphs)
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>-2" defaultOpen>
+
+Name of the *schema* that will contain the created *graph*; if no *schema* is specified, the *graph* will be
+created in the calling user's [default schema](/content/concepts/schemas#schema-default)
+
+</Accordion>
+
+<Accordion title="&lt;graph name&gt;" id="<graph-name>-2" defaultOpen>
+
+Name of the *graph*, which can be referenced in subsequent commands
+
+</Accordion>
+
+<Accordion title="EDGES" id="edges" defaultOpen>
+
+*Graph* component, provided as table column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *edges* of the graph; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and
+[Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="NODES" id="nodes" defaultOpen>
+
+Optional *graph* component, provided as column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *nodes* of the graph; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and
+[Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="WEIGHTS" id="weights" defaultOpen>
+
+Optional *graph* component, provided as column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *weights* of the graph; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and
+[Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="RESTRICTIONS" id="restrictions-3" defaultOpen>
+
+Optional *graph* component, provided as column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *restrictions* of the graph; review
+[Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and [Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="OPTIONS" id="options-4" defaultOpen>
+
+Optional indicator that a list of connection option/value assignments will follow, passed as a comma-delimited
+list of key/value pairs to the `KV_PAIRS` function
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>add_table_monitor</code></td>
+    <td>Adds a table monitor to every table used in the creation of the graph; this table monitor will trigger the graph to update dynamically upon inserts to the source table(s). Note that upon database restart, if <code>save_persist</code> is also set to *true*, the graph will be fully reconstructed and the table monitors will be reattached. For more details on table monitors, see [Table Monitors](/content/concepts/table_monitors). The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>add_turns</code></td>
+    <td>Adds dummy "pillowed" edges around intersection *nodes* where there are more than three *edges* so that additional *weight* penalties can be imposed by the solve endpoints (increases the total number of *edges*). The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>allow_multiple_edges</code></td>
+    <td>Enables *multigraph* capability--pairs of nodes can be connected by more than one edge.  Without this option, undirected graphs can only have one edge between each pair of nodes, and directed graphs can have one edge in each direction between each pair of nodes--"duplicate" edges are discarded.</td>
+  </tr>
+  <tr>
+    <td><code>cluster_graph_schema</code></td>
+    <td>If <code>export_graph_schema</code> is *true*, outputs the graph's *schema* into a table named <code>&lt;graph_name&gt;_clusters</code></td>
+  </tr>
+  <tr>
+    <td><code>export_graph_schema</code></td>
+    <td>Exports a graph's *schema* in [Graphviz DOT](https://graphviz.org/doc/info/lang.html) format. The *schema* is a conversion of the graph into a label-based ontology, done by grouping the nodes using the Louvain clustering algorithm. This *schema* is made available in two ways: <ul><li>visually, by clicking \{\{&lt; guilabel "View Schema" &gt;\}\} in the result of an <code>CREATE GRAPH</code> command in a [SQL Block](/content/admin/workbench/ui/explore#wb-explore-ws-sb) within [Workbench](/content/admin/workbench)</li><li>as text, under the <code>info</code> and then <code>dot</code> keys of the response to a native API call to [/execute/sql](/content/api/rest/execute_sql_rest)</li></ul></td>
+  </tr>
+  <tr>
+    <td><code>graph_table</code></td>
+    <td>If specified, the created graph is also created as a table with the given name, in <code>[schema_name.]table_name</code> format, using standard [name resolution rules](/content/sql/naming#sql-name-resolution) and meeting [table naming criteria](/content/sql/naming#sql-naming-criteria). The table will have the following identifier columns: <code>EDGE_ID</code>, <code>EDGE_NODE1_ID</code>, <code>EDGE_NODE2_ID</code>. If left blank, no table is created. The default value is blank.</td>
+  </tr>
+  <tr>
+    <td><code>is_partitioned</code></td>
+    <td>If set to *true*, the graph will be partitioned across the servers specified in <code>server_id</code>; if *false*, the graph will be replicated across those servers.  The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>label_delimiter</code></td>
+    <td>If specified, the delimiter to use when parsing edge labels.  All labels separated by this delimiter will be applied to the corresponding edge.</td>
+  </tr>
+  <tr>
+    <td><code>merge_tolerance</code></td>
+    <td>If node geospatial positions are input (e.g., <code>POINT(X Y)</code>), determines the minimum separation allowed between unique nodes. If nodes are within the tolerance of each other, they will be merged as a single node. The default value is <code>1.0E-5</code>.</td>
+  </tr>
+  <tr>
+    <td><code>recreate</code></td>
+    <td>If set to *true* and the graph already exists, the graph is deleted and recreated. The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>save_persist</code></td>
+    <td>If set to *true*, the graph will be saved in the persist directory (see the [config reference](/content/config#config-main-persistence) for more information). If set to *false*, the graph will be removed when the graph server is shutdown. The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>schema_edge_labelkeys</code></td>
+    <td>If <code>export_graph_schema</code> is *true*, generates the label-based *schema* by collapsing edges based on the their label keys; otherwise, *schema* edges are created from the edge labels.</td>
+  </tr>
+  <tr>
+    <td><code>schema_node_labelkeys</code></td>
+    <td>If <code>export_graph_schema</code> is *true*, generates the label-based *schema* by collapsing nodes based on the their label keys; otherwise, *schema* nodes are created from the node labels.</td>
+  </tr>
+  <tr>
+    <td><code>server_id</code></td>
+    <td>Indicates on which graph server(s) to create the graph.  Default is to create on the server with the most available memory.  Can be a single server ID, a comma-separated list of IDs, or <code>all</code> for all servers.</td>
+  </tr>
+  <tr>
+    <td><code>simplify</code></td>
+    <td>Simplifies the graph topology at 2-valence by collapsing edge.</td>
+  </tr>
+  <tr>
+    <td><code>use_rtree</code></td>
+    <td>Use a range tree structure to accelerate and improve the accuracy of snapping, especially to *edges*.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 119-136) */}
+```sql Edges & Weights Example
+CREATE GRAPH sample_graph
+(
+	EDGES => INPUT_TABLE
+	(
+		SELECT
+			id AS ID,
+			wktline AS WKTLINE
+		FROM sample_map
+	),
+	WEIGHTS => INPUT_TABLE
+	(
+		SELECT
+			id AS EDGE_ID,
+			cost AS VALUESPECIFIED
+		FROM sample_map
+	),
+	OPTIONS => KV_PAIRS(recreate = 'true', graph_table = 'sample_graph_table')
+)
+```
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 139-162) */}
+```sql Nodes/Edges & Weights Example
+CREATE GRAPH big_cities_graph
+(
+	NODES => INPUT_TABLE
+	(
+		SELECT
+			city_location AS WKTPOINT
+		FROM big_cities
+	),
+	EDGES => INPUT_TABLE
+	(
+		SELECT
+			city1_location AS NODE1_WKTPOINT,
+			city2_location AS NODE2_WKTPOINT
+		FROM big_cities_map
+	),
+	WEIGHTS => INPUT_TABLE
+	(
+		SELECT
+			(REMOVE_NULLABLE(ST_MAKELINE(city1_location, city2_location))) AS EDGE_WKTLINE,
+			trip_time AS VALUESPECIFIED
+		FROM big_cities_map
+	),
+	OPTIONS => KV_PAIRS(recreate = 'true', graph_table = 'big_cities_graph_table')
+)
+```
+
+{/* Source: /examples/sql/graph/graph_property.kisql (lines 31-55) */}
+```sql Label & Label Key from Constants Example
+CREATE OR REPLACE GRAPH people
+(
+	NODES => INPUT_TABLES
+	(
+		(SELECT 'Gender' AS LABEL_KEY, 'MALE:FEMALE' AS LABEL),
+		(SELECT 'Interest' AS LABEL_KEY, 'golf:business:dance:chess' AS LABEL),
+
+		(SELECT 'Jane' AS NAME, 'FEMALE:business' AS LABEL),
+		(SELECT 'Bill' AS NAME, 'MALE:golf' AS LABEL),
+		(SELECT 'Susan' AS NAME, 'FEMALE:dance' AS LABEL),
+		(SELECT 'Alex' AS NAME, 'MALE:chess' AS LABEL),
+		(SELECT 'Tom' AS NAME, 'MALE:chess' AS LABEL)
+	),
+	EDGES => INPUT_TABLES
+	(
+		(SELECT 'Relation' AS LABEL_KEY, 'Friend:Family' AS LABEL),
+
+		(SELECT 'Jane' AS NODE1_NAME, 'Bill' AS NODE2_NAME, 'Friend' AS LABEL),
+		(SELECT 'Bill' AS NODE1_NAME, 'Alex' AS NODE2_NAME, 'Family' AS LABEL),
+		(SELECT 'Bill' AS NODE1_NAME, 'Susan' AS NODE2_NAME, 'Friend' AS LABEL),
+		(SELECT 'Susan' AS NODE1_NAME, 'Alex' AS NODE2_NAME, 'Friend' AS LABEL),
+		(SELECT 'Alex' AS NODE1_NAME, 'Tom' AS NODE2_NAME, 'Friend' AS LABEL)
+	),
+	OPTIONS => KV_PAIRS(label_delimiter = ':', graph_table = 'people_graph_table')
+)
+```
+
+{/* Source: /examples/sql/graph/graph_imdb.kisql (lines 100-126) */}
+```sql Label & Label Key from Tables Example
+CREATE DIRECTED GRAPH imdb
+(
+	NODES => INPUT_TABLES
+	(
+		-- Implicit labeling of movie nodes with the LABEL_KEY 'movie', as all movies have an associated genre
+		(SELECT DISTINCT genre AS LABEL, 'movie' AS LABEL_KEY FROM movie),
+		-- Implicit labeling of person nodes with the LABEL_KEY 'person', as all persons have an associated profession
+		(SELECT DISTINCT profession AS LABEL, 'person' AS LABEL_KEY FROM person),
+
+		-- Give each movie node a genre label; the LABEL_KEY 'movie' will also be associated with each
+		(SELECT title AS NAME, genre AS LABEL FROM movie),
+		-- Give each person node a profession label; the LABEL_KEY 'person' will also be associated with each
+		(SELECT name AS NAME, profession AS LABEL FROM person),
+
+		(SELECT DISTINCT CHAR64(YEAR(DOB)) AS NAME, CHAR64('year') AS LABEL FROM person),
+		(SELECT DISTINCT CHAR64(released) AS NAME, CHAR64('year') AS LABEL FROM movie)
+	),
+	EDGES => INPUT_TABLES
+	(
+		(SELECT DISTINCT participation AS LABEL, 'participation' AS LABEL_KEY FROM imdb),
+
+		(SELECT person AS NODE1_NAME, film AS NODE2_NAME, participation AS LABEL FROM imdb),
+		(SELECT title AS NODE1_NAME, CHAR64(released) AS NODE2_NAME, CHAR64('released') AS LABEL FROM movie),
+		(SELECT name AS NODE1_NAME, CHAR64(YEAR(dob)) AS NODE2_NAME, CHAR64('born') AS LABEL FROM person)
+	),
+	OPTIONS => KV_PAIRS(label_delimiter = ':', graph_table = 'imdb_graph_table')
+)
+```
+
+</CodeGroup>
+
+
+<a id="sql-graph-alter"></a>
+
+
+## ALTER GRAPH
+
+
+Alters an existing [graph](/content/sql/graph#sql-graph-create).
+
+```sql title="ALTER GRAPH Syntax"
+ALTER GRAPH [<schema name>.]<graph name> MODIFY
+(
+    [EDGES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+    [NODES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+    [WEIGHTS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+    [RESTRICTIONS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+    [OPTIONS => KV_PAIRS('<option key>' = '<option value>'[,...])]
+)
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>-3" defaultOpen>
+
+Name of the *schema* containing the *graph* to alter
+
+</Accordion>
+
+<Accordion title="&lt;graph name&gt;" id="<graph-name>-3" defaultOpen>
+
+Name of the *graph* to alter
+
+</Accordion>
+
+<Accordion title="EDGES" id="edges-2" defaultOpen>
+
+*Graph* component, provided as column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *edges* of the graph; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and
+[Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="NODES" id="nodes-2" defaultOpen>
+
+*Graph* component, provided as column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *nodes* of the graph; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and
+[Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="WEIGHTS" id="weights-2" defaultOpen>
+
+*Graph* component, provided as column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *weights* of the graph; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and
+[Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="RESTRICTIONS" id="restrictions-4" defaultOpen>
+
+*Graph* component, provided as column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *restrictions* of the graph; review
+[Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and [Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="OPTIONS" id="options-5" defaultOpen>
+
+Indicator that a list of connection option/value assignments will follow, passed as a comma-delimited
+list of key/value pairs to the `KV_PAIRS` function
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>add_table_monitor</code></td>
+    <td>Adds a table monitor to every table used in the creation of the graph; this table monitor will trigger the graph to update dynamically upon inserts to the source table(s). Note that upon database restart, if <code>save_persist</code> is also set to *true*, the graph will be fully reconstructed and the table monitors will be reattached. For more details on table monitors, see [Table Monitors](/content/concepts/table_monitors). The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>add_turns</code></td>
+    <td>Adds dummy "pillowed" edges around intersection *nodes* where there are more than three *edges* so that additional *weight* penalties can be imposed by the solve endpoints (increases the total number of *edges*). The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>allow_multiple_edges</code></td>
+    <td>Enables *multigraph* capability--pairs of nodes can be connected by more than one edge.  Without this option, undirected graphs can only have one edge between each pair of nodes, and directed graphs can have one edge in each direction between each pair of nodes--"duplicate" edges are discarded. The default value is *true*.</td>
+  </tr>
+  <tr>
+    <td><code>cluster_graph_schema</code></td>
+    <td>If <code>export_graph_schema</code> is *true*, groups nodes based on the Louvain clustering algorithm, converting the graph into a label-based *schema*.</td>
+  </tr>
+  <tr>
+    <td><code>export_graph_schema</code></td>
+    <td>Exports a graph's *schema* in [Graphviz DOT](https://graphviz.org/doc/info/lang.html) format; this is made available in two ways: <ul><li>visually, by clicking \{\{&lt; guilabel "View Schema" &gt;\}\} in the result of an <code>ALTER GRAPH</code> command in a [SQL Block](/content/admin/workbench/ui/explore#wb-explore-ws-sb) within [Workbench](/content/admin/workbench)</li><li>as text, under the <code>info</code> and then <code>dot</code> keys of the response to a native API call to [/execute/sql](/content/api/rest/execute_sql_rest)</li></ul></td>
+  </tr>
+  <tr>
+    <td><code>graph_table</code></td>
+    <td>The graph is created as a table with the given name, in <code>[schema_name.]table_name format</code>, using standard [name resolution rules](/content/sql/naming#sql-name-resolution) and meeting [table naming criteria](/content/sql/naming#sql-naming-criteria). The table will have the following identifier columns: <code>EDGE_ID</code>, <code>EDGE_NODE1_ID</code>, <code>EDGE_NODE2_ID</code>.</td>
+  </tr>
+  <tr>
+    <td><code>label_delimiter</code></td>
+    <td>If specified, the delimiter to use when parsing edge labels.  All labels separated by this delimiter will be applied to the corresponding edge.</td>
+  </tr>
+  <tr>
+    <td><code>save_persist</code></td>
+    <td>If set to *true*, the graph will be saved in the persist directory (see the [config reference](/content/config#config-main-persistence) for more information). If set to *false*, the graph will be removed when the graph server is shutdown. The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>schema_edge_labelkeys</code></td>
+    <td>If <code>export_graph_schema</code> is *true*, generates the label-based *schema* by collapsing edges based on the their label keys; otherwise, *schema* edges are created from the edge labels.</td>
+  </tr>
+  <tr>
+    <td><code>schema_node_labelkeys</code></td>
+    <td>If <code>export_graph_schema</code> is *true*, generates the label-based *schema* by collapsing nodes based on the their label keys; otherwise, *schema* nodes are created from the node labels.</td>
+  </tr>
+  <tr>
+    <td><code>simplify</code></td>
+    <td>Simplifies the graph topology at 2-valence by collapsing edge.</td>
+  </tr>
+  <tr>
+    <td><code>use_rtree</code></td>
+    <td>Use a range tree structure to accelerate and improve the accuracy of snapping, especially to *edges*.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To alter the *weights* of a *graph* and allow it to survive a database restart:
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 305-315) */}
+```sql ALTER GRAPH Example
+ALTER GRAPH big_cities_graph MODIFY
+(
+	WEIGHTS => INPUT_TABLE
+	(
+		SELECT
+			REMOVE_NULLABLE(ST_MAKELINE(city1_location, city2_location)) AS EDGE_WKTLINE,
+			REMOVE_NULLABLE(ST_DISTANCE(city1_location, city2_location)) AS VALUESPECIFIED
+		FROM big_cities_map
+	),
+	OPTIONS => KV_PAIRS('save_persist' = 'true')
+)
+```
+
+
+<a id="sql-graph-drop"></a>
+
+
+## DROP GRAPH
+
+
+Removes an existing [graph](/content/sql/graph#sql-graph-create).
+
+```sql title="DROP GRAPH Syntax"
+DROP GRAPH [<schema name>.]<graph name>
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>-4" defaultOpen>
+
+Name of the *schema* containing the *graph* to remove
+
+</Accordion>
+
+<Accordion title="&lt;graph name&gt;" id="<graph-name>-4" defaultOpen>
+
+Name of the existing *graph* to drop.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To drop a *graph*, `big_cities_graph`:
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 375) */}
+```sql DROP GRAPH Example
+DROP GRAPH big_cities_graph
+```
+
+
+<a id="sql-graph-show"></a>
+
+
+## SHOW GRAPH
+
+
+Outputs the request used to create one or more existing
+[graphs](/content/sql/graph#sql-graph-create).
+
+<CodeGroup>
+
+{/* Source: /sql/syntax/graph.sql (lines 79) */}
+```sql SHOW GRAPH Syntax
+SHOW GRAPH [<schema name>.]<graph name>
+```
+
+{/* Source: /sql/syntax/graph.sql (lines 82) */}
+```sql SHOW GRAPH (All within Schema) Syntax
+SHOW GRAPH <schema name>.*
+```
+
+{/* Source: /sql/syntax/graph.sql (lines 85) */}
+```sql SHOW GRAPH (All) Syntax
+SHOW GRAPH *
+```
+
+</CodeGroup>
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>-5" defaultOpen>
+
+Name of the *schema* containing the *graph(s)* to show
+
+</Accordion>
+
+<Accordion title="&lt;graph name&gt;" id="<graph-name>-5" defaultOpen>
+
+Name of the existing *graph* for which the creation request will be output
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<Info>
+The response to `SHOW GRAPH` is a single-column result set
+with the creation request in the `DDL` column.  The request shown will
+depend on the way in which the *graph* was created (SQL vs. API/REST):
+
+* SQL - output will be the SQL DDL statement used to create the *graph*
+* API/REST - output will be the JSON request, wrapped by the API or sent
+  directly via REST, used to create the *graph*
+</Info>
+
+
+### Examples
+
+
+To output the creation request for a *graph*, `big_cities_graph`:
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 285) */}
+```sql SHOW GRAPH Example
+SHOW GRAPH big_cities_graph
+```
+
+
+<a id="sql-graph-desc"></a>
+
+
+## DESCRIBE GRAPH
+
+
+Outputs the configuration of one or more existing
+[graphs](/content/sql/graph#sql-graph-create).
+
+<CodeGroup>
+
+{/* Source: /sql/syntax/graph.sql (lines 89) */}
+```sql DESCRIBE GRAPH Syntax
+DESC[RIBE] GRAPH [<schema name>.]<graph name>
+```
+
+{/* Source: /sql/syntax/graph.sql (lines 92) */}
+```sql DESCRIBE GRAPH (All within Schema) Syntax
+DESC[RIBE] GRAPH <schema name>.*
+```
+
+{/* Source: /sql/syntax/graph.sql (lines 95) */}
+```sql DESCRIBE GRAPH (All) Syntax
+DESC[RIBE] GRAPH *
+```
+
+</CodeGroup>
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>-6" defaultOpen>
+
+Name of the *schema* containing the *graph(s)* to describe
+
+</Accordion>
+
+<Accordion title="&lt;graph name&gt;" id="<graph-name>-6" defaultOpen>
+
+Name of the existing *graph* for which the configuration will be output
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Response
+
+
+The response to `DESCRIBE GRAPH` is a multi-column result set.
+
+| Output Column | Description |
+| --- | --- |
+| `GRAPH_NAME` | Name of the *graph* |
+| `GRAPH_SERVER_ID` | ID of the server on which the *graph* is hosted |
+| `DIRECTED` | Whether the *edges* of the *graph* have directionality or are bidirectional |
+| `NUM_NODES` | Number of *nodes* in the *graph* |
+| `NUM_EDGES` | Number of *edges* in the *graph* |
+| `NUM_BYTES` | Bytes of memory used by the *graph* |
+| `IS_PERSISTED` | Whether the *graph* will survive a database restart or not |
+| `IS_SYNC_DB` | Whether the *graph* is recreated from its source tables upon database startup |
+| `GRAPH_OWNER_USER_NAME` | Name of user who created the *graph* |
+| `GRAPH_OWNER_RESOURCE_GROUP` | Resource group for the *graph*; the effective resource group of the *graph* creator at the time it was created |
+| `RESOURCE_CAPACITY` | Allocated memory limit for this *graph* |
+| `IS_PARTITIONED` | Whether the *graph* is distributed across the available *graph* servers |
+| `HAS_INSERT_TABLE_MONITOR` | Whether the *graph* has an associated insert table monitor or not |
+| `ORIGINAL_REQUEST` | Request used to create the *graph*, similar to what is returned by [SHOW GRAPH](/content/sql/graph#sql-graph-show) |
+
+
+### Examples
+
+
+To show the configuration for a *graph*, `big_cities_graph`:
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 295) */}
+```sql DESCRIBE GRAPH Example
+DESCRIBE GRAPH big_cities_graph
+```

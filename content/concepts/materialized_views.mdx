@@ -1,0 +1,298 @@
+---
+title: Materialized Views
+---
+
+*Kinetica* supports the concept of a *materialized view*, which is a
+greater-performant query across one or more [tables](/content/concepts/tables#table).  For details
+on interfacing with *materialized views* from SQL, see
+[CREATE MATERIALIZED VIEW](/content/sql/ddl#sql-create-materialized-view).
+
+A *materialized view* name must adhere to the standard
+[naming criteria](/content/concepts/tables#table-naming-criteria).  Each
+*materialized view* exists within a [schema](/content/concepts/schemas) and follows
+the standard [name resolution rules](/content/concepts/tables#table-name-resolution) for
+*tables*.
+
+A *materialized view* consists of one or more operations against one or more
+*input tables*.  These operations will result in *member tables* that will be
+used to construct the *materialized view* and keep its data current.  The
+*member tables* will be managed by the *materialized view* and will not be
+available to be operated on directly outside of the *materialized view*.
+
+*Member tables* can be the result of any of the following:
+
+* [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest) with `result_table` option
+* [/aggregate/unique](/content/api/rest/aggregate_unique_rest) with `result_table` option
+* [/aggregate/unpivot](/content/api/rest/aggregate_unpivot_rest) with `result_table` option
+* [/create/jointable](/content/api/rest/create_jointable_rest)
+* [/create/projection](/content/api/rest/create_projection_rest)
+* [/create/union](/content/api/rest/create_union_rest)
+* [/filter](/content/api/rest/filter_rest)
+
+
+The *materialized view* can be accessed via its *root table*, which is the final
+*member table* in the *materialized view* creation sequence.
+
+When a change occurs in an *input table*, the *member tables* that are derived
+from that *input table* are marked as *stale* and in need of rebuilding if and
+when a data refresh is requested.  When such a request is received, any *stale*
+*member tables* are rebuilt, and the *root table* will once again contain
+current data.
+
+There are seven events that will cause the *member tables* of a
+*materialized view* to be marked as *stale*:
+
+* [/append/records](/content/api/rest/append_records_rest#append-records-rest) against an *input table*
+* [/insert/records](/content/api/rest/insert_records_rest#insert-records-rest) against an *input table*
+* [/insert/records/random](/content/api/rest/insert_records_random_rest#insert-records-random-rest) against an *input table*
+* [/update/records](/content/api/rest/update_records_rest#update-records-rest) against an *input table*
+* Update within a [filtered view](/content/concepts/filtered_views) that is an *input table*
+* Update within a [join view](/content/concepts/joins) that is an *input table*
+* UDF writing to an *input table*
+
+<a id="mview-refresh"></a>
+
+
+## Refresh
+
+
+There are four modes that govern the way in which a *materialized view's* data
+can be kept current:
+
+* [manual](/content/concepts/materialized_views#mview-refresh-mode-manual)
+* [on change](/content/concepts/materialized_views#mview-refresh-mode-change)
+* [on query](/content/concepts/materialized_views#mview-refresh-mode-query)
+* [periodic](/content/concepts/materialized_views#mview-refresh-mode-periodic)
+
+
+<Info>
+The *materialized view* manages the refresh processing for all
+entities contained within it.  The specified refresh mode of any
+*member table* ([join](/content/concepts/joins), for instance) will be ignored.
+</Info>
+
+<a id="mview-refresh-manual"></a>
+
+
+### Manual Refresh
+
+
+A *manual refresh* of a *materialized view* can be performed on any
+*materialized view*, regardless of operating mode, to update the view's data.
+If a refresh is already in progress, the *manual refresh* request will wait
+until the currently executing refresh is complete before executing.
+
+An example of performing a *manual refresh* of a
+*materialized view* (`customer_order_count`):
+
+<CodeGroup>
+
+{/* Source: /examples/sql/tpch.kisql (lines 180) */}
+```sql SQL
+REFRESH MATERIALIZED VIEW example.customer_order_count
+```
+
+{/* Source: /examples/python/materialized_view.py (lines 109) */}
+```python Python
+kinetica.alter_table('example.customer_order_count', 'refresh', '')
+```
+
+</CodeGroup>
+
+
+<a id="mview-refresh-mode-manual"></a>
+
+
+### Manual Mode
+
+
+In *manual mode*, the *materialized view* will only be made fully current by
+performing a [manual refresh](/content/concepts/materialized_views#mview-refresh-manual) of the *view*.  This
+will result in the immediate rebuilding of any of the view's *member tables*
+that require it.
+
+
+<a id="mview-refresh-mode-change"></a>
+
+
+### On Change Mode
+
+
+In *on change mode*, the *materialized view* will be kept current by detecting
+changes in any *member tables* or *input tables* and updating any
+*member tables* that require it.  This behavior means that the returned data
+will always be current, with no overhead on query, but with potentially
+significant refresh processing for each change in the supporting data.
+
+
+<Info>
+The granularity of the change detection is at the endpoint call
+level; e.g., a call to [/update/records](/content/api/rest/update_records_rest#update-records-rest) that resulted in 1,000,000
+records being updated would be detected as one change, and one refresh would
+be initiated.
+</Info>
+
+<a id="mview-refresh-mode-query"></a>
+
+
+### On Query Mode
+
+
+In *on query mode*, the *materialized view* will be refreshed upon query.  This
+behavior means that the returned data will always be current, with some
+overhead on query.
+
+
+<a id="mview-refresh-mode-periodic"></a>
+
+
+### Periodic Mode
+
+
+In *periodic mode*, the *materialized view* will be kept current by refreshing
+the data at a given interval.  This behavior means that the returned data may
+not be current for a given query, but there will be no query overhead and no
+refresh waiting time for modification calls as with *on change mode*.
+
+When the beginning of a period is reached, the time of the following period is
+calculated and a refresh process initiated.  If the refresh process does not
+complete by that pre-calculated time, another refresh process will be initiated
+immediately after the first completes.  When this next refresh begins, the time
+of the next period in the sequence that occurs at some time past the current
+time will be calculated and the cycle repeated.  In this manner, only one
+catch-up refresh will be processed regardless of the number of periods skipped
+by a long-running refresh.
+
+
+## Creating a Materialized View
+
+
+There are three steps in creating a *materialized view* using the native API:
+
+1. Reserve the name of the *materialized view* and receive a unique ID that will
+   be used to identify *member tables* as being part of the *materialized view*.
+   The [/create/materializedview](/content/api/rest/create_materializedview_rest) endpoint will be used for
+   this purpose.  Options such as [refresh mode](/content/concepts/materialized_views#mview-refresh) and
+   [TTL](/content/concepts/ttl) will also be configured in this step.
+2. Issue requests against the *input tables* and against any result tables
+   created by those requests, tagging each result table created with the unique
+   ID for the *materialized view*.
+3. Issue the final processing request, naming the resulting table with the
+   reserved name of the *materialized view* and tagging it with the unique ID.
+   This *member table* becomes the *root table* and the *materialized view*
+   creation sequence is complete.
+
+To create a *materialized view* in SQL, see
+[CREATE MATERIALIZED VIEW](/content/sql/ddl#sql-create-materialized-view).
+
+
+### Examples
+
+
+The following examples construct a *materialized view*.
+
+To create a *materialized view* (`recent_orders`) on a single *table*
+(`orders`), and have `recent_orders` show records in `orders` that were
+ordered in the last 24 hours (as denoted by the table's `o_orderdate` column),
+refreshed every time the data in `orders` is updated:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/tpch.kisql (lines 155-161) */}
+```sql SQL
+CREATE OR REPLACE MATERIALIZED VIEW example.recent_orders
+REFRESH ON CHANGE AS
+(
+    SELECT *
+    FROM tpch.orders
+    WHERE o_orderdate > NOW() - INTERVAL 1 DAY
+)
+```
+
+{/* Source: /examples/python/materialized_view.py (lines 10-20) */}
+```python Python
+view_id = kinetica.create_materialized_view(
+    table_name = 'example.recent_orders',
+    options = {'refresh_method': 'on_change'}
+)['view_id']
+
+retobj = kinetica.filter(
+    table_name = 'tpch.orders',
+    view_name = 'example.recent_orders',
+    expression = 'o_orderdate > NOW() - 1',
+    options = {'view_id': view_id}
+)
+```
+
+</CodeGroup>
+
+To create a *materialized view* (`customer_order_count`) across two
+*tables*: a *base table* (`orders`) and a parent *table* (`customer`), and
+refresh the order total per customer in `customer_order_count` every hour:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/tpch.kisql (lines 167-174) */}
+```sql SQL
+CREATE OR REPLACE MATERIALIZED VIEW example.customer_order_count
+REFRESH EVERY 1 HOUR AS
+(
+    SELECT c_name, COUNT(*) AS num_orders
+    FROM tpch.orders
+        JOIN tpch.customer ON o_custkey = c_custkey
+    GROUP BY c_name
+)
+```
+
+{/* Source: /examples/python/materialized_view.py (lines 60-80) */}
+```python Python
+view_id = kinetica.create_materialized_view(
+    table_name = 'example.customer_order_count',
+    options = {'refresh_method': 'periodic', 'refresh_period': '3600'}
+)['view_id']
+
+kinetica.create_join_table(
+    join_table_name = 'example.customer_order',
+    table_names = ['tpch.orders', 'tpch.customer'],
+    column_names = ['*'],
+    expressions = ['o_custkey = c_custkey'],
+    options = {'view_id': view_id}
+)
+
+response = kinetica.aggregate_group_by(
+    table_name = 'example.customer_order',
+    column_names = ['c_name', 'count(*) as num_orders'],
+    options = {
+        'result_table': 'example.customer_order_count',
+        'view_id': view_id
+    }
+)
+```
+
+</CodeGroup>
+
+
+## Limitations and Cautions
+
+
+* While a *materialized view* created via SQL will persist, one created via a
+  Kinetica API is not persisted, by default, and will not survive a database
+  restart.  However, specifying a `persist` option of `true` when creating
+  one will make the *view* permanent and not expire.  Regardless of which
+  interface is used for creation, a database restart will cause a
+  *materialized view* to be rebuilt from its *input tables*.
+* A persisted *materialized view* cannot have a temporary table or view as a
+  member table; e.g., attempting to add a projection created with a `persist`
+  option set to `false` to a persisted *materialized view* will fail.
+* When performing a refresh, a *materialized view* will not take into account
+  DML operations on member tables that occurred during its creation; these
+  include:
+
+  * [/append/records](/content/api/rest/append_records_rest#append-records-rest)
+  * [/delete/records](/content/api/rest/delete_records_rest#delete-records-rest)
+  * [/insert/records](/content/api/rest/insert_records_rest#insert-records-rest)
+  * [/insert/records/random](/content/api/rest/insert_records_random_rest#insert-records-random-rest)
+  * [/update/records](/content/api/rest/update_records_rest#update-records-rest)
+
+* When any one of the *input tables* to a *materialized view* is altered or
+  dropped, the *materialized view* will also be dropped.

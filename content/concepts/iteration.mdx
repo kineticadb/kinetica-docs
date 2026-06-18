@@ -1,0 +1,342 @@
+---
+title: Iteration
+---
+
+<a id="iteration"></a>
+
+
+## Overview
+
+
+*Kinetica* supports arbitrary iteration over records within a data set for the
+purpose of generating `0` to `N` result records per iterated record.
+
+The primary use case for this is in returning sub-elements of a given geospatial
+column as individual records; e.g., returning each point contained within a set
+of WKTs as a distinct row in a result set.
+
+This capability exists in both the native API and SQL using the `ITER` virtual
+table.  By joining a data set with the `ITER` table, each record in the data
+set can be returned as a user-defined number of records in the result set.
+
+The iteration can occur over sub-elements of a column value (as in the case of
+the point extraction from a WKT) or a fixed number of times for each record in
+a given data set.  To accomplish this, an *iteration expression* must be used to
+limit the `ITER` table's upper bound column, `i`:
+
+
+```sql
+ITER.i < <column expression>
+```
+
+The iteration can be limited by either:
+
+* a value-based number of iterations--here, the number of iterations for a given
+  record is equal to the length of a string column in that record:
+
+  ```sql
+  ITER.i < LENGTH(column)
+  ```
+
+* a constant number of iterations--here, there are 5 iterations (result rows)
+  for each record in the data set:
+
+  ```sql
+  ITER.i < 5
+  ```
+
+The `ITER` table can be utilized via the native [/create/jointable](/content/api/rest/create_jointable_rest#create-jointable-rest)
+endpoint or by joining against the `ITER` table in SQL.
+
+
+## Examples
+
+
+### Geospatial
+
+
+In these examples, point & line extraction from a WKT column will be
+demonstrated, using variable & fixed iteration techniques.
+
+They will operate against a `line` table containing an identifier column and a
+WKT column:
+
+{/* Source: /examples/sql/iteration.out (lines 38-43) */}
+```
++------+-------------------------------------------+
+|   id | wkt                                       |
++------+-------------------------------------------+
+|    1 | LINESTRING (1 1, 2 2, 3 3)                |
+|    2 | LINESTRING (10 11, 12 13, 14 15, 16 17)   |
++------+-------------------------------------------+
+```
+
+
+#### Point Extraction - Variable Iteration
+
+
+The individual points can be extracted from each `LINESTRING`.  Each record in
+`line` will be iterated over a number of times equal to the number of points
+in each line's WKT value (`ST_NPOINTS(wkt)`).  Each resulting record will be
+the point within the WKT at the *ith + 1* position (`ST_POINTN(wkt, i + 1)`).
+Note that the `ITER` table's `i` column values begin at `0`.
+
+{/* Source: /examples/sql/iteration.kisql (lines 31-34) */}
+```sql
+SELECT id, wkt, i, ST_POINTN(wkt, i + 1) AS line_point
+FROM example.line
+JOIN ITER ON i < ST_NPOINTS(wkt)
+ORDER BY id, i
+```
+
+{/* Source: /examples/sql/iteration.out (lines 54-64) */}
+```
++------+-------------------------------------------+-----+-----------------+
+|   id | wkt                                       |   i | line_point      |
++------+-------------------------------------------+-----+-----------------+
+|    1 | LINESTRING (1 1, 2 2, 3 3)                |   0 | POINT (1 1)     |
+|    1 | LINESTRING (1 1, 2 2, 3 3)                |   1 | POINT (2 2)     |
+|    1 | LINESTRING (1 1, 2 2, 3 3)                |   2 | POINT (3 3)     |
+|    2 | LINESTRING (10 11, 12 13, 14 15, 16 17)   |   0 | POINT (10 11)   |
+|    2 | LINESTRING (10 11, 12 13, 14 15, 16 17)   |   1 | POINT (12 13)   |
+|    2 | LINESTRING (10 11, 12 13, 14 15, 16 17)   |   2 | POINT (14 15)   |
+|    2 | LINESTRING (10 11, 12 13, 14 15, 16 17)   |   3 | POINT (16 17)   |
++------+-------------------------------------------+-----+-----------------+
+```
+
+As the result set shows, the two `LINESTRING` values of three & four points
+each were turned into seven records--one for each `POINT` represented in the
+two `LINESTRING` values.
+
+
+#### Line Segment Extraction - Variable Iteration
+
+
+The line segments can be extracted from each `LINESTRING`.  Each record in
+`line` will be iterated over a number of times equal to the number of
+component line segments in each line's WKT value (`ST_NPOINTS(wkt) - 1`).
+Each resulting record will be a `LINESTRING` created from the points within
+the WKT at the *ith + 1* and *ith + 2* positions
+(`ST_POINTN(wkt, i + 1)` & `ST_POINTN(wkt, i + 2)`, respectively).  Note
+that the `ITER` table's `i` column values begin at `0`.
+
+{/* Source: /examples/sql/iteration.kisql (lines 40-43) */}
+```sql
+SELECT id, wkt, i, ST_MAKELINE(ST_POINTN(wkt, i + 1), ST_POINTN(wkt, i + 2)) AS line_segment
+FROM example.line, ITER
+WHERE i < ST_NPOINTS(wkt) - 1
+ORDER BY id, i
+```
+
+{/* Source: /examples/sql/iteration.out (lines 75-83) */}
+```
++------+-------------------------------------------+-----+-----------------------------+
+|   id | wkt                                       |   i | line_segment                |
++------+-------------------------------------------+-----+-----------------------------+
+|    1 | LINESTRING (1 1, 2 2, 3 3)                |   0 | LINESTRING (1 1, 2 2)       |
+|    1 | LINESTRING (1 1, 2 2, 3 3)                |   1 | LINESTRING (2 2, 3 3)       |
+|    2 | LINESTRING (10 11, 12 13, 14 15, 16 17)   |   0 | LINESTRING (10 11, 12 13)   |
+|    2 | LINESTRING (10 11, 12 13, 14 15, 16 17)   |   1 | LINESTRING (12 13, 14 15)   |
+|    2 | LINESTRING (10 11, 12 13, 14 15, 16 17)   |   2 | LINESTRING (14 15, 16 17)   |
++------+-------------------------------------------+-----+-----------------------------+
+```
+
+As the result set shows, the two `LINESTRING` values of three & four points
+each were turned into five records--two component line segments for the first
+`LINESTRING` value and three for the second one.
+
+
+#### Endpoint Extraction - Fixed Iteration
+
+
+The points at both ends of each `LINESTRING` can be extracted.  Each record in
+`line` will be iterated over a fixed number of times--here, twice, one time
+for each point at the ends of the WKT value.
+
+Each resulting record will either be the point at the beginning
+(`ST_STARTPOINT(wkt)`) or end (`ST_ENDPOINT(wkt)`) of the `LINETSTRING`.
+Note that the `ITER` table's `i` column values begin at `0`, and that this
+query uses implied join syntax--no `JOIN` keyword is necessary.
+
+{/* Source: /examples/sql/iteration.kisql (lines 49-52) */}
+```sql
+SELECT id, wkt, i, IF(i = 0, ST_STARTPOINT(wkt), ST_ENDPOINT(wkt)) AS line_end_point
+FROM example.line, ITER
+WHERE i < 2
+ORDER BY id, i
+```
+
+{/* Source: /examples/sql/iteration.out (lines 94-101) */}
+```
++------+-------------------------------------------+-----+------------------+
+|   id | wkt                                       |   i | line_end_point   |
++------+-------------------------------------------+-----+------------------+
+|    1 | LINESTRING (1 1, 2 2, 3 3)                |   0 | POINT (1 1)      |
+|    1 | LINESTRING (1 1, 2 2, 3 3)                |   1 | POINT (3 3)      |
+|    2 | LINESTRING (10 11, 12 13, 14 15, 16 17)   |   0 | POINT (10 11)    |
+|    2 | LINESTRING (10 11, 12 13, 14 15, 16 17)   |   1 | POINT (16 17)    |
++------+-------------------------------------------+-----+------------------+
+```
+
+As the result set shows, the two `LINESTRING` values were turned into four
+records--one for the `POINT` at each end of the two `LINESTRING` values.
+
+
+### Non-Geospatial
+
+
+In these examples, character extraction from a string column will be
+demonstrated, using variable & fixed iteration techniques.
+
+They will operate against a `dictionary` table containing an identifier column
+and a *charN* word column:
+
+{/* Source: /examples/sql/iteration.out (lines 108-114) */}
+```
++------+----------+
+|   id | word     |
++------+----------+
+|    1 | apple    |
+|    2 | banana   |
+|    3 | cherry   |
++------+----------+
+```
+
+
+#### Letter Counting - Variable Iteration
+
+
+Individual letters can be extracted from each word and then aggregated to count
+the number of occurrences of each letter across all words in `dictionary`.
+Each record in `dictionary` will be iterated over a number of times equal to
+the number of letters in each word (`LENGTH(word)`).  Each resulting record
+will be the letter within the word at the *ith + 1* position
+(`SUBSTR(word, i + 1, 1)`).  Note that the `ITER` table's `i` column
+values begin at `0`.
+
+{/* Source: /examples/sql/iteration.kisql (lines 63-66) */}
+```sql
+SELECT id, word, i, SUBSTR(word, i + 1, 1) AS letter
+FROM example.dictionary
+JOIN ITER ON i < LENGTH(word)
+ORDER BY id, i
+```
+
+{/* Source: /examples/sql/iteration.out (lines 125-145) */}
+```
++------+----------+-----+----------+
+|   id | word     |   i | letter   |
++------+----------+-----+----------+
+|    1 | apple    |   0 | a        |
+|    1 | apple    |   1 | p        |
+|    1 | apple    |   2 | p        |
+|    1 | apple    |   3 | l        |
+|    1 | apple    |   4 | e        |
+|    2 | banana   |   0 | b        |
+|    2 | banana   |   1 | a        |
+|    2 | banana   |   2 | n        |
+|    2 | banana   |   3 | a        |
+|    2 | banana   |   4 | n        |
+|    2 | banana   |   5 | a        |
+|    3 | cherry   |   0 | c        |
+|    3 | cherry   |   1 | h        |
+|    3 | cherry   |   2 | e        |
+|    3 | cherry   |   3 | r        |
+|    3 | cherry   |   4 | r        |
+|    3 | cherry   |   5 | y        |
++------+----------+-----+----------+
+```
+
+As the result set shows, the three words were turned into a set of records, one
+for each letter in each word.
+
+The query can have grouping applied to calculate the number of occurrences of
+each letter.  Note that this query uses implied join syntax--no `JOIN` keyword
+is necessary.
+
+{/* Source: /examples/sql/iteration.kisql (lines 72-76) */}
+```sql
+SELECT SUBSTR(word, i + 1, 1) AS letter, COUNT(*) AS total_occurrences
+FROM example.dictionary, ITER
+WHERE i < LENGTH(word)
+GROUP BY 1
+ORDER BY letter
+```
+
+{/* Source: /examples/sql/iteration.out (lines 157-170) */}
+```
++----------+---------------------+
+| letter   |   total_occurrences |
++----------+---------------------+
+| a        |                   4 |
+| b        |                   1 |
+| c        |                   1 |
+| e        |                   2 |
+| h        |                   1 |
+| l        |                   1 |
+| n        |                   2 |
+| p        |                   2 |
+| r        |                   2 |
+| y        |                   1 |
++----------+---------------------+
+```
+
+
+#### Data Duplication - Fixed Iteration
+
+
+Data can be duplicated without being materialized through the use of iteration.
+This may be useful in several situations, including generating randomized test
+data from a template table or generating a large number of records for load
+testing.  In either case, the memory footprint will be small, relative to the
+size of the table involved in the iteration operation.  Queries against the
+result set should be as performant as those on tables with an equivalent
+number of materialized records.
+
+In this example, the words in the `dictionary` table will be duplicated five
+times:
+
+{/* Source: /examples/sql/iteration.kisql (lines 82-85) */}
+```sql
+SELECT i, id, word
+FROM example.dictionary, ITER
+WHERE i < 5
+ORDER BY id, i
+```
+
+{/* Source: /examples/sql/iteration.out (lines 181-199) */}
+```
++-----+------+----------+
+|   i |   id | word     |
++-----+------+----------+
+|   0 |    1 | apple    |
+|   1 |    1 | apple    |
+|   2 |    1 | apple    |
+|   3 |    1 | apple    |
+|   4 |    1 | apple    |
+|   0 |    2 | banana   |
+|   1 |    2 | banana   |
+|   2 |    2 | banana   |
+|   3 |    2 | banana   |
+|   4 |    2 | banana   |
+|   0 |    3 | cherry   |
+|   1 |    3 | cherry   |
+|   2 |    3 | cherry   |
+|   3 |    3 | cherry   |
+|   4 |    3 | cherry   |
++-----+------+----------+
+```
+
+As the result set shows, each word is duplicated five times.
+
+
+<a id="iteration-limitations"></a>
+
+
+## Limitations
+
+
+* As outer joins (`LEFT`, `RIGHT`, & `FULL`) have no meaning within the
+  context of iteration, they should not be used in the join
+* Though multiple iterators can be used in the same operation, they cannot
+  refer to each other for bounding purposes; e.g., `iter1.i < iter2.i`

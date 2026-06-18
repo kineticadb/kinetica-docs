@@ -1,0 +1,49 @@
+---
+title: /filter/bybox
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="filter-bybox-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/filter/bybox
+```
+Calculates how many objects within the given table lie in a rectangular box.
+The operation is synchronous, meaning that a response will not be returned
+until all the objects are fully available. The response payload provides the
+count of the resulting set. A new resultant set which satisfies the input NAI
+restriction specification is also created when a input parameter *view_name* is
+passed in as part of the input payload.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of the table on which the bounding box operation will be performed, in [schema_name.]table_name format, using standard [name resolution rules](../../../concepts/tables/#table-name-resolution). Must be an existing table. |
+| view_name | string | If provided, then this will be the name of the view containing the results, in [schema_name.]view_name format, using standard [name resolution rules](../../../concepts/tables/#table-name-resolution) and meeting [table naming criteria](../../../concepts/tables/#table-naming-criteria). Must not be an already existing table or view. <br/> <br/> The default value is ''. |
+| x_column_name | string | Name of the column on which to perform the bounding box query. Must be a valid numeric column. |
+| min_x | double | Lower bound for the column chosen by input parameter *x_column_name*.  Must be less than or equal to input parameter *max_x*. |
+| max_x | double | Upper bound for input parameter *x_column_name*.  Must be greater than or equal to input parameter *min_x*. |
+| y_column_name | string | Name of a column on which to perform the bounding box query. Must be a valid numeric column. |
+| min_y | double | Lower bound for input parameter *y_column_name*. Must be less than or equal to input parameter *max_y*. |
+| max_y | double | Upper bound for input parameter *y_column_name*. Must be greater than or equal to input parameter *min_y*. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> create_temp_table: If *true*, a unique temporary table name will be generated in the sys_temp schema and used in place of input parameter *view_name*. This is always allowed even if the caller does not have permission to create tables. The generated name is returned in *qualified_view_name*. The default value is `false`. The supported values are: * true * false <br/> <br/> collection_name: [DEPRECATED--please specify the containing schema for the view as part of input parameter *view_name* and use [/create/schema](/content/api/rest/create_schema_rest#create-schema-rest) to create the schema if non-existent] Name of a schema for the newly created view. If the schema is non-existent, it will be automatically created. |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'filter_by_box_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /filter/bybox endpoint: <br/> <br/> count: [long] The number of records passing the box filter. <br/> <br/> info: [map of string to strings] Additional information. The default value is an empty map ( \{\} ). +-------------------+-----------------------------------------------------------------+ \|Supported \|Parameter Description \| \|Parameters (keys) \| \| +===================+=================================================================+ \|qualified_view_name\|The fully qualified name of the view (i.e. including the schema).\| \| \| \| +-------------------+-----------------------------------------------------------------+ <br/> <br/> Empty string in case of an error. |

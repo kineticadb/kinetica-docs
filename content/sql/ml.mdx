@@ -1,0 +1,566 @@
+---
+title: Machine Learning (ML)
+sidebarTitle: Machine Learning
+---
+
+<a id="sql-ml"></a>
+
+
+*Kinetica* provides support for [Machine Learning (ML)](/content/ml)
+container registry & model creation and management in SQL.  A *Docker* registry
+serves as a container for ML models, while an ML model represents a function
+from which an inference can be computed.
+
+
+<Info>
+For statistical analysis functions that don't require a model, see
+[ML Functions](/content/sql/query#sql-ml-functions).
+</Info>
+
+Container registry features accessible via SQL include:
+
+* [CREATE CONTAINER REGISTRY](/content/sql/ml#sql-ml-create-cr)
+* [DROP CONTAINER REGISTRY](/content/sql/ml#sql-ml-drop-cr)
+* [SHOW CONTAINER REGISTRY](/content/sql/ml#sql-ml-show-cr)
+
+ML model features accessible via SQL include:
+
+* [IMPORT MODEL](/content/sql/ml#sql-ml-import-model)
+* [EVALUATE_MODEL](/content/sql/ml#sql-ml-evaluate-model)
+* [ALTER MODEL](/content/sql/ml#sql-ml-alter-model)
+* [REFRESH MODEL](/content/sql/ml#sql-ml-refresh-model)
+* [DROP MODEL](/content/sql/ml#sql-ml-drop-model)
+* [SHOW MODEL](/content/sql/ml#sql-ml-show-model)
+* [DESCRIBE MODEL](/content/sql/ml#sql-ml-desc-model)
+
+
+<a id="sql-ml-create-cr"></a>
+
+
+## CREATE CONTAINER REGISTRY
+
+
+Creates a new reference to a
+[Docker container registry](/content/ml/concepts#ml-registry) for
+accessing [ML models](/content/ml/concepts#ml-model).
+
+```sql title="CREATE CONTAINER REGISTRY Syntax"
+CREATE [OR REPLACE] CONTAINER REGISTRY <registry name>
+URI = '<registry URI>'
+CREDENTIAL = <credential name>
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="OR REPLACE" id="or-replace" defaultOpen>
+
+Any existing *container registry* reference with the same name will be dropped before creating
+this one
+
+</Accordion>
+
+<Accordion title="&lt;registry name&gt;" id="<registry-name>" defaultOpen>
+
+Name of the reference to the *container registry*, which can be referenced in subsequent
+commands
+
+</Accordion>
+
+<Accordion title="URI" id="uri" defaultOpen>
+
+The URI to the *container registry* itself
+
+</Accordion>
+
+<Accordion title="CREDENTIAL" id="credential" defaultOpen>
+
+Name of the [credential](/content/sql/ddl#sql-create-credential) to use to authenticate to the
+*container registry*
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+```sql title="CREATE CONTAINER REGISTRY Example"
+CREATE CONTAINER REGISTRY model_registry_docker
+URI = 'https://index.docker.io'
+CREDENTIAL = reg_cred;
+```
+
+
+<a id="sql-ml-drop-cr"></a>
+
+
+## DROP CONTAINER REGISTRY
+
+
+Removes an existing [Docker container registry](/content/ml/concepts#ml-registry)
+reference.
+
+```sql title="DROP CONTAINER REGISTRY Syntax"
+DROP CONTAINER REGISTRY <registry name>
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;registry name&gt;" id="<registry-name>-2" defaultOpen>
+
+Name of the reference to the *container registry* to remove; has no effect on the
+*container registry* itself
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+```sql title="DROP CONTAINER REGISTRY Example"
+DROP CONTAINER REGISTRY model_registry_docker
+```
+
+
+<a id="sql-ml-show-cr"></a>
+
+
+## SHOW CONTAINER REGISTRY
+
+
+Outputs the DDL statement required to reconstruct the given
+[Docker container registry](/content/ml/concepts#ml-registry) reference.
+
+```sql title="SHOW CONTAINER REGISTRY Syntax"
+SHOW CONTAINER REGISTRY < <registry name> | * >
+```
+
+
+<Info>
+The response to `SHOW CONTAINER REGISTRY` is a single-column result
+set with the DDL statement as the value in the `DDL` column.
+</Info>
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;registry name&gt;" id="<registry-name>-3" defaultOpen>
+
+Name of the existing reference to the *container registry* for which the DDL will be output.
+Use `*` instead to output the DDL of all references to *container registries*.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+```sql title="SHOW CONTAINER REGISTRY Example"
+SHOW CONTAINER REGISTRY model_registry_docker
+```
+
+```sql title="SHOW CONTAINER REGISTRY Example (All Registries)"
+SHOW CONTAINER REGISTRY *
+```
+
+
+<a id="sql-ml-import-model"></a>
+
+
+## IMPORT MODEL
+
+
+Imports an [ML model](/content/ml/concepts#ml-model) from a
+[Docker container registry](/content/ml/concepts#ml-registry) into the database.
+
+```sql title="IMPORT MODEL Syntax"
+IMPORT MODEL <model name>
+REGISTRY = <registry name>
+CONTAINER = '<path to container>'
+RUN_FUNCTION = '<model run function>'
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;model name&gt;" id="<model-name>" defaultOpen>
+
+Name of the *ML model* to import via the given *container registry* reference
+
+</Accordion>
+
+<Accordion title="REGISTRY" id="registry" defaultOpen>
+
+Name of the reference to the *container registry* from which to import the *ML model*
+
+</Accordion>
+
+<Accordion title="CONTAINER" id="container" defaultOpen>
+
+The full path to the *ML model* container within the *container registry*
+
+</Accordion>
+
+<Accordion title="RUN_FUNCTION" id="run_function" defaultOpen>
+
+Name of the function within the *ML model* to execute when running inferences against it
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+```sql title="IMPORT MODEL Example"
+IMPORT MODEL temp_2c
+REGISTRY = model_registry_docker
+CONTAINER = 'kinetica/kinetica-blackbox-sdk:r7.2.0'
+RUN_FUNCTION = 'module_temperature.convert_to_celsius'
+```
+
+
+<a id="sql-ml-evaluate-model"></a>
+
+
+## EVALUATE_MODEL
+
+
+Runs an inference against an [ML model](/content/ml/concepts#ml-model).  There are two
+methods to evaluate a model:
+
+* *By Query* - An *ML model* can be queried, where the inference is returned as
+  the result set.
+* *By Execution* - An *ML model* can be run with the `EXECUTE FUNCTION`
+  command, where the inference is persisted to a specified table.
+
+```sql title="EVALUATE_MODEL Table Function Syntax"
+SELECT * FROM TABLE(
+    EVALUATE_MODEL
+    (
+        MODEL => '<model name>',
+        DEPLOYMENT_MODE => 'BATCH',
+        REPLICATIONS => <number of replications>,
+        SOURCE_TABLE => INPUT_TABLE(<source data set>)
+    )
+)
+```
+
+```sql title="EVALUATE_MODEL EXECUTE FUNCTION Syntax"
+EXECUTE FUNCTION EVALUATE_MODEL(
+    MODEL => '<model name>',
+    DEPLOYMENT_MODE => '<BATCH | CONTINUOUS>',
+    REPLICATIONS => <number of replications>,
+    SOURCE_TABLE => INPUT_TABLE(<source data set>),
+    DESTINATION_TABLE => '<destination table name>'
+)
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="MODEL" id="model" defaultOpen>
+
+Name of the *ML model* on which to run an inference
+
+</Accordion>
+
+<Accordion title="DEPLOYMENT_MODE" id="deployment_mode" defaultOpen>
+
+Scheme used in making inferences on the *ML model*:
+
+* `BATCH` - inference tests are run against a batch of data in an existing table all at once
+* `CONTINUOUS` - inference tests are run automatically against records being streamed into an
+  input table; inference results are inserted into an output table, which will be updated upon
+  each subsequent inference
+
+
+  <Info>
+  Continuous deployment mode is only available when using the `EXECUTE FUNCTION`
+  syntax, as it creates a destination table with the continuously updated results.
+  </Info>
+
+</Accordion>
+
+<Accordion title="REPLICATIONS" id="replications" defaultOpen>
+
+The number of replicas to launch on *Kubernetes*
+
+</Accordion>
+
+<Accordion title="SOURCE_TABLE" id="source_table" defaultOpen>
+
+Table or query to use as input to the *ML model*, specified with either of these two forms:
+
+* `INPUT_TABLE(<table name>)` - Use the given table or view as input; e.g.:
+
+  ```
+  INPUT_TABLE(price_history)
+  ```
+* `INPUT_TABLE(<query>)` - Use the given query as input; e.g.:
+
+  ```
+  INPUT_TABLE(SELECT ts, item, price FROM price_history)
+  ```
+</Accordion>
+
+<Accordion title="DESTINATION_TABLE" id="destination_table" defaultOpen>
+
+Only applicable when using `EXECUTE FUNCTION` syntax. Name of the table in which to store the
+results of the inference, in `[schema_name.]table_name` format, using standard
+[name resolution rules](/content/sql/naming#sql-name-resolution) and meeting
+[table naming criteria](/content/sql/naming#sql-naming-criteria)
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+```sql title="EVALUATE_MODEL Table Function Example"
+SELECT * FROM TABLE(
+    EVALUATE_MODEL
+    (
+        MODEL => 'raster_model',
+        DEPLOYMENT_MODE => 'batch',
+        REPLICATIONS =>1,
+        SOURCE_TABLE => INPUT_TABLE(select raster_uri from ki_home.raster_input)
+    )
+)
+```
+
+```sql title="EVALUATE_MODEL EXECUTE FUNCTION Example"
+EXECUTE FUNCTION EVALUATE_MODEL(
+    MODEL => 'raster_model',
+    DEPLOYMENT_MODE => 'batch',
+    REPLICATIONS =>1,
+    SOURCE_TABLE => INPUT_TABLE(select raster_uri from ki_home.raster_input),
+    DESTINATION_TABLE => 'raster_output'
+)
+```
+
+<a id="sql-ml-alter-model"></a>
+
+
+## ALTER MODEL
+
+
+Modifies the source of an [ML model](/content/ml/concepts#ml-model) and re-imports it
+from that new location.  Either the *container registry* or the *container path*
+can be modified.
+
+<CodeGroup>
+
+{/* Source: syntax/models.sql (lines 2-3) */}
+```sql CONTAINER REGISTRY
+ALTER MODEL <model name>
+SET REGISTRY = <registry name>
+```
+
+{/* Source: syntax/models.sql (lines 6-7) */}
+```sql CONTAINER PATH
+ALTER MODEL <model name>
+SET CONTAINER = '<path to container>'
+```
+
+</CodeGroup>
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;model name&gt;" id="<model-name>-2" defaultOpen>
+
+Name of the *ML model* to modify
+
+</Accordion>
+
+<Accordion title="REGISTRY" id="registry-2" defaultOpen>
+
+Name of the reference to the *container registry* from which to import the *ML model*
+
+</Accordion>
+
+<Accordion title="CONTAINER" id="container-2" defaultOpen>
+
+The full path to the *ML model* container within the *container registry*
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+```sql title="ALTER MODEL Registry Example"
+ALTER MODEL temp_2c
+SET REGISTRY = my_registry
+```
+
+```sql title="ALTER MODEL Container Path Example"
+ALTER MODEL temp_2c
+SET CONTAINER = 'kinetica/kinetica-blackbox-sdk:r7.2.0'
+```
+
+
+<a id="sql-ml-refresh-model"></a>
+
+
+## REFRESH MODEL
+
+
+Refreshes an [ML model](/content/ml/concepts#ml-model) from its source.
+
+```sql title="REFRESH MODEL Syntax"
+REFRESH MODEL <model name>
+```
+
+
+### Examples
+
+
+```sql title="REFRESH MODEL Example"
+REFRESH MODEL temp_2c
+```
+
+
+<a id="sql-ml-drop-model"></a>
+
+
+## DROP MODEL
+
+
+Removes an [ML model](/content/ml/concepts#ml-model).
+
+```sql title="DROP MODEL Syntax"
+DROP MODEL <model name>
+```
+
+
+### Examples
+
+
+```sql title="DROP MODEL Example"
+DROP MODEL temp_2c
+```
+
+
+<a id="sql-ml-show-model"></a>
+
+
+## SHOW MODEL
+
+
+Displays the statement used to create an [ML model](/content/ml/concepts#ml-model).
+
+```sql title="SHOW MODEL Syntax"
+SHOW MODEL < <model name> | * >
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;model name&gt;" id="<model-name>-3" defaultOpen>
+
+Name of the existing reference to the *model* for which the DDL will be output.
+Use `*` instead to output the DDL of all references to *models*.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+```sql title="SHOW MODEL Example"
+SHOW MODEL temp_2c
+```
+
+```sql title="SHOW MODEL Example (All Models)"
+SHOW MODEL *
+```
+
+
+<a id="sql-ml-desc-model"></a>
+
+
+## DESCRIBE MODEL
+
+
+Displays the configuration of an [ML model](/content/ml/concepts#ml-model).
+
+```sql title="DESCRIBE MODEL Syntax"
+DESCRIBE MODEL < <model name> | * >
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;model name&gt;" id="<model-name>-4" defaultOpen>
+
+Name of the existing *model* for which the configuration will be output.  Use `*` instead
+to output the configuration of all *models*.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Response
+
+
+The response to `DESCRIBE MODEL` is a four-column result set:
+
+| Output Column | Description |
+| --- | --- |
+| `MODEL` | Name of the *ML model* |
+| `ENTITY_ID` | Internal unique ID for the *ML model* |
+| `INPUT_SCHEMA` | List of columns types that valid input data is expected to match |
+| `OUTPUT_SCHEMA` | List of column types that will either be returned by the model as a result set or used in creating a result table, depending on how the model's evaluation is invoked |
+
+
+### Examples
+
+
+```sql title="DESCRIBE MODEL Example"
+DESCRIBE MODEL temp_2c
+```
+
+```sql title="DESCRIBE MODEL Example (All Models)"
+DESCRIBE MODEL *
+```

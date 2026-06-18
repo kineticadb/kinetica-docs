@@ -1,0 +1,756 @@
+---
+title: Window
+---
+
+<a id="window"></a>
+
+<a id="partition"></a>
+
+
+*Kinetica* supports the SQL concept of *windows*. It can do so through the
+[/create/projection](/content/api/rest/create_projection_rest) and
+[/get/records/bycolumn](/content/api/rest/get_records_bycolumn_rest) endpoints. The *window*
+function is specified as a column name in the `column_name` parameter.
+
+
+<Info>
+For performing window functions in SQL, see [Window](/content/sql/query#sql-window).
+</Info>
+
+A *window projection* can be created from any table or view. If the source data
+set is *replicated*, the resulting *window projection* will also be
+*replicated*. The resulting *window projection* will be *sharded* in two cases:
+
+* If the source data set is *sharded* and the *shard key* is included in the
+  projected column list; columns in a multi-column *shard key* must appear in
+  the projected column list in the same relative order they appear in the
+  *shard key*, though they do not need to be listed consecutively
+* If the projection call has a *shard key* specified
+
+
+## Function Details
+
+
+A *window* in *Kinetica* is constructed like so:
+
+```sql
+<window function> OVER (<window specification>) AS <alias>
+```
+
+
+<a id="window-types"></a>
+
+
+### Function Type
+
+
+A *window* function either be of aggregate or ranking type.
+
+
+#### Aggregate
+
+
+<AccordionGroup>
+
+<Accordion title="AVG(expr)" id="avg-expr" defaultOpen>
+
+Calculates the average of the given expression `expr` over the specified window frame
+
+</Accordion>
+
+<Accordion title="COUNT(expr)" id="count-expr" defaultOpen>
+
+Calculates the count of the given expression `expr` over the specified window frame
+
+</Accordion>
+
+<Accordion title="MAX(expr)" id="max-expr" defaultOpen>
+
+Calculates the maximum value of the given expression `expr` over the specified window frame
+
+</Accordion>
+
+<Accordion title="MEAN(expr)" id="mean-expr" defaultOpen>
+
+Alias for `AVG()`. Calculates the average of the given expression `expr` over the specified
+window frame
+
+</Accordion>
+
+<Accordion title="MIN(expr)" id="min-expr" defaultOpen>
+
+Calculates the minimum value of the given expression `expr` over the specified window frame
+
+</Accordion>
+
+<Accordion title="PRODUCT(expr)" id="product-expr" defaultOpen>
+
+Calculates the product of the given expression `expr` over the specified window frame
+
+</Accordion>
+
+<Accordion title="RATIO_TO_REPORT(expr)" id="ratio_to_report-expr" defaultOpen>
+
+Calculates the ratio of the value of `expr` to the sum of `expr` over the specified window
+frame.  Note that `ORDER BY` is not supported for this function.
+
+</Accordion>
+
+<Accordion title="STDDEV(expr)" id="stddev-expr" defaultOpen>
+
+Alias for `STDDEV_POP()`. Calculates the population standard deviation of the given
+expression `expr` over the specified window frame
+
+</Accordion>
+
+<Accordion title="STDDEV_POP(expr)" id="stddev_pop-expr" defaultOpen>
+
+Calculates the population standard deviation of the given expression `expr` over the specified
+window frame
+
+</Accordion>
+
+<Accordion title="STDDEV_SAMP(expr)" id="stddev_samp-expr" defaultOpen>
+
+Calculates the sample standard deviation of the given expression `expr` over the specified
+window frame
+
+</Accordion>
+
+<Accordion title="SUM(expr)" id="sum-expr" defaultOpen>
+
+Calculates the sum of the given expression `expr` over the specified window frame
+
+</Accordion>
+
+<Accordion title="VAR(expr)" id="var-expr" defaultOpen>
+
+Alias for `VAR_POP()`. Calculates the population variance of the given expression `expr` over
+the specified window frame
+
+</Accordion>
+
+<Accordion title="VAR_POP(expr)" id="var_pop-expr" defaultOpen>
+
+Calculates the population variance of the given expression `expr` over the specified window
+frame
+
+</Accordion>
+
+<Accordion title="VAR_SAMP(expr)" id="var_samp-expr" defaultOpen>
+
+Calculates the sample variance of the given expression `expr` over the specified window frame
+
+</Accordion>
+
+</AccordionGroup>
+
+
+#### Ranking
+
+
+<AccordionGroup>
+
+<Accordion title="CUME_DIST()" id="cume_dist" defaultOpen>
+
+The relative position of the current row within the cumulative distribution of the selected
+partition, expressed as a percentage from `0` (exclusive) to `1` (inclusive). The formula for
+this calculation is as follows:
+
+```
+(count of <= records within partition) / (partition row count)
+```
+This function is shorthand for using the `COUNT()` function in separate partition statements to
+arrive at the same result:
+
+
+```sql
+DOUBLE
+(
+    COUNT(*) OVER
+    (
+        PARTITION BY <partition_column>
+        ORDER BY <sort_column>
+    )
+) /
+(
+    COUNT(*) OVER
+    (
+        PARTITION BY <partition_column>
+        ORDER BY <sort_column>
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    )
+)
+```
+
+</Accordion>
+
+<Accordion title="DENSE_RANK()" id="dense_rank" defaultOpen>
+
+Number of the current row within the selected partition except rows with identical values
+evaluate to different ranks. Starts at 1
+
+</Accordion>
+
+<Accordion title="FIRST_VALUE(&lt;column&gt;) [&lt;IGNORE | RESPECT&gt; NULLS]" id="first_value-<column>-<ignore-|-respect>-nulls" defaultOpen>
+
+The value found in the first row within a frame of the given expression. Optionally, add
+`IGNORE NULLS` or `RESPECT NULLS` to the function syntax to ignore or respect `nulls`,
+respectively.
+
+</Accordion>
+
+<Accordion title="LAG(&lt;column&gt;[, &lt;num&gt;]) [&lt;IGNORE | RESPECT&gt; NULLS]" id="lag-<column>-<num>-<ignore-|-respect>-nulls" defaultOpen>
+
+The value of the row before the given expression's value. Provide an additional comma-separated
+value to specify which row to select, e.g., `LAG(vendor_id, 3)` would list the value in the
+`vendor_id` column from three rows prior to the current row. Optionally, add `IGNORE NULLS`
+or `RESPECT NULLS` to the function syntax to ignore or respect `nulls` respectively.
+
+</Accordion>
+
+<Accordion title="LAST_VALUE(&lt;column&gt;) [&lt;IGNORE | RESPECT&gt; NULLS]" id="last_value-<column>-<ignore-|-respect>-nulls" defaultOpen>
+
+The value found in the last row within a frame of the given expression. Optionally, add
+`IGNORE NULLS` or `RESPECT NULLS` to the function syntax to ignore or respect
+`nulls` respectively.
+
+</Accordion>
+
+<Accordion title="LEAD(&lt;column&gt;[, &lt;num&gt;]) [&lt;IGNORE | RESPECT&gt; NULLS]" id="lead-<column>-<num>-<ignore-|-respect>-nulls" defaultOpen>
+
+The value of the row after the given expression's value. Provide an additional comma-separated
+value to specify which row to select, e.g., `LEAD(vendor_id, 3)` would list the value in the
+`vendor_id` column from three rows after the current row. Optionally, add `IGNORE NULLS`
+or `RESPECT NULLS` to the function syntax to ignore or respect `nulls` respectively.
+
+</Accordion>
+
+<Accordion title="NTILE(&lt;num of groups&gt;)" id="ntile-<num-of-groups>" defaultOpen>
+
+The group number of the row after partitioning the rows into `num of groups` groups.  For
+example, `NTILE(4)` will partition data by quartiles and return the associated group number,
+`1` to `4`.
+
+</Accordion>
+
+<Accordion title="PERCENT_RANK()" id="percent_rank" defaultOpen>
+
+The rank of the current row within the selected partition, expressed as a percentage from `0`
+to `1`, inclusive. The formula for this calculation is as follows:
+
+```
+(rank within partition - 1) / (partition row count - 1)
+```
+This function is shorthand for using the `RANK()` & `COUNT()` functions in separate partition
+statements to arrive at the same result:
+
+
+```sql
+DOUBLE
+(
+    RANK() OVER
+    (
+        PARTITION BY <partition_column>
+        ORDER BY <sort_column>
+    ) - 1
+) /
+(
+    COUNT(*) OVER
+    (
+        PARTITION BY <partition_column>
+        ORDER BY <sort_column>
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) - 1
+)
+```
+
+</Accordion>
+
+<Accordion title="RANK()" id="rank" defaultOpen>
+
+Number of the current row within the selected partition. However, rows with identical values
+evaluate to the same rank. Starts at 1
+
+</Accordion>
+
+<Accordion title="ROW_NUMBER()" id="row_number" defaultOpen>
+
+Number of the current row within the selected partition. Starts at 1
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Window Specification
+
+
+A *window specification* is constructed like so:
+
+```sql
+[PARTITION BY <column>] [ORDER BY <ordering expression list> [<frame clause>]]
+```
+
+The *window* specification defines partition, frames and sort specifications.
+A few things to note:
+
+* `PARTITION BY` clauses can contain several comma-separated keys that define
+  the partitions, e.g., `PARTITION BY vendor_id, payment_type`.
+* Omitting the `PARTITION BY` clause will create a *window* spanning the
+  entire data set, effectively windowing without a partition.
+
+
+  <Info>
+  This will force all windowed data to a single node for processing
+  and could consume a great deal of memory on that node.
+  </Info>
+
+* The *ordering expression list*, while optional, is useful in sorting the
+  individual partitions. For `RANGE` frames, the `ORDER BY` can have a
+  single column, which the frame will use for bounding.  For `ROWS` frames,
+  any number of columns can be included in the `ORDER BY`; e.g.,
+  `ORDER BY vendor_id, payment_type`. Sort order can be specified using
+  `ASC` (ascending, the default) and `DESC` (descending) keywords.  The
+  default null ordering for an ascending sort is `NULLS FIRST`; the default
+  for a descending sort is `NULLS LAST`.
+* All *window functions* except for `FIRST_VALUE()` & `LAST_VALUE()` require
+  an `ORDER BY` clause.
+
+
+#### Frame Clauses
+
+
+A *frame clause* within a *window specification* is constructed like so:
+
+```sql
+<RANGE | ROWS> BETWEEN <frame start> AND <frame end>
+```
+
+Frames are defined by either ranges of values (`RANGE`) or number of rows
+(`ROWS`):
+
+
+<p><strong>Range Frames</strong></p>
+
+
+`RANGE` specifies that containment within a frame should be determined by the
+value in the column specified in the `ORDER BY` clause.  This has several
+implications:
+
+* *Peer rows* (rows containing the same value in the `ORDER BY` column) are
+  always included in a *range frame*; for any given row, an aggregate function
+  applied to its frame will have the same result for all of its *peer rows*.
+* The bounds defined in the frame start & end are based on the column's values;
+  e.g., `BETWEEN 100 PRECEDING AND CURRENT ROW` means a frame will contain
+  records with `ORDER BY` column values greater than or equal to the current
+  record's column value minus 100 and less than or equal to the current record's
+  column value.
+* The `ORDER BY` clause can specify only one column, as this column will be
+  used to bound the frame by its values.
+
+
+<p><strong>Rows Frames</strong></p>
+
+
+`ROWS` specifies that containment within a frame should be determined by the
+ordering of the rows, as specified in the `ORDER BY` clause.  This also has
+several implications:
+
+* *Peer rows* are not considered when bounding a *rows frame*; only the relative
+  ordering of the rows is considered.
+* The bounds defined in the frame start & end are based on the row's relative
+  position within the ordered result set; e.g.,
+  `BETWEEN 100 PRECEDING AND CURRENT ROW` means a frame will contain 100
+  records before the current row as well as the current row.
+* The `ORDER BY` clause can contain multiple comma-separated columns.
+
+
+<p><strong>Frame Bounds</strong></p>
+
+
+A frame has a start and end specification:
+
+* Frame start keywords:
+
+  * `UNBOUNDED PRECEDING`: the first row of the partition
+  * `<number> PRECEDING`: either *n* rows before the current row (for
+    rows-based frames), or *n* values less than the current row's value (for
+    range-based frames)
+  * `CURRENT ROW`: either the current row (for rows-based frames), or the
+    current row and its *peer rows* (for range-based frames)
+  * `<number> FOLLOWING`: either *n* rows after the current row (for
+    rows-based frames), or *n* values greater than the current row's value (for
+    range-based frames)
+
+* Frame end keywords:
+
+  * `UNBOUNDED FOLLOWING`: the last row of the partition
+  * `<number> FOLLOWING`: either *n* rows after the current row (for
+    rows-based frames), or *n* values greater than the current row's value (for
+    range-based frames)
+  * `CURRENT ROW`: either the current row (for rows-based frames), or the
+    current row and its *peer rows* (for range-based frames)
+  * `<number> PRECEDING`: either *n* rows before the current row (for
+    rows-based frames), or *n* values less than the current row's value (for
+    range-based frames)
+
+
+<Note>
+The frame start must begin before the end of the frame end.
+</Note>
+
+Frames that extend outside of the available data set will be narrowed to
+operate only over the available data.  For example, a frame defined as
+`10 PRECEDING` will, for the 5th record in the data set, be narrowed to
+consider just the first four records as the beginning of the frame in any
+calculations.
+
+
+<Note>
+If you use the `<number> FOLLOWING` or
+`<number> PRECEDING` keywords as both the frame start and end
+keywords, the first `<number>` used must be less than or equal
+to the second `<number>`
+</Note>
+
+Example frame:
+
+```sql
+ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+```
+
+
+## Examples
+
+
+The following would calculate a rolling sum of total amounts collected per
+vendor for the first two hours after midnight on January 1st, 2015, as well as
+the number of trips that occurred within 5 minutes of each trip:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/window.kisql (lines 13-37) */}
+```sql SQL
+SELECT
+    vendor_id,
+    pickup_datetime,
+    total_amount,
+    passenger_count,
+    DECIMAL
+    (
+        SUM(total_amount) OVER
+            (
+                PARTITION BY vendor_id
+                ORDER BY pickup_datetime
+                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            )
+    ) AS growing_sum,
+    COUNT(*) OVER
+        (
+            PARTITION BY vendor_id
+            ORDER BY LONG(pickup_datetime)
+            RANGE BETWEEN 300000 PRECEDING AND 300000 FOLLOWING
+        ) AS trip_demand
+FROM demo.nyctaxi
+WHERE pickup_datetime >= '2015-01-01' AND pickup_datetime < '2015-01-01 02:00:00'
+ORDER BY
+    vendor_id,
+    pickup_datetime
+```
+
+{/* Source: /examples/python/window.py (lines 11-42) */}
+```python Python
+records = kinetica.get_records_by_column_and_decode(
+    table_name = "demo.nyctaxi",
+    column_names = [
+        "vendor_id",
+        "STRING(pickup_datetime) AS pickup_datetime",
+        "passenger_count",
+        "total_amount",
+        """
+        SUM(total_amount) OVER
+            (
+               PARTITION BY vendor_id
+               ORDER BY pickup_datetime
+            ) AS growing_sum
+        """.replace("\n",""),
+        """
+        COUNT(*) OVER
+             (
+                 PARTITION BY vendor_id
+                 ORDER BY LONG(pickup_datetime)
+                 RANGE BETWEEN 300000 PRECEDING AND 300000 FOLLOWING
+             ) AS trip_demand
+        """.replace("\n","")
+    ],
+    offset = 0,
+    limit = gpudb.GPUdb.END_OF_SET,
+    options = {
+        "expression": """
+            pickup_datetime >= DATE('2015-01-01') AND pickup_datetime < DATETIME('2015-01-01 02:00:00')
+        """.replace("\n",""),
+        "order_by": "vendor_id, pickup_datetime, passenger_count"
+    }
+)["records"]
+```
+
+</CodeGroup>
+
+
+The following would calculate a 5-before and 10-after moving average on the
+trip distance for 4-passenger trips, on a given day, per vendor:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/window.kisql (lines 43-59) */}
+```sql SQL
+SELECT
+    vendor_id,
+    pickup_datetime,
+    trip_distance,
+    AVG(trip_distance) OVER
+        (
+            PARTITION BY vendor_id
+            ORDER BY pickup_datetime
+            ROWS BETWEEN 5 PRECEDING AND 10 FOLLOWING
+        ) AS local_avg_dist
+FROM demo.nyctaxi
+WHERE
+    passenger_count = 4 AND
+    pickup_datetime >= '2015-01-01' AND pickup_datetime < '2015-01-02'
+ORDER BY
+    vendor_id,
+    pickup_datetime
+```
+
+{/* Source: /examples/python/window.py (lines 76-100) */}
+```python Python
+records = kinetica.get_records_by_column_and_decode(
+    table_name = "demo.nyctaxi",
+    column_names = [
+        "vendor_id",
+        "STRING(pickup_datetime) AS pickup_datetime",
+        "trip_distance",
+        """
+        AVG(trip_distance) OVER
+            (
+               PARTITION BY vendor_id
+               ORDER BY pickup_datetime
+               ROWS BETWEEN 5 PRECEDING AND 10 FOLLOWING
+            ) AS local_avg_dist
+        """.replace("\n","")
+    ],
+    offset = 0,
+    limit = gpudb.GPUdb.END_OF_SET,
+    options = {
+        "expression": """
+            passenger_count = 4 AND
+            pickup_datetime >= DATE('2015-01-01') AND pickup_datetime < DATE('2015-01-02')
+        """.replace("\n",""),
+        "order_by": "vendor_id, pickup_datetime"
+    }
+)["records"]
+```
+
+</CodeGroup>
+
+
+The following would rank, by vendor, the total amounts collected from
+3-passenger trips on a given day:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/window.kisql (lines 65-78) */}
+```sql SQL
+SELECT
+    vendor_id,
+    pickup_datetime,
+    dropoff_datetime,
+    total_amount AS fare,
+    RANK() OVER (PARTITION BY vendor_id ORDER BY total_amount) AS ranked_fare,
+    DECIMAL(PERCENT_RANK() OVER (PARTITION BY vendor_id ORDER BY total_amount)) * 100 AS percent_ranked_fare
+FROM demo.nyctaxi
+WHERE
+    passenger_count = 3 AND
+    pickup_datetime >= '2015-01-11' AND pickup_datetime < '2015-01-12'
+ORDER BY
+    vendor_id,
+    pickup_datetime
+```
+
+{/* Source: /examples/python/window.py (lines 129-148) */}
+```python Python
+records = kinetica.get_records_by_column_and_decode(
+    table_name = "demo.nyctaxi",
+    column_names = [
+        "vendor_id",
+        "STRING(pickup_datetime) AS pickup_datetime",
+        "STRING(dropoff_datetime) AS dropoff_datetime",
+        "total_amount",
+        "RANK() OVER (PARTITION BY vendor_id ORDER BY total_amount) AS ranked_total",
+        "PERCENT_RANK() OVER (PARTITION BY vendor_id ORDER BY total_amount) * 100 AS percent_ranked_total"
+    ],
+    offset = 0,
+    limit = gpudb.GPUdb.END_OF_SET,
+    options = {
+        "expression": """
+            passenger_count = 3 AND
+            pickup_datetime >= DATE('2015-01-11') AND pickup_datetime < DATETIME('2015-01-12')
+        """.replace("\n",""),
+        "order_by": "vendor_id, pickup_datetime"
+    }
+)["records"]
+```
+
+</CodeGroup>
+
+
+The following would compare each 5-passenger trip's tip amount to the lowest
+(ignoring nulls), average, & highest (ignoring nulls) tip amounts for the
+vendor on a given day:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/window.kisql (lines 85-111) */}
+```sql SQL
+SELECT
+    vendor_id,
+    pickup_datetime,
+    tip_amount,
+    tip_amount -
+        FIRST_VALUE(tip_amount) IGNORE NULLS OVER
+            (PARTITION BY vendor_id ORDER BY tip_amount) AS vs_lowest_tip,
+    tip_amount -
+        DECIMAL
+        (
+            AVG(tip_amount) OVER
+                (
+                    PARTITION BY vendor_id
+                    ORDER BY tip_amount
+                    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+                )
+        ) AS vs_average_tip,
+    tip_amount -
+        FIRST_VALUE(tip_amount) IGNORE NULLS OVER
+            (PARTITION BY vendor_id ORDER BY tip_amount DESC) AS vs_highest_tip
+FROM demo.nyctaxi
+WHERE
+    passenger_count = 5 AND trip_distance > 0 AND tip_amount > 0 AND
+    pickup_datetime >= '2015-04-17' AND pickup_datetime < '2015-04-18'
+ORDER BY
+    vendor_id,
+    pickup_datetime
+```
+
+{/* Source: /examples/python/window.py (lines 181-216) */}
+```python Python
+records = kinetica.get_records_by_column_and_decode(
+    table_name = "demo.nyctaxi",
+    column_names = [
+        "vendor_id",
+        "STRING(pickup_datetime) AS pickup_datetime",
+        "tip_amount",
+        """
+        tip_amount -
+            FIRST_VALUE(tip_amount) IGNORE NULLS OVER
+               (PARTITION BY vendor_id ORDER BY tip_amount) AS vs_lowest_tip
+        """.replace("\n",""),
+        """
+        tip_amount -
+            AVG(tip_amount) OVER
+               (
+                  PARTITION BY vendor_id
+                  ORDER BY tip_amount
+                  ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+               ) AS vs_average_tip
+        """.replace("\n",""),
+        """
+        tip_amount -
+            FIRST_VALUE(tip_amount) IGNORE NULLS OVER
+               (PARTITION BY vendor_id ORDER BY tip_amount DESC) AS vs_highest_tip
+        """.replace("\n","")
+    ],
+    offset = 0,
+    limit = gpudb.GPUdb.END_OF_SET,
+    options = {
+        "expression": """
+            passenger_count = 5 AND trip_distance > 0 AND tip_amount > 0 AND
+            pickup_datetime >= DATE('2015-04-17') AND pickup_datetime < DATE('2015-04-18')
+        """.replace("\n",""),
+        "order_by": "vendor_id, pickup_datetime"
+    }
+)["records"]
+```
+
+</CodeGroup>
+
+
+The following would calculate the quartiles for total amounts collected per
+vendor, the result of which could then be aggregated and used to compare the
+overall average total collected vs. the average total within the interquartile
+range:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/window.kisql (lines 117-131) */}
+```sql SQL
+SELECT
+    vendor_id,
+    DECIMAL(AVG(total_amount)) AS average_total_amount,
+    DECIMAL(AVG(IF(quartile IN (2,3), total_amount, null))) AS average_interq_range_total_amount
+FROM
+(
+    SELECT
+        vendor_id,
+        total_amount,
+        NTILE(4) OVER (PARTITION BY vendor_id ORDER BY total_amount) quartile
+    FROM
+        demo.nyctaxi
+)
+GROUP BY vendor_id
+ORDER BY vendor_id
+```
+
+{/* Source: /examples/python/window.py (lines 246-269) */}
+```python Python
+kinetica.create_projection(
+    table_name = "demo.nyctaxi",
+    projection_name = "example.nyctaxi_revenue_qt_by_vendor",
+    column_names = [
+        "vendor_id",
+        "total_amount",
+        "NTILE(4) OVER (PARTITION BY vendor_id ORDER BY total_amount) AS quartile"
+    ]
+)
+
+# Aggregate over a projection
+# - average & interquartile average revenue by vendor
+records = gpudb.GPUdbTable(name = 'example.nyctaxi_revenue_qt_by_vendor', db = kinetica).aggregate_group_by(
+    column_names = [
+        "vendor_id",
+        "AVG(total_amount) AS average_total_amount",
+        "AVG(IF((quartile IN (2,3)), total_amount, null)) AS average_interqt_range_total_amount"
+    ],
+    offset = 0,
+    limit = -9999,
+    options = {
+        "sort_by": "key"
+    }
+)["data"]
+```
+
+</CodeGroup>
+
+
+## Limitations
+
+
+* Empty *window* specifications are currently not supported.
+
+* Any ranking function other than `FIRST_VALUE()` & `LAST VALUE` does not
+  accept a frame clause.
+* Any ranking function other than `FIRST_VALUE()` & `LAST VALUE` requires an
+  `ORDER BY` clause.
+* *Window* functions executed via [/create/projection](/content/api/rest/create_projection_rest#create-projection-rest) will have the
+  corresponding [projection limitations](/content/concepts/projections#projection-limitations).

@@ -1,0 +1,731 @@
+---
+title: ODBC/JDBC Connector Guide
+---
+
+<a id="odbc-label"></a>
+
+
+*Kinetica* provides a SQL interface through its ODBC & JDBC drivers, which run
+on *Linux*, *Mac*, & *Windows*.  For details on the extent of SQL compliance,
+see the [SQL](/content/sql) section.
+
+
+<a id="odbc-connecting"></a>
+
+
+## Connecting
+
+
+### KiSQL
+
+
+*KiSQL* is a *Kinetica* JDBC-based SQL CLI client that is available on *GitHub*.
+Details can be found on the [Kinetica SQL (KiSQL)](/content/tools/kisql) page.
+
+
+<a id="odbc-jdbc"></a>
+
+<a id="jdbc"></a>
+
+
+### JDBC Applications
+
+
+Java applications which use JDBC can reference the *Kinetica* JDBC driver in the
+[Maven Central Repository](https://central.sonatype.com/artifact/com.kinetica/kinetica-jdbc/overview) as a `pom.xml` dependence:
+
+{/* Source: /connectors/sql_guide_src/jdbc_java_maven.txt (lines 10-17) */}
+```xml Dependency
+<dependencies>
+	<dependency>
+		<groupId>com.kinetica</groupId>
+		<artifactId>kinetica-jdbc</artifactId>
+		<version>[7.2.0.0,7.3.0.0-SNAPSHOT)</version>
+		<type>jar</type>
+	</dependency>
+</dependencies>
+```
+
+*Gradle* users may need to add the *Kinetica Nexus Repository* to their configuration:
+
+```
+https://nexus.kinetica.com/repository/releases/
+```
+
+
+To create a connection, using a connection string:
+
+
+<CodeGroup>
+
+{/* Source: /connectors/sql_guide_src/jdbc_java_cs.txt (lines 4 3 6    3 13) */}
+```java HTTP
+Class.forName("com.kinetica.jdbc.Driver");
+
+String connStr = "jdbc:kinetica:URL=http://<db.host>:9191";
+
+kdb = DriverManager.getConnection(connStr, "<username>", "<password>");
+```
+
+{/* Source: /connectors/sql_guide_src/jdbc_java_cs.txt (lines 4 3 7    3 13) */}
+```java HTTPS w/o Cert Check
+Class.forName("com.kinetica.jdbc.Driver");
+
+String connStr = "jdbc:kinetica:URL=https://<db.host>:8082/gpudb-0";
+
+kdb = DriverManager.getConnection(connStr, "<username>", "<password>");
+```
+
+{/* Source: /connectors/sql_guide_src/jdbc_java_cs.txt (lines 4 3 7  9 3 13) */}
+```java HTTPS w/ Default Trust Cert Check
+Class.forName("com.kinetica.jdbc.Driver");
+
+String connStr = "jdbc:kinetica:URL=https://<db.host>:8082/gpudb-0";
+connStr += ";BypassSslCertCheck=0";
+
+kdb = DriverManager.getConnection(connStr, "<username>", "<password>");
+```
+
+{/* Source: /connectors/sql_guide_src/jdbc_java_cs.txt (lines 4 3 7 10 3 13) */}
+```java HTTPS w/ Custom Trust Cert Check
+Class.forName("com.kinetica.jdbc.Driver");
+
+String connStr = "jdbc:kinetica:URL=https://<db.host>:8082/gpudb-0";
+connStr += ";BypassSslCertCheck=0;SslCACertPath=<certPath>;SslCACertPassword=<certPass>";
+
+kdb = DriverManager.getConnection(connStr, "<username>", "<password>");
+```
+
+{/* Source: /connectors/sql_guide_src/jdbc_java_cs.txt (lines 4 3 7  8 3 12) */}
+```java HTTPS w/ OAuth Token
+Class.forName("com.kinetica.jdbc.Driver");
+
+String connStr = "jdbc:kinetica:URL=https://<db.host>:8082/gpudb-0";
+connStr += ";OAuthToken=<oauthToken>";
+
+kdb = DriverManager.getConnection(connStr);
+```
+
+</CodeGroup>
+
+
+To create a connection, using properties:
+
+
+<CodeGroup>
+
+{/* Source: /connectors/sql_guide_src/jdbc_java_prop.txt (lines 4-6 7 9-10       3 16) */}
+```java HTTP
+Class.forName("com.kinetica.jdbc.Driver");
+
+Properties props = new Properties();
+props.put("URL", "http://<db.host>:9191");
+props.put("UID", "<username>");
+props.put("PWD", "<password>");
+
+kdb = DriverManager.getConnection("jdbc:kinetica://", props);
+```
+
+{/* Source: /connectors/sql_guide_src/jdbc_java_prop.txt (lines 4-6 8 9-10       3 16) */}
+```java HTTPS w/o Cert Check
+Class.forName("com.kinetica.jdbc.Driver");
+
+Properties props = new Properties();
+props.put("URL", "https://<db.host>:8082/gpudb-0");
+props.put("UID", "<username>");
+props.put("PWD", "<password>");
+
+kdb = DriverManager.getConnection("jdbc:kinetica://", props);
+```
+
+{/* Source: /connectors/sql_guide_src/jdbc_java_prop.txt (lines 4-6 8 9-10    12 3 16) */}
+```java HTTPS w/ Default Trust Cert Check
+Class.forName("com.kinetica.jdbc.Driver");
+
+Properties props = new Properties();
+props.put("URL", "https://<db.host>:8082/gpudb-0");
+props.put("UID", "<username>");
+props.put("PWD", "<password>");
+props.put("BypassSslCertCheck", 0);
+
+kdb = DriverManager.getConnection("jdbc:kinetica://", props);
+```
+
+{/* Source: /connectors/sql_guide_src/jdbc_java_prop.txt (lines 4-6 8 9-10 12-14 3 16) */}
+```java HTTPS w/ Custom Trust Cert Check
+Class.forName("com.kinetica.jdbc.Driver");
+
+Properties props = new Properties();
+props.put("URL", "https://<db.host>:8082/gpudb-0");
+props.put("UID", "<username>");
+props.put("PWD", "<password>");
+props.put("BypassSslCertCheck", 0);
+props.put("SslCACertPath", "<certPath>");
+props.put("SslCACertPassword", "<certPass>");
+
+kdb = DriverManager.getConnection("jdbc:kinetica://", props);
+```
+
+{/* Source: /connectors/sql_guide_src/jdbc_java_prop.txt (lines 4-6 8   11       3 16) */}
+```java HTTPS w/ OAuth Token
+Class.forName("com.kinetica.jdbc.Driver");
+
+Properties props = new Properties();
+props.put("URL", "https://<db.host>:8082/gpudb-0");
+props.put("OAuthToken", "<token>");
+
+kdb = DriverManager.getConnection("jdbc:kinetica://", props);
+```
+
+</CodeGroup>
+
+
+<a id="jdbc-clients"></a>
+
+
+### JDBC Clients
+
+
+JDBC connections require the Kinetica JDBC driver.
+
+Acquire the JDBC client JAR,
+`kinetica-jdbc-7.2.<X>.<Y>-jar-with-dependencies.jar`, from either:
+
+* the [JDBC Client Project](https://github.com/kineticadb/kinetica-client-jdbc/tree/release/v7.2)
+  on *GitHub*
+* under `/opt/gpudb/connectors/jdbc` on default *Kinetica* installations
+
+The following is the general driver and connection information that should be
+used when configuring a client.
+
+* *Driver*: &lt;point to the downloaded JAR file&gt;
+* *Connection String*:
+
+<CodeGroup>
+
+{/* Source: /connectors/sql_guide_src/jdbc_cs.txt (lines 4) */}
+```text Syntax
+jdbc:kinetica:URL=http://<db.host>:9191;CombinePrepareAndExecute=1[[;<parameter>=<value>]*]
+```
+
+{/* Source: /connectors/sql_guide_src/jdbc_cs.txt (lines 5) */}
+```text Example
+jdbc:kinetica:URL=http://kineticahost:9191;CombinePrepareAndExecute=1;RowsPerFetch=20000
+```
+
+</CodeGroup>
+
+* *Class Name*: `com.kinetica.jdbc.Driver`
+
+See [ODBC/JDBC Configuration](/content/connectors/sql_guide#jdbc-config) for additional configuration parameters.
+
+
+<a id="jdbc-connecting-secure"></a>
+
+
+#### Secure Connections
+
+
+When connecting to a *Kinetica* instance over HTTPS, the connection string
+should reference the database's secure address.
+
+
+<Tip>
+See [SSL Parameters](/content/connectors/sql_guide#jdbc-config-ssl) for additional parameters that may be
+necessary to use when connecting over SSL.
+</Tip>
+
+Set the **URL** parameter on the JDBC connection string to use
+the HTTPS-enabled database endpoint.
+
+<CodeGroup>
+
+{/* Source: /connectors/sql_guide_src/jdbc_cs.txt (lines 11) */}
+```text HTTPS w/o Cert Check
+jdbc:kinetica:URL=https://<db.host>:8082/gpudb-0
+```
+
+{/* Source: /connectors/sql_guide_src/jdbc_cs.txt (lines 12) */}
+```text HTTPS w/ Default Trust Cert Check
+jdbc:kinetica:URL=https://<db.host>:8082/gpudb-0;BypassSslCertCheck=0
+```
+
+{/* Source: /connectors/sql_guide_src/jdbc_cs.txt (lines 13) */}
+```text HTTPS w/ Custom Trust Cert Check
+jdbc:kinetica:URL=https://<db.host>:8082/gpudb-0;BypassSslCertCheck=0;SslCACertPath=<certPath>;SslCACertPassword=<certPass>
+```
+
+</CodeGroup>
+
+
+<a id="jdbc-connecting-failover"></a>
+
+
+#### Failover Connections
+
+
+When connecting to a *Kinetica* instance with one or more failover clusters, the
+connection string should be updated to contain a comma-delimited list of
+*head node* addresses for all clusters.  The URL of the primary cluster can also
+be specified.
+
+Add a **URL** parameter to the JDBC connection string to contain all
+cluster *head node* addresses and add a **PrimaryURL** parameter
+designating the cluster that should be tried first.
+
+<CodeGroup>
+
+{/* Source: /connectors/sql_guide_src/jdbc_cs.txt (lines 16) */}
+```text Syntax
+jdbc:kinetica:URL=http://<database1.host>:<database1.port>,...,http://<databaseN.host>:<databaseN.port>;PrimaryURL=http://<databaseX.host>:<databaseX:port>
+```
+
+{/* Source: /connectors/sql_guide_src/jdbc_cs.txt (lines 17) */}
+```text Example
+jdbc:kinetica:URL=http://kineticaA:9191,http://kineticaB:9191,http://kineticaC:9191;PrimaryURL=http://kineticaB:9191
+```
+
+</CodeGroup>
+
+
+<a id="odbc"></a>
+
+<a id="odbc-install"></a>
+
+<a id="odbc-install-windows"></a>
+
+
+### ODBC
+
+
+The *ODBC Client* must be installed for the environment in which it will be
+used.  The following sections will detail how to install & configure the client
+in *Windows*.
+
+*Kinetica* provides both a 32-bit & 64-bit *Windows ODBC Client* driver.  The
+32-bit version of *Windows* requires the 32-bit driver.  The 64-bit version of
+*Windows* can use either the 32-bit or 64-bit driver, or both, as needs warrant.
+For instance, a user running 64-bit *Windows* and wanting to make *ODBC*
+connections to *Kinetica* from a 32-bit version of *Excel* will need the 32-bit
+driver.  A user with the same OS using the 64-bit *Tableau* will need the 64-bit
+driver.  A user wanting to use both will need both drivers.
+
+1. Download & install the
+   [ODBC Client for Windows](https://github.com/kineticadb/kinetica-client-win-odbc/tree/release/v7.2)
+   following the instructions provided there
+2. Launch **ODBC Data Source Administrator** *(64-bit or 32-bit, as needed)*
+3. Click the **System DSN** tab
+4. Click the **Add** button to add a DSN
+5. Choose **Kinetica ODBC Client**, and click **Finish**
+6. Fill in the **DSN Setup** parameters
+   *(the following settings are examples - you may have to change some for your environment):*
+
+   * **Description**:  `Kinetica`
+   * **URL**:
+   <CodeGroup>
+
+   {/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 4) */}
+   ```text Syntax
+   http://<db.host>:9191;CombinePrepareAndExecute=1[[;<parameter>=<value>]*]
+   ```
+
+   {/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 5) */}
+   ```text Example
+   http://localhost:9191;CombinePrepareAndExecute=1;RowsPerFetch=20000
+   ```
+
+   </CodeGroup>
+
+   * Leave **User** and **Password** blank
+
+7. Click **OK**
+
+See [ODBC/JDBC Configuration](/content/connectors/sql_guide#odbc-config) for additional configuration parameters.
+
+
+<a id="odbc-connecting-secure"></a>
+
+
+#### Secure Connections
+
+
+When connecting to a *Kinetica* instance over HTTPS, the connection string
+should reference the database's secure address.
+
+
+<Tip>
+See [SSL Parameters](/content/connectors/sql_guide#odbc-config-ssl) for additional parameters that may be
+necessary to use when connecting over SSL.
+</Tip>
+
+Set the **URL** parameter to use the HTTPS-enabled database
+endpoint.
+
+<CodeGroup>
+
+{/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 11) */}
+```text HTTPS w/o Cert Check
+https://<db.host>:8082/gpudb-0
+```
+
+{/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 12) */}
+```text HTTPS w/ Default Trust Cert Check
+https://<db.host>:8082/gpudb-0;BypassSslCertCheck=0
+```
+
+{/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 13) */}
+```text HTTPS w/ Custom Trust Cert Check
+https://<db.host>:8082/gpudb-0;BypassSslCertCheck=0;SslCACertPath=<certPath>;SslCACertPassword=<certPass>
+```
+
+</CodeGroup>
+
+
+<a id="odbc-connecting-failover"></a>
+
+
+#### Failover Connections
+
+
+When connecting to a *Kinetica* instance with one or more failover clusters, the
+connection string should be updated to contain a comma-delimited list of
+*head node* addresses for all clusters.  The URL of the primary cluster can also
+be specified.
+
+Modify the **URL** parameter to contain all cluster *head node*
+addresses and add a **PrimaryURL** parameter designating the cluster
+that should be tried first.
+
+**URL**:
+
+<CodeGroup>
+
+{/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 16) */}
+```text Syntax
+http://<database1.host>:<database1.port>,...,http://<databaseN.host>:<databaseN.port>
+```
+
+{/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 17) */}
+```text Example
+http://kineticaA:9191,http://kineticaB:9191,http://kineticaC:9191
+```
+
+</CodeGroup>
+
+
+**PrimaryURL**:
+
+<CodeGroup>
+
+{/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 20) */}
+```text Syntax
+http://<databaseX.host>:<databaseX:port>
+```
+
+{/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 21) */}
+```text Example
+http://kineticaB:9191
+```
+
+</CodeGroup>
+
+
+### Tableau
+
+
+1. Install the *ODBC Client* - see [ODBC Installation](/content/connectors/sql_guide#odbc-install) above
+2. In *Tableau*, connect to **Other Databases (ODBC)**
+
+   * **DSN**: `Kinetica`
+   * Click **Connect**
+   * Click **Sign In**
+   * **Database**: `KINETICA`
+   * **Schema**: *&lt;choose one&gt;*
+
+     * To use the user's default schema, don't choose a schema
+       (leave as **Select Schema**)
+
+   * Pick your table
+
+
+<Info>
+*Tableau* may give a warning about not all features being supported
+by the ODBC driver; this should be able to be safely ignored for most
+applications.
+</Info>
+
+
+### Excel
+
+
+1. Install the *ODBC Client* - see [ODBC Installation](/content/connectors/sql_guide#odbc-install) above
+2. In *Excel*, click the **Data** tab at the top
+3. Click the **Get External Data &gt; From Other Sources** button, then
+   click **From Data Connection Wizard**
+4. In the **Connection Wizard**, choose **ODBC DSN** and click
+   **Next &gt;**
+5. Select one of the *ODBC* data sources (i.e., DSNs) you created above (e.g.,
+   **Kinetica**), and click **Next &gt;**
+6. Continue with the wizard to create a link to all the tables or a specific
+   table, and save an *ODC* file, etc.
+7. Click the **Finish** button
+
+To read in data using the *ODC* file created above:
+
+1. In *Excel*, click the **Data** tab at the top
+2. Click **Get External Data &gt; Existing Connections**
+3. Choose the *ODC* file you created above, and click **Open**
+4. Select a **Table** to import
+5. Select where you want the data to appear, and click the **OK**
+   button
+
+
+### DBeaver
+
+
+1. Acquire the [JDBC Driver](/content/connectors/sql_guide#jdbc-clients)
+2. Download & install [DBeaver](http://dbeaver.jkiss.org/download/)
+3. Configure *DBeaver* with the Kinetica JDBC driver
+
+   1. On the **Database** menu, select
+      **Driver Manager**
+   2. Click **New** to create a new driver connection
+   3. Complete the driver configuration page:
+
+      * **Driver Name**: `Kinetica`
+      * **Class Name**: `com.kinetica.jdbc.Driver`
+
+   4. Click the **Libraries** tab; then click
+      **Add File** and select the downloaded JAR:
+
+      ```
+      kinetica-jdbc-7.2.<X>.<Y>-jar-with-dependencies.jar
+      ```
+   5. Click **OK**
+   6. Click **Close** to exit **Driver Manager**
+
+4. Configure a connection:
+
+   1. On the **File** menu, select **New**
+   2. Ensure that **Database Connection** is selected and click
+      **Next &gt;**
+   3. Select **Kinetica** and click **Next &gt;**
+   4. Click **Connection Details** and name the connection
+
+      * **Connection name**: name for the connection
+
+   5. Click **Back**
+   6. Complete the connection configuration
+
+      * **JDBC URL**:
+      <CodeGroup>
+
+      {/* Source: /connectors/sql_guide_src/jdbc_cs.txt (lines 4) */}
+      ```text Syntax
+      jdbc:kinetica:URL=http://<db.host>:9191;CombinePrepareAndExecute=1[[;<parameter>=<value>]*]
+      ```
+
+      {/* Source: /connectors/sql_guide_src/jdbc_cs.txt (lines 5) */}
+      ```text Example
+      jdbc:kinetica:URL=http://kineticahost:9191;CombinePrepareAndExecute=1;RowsPerFetch=20000
+      ```
+
+      </CodeGroup>
+
+   7. Enter authentication credentials
+
+      * Username/password style authentication
+
+        * **Username**: name of connecting user
+          (`admin` for database administrator connection)
+        * **Password**: password for connecting user
+
+      * OIDC/OAuth style authentication
+
+        1. Disable username/password auth
+
+           * **Save password**: check this box, leaving
+             **Username** & **Password** blank
+
+        2. Click the **Driver Properties** tab
+        3. Enter OAuth credentials
+
+           * **OAuthToken**: OAuth token to use for authentication
+
+   8. Click **Finish** to complete the connection configuration
+
+
+### Other JDBC Clients
+
+
+For other clients, see [JDBC Applications](/content/connectors/sql_guide#jdbc) for the general setup to use.
+
+
+<Tip>
+There are many *Java SQL* clients available; a list can be found
+[here](http://java-source.net/open-source/sql-clients).
+</Tip>
+
+<a id="odbc-config"></a>
+
+<a id="jdbc-config"></a>
+
+
+## ODBC/JDBC Configuration
+
+
+Unless noted, the configuration parameters are the same for *ODBC* & *JDBC*, though the
+locations of the configurations are not.
+
+* *Windows* ODBC - Settings are stored in the registry in
+  <Badge color="gray">HKEY_LOCAL_MACHINE\\SOFTWARE\\ODBC\\ODBC.INI\\\&lt;DSN NAME\&gt;</Badge>
+* JDBC - Settings are passed on the connection string, separated by semicolons;
+  e.g.:
+
+<CodeGroup>
+
+{/* Source: /connectors/sql_guide_src/jdbc_cs.txt (lines 4) */}
+```text Syntax
+jdbc:kinetica:URL=http://<db.host>:9191;CombinePrepareAndExecute=1[[;<parameter>=<value>]*]
+```
+
+{/* Source: /connectors/sql_guide_src/jdbc_cs.txt (lines 5) */}
+```text Example
+jdbc:kinetica:URL=http://kineticahost:9191;CombinePrepareAndExecute=1;RowsPerFetch=20000
+```
+
+</CodeGroup>
+
+Some settings of note follow.
+
+
+<a id="odbc-config-standard"></a>
+
+<a id="jdbc-config-standard"></a>
+
+
+### Standard Parameters
+
+
+| Config Parameter | Default Value | Description |
+| --- | --- | --- |
+| **URL** | `http://127.0.0.1:9191` | URL of *Kinetica* database server to connect to--this may be a comma-delimited list of multiple clusters in an HA configuration |
+| **CombinePrepareAndExecute** | `0` | Whether or not to combine the JDBC/ODBC prepare and execute phases, when appropriate.  This can improve the performance of static queries (those that lack parameterized values). <br/> <br/> * `0` = Don't combine prepare and execute phases <br/> * `1` = Combine prepare and execute phases <br/> <Tip> This parameter should be set to `1` whenever possible. Some JDBC clients may return odd errors when this is active, however; and may need to be set to `0` to function properly. This parameter is not needed when using [KiSQL](/content/tools/kisql) . </Tip> |
+| **UID** |  | User ID for database connection |
+| **PWD** |  | Password for database connection <br/> <Info> If the password contains special characters, they must be encoded using URL-style encoding; e.g., encode a semicolon as `%3B` </Info> |
+| **OAuthToken** |  | OAuth token used in OIDC-enabled environments; when using, leave **UID** & **PWD** blank |
+| **Timeout** | `0` | Minutes to wait for a response from the database; `0` for no timeout |
+| **Schema** | *&lt;user default&gt;* | Default schema to use within the session |
+| **ImpersonateUser** |  | Impersonate another user for this session. Only available when connected as an admin. |
+| **PrimaryURL** |  | URL of a cluster to always attempt to go to first (if URL is a list) |
+| **TokenNameClaim** |  | Name of the claim token identifying the username; `sub` is the default claim token name used. |
+
+
+<a id="odbc-config-override"></a>
+
+<a id="jdbc-config-override"></a>
+
+
+### Server Override Parameters
+
+
+The following are optional parameters that could be used to override the default
+settings, which are set by the server. See the
+[Configuration Reference](/content/config#config-main-sql-engine) for more information
+on configuring the SQL Engine server-side.
+
+The default value for each of these options is `0`.
+
+| Config Parameter | Description |
+| --- | --- |
+| **CostBasedOptimization** | Whether or not to use the cost-based optimizer <br/> <br/> * `0` = Disable cost-based optimizations <br/> * `1` = Enable cost-based optimizations |
+| **DistributedJoins** | Whether or not to process operations that would require resharding of data to complete successfully <br/> <br/> * `0` = Disable distributed operations, failing any queries requiring resharding of data to succeed <br/> * `1` = Enable distributed operations, resharding data to meet sharding requirements, if necessary |
+| **IgnoreExistingPk** | Whether or not to suppress errors for record collisions when inserting into or updating a table with a primary key; if the specified table does not have a primary key or **UpdateOnExistingPk** is `1`, then this parameter is ignored <br/> <br/> * `0` = Treat as errors any inserted or updated records whose primary keys collide with those of existing records <br/> * `1` = Ignore inserted or updated records whose primary key values collide with those of existing records |
+| **LateMaterialization** | Whether or not to avoid materializing intermediary result sets when processing a complex query <br/> <br/> * `0` = Materialize intermediary result sets <br/> * `1` = Avoid materializing intermediary result sets |
+| **PagingTableTtl** | TTL for the result set paging table, in minutes; other possible values: <br/> <br/> * `-1` = no TTL (temp sets will not expire) <br/> * `0` = expire immediately (at next clean-up interval) |
+| **ParallelExecution** | Whether or not to execute independent portions of a query in parallel <br/> <br/> * `0` = Execute each component of a query in series, regardless of intra-query dependencies <br/> * `1` = Enable parallel execution of independent portions of a query |
+| **PlanCache** | Whether or not to cache query plans, as derived by the rule-based/cost-based optimizer <br/> <br/> * `0` = Disable caching of query plans <br/> * `1` = Enable caching of query plans |
+| **ResultsCaching** | Whether or not to cache result sets, which happens automatically for certain queries that have only [materialized views](/content/concepts/materialized_views) as sources <br/> <br/> * `0` = Disable caching of result sets <br/> * `1` = Enable caching of result sets |
+| **RuleBasedOptimization** | Whether or not to use the rule-based optimizer <br/> <br/> * `0` = Disable rule-based optimizations <br/> * `1` = Enable rule-based optimizations |
+| **SsqOptimization** | Whether or not to use scalar subquery optimizations, in which non-correlated single-value-returning subqueries will be evaluated first and then those result constants will be used in the remainder of the query processing <br/> <br/> * `0` = Disable scalar subquery optimizations <br/> * `1` = Enable scalar subquery optimizations |
+| **TTL** | [TTL](/content/concepts/ttl) for temporary result tables, in minutes. Other possible values: <br/> <br/> * `-2` = use server's default TTL <br/> * `-1` = no TTL (temp sets will not expire) <br/> * `0` = expire immediately (at next clean-up interval) |
+| **UpdateOnExistingPk** | Whether or not to handle primary key collisions using an *upsert* scheme for inserts and overwrite scheme for updates when operating on a table with a primary key; if the specified table does not have a primary key, then this parameter is ignored <br/> <br/> * `0` = Reject any `INSERT` or `UPDATE` that results in a primary key collision with an existing record <br/> * `1` = Use the inserted or updated record to replace an existing record with the same primary key when there is a primary key collision between the two |
+| **UseApproxCountDistinct** | When issuing any `COUNT (DISTINCT x)` query, it will be computed using the faster but less accurate `APPROX_COUNT_DISTINCT()` aggregate function. <br/> <br/> * `0` = Compute and return accurate distinct count statistics <br/> * `1` = Return faster but less accurate distinct count values |
+| **ValidateChange** | When issuing an `ALTER TABLE` that changes column types/sizes, verify that the column data can be contained losslessly in the target column type/size.  If `1`, fail the request if the data will not fit; if `0`, truncate the data to fit. <br/> <br/> * `0` = Truncate any column data that won't fit into the new type size on a column change request <br/> * `1` = Validate any column change and fail the request if column data is too large/long for the new type/size |
+
+
+<a id="odbc-config-client"></a>
+
+<a id="jdbc-config-client"></a>
+
+
+### Client Parameters
+
+
+The following optional parameters may be used to change the ODBC/JDBC Client behavior.
+
+| Config Parameter | Default Value | Description |
+| --- | --- | --- |
+| **CombineResults** | `0` | How to return the results of multiple DDL statements in a single Execute call. *(JDBC only)* <br/> <br/> * `0` = Return individual result counts for each DDL statement <br/> * `1` = Combine result counts into a single result |
+| **DisableAutoDiscovery** | `0` | Whether to disable querying the server for its configuration. *(JDBC only)* <br/> <br/> Disabling auto-discovery will, in turn, disable both [multi-head ingest](/content/tuning/multihead/multihead_ingest) & [multi-head egress](/content/tuning/multihead/multihead_egress), as the client won't have the list of URLs for the cluster nodes, required for distributed operations. <br/> <br/> Disabling auto-discovery will also disable [high availability](/content/ha) failover, preventing attempts at performing operations on another cluster after a failure. <br/> <br/> * `0` = Perform standard auto-discovery <br/> * `1` = Do not perform auto-discovery |
+| **DisableFailover** | `0` | Whether to disable [high availability](/content/ha) failover, preventing attempts at performing operations on another cluster after a failure. *(JDBC only)* <br/> <br/> * `0` = Do attempt to perform the operation on another cluster after a failure, if another cluster is configured <br/> * `1` = Do not attempt to perform the operation on another cluster after a failure |
+| **DisableMultiheadInsert** | `0` | Whether to use distributed ingest for supported `INSERT` statements. *(JDBC only)* <br/> <br/> * `0` = Use high-performance distributed ingest when possible, unless `KI_HINT_SERVER_SIDE_INSERT` is specified <br/> * `1` = Use normal `INSERT` processing |
+| **DisableSnappy** | `0` | Whether to disable Snappy compression when transmitting data to the server. <br/> <br/> * `0` = Compress data using Snappy <br/> * `1` = Don't compress data using Snappy |
+| **ErrorMode** | `Skip` | What to do when an error is encountered when inserting data by default, via either [INSERT INTO ... VALUES](/content/sql/dml#sql-insert-values) or [INSERT INTO ... SELECT ... FROM FILE](/content/sql/load#sql-load-file-client).  Can be overridden on the SQL Command. <br/> <br/> * `Permissive` = If an error is encountered parsing a source record, attempt to insert as much of the valid fields from the record as possible. <br/> * `Skip` = If an error is encountered parsing a source record, skip the record. <br/> * `Abort` = If an error is encountered parsing a source record, stop the data load process.  Primary key collisions are considered abortable errors in this mode. |
+| **FailbackPollInterval** | `5` | Number of seconds to wait between fail-back service polls of the primary cluster when failed over. |
+| **FailoverOrder** |  | Controls the order in which the cluster to fail over to is selected. <br/> <br/> * `RANDOM` = Choose a random cluster to fail over to. <br/> * `SEQUENTIAL` = Use the order in which the clusters were defined by the user in the connection configuration, or if not defined, the order in which the server defines the clusters, to choose the cluster to fail over to. |
+| **FakeTransactions** | `0` | Whether to throw exceptions when the client attempts to start or rollback a transaction; useful for 3rd party tools, such as JPA or Hibernate, that expect transaction support.  *(JDBC only)* <br/> <br/> * `0` = Throw an exception when client attempts to control a transaction <br/> * `1` = Do not throw an exception, but still ignore, if client attempts to control a transaction <br/> <Note> Kinetica does not support transactions; this will only affect how the JDBC driver responds to transactional requests it can't fulfill. </Note> |
+| **FileReadComment** | `#` | When inserting data from a file with [INSERT INTO ... SELECT ... FROM FILE](/content/sql/load#sql-load-file-client), this character at the start of a line indicates a commented line to ignore. |
+| **FileReadDelimiter** | `,` | When inserting data from a file with [INSERT INTO ... SELECT ... FROM FILE](/content/sql/load#sql-load-file-client), this character separates values If reading from a ".tsv" or ".psv" file, the default will be *&lt;tab&gt;* or `\|`, respectively. |
+| **FileReadEscapeChar** |  | When inserting data from a file with [INSERT INTO ... SELECT ... FROM FILE](/content/sql/load#sql-load-file-client), this character can be placed before other special characters to not treat them specially.  Default is no escape character. |
+| **FileReadHasHeader** |  | When inserting data from a file with [INSERT INTO ... SELECT ... FROM FILE](/content/sql/load#sql-load-file-client), whether to assume the first line in the file is a header line. <br/> <br/> * `0` = The first line in the file is not a header line, treat it as data <br/> * `1` = The first line in the file is a header line, and indicates column names <br/> * If unspecified, the first line will be read and treated as a header if it looks like a header |
+| **FileReadInitialClear** | `0` | When inserting data from a file with [INSERT INTO ... SELECT ... FROM FILE](/content/sql/load#sql-load-file-client), delete any existing data in the destination table before inserting new data. |
+| **FileReadLimit** |  | When inserting data from a file with [INSERT INTO ... SELECT ... FROM FILE](/content/sql/load#sql-load-file-client), stop reading the file after this many lines. Default is no limit. |
+| **FileReadNullString** | `\N` | When inserting data from a file with [INSERT INTO ... SELECT ... FROM FILE](/content/sql/load#sql-load-file-client), this string represents data that should be inserted as NULL values. |
+| **FileReadQuoteChar** | `"` | When inserting data from a file with [INSERT INTO ... SELECT ... FROM FILE](/content/sql/load#sql-load-file-client), this character is used to delimit string literals. |
+| **FileReadSkip** | `0` | When inserting data from a file with [INSERT INTO ... SELECT ... FROM FILE](/content/sql/load#sql-load-file-client), skip this number of lines after the header (if any). |
+| **Limit** | `-1` | Limit number of records returned for each query issued; `-1` for no limit, i.e., all records will be returned for each query. |
+| **LogLevel** | `0` | Controls the amount of debug logging done by driver. <br/> <br/> * `0` = Off <br/> * `1` = Fatal <br/> * `2` = Error <br/> * `3` = Warning <br/> * `4` = Info <br/> * `5` = Debug <br/> * `6` = Trace |
+| **ReadOnly** | `0` | Whether the driver will report itself as being in a read-only mode, **even though it is in full-access mode**; useful for 3rd party tools that expect and enforce a read-only connection. <br/> <br/> * `0` = Driver will not report itself as being in a read-only mode when queried via the JDBC/ODBC API <br/> * `1` = Driver will report itself as being in a read-only mode, **even though this is not enforced** |
+| **Replication** |  | Controls the HA replication mode for all requests made through this connection. <br/> <br/> * `NONE` = Do not replicate requests. <br/> * `SYNC` = Executes the query locally, sends an http request directly to each cluster, sequentially, and returns the response. <br/> * `ASYNC` = Executes the query locally, queues a request to RMQ for each cluster, and returns to the user. <br/> * `SYNC_PARALLEL` = Sends a http request directly to each cluster, executes the query locally, and waits for the response from each cluster. <br/> * `ASYNC_PARALLEL` = Queues a request to RMQ for each cluster, executes the query locally, and returns to the user. |
+| **RowsPerFetch** | `10000` | Number of records to request from the server at a time. |
+| **RowsPerInsertion** | `10000` | Number of records to send to the server in a batch. |
+| **Schema** |  | Use the specified schema as the default schema for all object references |
+| **TimeZoneOverride** | `UTC` | Time zone that client should assume time coming from the server are in. *(JDBC only)* <br/> <br/> All times in Kinetica are assumed to be in UTC (GMT).  Java clients should call: <br/> <br/> `TimeZone.setDefault(TimeZone.getTimeZone("UTC"));` <br/> <br/> so that times will be displayed in UTC and match other clients. When this is not possible (e.g., when using a Java utility that does not have such an option) Java clients will usually display times in the local time (set in Java and/or the OS), which will look different from the times displayed by other clients.  I.e., the Java client will display the UTC times from Kinetica converted to the local time zone. The **TimeZoneOverride** option can be used to report times coming from Kinetica as being in the specified time zone, rather than in UTC.  If this is set to the current Java/OS time zone then no conversions will be done, and displayed times should match UTC times as stored in Kinetica. <br/> <br/> Valid options include `system` and time zone codes such as `EST` and `PST`. <br/> <Tip> Use `system` to match the current Java client time zone and avoid needing to look up the time zone code for your area. </Tip> |
+| **TruncateStrings** | `0` | Whether to truncate strings when processing an `INSERT`. <br/> <br/> * `0` = Do not truncate strings -- if a string is too long, it will not be inserted <br/> * `1` = Truncate strings when needed so they will fit in a restricted target string column |
+| **UseKeyLookup** | `0` | Whether to process supported `SELECT` statements using high-performance [distributed key lookup](/content/tuning/multihead/multihead_egress#multi-head-egress-sql); using this may cause some additional overhead to determine if the table will support key lookups. <br/> <br/> * `0` = By default, use standard processing for all `SELECT` statements; this can be overridden with `KI_HINT_KEY_LOOKUP` on individual statements <br/> * `1` = Use high-performance distributed key lookup for supported `SELECT` statements, when possible |
+
+
+<a id="odbc-config-ssl"></a>
+
+<a id="jdbc-config-ssl"></a>
+
+
+### SSL Parameters
+
+
+The following optional parameters should be used when connecting over SSL.
+
+| Config Parameter | Default Value | Description |
+| --- | --- | --- |
+| **BypassSslCertCheck** | `0` | Whether or not to validate the SSL certificate presented by the *Kinetica* server <br/> <br/> * `0` = Do not accept SSL server certificates that fail validation checks <br/> * `1` = Accept SSL server certificates regardless of whether they pass validation checks |
+| **SslCACertPath** |  | Path to client's CA store, used to validate the certificate from the *Kinetica* server |
+| **TrustedStorePath** |  | Path to client's trust store, used to validate the certificate from the *Kinetica* server *(JDBC only)* |
+| **SslCACertPassword** |  | Password to the certificate store specified by **TrustedStorePath** *(JDBC only)* |
+
+
+<a id="sql-logging"></a>
+
+
+## Logging
+
+
+*Kinetica* logs inbound SQL requests, internal calls made on behalf of those
+requests, and other debugging information.  These logs can be found in the
+following log files:
+
+* <Badge color="gray">/opt/gpudb/core/logs/host-manager-&lt;hostname&gt;-&lt;datetime&gt;.log</Badge>:  Contains
+  all endpoint calls, including the initial call to `/execute/sql` and any
+  endpoint calls made as a result of servicing the request
+* <Badge color="gray">/opt/gpudb/sql/logs/sql-engine-&lt;kinetica-hostname&gt;.log</Badge>:  Contains
+  detailed error messages

@@ -1,0 +1,84 @@
+---
+title: Naming
+sidebarTitle: Naming
+---
+
+<a id="sql-name-resolution"></a>
+
+
+## Name Resolution
+
+
+Most database objects ([tables](/content/sql/ddl#sql-create-table),
+[views](/content/sql/ddl#sql-create-view), etc.) can be addressed using a
+*qualified name*, by prefixing the name of the object with the name of its
+containing *schema*, separated by a dot; e.g.:
+
+```sql
+<schema name>.<table/view name>
+```
+
+For the full list of *schema*-contained objects, see
+[CREATE SCHEMA](/content/sql/ddl#sql-create-schema).
+
+If these objects are referenced without a *schema*, they will be looked for in
+the user's [default schema](/content/concepts/schemas#schema-default), if one has been
+assigned.
+
+The *default schema* can be overridden within an ODBC/JDBC session by issuing
+the [SET CURRENT SCHEMA](/content/sql/ddl#sql-current-schema) command.  Once set, the new *schema* will be used
+to resolve *unqualified names* **instead** of the *default schema*--the user's
+*default schema* will be ignored for the purposes of name resolution.
+
+
+<a id="sql-naming-criteria"></a>
+
+
+## Naming Criteria
+
+
+Each database object is identified by a name, which will have the following SQL
+validation applied:
+
+* Between 1 and 200 characters long
+* First character is alphabetic, `_`, or `#`; if the object name is
+  double-quoted, it can start with a number
+* Each subsequent character must be alphanumeric, `_`, or `#`; if the object
+  name is double-quoted, the following symbols, including spaces, can be used:
+  `{` `}` `[` `]` `(` `)` `:` `-`
+* Unique within its containing *schema*--cannot have the same name as another
+  object of the same type in the same *schema* (two *credentials* can't have the
+  same name in the same *schema*); *tables* & *views* are of the same "type" for
+  this rule (a *table* can't have the same name as a *view* in the same
+  *schema*)
+
+Column names must meet the following criteria:
+
+* Between 1 and 200 characters long
+* First character is alphabetic or `_`; if the object name is double-quoted,
+  it can start with a number
+* Alphanumeric, including this symbol: `_`; if the object name is
+  double-quoted, the following symbols can be used:
+  `{` `}` `[` `]` `:` `.`
+
+
+<Info>
+Names that begin with a digit or contain a special character may need
+to be double-quoted when referenced.  For example:
+
+   {/* Source: /examples/sql/naming.kisql (lines 31-33) */}
+```sql SELECT with Special Object Names
+SELECT "1st.name", "last.name"
+FROM "employee-sync"."1on1s"
+ORDER BY "1st.name"
+```
+</Info>
+
+<a id="sql-naming-reserved-words"></a>
+
+
+## Reserved Words
+
+
+For a list of the reserved words within *Kinetica* see
+[SQL Reserved Word List](/content/sql/sql_reserved_words).

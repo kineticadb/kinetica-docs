@@ -1,0 +1,384 @@
+---
+title: Custom Logging
+---
+
+The default core *Kinetica* log that records database interactions,
+startup/shutdown, error information, and more is located at
+`/opt/gpudb/core/logs/gpudb.log`. This log file can be configured to use a
+custom format that conforms to a rolling logging standard, enable various
+appenders and/or loggers, change the logging level, and more using the
+`/opt/gpudb/core/etc/gpudb_logger.conf` file.
+
+
+## Customizing the Log
+
+
+1. Review the available [Log Levels](/content/admin/logging#log-levels).
+
+   * `OFF`
+   * `FATAL`
+   * `ERROR`
+   * `WARN`
+   * `UERR`
+   * `INFO`
+   * `DEBUG`
+   * `TRACE`
+   * `NOTSET`
+
+2. Review the available [Appenders](/content/admin/logging#appenders).
+
+   * `ToConsole`
+   * `ToSysLog`
+   * `ToFile`
+   * `ToRollingFile`
+   * `ToRollingDatedFile`
+   * `ToBacktraceFile`
+
+3. Review the available [Loggers](/content/admin/logging#loggers).
+4. Open `/opt/gpudb/core/etc/gpudb_logger.conf` with a text editor.
+5. Update the `rootLogger` setting with the desired level and appender(s):
+
+   ```
+   log4cplus.rootLogger=<log-level>, <appender1>[, <appender2>, ..., <appenderN>]
+   ```
+6. Uncomment the desired appender setting section(s):
+
+   ```
+   # ---------------------------------------------------------------------------
+   # Rolling dated log file appender.
+   # ...
+
+   log4cplus.appender.ToRollingDatedFile=log4cplus::RollingDatedFileAppender
+   ...
+   ```
+7. Adjust the appender settings as necessary, e.g., log size, threshold, file
+   name, etc.
+8. Adjust additional logger levels and/or appender(s) as necessary:
+
+   ```
+   # ===========================================================================
+   # Loggers
+   # ...
+
+   # Log memory info, logs at DEBUG.
+   log4cplus.logger.MEMORY=<log-level>, <appender1>[, <appender2>, ..., <appenderN>]
+   ...
+   ```
+9. Save and exit the file.
+10. Restart the [host manager](/content/admin/host_manager) and the database:
+
+    ```
+    service restart gpudb_host_manager && service restart gpudb
+    ```
+<a id="log-levels"></a>
+
+
+## Log Levels
+
+
+Log levels can be attributed to the `rootLogger` (the base logger, default
+level is `INFO`), the individual loggers at the bottom of the file, or as the
+threshold for an appender. The log levels can be ranked in order from least
+information to most information logged like so: `OFF`, `FATAL`, `ERROR`,
+`WARN`, `UERR`, `INFO`, `DEBUG`, `TRACE`. Some loggers will not
+provide their information unless a certain level is set.
+
+| Level | Description |
+| --- | --- |
+| `OFF` | Does not log at all. |
+| `FATAL` | Logs unrecoverable errors that occur and cause the database or a component to exit. |
+| `ERROR` | Logs serious and unexpected errors that may severely impact the database, e.g., network errors, disk full, etc. |
+| `WARN` | Logs unfavorable conditions or states that may impair the database, e.g., network outage, slow disks, etc. |
+| `UERR` | Logs malformed user requests or requests that could not be processed, e.g., invalid table names, bad options, etc. |
+| `INFO` | Logs informational messages recorded during startup and shutdown. There are two `INFO` logs per request by the head node: one when the request is received and one when the request is completed. |
+| `DEBUG` | Logs verbose messages about program processing and state. |
+| `TRACE` | Logs even more verbose messages about program processing and state. |
+| `NOTSET` | Logs at the level of the next logger in the chain, up to the `rootLogger`. This is equivalent to commenting out the logger. |
+
+Some loggers may have chained sub loggers; these sub
+loggers will use the same level as the next logger up the chain (if set). If
+none of the loggers or sub loggers in the chain are set, the logger will use the
+`rootLogger` level. For example, if the following sub logger is `NOTSET`:
+
+```
+log4cplus.logger.GlobalManager.pub.socket=NOTSET
+```
+It will use the level of the next logger up the chain:
+
+```
+log4cplus.logger.GlobalManager.pub=INFO
+```
+<a id="appenders"></a>
+
+
+## Appenders
+
+
+The <Badge color="gray">gpudb_logger.conf</Badge> file comes with preconfigured appenders that can
+be used to create different log types. Multiple appenders can be used if
+necessary as long as the appropriate settings are uncommented and the appender
+name is added to the `rootLogger` appender list. Default database setups have
+the `ToConsole` appender enabled.
+
+
+<Note>
+For sizing considerations, a request typically logs for about
+500 bytes, but [joins](/content/concepts/joins) and multi-step
+queries will log quite a bit more.
+</Note>
+
+
+### ToConsole
+
+
+The Console appender pipes the output of the `/opt/gpudb/core/bin/gpudb`
+script to a `/opt/gpudb/core/logs/gpudb-<hostname>-<date>.log` file. This
+file is symbolically linked to `/opt/gpudb/core/logs/gpudb.log`.
+
+
+| Setting | Description |
+| --- | --- |
+| `layout` | Dictates the type of layout the logging of which the logging will take form. |
+| `layout.ConversionPattern` | The log4cplus pattern to use for the layout. See the `PatternLayout` class [reference documentation](https://log4cplus.github.io/log4cplus/docs/log4cplus-2.1.0/doxygen/classlog4cplus_1_1PatternLayout.html) for details. |
+
+
+### ToSysLog
+
+
+The SysLog appender sends the log output to the centralized SysLog host.
+
+
+| Setting | Description |
+| --- | --- |
+| `layout` | Dictates the type of layout the logging of which the logging will take form. |
+| `layout.ConversionPattern` | The log4cplus pattern to use for the layout. See the `PatternLayout` class [reference documentation](https://log4cplus.github.io/log4cplus/docs/log4cplus-2.1.0/doxygen/classlog4cplus_1_1PatternLayout.html) for details. |
+| `syslogHost` | Hostname for the SysLog host. |
+| `Facility` | Source of the log messages. |
+| `Threshold` | The level of messages to log. See [Log Levels](/content/admin/logging#log-levels) for more information. |
+
+
+### ToFile
+
+
+The File appender sends each *Kinetica* process' (rank and host manager) logs to
+a separate file.
+
+
+<Note>
+This appender is demanding in terms of disk space.
+</Note>
+
+
+| Setting | Description |
+| --- | --- |
+| `File` | The name and directory of the files to which to send the logs. The files will have an `-r<rank-number>` or `-hm` appended for each rank and the host manager respectively. |
+| `Threshold` | The log level required to log messages. See [Log Levels](/content/admin/logging#log-levels) for more information. |
+| `Append` | Enables appending log messages to the end of the files. Leave as `true`. |
+| `ImmediateFlush` | Enables flushing the output stream to the files with each append operation. |
+| `layout` | Dictates the type of layout the logging of which the logging will take form. |
+| `layout.ConversionPattern` | The log4cplus pattern to use for the layout. See the `PatternLayout` class [reference documentation](https://log4cplus.github.io/log4cplus/docs/log4cplus-2.1.0/doxygen/classlog4cplus_1_1PatternLayout.html) for details. |
+| `UseLockFile` | Enables the use of a logger lockfile to create a single log file per host. <br/> <Note> Setting this value to `true` results in slower performance as the system will need to check the file lock for each append. It's recommended this setting be left as `false`. </Note> |
+
+
+### ToRollingFile
+
+
+The Rolling File appender processes logs to a rolling log file where a new log
+file is created once the previous log file reaches the maximum file size. The
+maximum file size and number of files to keep is configurable.
+
+
+| Setting | Description |
+| --- | --- |
+| `File` | The name and directory of the files to which to send the logs. The files will have an `-r<rank-number>` or `-hm` appended for each rank and the host manager respectively. As files are periodically replaced, older files are renamed `<filename>.1` to `<filename>.n` where `n` is equal to `MaxBackupIndex`. |
+| `Threshold` | The log level required to log messages. See [Log Levels](/content/admin/logging#log-levels) for more information. |
+| `MaxFileSize` | The maximum file size a log file can reach before a new one is created. |
+| `MaxBackupIndex` | The maximum number of log files to keep until older files are deleted to make room for new ones. Note that this setting defines the maximum backup index for each process, e.g., if `MaxBackupIndex` is set to 4, the host manager can have up to four files, rank 0 can have up to four files, etc. |
+| `Append` | Enables appending log messages to the end of the file. Leave as `true`. |
+| `ImmediateFlush` | Enables flushing the output stream to the file with each append operation. |
+| `layout` | Dictates the type of layout the logging of which the logging will take form. |
+| `layout.ConversionPattern` | The log4cplus pattern to use for the layout. See the `PatternLayout` class [reference documentation](https://log4cplus.github.io/log4cplus/docs/log4cplus-2.1.0/doxygen/classlog4cplus_1_1PatternLayout.html) for details. |
+| `UseLockFile` | Enables the use of a logger lockfile to create a single log file per host. <br/> <Note> Setting this value to `true` results in slower performance as the system will need to check the file lock for each append. It's recommended this setting be left as `false`. </Note> |
+
+
+### ToRollingDatedFile
+
+
+The Rolling Dated File appender processes logs to a dated rolling log file where
+a new log file is created (with the time the file is created appended to the
+name) once the previous log file reaches the maximum file size. The maximum file
+size and number of files to keep is configurable.
+
+
+| Setting | Description |
+| --- | --- |
+| `File` | The name and directory of the files to which to send the logs. The files will have an `-r<rank-number>` or `-hm` appended for each rank and the host manager respectively. As files are periodically replaced, older files are renamed `<filename-datetime>-1` to `<filename-datetime>-n` where `n` is equal to `MaxBackupIndex`. |
+| `Threshold` | The log level required to log messages. See [Log Levels](/content/admin/logging#log-levels) for more information. |
+| `MaxFileSize` | The maximum file size a log file can reach before a new one is created. |
+| `MaxBackupIndex` | The maximum number of log files to keep until older files are deleted to make room for new ones. Note that this setting defines the maximum backup index for each process, e.g., if `MaxBackupIndex` is set to 4, the host manager can have up to four files, rank 0 can have up to four files, etc. |
+| `Append` | Enables appending log messages to the end of the file. Leave as `true`. |
+| `ImmediateFlush` | Enables flushing the output stream to the file with each append operation. |
+| `layout` | Dictates the type of layout the logging of which the logging will take form. |
+| `layout.ConversionPattern` | The log4cplus pattern to use for the layout. See the `PatternLayout` class [reference documentation](https://log4cplus.github.io/log4cplus/docs/log4cplus-2.1.0/doxygen/classlog4cplus_1_1PatternLayout.html) for details. |
+| `UseLockFile` | Enables the use of a logger lockfile to create a single log file per host. <br/> <Note> Setting this value to `true` results in slower performance as the system will need to check the file lock for each append. It's recommended this setting be left as `false`. </Note> |
+
+
+### ToBacktraceFile
+
+
+The Backtrace File appender redirects the backtrace logs generated by the
+`ErrorBacktrace` logger so they do not appear in the `rootLogger` output.
+Add the `ERROR` log level and the `ToBacktraceFile` appender to the
+`ErrorBacktrace` like so to properly setup this appender:
+
+```
+log4cplus.ErrorBacktrace=ERROR, ToBacktraceFile
+```
+
+<Note>
+It's advised that this appender also be added to the
+`rootLogger` so that logs with a threshold of `ERROR` are
+also logged to give context to a backtrace.
+</Note>
+
+
+| Setting | Description |
+| --- | --- |
+| `File` | The name and directory of the file to which to send the logs. |
+| `Threshold` | The log level required to log messages. See [Log Levels](/content/admin/logging#log-levels) for more information. |
+| `Append` | Enables appending log messages to the end of the file. Leave as `true`. |
+| `ImmediateFlush` | Enables flushing the output stream to the file with each append operation. |
+| `layout` | Dictates the type of layout the logging of which the logging will take form. |
+| `layout.ConversionPattern` | The log4cplus pattern to use for the layout. See the `PatternLayout` class [reference documentation](https://log4cplus.github.io/log4cplus/docs/log4cplus-2.1.0/doxygen/classlog4cplus_1_1PatternLayout.html) for details. |
+| `additivity` | If using an alternate appender for the `ErrorBacktrace` logger, set the additivity to `false` to avoid duplicated the backtrace logs in the `rootLogger` output. |
+
+
+<a id="loggers"></a>
+
+
+## Loggers
+
+
+Loggers control specific types of information. Each logger can have its own
+[log level](/content/admin/logging#log-levels) and [appender](/content/admin/logging#appenders). If the level or
+appender are not specified, the `rootLogger` level and/or appender(s) are
+used.
+
+Loggers are divided into sections:
+
+* System and process information -- memory, CPU
+* GlobalManager and GlobalRegistry -- publish and subscribe sockets
+* All ranks (not exclusive to a particular rank) -- filter planner, job manager,
+  security manager
+* Head node -- endpoint manager, graph client, WMS
+* Worker nodes -- bytes and GPU manager, queue, tasks
+
+
+<a id="auditing"></a>
+
+
+## Auditing
+
+
+The location of the request auditor logs can also be controlled via the
+<Badge color="gray">gpudb_logger.conf</Badge> file. Auditing must be enabled before the logging
+can be configured; see [Auditing](/content/security/auditing) for more information.
+
+The auditor uses its own appender to separate audit messages from
+other log messages. All audit messages are at the `INFO` or `ERROR`
+[level](/content/admin/logging#log-levels); it's recommended the audit log level be kept to at
+least `INFO`. If desired, the auditor can use a different appender.
+
+The audit log comes with a few preconfigured
+[appender types](/content/admin/logging#audit-appenders) that are similar to the `rootLogger`
+[appenders](/content/admin/logging#appenders).
+
+
+### Customizing the Log
+
+
+1. Review the available [Log Levels](/content/admin/logging#log-levels).
+
+   * `OFF`
+   * `FATAL`
+   * `ERROR`
+   * `WARN`
+   * `UERR`
+   * `INFO`
+   * `DEBUG`
+   * `TRACE`
+   * `NOTSET`
+
+2. Review the available [Appenders](/content/admin/logging#appenders).
+
+   * `ToConsole`
+   * `ToSysLog`
+   * `ToFile`
+   * `ToRollingFile`
+   * `ToRollingDatedFile`
+   * `ToBacktraceFile`
+
+3. Open `/opt/gpudb/core/etc/gpudb_logger.conf` with a text editor.
+4. Adjust the default `logger.Audit` setting as necessary:
+
+   ```
+   log4cplus.logger.Audit=INFO, AuditAppender
+   ```
+5. Optionally, update the `additivity` setting if audit information is desired
+   in both the `rootLogger` and the audit log. In most cases, this will not
+   need to be updated.
+6. Optionally, uncomment one of the other audit appenders (File or Rolling
+   File). If uncommenting a new appender, the Console appender will need to be
+   commented out.
+7. Adjust the appender settings as necessary, e.g., log size, threshold, file
+   name, etc.
+8. Save and exit the file.
+9. Restart the [host manager](/content/admin/host_manager) and the database:
+
+   ```
+   service restart gpudb_host_manager && service restart gpudb
+   ```
+<a id="audit-appenders"></a>
+
+
+### Audit Appenders
+
+
+#### Console
+
+
+The Console appender for the audit log will direct output to the `rootLogger`
+file(s).
+
+| Setting | Description |
+| --- | --- |
+| `layout` | Dictates the type of layout the logging of which the logging will take form. |
+| `layout.ConversionPattern` | The log4cplus pattern to use for the layout. See the `PatternLayout` class [reference documentation](https://log4cplus.github.io/log4cplus/docs/log4cplus-2.1.0/doxygen/classlog4cplus_1_1PatternLayout.html) for details. |
+
+
+#### File
+
+
+The File appender for the audit log will direct output to a file.
+
+| Setting | Description |
+| --- | --- |
+| `File` | The name and directory of the files to which to send the logs. The files will have an `-r<rank-number>` or `-hm` appended for each rank and the host manager respectively. |
+| `layout` | Dictates the type of layout the logging of which the logging will take form. |
+| `layout.ConversionPattern` | The log4cplus pattern to use for the layout. See the `PatternLayout` class [reference documentation](https://log4cplus.github.io/log4cplus/docs/log4cplus-2.1.0/doxygen/classlog4cplus_1_1PatternLayout.html) for details. |
+
+
+#### Rolling File
+
+
+The Rolling File appender for the audit log will direct output to a rolling
+file.
+
+| Setting | Description |
+| --- | --- |
+| `File` | The name and directory of the files to which to send the logs. The files will have an `-r<rank-number>` or `-hm` appended for each rank and the host manager respectively. As files are periodically replaced, older files are renamed `<filename>.1` to `<filename>.n` where `n` is equal to `MaxBackupIndex`. |
+| `MaxFileSize` | The maximum file size a log file can reach before a new one is created. |
+| `MaxBackupIndex` | The maximum number of log files to keep until older files are deleted to make room for new ones. Note that this setting defines the maximum backup index for each process, e.g., if `MaxBackupIndex` is set to 4, the host manager can have up to four files, rank 0 can have up to four files, etc. |
+| `Append` | Enables appending log messages to the end of the file. Leave as `false`. |
+| `layout` | Dictates the type of layout the logging of which the logging will take form. |
+| `layout.ConversionPattern` | The log4cplus pattern to use for the layout. See the `PatternLayout` class [reference documentation](https://log4cplus.github.io/log4cplus/docs/log4cplus-2.1.0/doxygen/classlog4cplus_1_1PatternLayout.html) for details. |

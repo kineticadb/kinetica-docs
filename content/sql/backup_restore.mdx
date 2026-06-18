@@ -1,0 +1,1030 @@
+---
+title: Database Backup/Restore
+sidebarTitle: "Backup & Restore"
+---
+
+*Kinetica* provides a SQL interface for performing hot backups via *full*,
+*incremental*, & *differential snapshots* and restoration of schema objects and
+data.  For information on *full system backups*, see
+[System Backup](/content/admin/backup_restore#system-backup) instead.
+
+The ability to manage *backups* is available using the following commands:
+
+* [CREATE BACKUP](#create-backup)
+* [ALTER BACKUP](#alter-backup)
+* [RESTORE BACKUP](#restore-backup)
+* [DROP BACKUP](#drop-backup)
+* [SHOW BACKUP](#show-backup)
+* [DESCRIBE BACKUP](#describe-backup)
+
+See [Backing Up/Restoring Kinetica](/content/admin/backup_restore#database-backup) for details on backing up and restoring data.
+
+
+<a id="sql-backup-create"></a>
+
+
+## CREATE BACKUP
+
+
+Creates a new *full*, *incremental*, or *differential snapshot* of the given
+database objects and data; storing the backup files at the location accessible
+through the given [data sink](/content/sql/ddl#sql-create-data-sink).
+
+<CodeGroup>
+
+{/* Source: /sql/syntax/backup.sql (lines 8-11) */}
+```sql Full Backup Syntax
+CREATE BACKUP <backup name>
+DATA SINK = <data sink name>
+[OBJECTS (<object type> = <object name>[,...])]
+[WITH OPTIONS (<backup option name> = '<backup option value>'[,...])]
+```
+
+{/* Source: /sql/syntax/backup.sql (lines 16-18) */}
+```sql Incremental Backup Syntax
+BACKUP <backup name>
+DATA SINK = <data sink name>
+[WITH OPTIONS (<backup option name> = '<backup option value>'[,...])]
+```
+
+{/* Source: /sql/syntax/backup.sql (lines 23-26) */}
+```sql Differential Backup Syntax
+BACKUP <backup name>
+TYPE = 'differential'
+DATA SINK = <data sink name>
+[WITH OPTIONS (<backup option name> = '<backup option value>'[,...])]
+```
+
+</CodeGroup>
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="CREATE" id="create" defaultOpen>
+
+Keyword indicating a *backup* should be created with an initial *full snaphost*.  If omitted, an
+*incremental snapshot* will be created, using the most recent *full* or *incremental snapshot*
+as the baseline.
+
+</Accordion>
+
+<Accordion title="&lt;backup name&gt;" id="<backup-name>" defaultOpen>
+
+Name of the *backup* to create.
+
+</Accordion>
+
+<Accordion title="&lt;data sink name&gt;" id="<data-sink-name>" defaultOpen>
+
+Name of the [data sink](/content/sql/ddl#sql-create-data-sink) to use to send the database *backup*
+files to the remote file store.
+
+</Accordion>
+
+<Accordion title="TYPE" id="type" defaultOpen>
+
+Type of *snapshot* to create.
+
+*Snapshot* type designations include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Snapshot Type</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>full</code></td>
+    <td>Create a *full snapshot* of the specified database objects.  This is the default when <code>CREATE</code> is specified.</td>
+  </tr>
+  <tr>
+    <td><code>incremental</code></td>
+    <td>Create a *snapshot* of the changes to the specified database objects since the most recent *snapshot* of any kind was created. This is the default when <code>CREATE</code> is omitted.</td>
+  </tr>
+  <tr>
+    <td><code>differential</code></td>
+    <td>Create a *snapshot* of the changes to the specified database objects since the most recent *full snapshot* was created.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="OBJECTS" id="objects" defaultOpen>
+
+List of key/value pairs, each being an `object type` and an `object name` of that type, to
+back up.
+
+
+<Note>
+The `OBJECTS` clause should only be specified for *full snapshots*.  Both
+*incremental* & *differential snapshots* will operate on the objects specified
+during the original *full snapshot* associated with the `backup name`
+specified for them.
+</Note>
+
+`object type` designations include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Object Type</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>ALL</code></td>
+    <td>[Schema](/content/sql/ddl#sql-create-schema), and all the objects &amp; data it contains</td>
+  </tr>
+  <tr>
+    <td><code>CONTEXT</code></td>
+    <td>[SQL-GPT context](/content/sql/sqlgpt#sql-gpt-create-context)</td>
+  </tr>
+  <tr>
+    <td><code>CREDENTIAL</code></td>
+    <td>[Credential](/content/sql/ddl#sql-create-credential)</td>
+  </tr>
+  <tr>
+    <td><code>DATA SINK</code></td>
+    <td>[Data sink](/content/sql/ddl#sql-create-data-sink)</td>
+  </tr>
+  <tr>
+    <td><code>DATA SOURCE</code></td>
+    <td>[Data source](/content/sql/ddl#sql-create-data-source)</td>
+  </tr>
+  <tr>
+    <td><code>FUNCTION</code></td>
+    <td>[UDF](/content/sql/udf#sql-create-function)</td>
+  </tr>
+  <tr>
+    <td><code>FUNCTION ENVIRONMENT</code></td>
+    <td>[UDF environment](/content/sql/udf#sql-create-function-environment)</td>
+  </tr>
+  <tr>
+    <td><code>PROCEDURE</code></td>
+    <td>[SQL procedure](/content/sql/procedure#sql-procedures)</td>
+  </tr>
+  <tr>
+    <td><code>RESOURCE GROUP</code></td>
+    <td>[Resource group](/content/sql/resource_group#sql-rg-create)</td>
+  </tr>
+  <tr>
+    <td><code>ROLE</code></td>
+    <td>[User role](/content/sql/security#sql-security-role-mgmt)</td>
+  </tr>
+  <tr>
+    <td><code>STREAM</code></td>
+    <td>[Stream](/content/sql/ddl#sql-create-stream)</td>
+  </tr>
+  <tr>
+    <td><code>TABLE</code></td>
+    <td>[Table](/content/sql/ddl#sql-create-table) or [view](/content/sql/ddl#sql-create-view)</td>
+  </tr>
+  <tr>
+    <td><code>USER</code></td>
+    <td>[User](/content/sql/security#sql-security-user-mgmt)</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of *backup* option name/value assignments will
+follow.
+
+See [Options](/content/sql/backup_restore#sql-backup-create-opt) for the complete list of options.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-backup-create-opt"></a>
+
+
+### Options
+
+
+The following options can be specified to further modify a *backup*
+configuration.
+
+<AccordionGroup>
+
+<Accordion title="CHECKSUM" id="checksum" defaultOpen>
+
+Calculate and store a checksum of all backed-up objects.  The default (`false`) is to not create
+checksums.
+
+</Accordion>
+
+<Accordion title="COMMENT" id="comment" defaultOpen>
+
+Comment to associate with the *snapshot*.
+
+</Accordion>
+
+<Accordion title="DDL_ONLY" id="ddl_only" defaultOpen>
+
+For any table, only back up its DDL; don't back up its data.  The default (`false`) is to back
+up data and DDL.
+
+
+<Info>
+In this mode, subsequent *incremental* & *differential snapshot* attempts will return a
+warning and create no additional *snapshot* if only data has changed since the last *snapshot*.
+</Info>
+
+</Accordion>
+
+<Accordion title="DELETE_INTERMEDIATE_BACKUPS" id="delete_intermediate_backups" defaultOpen>
+
+For *differential snapshot* types only, delete all prior intermediate *differential* &
+*incremental snapshots* between the last *full snapshot* and this one for the given
+`backup name`.  The default (`false`) is to not delete intermediate *snapshots*.
+
+</Accordion>
+
+<Accordion title="DRY_RUN" id="dry_run" defaultOpen>
+
+Execute a dry run of a back up without actually backing up any files.  The default (`false`) is
+to not do a dry run.
+
+</Accordion>
+
+<Accordion title="MAX_INCREMENTAL_BACKUPS_TO_KEEP" id="max_incremental_backups_to_keep" defaultOpen>
+
+Maximum number of *incremental snapshots* to keep for the given `backup name`; if creating this
+*incremental snapshot* will cause the total number to exceed this maximum, the oldest
+*incremental snapshot* will be removed.  The default is unlimited.
+
+</Accordion>
+
+<Accordion title="RECREATE" id="recreate" defaultOpen>
+
+For *full snapshot* types only, replace the existing *backup* with a new *backup*, if it exists.
+The default (`false`) is to not replace the existing *backup* and return an error, if one
+exists.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-backup-create-ex"></a>
+
+
+### Examples
+
+
+For example, to create a *backup* named `backup_schema` with a *full snapshot*
+of schema `example_backup`, copying backup files to a target via *data source*
+`backup_ds`:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 80-82) */}
+```sql CREATE BACKUP (Full Snapshot) Example
+CREATE BACKUP schema_backup
+DATA SINK = backup_ds
+OBJECTS (ALL = example_backup)
+```
+
+To create an *incremental snapshot* based on the previous *snapshot* of the
+*backup* with the same name:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 136-137) */}
+```sql CREATE BACKUP (Incremental Snapshot) Example
+BACKUP schema_backup
+DATA SINK = backup_ds
+```
+
+To create a *differential snapshot* based on the previous *full snapshot* of the
+*backup* with the same name:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 192-194) */}
+```sql CREATE BACKUP (Differential Snapshot) Example
+BACKUP schema_backup
+TYPE = 'differential'
+DATA SINK = backup_ds
+```
+
+
+<a id="sql-backup-alter"></a>
+
+
+## ALTER BACKUP
+
+
+Any of the following facets of a [backup](/content/sql/backup_restore#sql-backup-create) can
+be altered, via a given [data sink](/content/sql/ddl#sql-create-data-sink):
+
+* *Backup snapshots* can be merged into a single *full snapshot*.
+* *Backup snapshots* can be individually deleted
+* *Backup* options can be set
+
+```sql title="ALTER BACKUP Syntax"
+ALTER BACKUP <backup name>
+DATA SINK = <data sink name>
+< MERGE | PURGE <backup id> | SET <property name> = '<property value>'[,...] >
+[WITH OPTIONS (<alter option name> = '<alter option value>'[,...])]
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;backup name&gt;" id="<backup-name>-2" defaultOpen>
+
+Name of the [backup](/content/sql/backup_restore#sql-backup-create) to alter.
+
+</Accordion>
+
+<Accordion title="&lt;data sink name&gt;" id="<data-sink-name>-2" defaultOpen>
+
+Name of the [data sink](/content/sql/ddl#sql-create-data-sink) used to alter the database *backup* files
+on the remote file store.
+
+</Accordion>
+
+<Accordion title="MERGE" id="merge" defaultOpen>
+
+Merges all *snapshots* of a given *backup* into a single, *full snapshot*.  An error will be
+reported if the *backup* contains only one *full snapshot*.
+
+</Accordion>
+
+<Accordion title="PURGE" id="purge" defaultOpen>
+
+Deletes the *snapshot* identified with `backup id`.  Only applicable to *incremental* and
+*differential snapshots*.
+
+</Accordion>
+
+<Accordion title="SET" id="set" defaultOpen>
+
+Sets the given list of properties to their given corresponding values.
+
+
+<Info>
+These settings will affect future *snapshots* of the given *backup*; existing
+*snapshots* will remain unchanged.
+</Info>
+
+Alterable properties include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Property</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>CHECKSUM</code></td>
+    <td>Whether or not to calculate checksums on backed-up objects.</td>
+  </tr>
+  <tr>
+    <td><code>DDL_ONLY</code></td>
+    <td>Whether or not to only back up DDL for any tables.</td>
+  </tr>
+  <tr>
+    <td><code>MAX_INCREMENTAL_BACKUPS_TO_KEEP</code></td>
+    <td>Maximum number of *incremental snapshots* to keep.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options-2" defaultOpen>
+
+Optional indicator that a comma-delimited list of alteration option name/value assignments will
+follow.
+
+Alter options include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>COMMENT</code></td>
+    <td>A new comment for the *backup* that is created by a <code>MERGE</code>; only valid for <code>MERGE</code> operations.</td>
+  </tr>
+  <tr>
+    <td><code>DRY_RUN</code></td>
+    <td>Whether or not to execute a dry run of a *backup* alteration and not actually alter the *backup*.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-backup-alter-ex"></a>
+
+
+### Examples
+
+
+For example, to merge all *snapshots* of a *backup* into a single
+*full snapshot* and add a comment to the merged *backup*:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 417-420) */}
+```sql MERGE Backup Example
+ALTER BACKUP schema_backup
+DATA SINK = backup_ds
+MERGE
+WITH OPTIONS (COMMENT = 'Merged last 30 days of backups')
+```
+
+To purge a given *snapshot* by ID number:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 285-287) */}
+```sql PURGE Backup Example
+ALTER BACKUP schema_backup
+DATA SINK = backup_ds
+PURGE 1654321012345
+```
+
+To set the maximum number of *incremental snapshots* of a *backup* to keep to
+`5`:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 437-439) */}
+```sql SET Backup Properties Example
+ALTER BACKUP schema_backup
+DATA SINK = backup_ds
+SET MAX_INCREMENTAL_BACKUPS_TO_KEEP = 5
+```
+
+
+<a id="sql-backup-restore"></a>
+
+
+## RESTORE BACKUP
+
+
+Restores the given database objects & data from an existing *full*,
+*incremental*, or *differential snapshot* within a
+[backup](/content/sql/backup_restore#sql-backup-create); retrieving the backed-up files at the
+location accessible through the given
+[data source](/content/sql/ddl#sql-create-data-source).
+
+Each restored object is placed in its original *schema*.
+
+```sql title="RESTORE BACKUP Syntax"
+RESTORE BACKUP <backup name>
+DATA SOURCE <data source name>
+OBJECTS (<object type> = <object name>[,...])
+[WITH OPTIONS (<restore option name> = '<restore option value>'[,...])]
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;backup name&gt;" id="<backup-name>-3" defaultOpen>
+
+Name of the *backup* from which objects will be restored.
+
+</Accordion>
+
+<Accordion title="&lt;data source name&gt;" id="<data-source-name>" defaultOpen>
+
+Name of the [data source](/content/sql/ddl#sql-create-data-source) to use to retrieve the database
+*backup* files from the remote file store.
+
+</Accordion>
+
+<Accordion title="OBJECTS" id="objects-2" defaultOpen>
+
+List of key/value pairs, each being an `object type` and an `object name` of that type, to
+restore.
+
+`object type` designations include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Object Type</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>ALL</code></td>
+    <td>[Schema](/content/sql/ddl#sql-create-schema), and all the objects &amp; data it contains</td>
+  </tr>
+  <tr>
+    <td><code>CONTEXT</code></td>
+    <td>[SQL-GPT context](/content/sql/sqlgpt#sql-gpt-create-context)</td>
+  </tr>
+  <tr>
+    <td><code>CREDENTIAL</code></td>
+    <td>[Credential](/content/sql/ddl#sql-create-credential)</td>
+  </tr>
+  <tr>
+    <td><code>DATA SINK</code></td>
+    <td>[Data sink](/content/sql/ddl#sql-create-data-sink)</td>
+  </tr>
+  <tr>
+    <td><code>DATA SOURCE</code></td>
+    <td>[Data source](/content/sql/ddl#sql-create-data-source)</td>
+  </tr>
+  <tr>
+    <td><code>FUNCTION</code></td>
+    <td>[UDF](/content/sql/udf#sql-create-function)</td>
+  </tr>
+  <tr>
+    <td><code>FUNCTION ENVIRONMENT</code></td>
+    <td>[UDF environment](/content/sql/udf#sql-create-function-environment)</td>
+  </tr>
+  <tr>
+    <td><code>PROCEDURE</code></td>
+    <td>[SQL procedure](/content/sql/procedure#sql-procedures)</td>
+  </tr>
+  <tr>
+    <td><code>RESOURCE GROUP</code></td>
+    <td>[Resource group](/content/sql/resource_group#sql-rg-create)</td>
+  </tr>
+  <tr>
+    <td><code>ROLE</code></td>
+    <td>[User role](/content/sql/security#sql-security-role-mgmt)</td>
+  </tr>
+  <tr>
+    <td><code>STREAM</code></td>
+    <td>[Stream](/content/sql/ddl#sql-create-stream)</td>
+  </tr>
+  <tr>
+    <td><code>TABLE</code></td>
+    <td>[Table](/content/sql/ddl#sql-create-table) or [view](/content/sql/ddl#sql-create-view)</td>
+  </tr>
+  <tr>
+    <td><code>USER</code></td>
+    <td>[User](/content/sql/security#sql-security-user-mgmt)</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options-3" defaultOpen>
+
+Optional indicator that a comma-delimited list of *backup* restoration option name/value
+assignments will follow.
+
+See [Options](/content/sql/backup_restore#sql-backup-restore-opt) for the complete list of options.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-backup-restore-opt"></a>
+
+
+### Options
+
+
+The following options can be specified to further modify a *backup*
+restoration.
+
+<AccordionGroup>
+
+<Accordion title="BACKUP_ID" id="backup_id" defaultOpen>
+
+ID of *snapshot* from which objects will be restored.  The default is to use the most recent one.
+
+</Accordion>
+
+<Accordion title="CHECKSUM" id="checksum-2" defaultOpen>
+
+Verify checksums calculated during back up process before restoring.  The default (`false`) is
+to not verify checksums.
+
+</Accordion>
+
+<Accordion title="CREATE_SCHEMA_IF_NOT_EXIST" id="create_schema_if_not_exist" defaultOpen>
+
+Whether to create the [schema](/content/sql/ddl#sql-create-schema) containing objects being restored if it
+doesn't exist.  The default (`true`) is to create the *schema* if it doesn't exist.
+
+</Accordion>
+
+<Accordion title="DDL_ONLY" id="ddl_only-2" defaultOpen>
+
+For any table, only restore its DDL; don't restore its data.  The default (`false`) is to
+restore data and DDL.
+
+</Accordion>
+
+<Accordion title="DRY_RUN" id="dry_run-2" defaultOpen>
+
+Execute a dry run of a restoration without actually restoring any files.  The default (`false`)
+is to not do a dry run.
+
+</Accordion>
+
+<Accordion title="RENAMED_OBJECTS_SCHEMA" id="renamed_objects_schema" defaultOpen>
+
+If `RESTORE_POLICY` is `rename`, each existing database objects will be relocated to this
+[schema](/content/sql/ddl#sql-create-schema) if a restored database object would otherwise collide with
+it.  If not specified, the *schema* name will be automatically generated, using the format:
+`backup_<UUID>`.
+
+</Accordion>
+
+<Accordion title="RESTORE_POLICY" id="restore_policy" defaultOpen>
+
+Restoration scheme to use when restoring objects that already exist.  The default policy is to
+abort the restoration and return an error.
+
+Other policy choices include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Policy</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>rename</code></td>
+    <td>If any object being restored already exists in the database in its corresponding [schema](/content/sql/ddl#sql-create-schema), move all already-existing objects that would otherwise be overwritten by the restoration into another *schema*, and restore all objects to their original *schema*. The name of the *schema* holding the relocated objects is determined by <code>RENAMED_OBJECTS_SCHEMA</code>, and will be created if it doesn't exist.</td>
+  </tr>
+  <tr>
+    <td><code>replace</code></td>
+    <td>If the object being restored already exists in the database in its corresponding *schema*, overwrite the existing object with it.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-backup-restore-ex"></a>
+
+
+### Examples
+
+
+For example, to restore the `example_backup` schema from a *backup* named
+`backup_schema`, copying data from a source via *data source* `backup_ds`:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 98-100) */}
+```sql RESTORE BACKUP (Schema) Example
+RESTORE BACKUP schema_backup
+DATA SOURCE = restore_ds
+OBJECTS (ALL = example_backup)
+```
+
+To restore individual tables from a *backup* named `backup_schema`, restoring
+tables that already exist into a new schema, `example_backup_restore`:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 213-220) */}
+```sql RESTORE BACKUP (Objects w/ Rename Schema) Example
+RESTORE BACKUP schema_backup
+DATA SOURCE = restore_ds
+OBJECTS (TABLE = example_backup.employee, example_backup.product)
+WITH OPTIONS
+(
+	RESTORE_POLICY = 'rename',
+	RENAMED_OBJECTS_SCHEMA = 'example_backup_restore'
+)
+```
+
+
+<a id="sql-backup-drop"></a>
+
+
+## DROP BACKUP
+
+
+Deletes one or more [backups](/content/sql/backup_restore#sql-backup-create) and all
+associated files from the remote store accessible through the given
+[data sink](/content/sql/ddl#sql-create-data-sink).
+
+```sql title="DROP BACKUP Syntax"
+DROP BACKUP < <backup name> | "<backup name>*" | * >
+DATA SINK <data sink name>
+[WITH OPTIONS (<delete option name> = '<delete option value>'[,...])]
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;backup name&gt;" id="<backup-name>-4" defaultOpen>
+
+Name of the *backup(s)* to delete that are accessible via the *data sink* given by
+`data sink name`.
+
+Use `<backup name>*` to delete all *backups* that start with `backup name`.
+
+Use `*` instead of `<backup name>` to delete all *backups*.
+
+
+<Info>
+The `DELETE_ALL_BACKUPS` option must be set to `true` when using `*`.
+</Info>
+
+</Accordion>
+
+<Accordion title="&lt;data sink name&gt;" id="<data-sink-name>-3" defaultOpen>
+
+Name of the [data sink](/content/sql/ddl#sql-create-data-sink) to use to delete the database
+*backup* files from the remote file store.
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options-4" defaultOpen>
+
+Optional indicator that a comma-delimited list of deletion option name/value assignments
+will follow.
+
+Delete options include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>DELETE_ALL_BACKUPS</code></td>
+    <td>Whether or not to allow multiple *backups* to be deleted if <code>*</code> is used to specify more than one *backup*; default (<code>false</code>) is to prevent deleting multiple *backups*.</td>
+  </tr>
+  <tr>
+    <td><code>DRY_RUN</code></td>
+    <td>Whether or not to execute a dry run of a *backup* deletion and not actually delete the *backup* files; default (<code>false</code>) is to delete *backups*.</td>
+  </tr>
+  <tr>
+    <td><code>NO_ERROR_IF_NOT_EXISTS</code></td>
+    <td>Whether or not to suppress an error if the given *backup* does not exist; default (<code>false</code>) is to return an error.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-backup-drop-ex"></a>
+
+
+### Examples
+
+
+For example, to delete a *backup*, `schema_backup`, via a
+*data sink*, `backup_ds`, through which the *backup* files can be accessed:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 522-523) */}
+```sql DROP BACKUP Example
+DROP BACKUP schema_backup
+DATA SINK = backup_ds
+```
+
+To delete all *backups* accessible via the `backup_ds` *data sink* that have a
+*backup* name starting with `conf`:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 533-535) */}
+```sql DROP BACKUP (All Matching Backups at Data Sink) Example
+DROP BACKUP "conf*"
+DATA SINK = backup_ds
+WITH OPTIONS (DELETE_ALL_BACKUPS = true)
+```
+
+To delete all *backups* accessible via the `backup_ds` *data sink*:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 547-549) */}
+```sql DROP BACKUP (All Backups at Data Sink) Example
+DROP BACKUP *
+DATA SINK = backup_ds
+WITH OPTIONS (DELETE_ALL_BACKUPS = true)
+```
+
+
+<a id="sql-backup-show"></a>
+
+
+## SHOW BACKUP
+
+
+Outputs the DDL statement used to initially create one or more
+[backups](/content/sql/backup_restore#sql-backup-create) accessible via the given
+[data source](/content/sql/ddl#sql-create-data-source).
+
+
+```sql title="SHOW BACKUP Syntax"
+SHOW BACKUP < <backup name> | "<backup name>*" | * >
+DATA SOURCE <data source name>
+```
+
+
+<Info>
+The response to `SHOW BACKUP` is a single-column result set
+with the DDL statement as the value in the `DDL` column.
+</Info>
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;backup name&gt;" id="<backup-name>-5" defaultOpen>
+
+Name of the *backup(s)* to show that are accessible via the *data source* given by
+`data source name`.
+
+Use `<backup name>*` to show all *backups* that start with `backup name`.
+
+Use `*` instead of `<backup name>` to show all *backups*.
+
+</Accordion>
+
+<Accordion title="&lt;data source name&gt;" id="<data-source-name>-2" defaultOpen>
+
+Name of the [data source](/content/sql/ddl#sql-create-data-source) to use to retrieve the database
+*backup* file information from the remote file store.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-backup-show-ex"></a>
+
+
+### Examples
+
+
+For example, to output the DDL for a *backup*, `schema_backup`, via a
+*data source*, `restore_ds`, through which the *backup* files can be accessed:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 89-90) */}
+```sql SHOW BACKUP Example
+SHOW BACKUP schema_backup
+DATA SOURCE = restore_ds
+```
+
+To output the DDL for all *backups* whose name starts with `conf` that are
+accessible via the `restore_ds` *data source*:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 462-463) */}
+```sql SHOW BACKUP (All Backups with Prefix at Data Source) Example
+SHOW BACKUP "conf*"
+DATA SOURCE = restore_ds
+```
+
+To output the DDL for all *backups* that are accessible via the `restore_ds`
+*data source*:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 466-467) */}
+```sql SHOW BACKUP (All Backups at Data Source) Example
+SHOW BACKUP *
+DATA SOURCE = restore_ds
+```
+
+
+<a id="sql-backup-desc"></a>
+
+
+## DESCRIBE BACKUP
+
+
+Outputs the detail of *snapshots* of one or more
+[backups](/content/sql/backup_restore#sql-backup-create) accessible via the given
+[data source](/content/sql/ddl#sql-create-data-source).
+
+```sql title="DESCRIBE BACKUP Syntax"
+DESC[RIBE] BACKUP < <backup name> | "<backup name>*" | * >
+DATA SOURCE <data source name>
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;backup name&gt;" id="<backup-name>-6" defaultOpen>
+
+Name of the *backup(s)* to describe that are accessible via the *data source* given by
+`<data source name>`.
+
+Use `<backup name>*` to describe all *backups* that start with `backup name`.
+
+Use `*` instead of `<backup name>` to describe all *backups*.
+
+</Accordion>
+
+<Accordion title="&lt;data source name&gt;" id="<data-source-name>-3" defaultOpen>
+
+Name of the [data source](/content/sql/ddl#sql-create-data-source) to use to retrieve the database
+*backup* file information from the remote file store.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Response
+
+
+The response to `DESCRIBE BACKUP` is a 13-column result set:
+
+| Output Column | Description |
+| --- | --- |
+| `BACKUP_NAME` | Unique name for the *backup* file set |
+| `BACKUP_ID` | Unique ID of the *snapshot* within the *backup* |
+| `BACKUP_TYPE` | Type of the *snapshot*; see [CREATE BACKUP](/content/sql/backup_restore#sql-backup-create) for values |
+| `TIME` | Timestamp at which the *snapshot* was initiated |
+| `DURATION` | Duration, in milliseconds, of the *snapshot* processing |
+| `CLUSTER_ID` | Identifier of the cluster backed-up, within an HA ring |
+| `HOST_NAME` | Hostname of the server on which the *snapshot* was created |
+| `HOST_ID` | IP address of the server on which the *snapshot* was created |
+| `OBJECTS` | List of objects backed up and their respective types |
+| `SIZE` | Size, in bytes, of the backed-up data files contained within the *snapshot* |
+| `FILES` | Number of backed-up data files contained within the *snapshot* |
+| `RECORDS` | Number of data records contained within the *snapshot* |
+| `COMMENT` | Comment associated with the *snapshot* |
+
+<a id="sql-backup-desc-ex"></a>
+
+
+### Examples
+
+
+For example, to output the detail for a *backup*, `schema_backup`, via a
+*data source*, `restore_ds`, through which the *backup* files can be accessed:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 85-86) */}
+```sql DESCRIBE BACKUP Example
+DESCRIBE BACKUP schema_backup
+DATA SOURCE = restore_ds
+```
+
+To output the detail for all *backups* whose name starts with `conf` that are
+accessible via the `restore_ds` *data source*:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 476-477) */}
+```sql DESCRIBE BACKUP (All Backups with Prefix at Data Source) Example
+DESCRIBE BACKUP "conf*"
+DATA SOURCE = restore_ds
+```
+
+To output the detail for all *backups* that are accessible via the
+`restore_ds` *data source*:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 480-481) */}
+```sql DESCRIBE BACKUP (All Backups at Data Source) Example
+DESCRIBE BACKUP *
+DATA SOURCE = restore_ds
+```

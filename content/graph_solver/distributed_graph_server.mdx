@@ -1,0 +1,173 @@
+---
+title: Distributed Graph Servers
+sidebarTitle: Distributed Graph Server
+---
+
+In Kinetica versions 7.1.2 and greater, distributed
+[graph servers](/content/graph_solver/network_graph_solver) are able to be
+initialized during the [installation process](/content/install). If
+distributed graph servers are enabled, the additional CPU power from distributed
+graph server hosts can be leveraged to make all types of graph operations more
+performant.
+
+
+<a id="graph-distributed-install-config"></a>
+
+
+## Installation & Configuration
+
+
+As mentioned above, determining if a cluster should have distributed graph
+servers happens during the *nodes* configuration process of the
+[installation process](/content/install). Configuration for each graph
+server will be handled by [KAgent](/content/admin/kagent/kagent); the default
+settings for each server and its respective storage can be found within the
+[configuration reference](/content/config). If correctly configured, the
+graph servers will appear on the
+[GAdmin Cluster Dashboard](/content/admin/gadmin/cluster#gadmin-cluster-dashboard).
+
+
+![../../admin/images/cluster_dashboard.png](/content/admin/images/cluster_dashboard.png)
+
+
+<a id="graph-distributed-leverage"></a>
+
+
+## Leveraging Distributed Graph Servers
+
+
+After distributed graph servers are installed and enabled, each server will be
+provided a server ID that will allow users to reference it during graph API
+endpoint operations. The system will automatically leverage distributed graph
+servers when using the default behavior for each graph endpoint. For situations
+that demand more control over where graph operations are performed, users can
+specify the graph server ID when sending a graph-related endpoint request. The
+following behavior per endpoint is available:
+
+
+<Note>
+In any of the situations where a specific graph server ID is
+provided and the related graph does not exist on a provided
+server, an error will be returned.
+</Note>
+
+### [/create/graph](/content/api/rest/create_graph_rest)
+
+| Server ID Provided | Success Condition | Behavior |
+| --- | --- | --- |
+| *&lt;none&gt;* (default) | Enough RAM on at least one graph server. | Creates the graph on the graph server with the most available memory. |
+| `all` | Enough RAM on all graph servers. | Replicates the graph on all graph servers. |
+| `<id>[, <id2>, <id3>...]` | Enough RAM on the specified graph server(s). | Creates the graph on the specified graph server(s). |
+
+### [/delete/graph](/content/api/rest/delete_graph_rest)
+
+| Server ID Provided | Success Condition | Behavior |
+| --- | --- | --- |
+| N/A | N/A | Deletes the graph on all graph servers. |
+
+### [/match/graph](/content/api/rest/match_graph_rest)
+
+| Server ID Provided | Success Condition | Behavior |
+| --- | --- | --- |
+| *&lt;none&gt;* (default) | Graph exists on at least one server. | Matches the graph using the graph server with the most available CPU power. |
+| `<id>[, <id2>, <id3>...]` | Graph exists on the specified graph server(s). | Matches the graph using the specified graph server(s). |
+
+### [/modify/graph](/content/api/rest/modify_graph_rest)
+
+| Server ID Provided | Success Condition | Behavior |
+| --- | --- | --- |
+| N/A | N/A | Modifies the graph on all graph servers. |
+
+### [/query/graph](/content/api/rest/query_graph_rest)
+
+| Server ID Provided | Success Condition | Behavior |
+| --- | --- | --- |
+| *&lt;none&gt;* (default) | Graph exists on at least one server. | Queries the graph using the graph server with the most available CPU power. |
+| `<id>[, <id2>, <id3>...]` | Graph exists on the specified graph server(s). | Queries the graph using the specified graph server(s). |
+
+### [/show/graph](/content/api/rest/show_graph_rest)
+
+| Server ID Provided | Success Condition | Behavior |
+| --- | --- | --- |
+| *&lt;none&gt;* (default) | N/A | Shows all graphs on all servers. |
+| `<id>[, <id2>, <id3>...]` | Graph exists on the specified graph server(s). | Shows all graphs on the specified server(s). |
+
+### [/solve/graph](/content/api/rest/solve_graph_rest)
+
+| Server ID Provided | Success Condition | Behavior |
+| --- | --- | --- |
+| *&lt;none&gt;* (default) | Graph exists on at least one server. | If the [solver](/content/graph_solver/network_graph_solver#solvers) is `SHORTEST_PATH`, all available graph servers will be used in the solve. <br/> <br/> If the *solver* is **anything other** **than** `SHORTEST_PATH`, the graph server with the most available CPU power will be used in the solve. |
+| `<id>[, <id2>, <id3>...]` | Graph exists on the specified graph servers. | If the [solver](/content/graph_solver/network_graph_solver#solvers) is `SHORTEST_PATH`, the work will be distributed among all provided servers. <br/> <br/> If the *solver* is **anything other** **than** `SHORTEST_PATH`, the graph server(s) with the most available CPU power will be used in the solve. |
+
+
+<a id="graph-distributed-examples"></a>
+
+
+## Examples
+
+
+Using the *REST* API, creating a graph on all available graph servers might
+look like this:
+
+```json title="Create Graph on All Servers"
+{
+    "graph_name": "dc_shape_graph",
+    "directed_graph": true,
+    "nodes": [],
+    "edges": [
+        "dc_shape.shape AS WKTLINE",
+        "dc_shape.direction AS DIRECTION"
+    ],
+    "weights": [
+        "dc_shape.shape AS EDGE_WKTLINE",
+        "dc_shape.direction AS EDGE_DIRECTION",
+        "ST_Length(dc_shape.shape,1)/(ST_NPOINTS(dc_shape.shape)-1) AS VALUESPECIFIED"
+    ],
+    "restrictions": [],
+    "options": {
+        "server_id": "all",
+    }
+}
+```
+
+Using the *REST* API, solving a graph using the `SHORTEST_PATH` solver type
+and only using specified graph servers might look like this:
+
+```json title="Solve Graph on Specific Servers"
+{
+    "graph_name": "dc_shape_graph",
+    "weights_on_edges": [],
+    "restrictions": [],
+    "solver_type": "SHORTEST_PATH",
+    "source_nodes": [
+        "{'POINT(-77.03511810000001 38.89876175)'} AS WKTPOINT",
+        "{'POINT(-77.01331329 38.90132141)'} AS WKTPOINT",
+        "{'POINT(-77.00804137999999 38.89706039)'} AS WKTPOINT",
+    ],
+    "destination_nodes": [
+        "{'POINT(-77.0058078 38.8746344)'} AS WKTPOINT"
+        "{'POINT(-77.03193664550781 38.91188049316406)'} AS WKTPOINT",
+        "{'POINT(-77.01364898999999 38.90723038)'} AS WKTPOINT",
+    ],
+    "solution_table": "dc_shape_graph_solved_shortest_path",
+    "options": {
+        "server_id": "0,1,2"
+    }
+}
+```
+
+
+<a id="graph-distributed-gadmin-ui"></a>
+
+
+## Distributed Graph Server User Interface (UI)
+
+
+The [GAdmin](/content/admin/gadmin) graph interface supports interacting
+with distributed graphs. For more information on the *GAdmin* graph interface,
+visit [Graphs](/content/admin/gadmin/data#gadmin-graphs). For more information on enabling graphs during
+the installation process, visit the *KAgent*
+[installation documentation](/content/install/kagent_install).
+
+
+![../../admin/images/data_graphs.png](/content/admin/images/data_graphs.png)

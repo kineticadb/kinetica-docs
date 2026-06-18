@@ -1,0 +1,1588 @@
+---
+title: "Graphs & Solvers Concepts"
+sidebarTitle: Graph Concepts
+---
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/wUpeZbzbK4Y" title="Graphs in Kinetica" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+Kinetica provides a generic and extensible design of networks with the aim
+of being tailored or used for various real-life applications, such as
+transportation, utility, social, and geospatial. Networks comprise a graph and a
+solver. A graph represents topological relationships via nodes that
+are connected by edges; a solver represents the type of solution appropriate for
+the issue the graph was made to illustrate.
+
+See the following supplemental briefs for details and examples:
+
+* [Graph API](https://docs.google.com/presentation/d/1Rh5tHXww_0_GCv74w1RaiF3FIw_Ku5fQ5-CM06TIlBg)
+* [Graph Visualization](https://docs.google.com/presentation/d/1f17h5n40CSanX8ik8nW-3Av7ahFexhmWpbVc89O37bY)
+
+The graph server is enabled by default; it can be managed via standard
+[Kinetica Service Management](/content/admin/services). For more information
+on using and configuring multiple graph servers, see
+[Distributed Graph Servers](/content/graph_solver/distributed_graph_server). Graph server logs are available in
+<Badge color="gray">/opt/gpudb/graph/logs</Badge>.  See the
+[Configuration Reference](/content/config#config-main-graph-servers) for more
+information on graph server configuration.
+
+
+<Tip>
+* Using [SQL](/content/sql/graph) or [native API](/content/api/concepts),
+  a user can create a graph from several components, solve the graph using one of
+  several solver types, and query the solved graph.
+
+* Graphs can also be created & previewed using the
+  [GAdmin UI](/content/admin/gadmin/data#gadmin-graphs) or
+  [Workbench UI](/content/admin/workbench/ui/explorer/data#wb-explorer-data-graph).
+</Tip>
+
+<div class="flow-root">
+<img src="../img/graph_solver_definitions.png" />
+</div>
+
+
+<a id="solvers"></a>
+
+
+## Solvers
+
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/VCFx9u3Kj1I" title="Graph Problems" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+Kinetica has several different solvers available for presenting solutions
+to various types of graph problems. Note that some solvers are only
+available to [/solve/graph](/content/api/rest/solve_graph_rest) and likewise for
+[/match/graph](/content/api/rest/match_graph_rest). Consult [Solving a Graph](/content/graph_solver/network_graph_solver#solving-a-graph) or
+[Matching a Graph](/content/graph_solver/network_graph_solver#match-graph) for more information on the desired operation.
+
+<a id="graph-solvers"></a>
+
+
+### Solve Graph Solvers
+
+
+| Solver | Description | CPU Parallel |
+| --- | --- | --- |
+| `ALLPATHS` | Determines all reasonable paths between a source and destination pair. | X |
+| `BACKHAUL_ROUTING` | Determines the optimal routes between remote asset *nodes* and fixed asset nodes. | X |
+| `CENTRALITY` | Calculates the degree of a *node* to depict how many pairs of individuals that would have to go through the *node* to reach one another in the minimum number of hops. Also known as betweenness. | X |
+| `CLOSENESS` | Calculates the centrality closeness score per *node* as the sum of the inverse shortest path costs to all *nodes* in the graph. | X |
+| `INVERSE_SHORTEST_PATH` | Determines the shortest path downstream using multiple technician routing. | X |
+| `MULTIPLE_ROUTING` | Calculates the shortest possible route between the *nodes* and returns to the origin *node* -- also known as the traveling salesman. | X |
+| `PAGE_RANK` | Calculates how connected the *nodes* are and determines which *nodes* are the most important.  Weights are not required. | X |
+| `PROBABILITY_RANK` | Calculates the probability of a *node* being connected to another *node* using hidden Markov chains. | X |
+| `SHORTEST_PATH` | Determines the shortest path upstream between given source(s) and destination(s). | X |
+| `STATS_ALL` | Calculates graph statistics such as graph diameter, longest pairs, vertex valences, topology numbers, average and max cluster sizes, etc. | X |
+
+
+<a id="graph-match-graph"></a>
+
+
+### Match Graph Solvers
+
+
+| Solver | Description | CPU Parallel |
+| --- | --- | --- |
+| `MARKOV_CHAIN` | Matches sample points to the graph using the Hidden Markov Model (HMM)-based method, which conducts a range-tree closest-edge search to find the best combinations of possible road segments for each sample point to create the best route. The route is secured one point at a time, so the prediction is corrected after each point. This solution type is the most accurate, but also the most computationally intensive. | X |
+| `MATCH_BATCH_SOLVES` | Matches each provided sample source and destination pair using the shortest path between the points. | X |
+| `MATCH_CHARGING_STATIONS` | Matches a given sample source and destination pair to the optimal recharging stations along the route (for EVs). | X |
+| `MATCH_CLUSTERS` | Matches the graph nodes with a cluster index using the Louvain clustering algorithm. <br/> <br/> .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked with the `parallel_clustering` option. | X* <br/> <Info> Parallel running of this solver is experimental and can be invoked \| </Info> |
+| `MATCH_LOOPS` | Matches closed loops (Eulerian paths) originating and ending at each graph node between min and max hops (levels). | X |
+| `MATCH_OD_PAIRS` | Matches sample points to find the most probable path between origin and destination (OD) pairs with given cost constraints. | X |
+| `MATCH_SIMILARITY` | Computes the Jaccard similarity between vertex pairs and N-level intersections within M hops. | X |
+| `MATCH_SUPPLY_DEMAND` | Matches sample generic supply depots to generic demand points using abstract transportation (referred to as trucks). Each route is determined by a truck's ability (size) to service demand at each demand point. | X |
+
+
+<a id="identifiers"></a>
+
+
+## Components and Identifiers
+
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/oLYIPBRteEM" title="Graph Components" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+Graph components (e.g., *nodes*, *edges*, *weights*, and/or *restrictions*) must
+be defined with varying [combinations](/content/graph_solver/network_graph_solver#id-combos) of the identifiers
+listed in the tables below.
+
+Components for create, solve, query, and match operations can be identified in
+three ways:
+
+* Aliasing existing table columns, e.g.,
+  `table_name.column_name AS WKTPOINT`
+* Using expressions, e.g., `ST_LENGTH(wkt) AS VALUESPECIFIED`
+* Using constant values, where strings & WKTs are single-quoted, non-decimal
+  numbers will be given an *int* or *long* type according to their size
+  (or can be coerced to *long* by using an `L` suffix, like `1L`), and
+  decimal numbers will be given the *double* type; e.g.:
+
+  * `{0} AS ONOFFCOMPARED`
+  * `{1L, 2, 3L, 4, 5} AS ID`
+  * `{1.1, 12.345689, 123.456789456789} AS NODE1_X`
+  * `{'name1', 'name2'} AS NAME`
+  * `{'POINT(10 15)'} AS WKTPOINT`
+
+
+<Info>
+There are separate identifiers and combinations for
+[/solve/graph](/content/api/rest/solve_graph_rest), [/query/graph](/content/api/rest/query_graph_rest), and
+[/match/graph](/content/api/rest/match_graph_rest). See below for `/solve/graph`
+identifiers; see the associated [Querying a Graph](/content/graph_solver/network_graph_solver#query-graph) and [Matching a Graph](/content/graph_solver/network_graph_solver#match-graph)
+sections for their respective endpoint identifiers.
+</Info>
+
+Identifiers are flagged aliases that the database knows to look for; existing
+source columns can be used as identifiers. Note that it will often be the case
+that source columns are reused for different identifiers because the components
+must naturally be linked together to create a graph. For example, source
+table `seattle_road_network` has columns `WKTLINE` (a `wkt` column),
+`TwoWay` (an `integer` column), and `time` (also an `integer` column);
+these columns could be identified via
+[/create/graph](/content/api/rest/create_graph_rest) like so:
+
+{/* Source: ../examples/python/graph/solve_graph_seattle_backhaul.py (lines 90-107) */}
+```python Create Graph Example
+create_s_graph_response = kinetica.create_graph(
+    graph_name = GRAPH_S,
+    directed_graph = True,
+    nodes = [],
+    edges = [
+        TABLE_SRN + ".WKTLINE AS WKTLINE",
+        TABLE_SRN + ".TwoWay AS DIRECTION"
+    ],
+    weights = [
+        TABLE_SRN + ".WKTLINE AS EDGE_WKTLINE",
+        TABLE_SRN + ".TwoWay AS EDGE_DIRECTION",
+        TABLE_SRN + ".time AS VALUESPECIFIED"
+    ],
+    restrictions = [],
+    options = {
+        "recreate": "true"
+    }
+)
+```
+
+
+<Note>
+Identifiers with `string` as a supported type can be any `string`
+column type, e.g., `char1` - `char256` or unrestricted `string`.
+Identifiers with `wkt` as a supported type can include optional z-level
+values for the provided WKT shape but note that graphs only support z-levels
+ranging from `-4` to `+5`.
+</Note>
+
+<a id="graph-nodes"></a>
+
+<a id="node-identifiers"></a>
+
+
+### Nodes
+
+
+*Nodes* represent fundamental topological units of a graph. *Nodes* can be
+defined with an integer ID, a string name, or geospatial information, e.g., WKT
+point (`POINT(X Y [Z])`) or XY pair. *Nodes* are optional, as the start and
+end points of an *edge* can implicitly be used as *nodes*.
+
+
+| Identifier | Supported Types | Description |
+| --- | --- | --- |
+| `ID` | `int`, `long` | A number representing a node identifier |
+| `LABEL` | `string` | A string value representing a node's label |
+| `NAME` | `string` | A string value representing a node's name |
+| `PARTITION_BOUNDARY` | `long` | A number representing the ID of the partition containing this node, when using explicit partitioning to segment the graph; nodes spanning partition boundaries will need to be duplicated in the source table, once for each partition in which the node will reside |
+| `WKTPOINT` | `wkt` | A WKT string representing a node's geospatial point; e.g., `POINT(X Y [Z])` <br/> <br/> See [Geospatial Objects](/content/location_intelligence/geo_objects) for more information on WKTs. |
+| `X` | `float`, `double`, `int`, `long` | A number representing a node's X or longitude value |
+| `Y` | `float`, `double`, `int`, `long` | A number representing a node's Y or latitude value |
+
+
+<a id="graph-edges"></a>
+
+<a id="edge-identifiers"></a>
+
+
+### Edges
+
+
+*Edges* represent the required fundamental topological units of a graph that
+typically connect *nodes*. *Edges* can be defined with an integer ID, string
+name, or geospatial information, e.g., WKT point (`POINT(X Y [Z])`), line
+(`LINESTRING(X1 Y1 [Z1], X2 Y2 [Z2])`), or XY pairs. An *edge* can be
+implicitly drawn between two *nodes*. If an *edge* is defined using WKT
+linestrings, the graph server is capable of splitting many linestring segments
+into multiple, separate linestrings, thus creating one edge per linestring
+segment.
+
+| Identifier | Supported Types | Description |
+| --- | --- | --- |
+| `ID` | `int`, `long` | A number representing an edge identifier |
+| `DIRECTION` | `int` | A number representing what direction the edge can be traveled: <br/> <br/> * `0`: forward one-way edge (**node 1 --&gt; node 2**) <br/> * `1`: two-way edge (**node 1 --&gt; node 2** and **node 2 --&gt; node 1**) <br/> * `2`: backward one-way edge (**node 2 --&gt; node 1**) |
+| `LABEL` | `string` | A string value representing an edge's label |
+| `NODE1_ID` | `int`, `long` | A number representing the edge's first node |
+| `NODE1_NAME` | `string` | A string value representing the edge's first node's name |
+| `NODE1_WKTPOINT` | `wkt` | A WKT string representing the edge's first node's geospatial point; e.g., `POINT(X1 Y1 [Z1])` <br/> <br/> See [Geospatial Objects](/content/location_intelligence/geo_objects) for more information on WKTs. |
+| `NODE1_X` | `float`, `double`, `int`, `long` | A number representing the edge's first node's X or longitude value |
+| `NODE1_Y` | `float`, `double`, `int`, `long` | A number representing the edge's first node's Y or latitude value |
+| `NODE2_ID` | `int`, `long` | A number representing the edge's second node |
+| `NODE2_NAME` | `string` | A string value representing the edge's second node's name |
+| `NODE2_WKTPOINT` | `wkt` | A WKT string representing the edge's second node's geospatial point; e.g., `POINT(X2 Y2 [Z2])` <br/> <br/> See [Geospatial Objects](/content/location_intelligence/geo_objects) for more information on WKTs. |
+| `NODE2_X` | `float`, `double`, `int`, `long` | A number representing the edge's second node's X or longitude value |
+| `NODE2_Y` | `float`, `double`, `int`, `long` | A number representing the edge's second node's Y or latitude value |
+| `PARTITION` | `long` | A number representing the ID of the partition containing this edge, when using explicit partitioning to segment the graph |
+| `WEIGHT_VALUESPECIFIED` | `float`, `double`, `int`, `long` | A number representing the edge's associated weight value; if this identifier is provided, additional weights do not need to be specified |
+| `WKTLINE` | `wkt` | A WKT string representing an edge's geospatial line; e.g., `LINESTRING(X1 Y1 [Z1], X2 Y2 [Z2])` <br/> <br/> See [Geospatial Objects](/content/location_intelligence/geo_objects) for more information on WKTs. |
+
+
+<a id="weights"></a>
+
+<a id="graph-weights"></a>
+
+<a id="weight-identifiers"></a>
+
+
+### Weights
+
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/ouZb00xEzh8" title="Graph Weights" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+*Weights* represent a method of informing the graph solver of the cost of
+including a given *edge* in a solution. *Weights* can be defined using an
+integer ID, string *node* names, or spatial information
+(`LINESTRING(X1 Y1 [Z1], X1 Y1 [Z1])`) and a static cost value or a cost
+multiplier. Each *edge* is associated with one *weight*, but there can be many
+*edges* between two *nodes* in a graph with directionality (`EDGE_DIRECTION`),
+allowing for many different *weights* along the same edge, which can have useful
+applications in real-world examples, e.g., different lanes between two
+junctions may have different speeds of travel.
+
+For graphs that define *edges* using complex WKT linestrings (e.g., linestrings
+with more than two points), *weights* are applied consistently to each segment
+of the linestring. For example, if `LINESTRING(0 0, 1 3, 4 5)` is provided as
+an *edge* source and a *weight* of `5` is assigned to that source, the
+resulting graph would have two *edges*, `LINESTRING(0 0, 1 3)` and
+`LINESTRING(1 3, 4 5)`, that would both have a *weight* of `5`. See
+[Fitting Data](/content/guides/fitting_data) for more information.
+
+
+<Info>
+If `DIRECTION` is specified for an edge in a *directed* graph,
+the weight will be the same going in each direction.
+</Info>
+
+| Identifier | Supported Types | Description |
+| --- | --- | --- |
+| `EDGE_DIRECTION` | `int` | A number representing what direction the edge can be traveled: <br/> <br/> * `0`: forward one-way edge (**node 1 --&gt; node 2**) <br/> * `1`: two-way edge (**node 1 --&gt; node 2** and **node 2 --&gt; node 1**) <br/> * `2`: backward one-way edge (**node 2 --&gt; node 1**) |
+| `EDGE_ID` | `int`, `long` | A number representing a weight's associated edge identifier |
+| `EDGE_NODE1_ID` | `int`, `long` | A number representing a weight's associated edge's first node |
+| `EDGE_NODE1_NAME` | `string` | A string value representing a weight's associated edge's first node's name |
+| `EDGE_NODE2_ID` | `int`, `long` | A number representing a weight's associated edge's second node |
+| `EDGE_NODE2_NAME` | `string` | A string value representing a weight's associated edge's second node's name |
+| `EDGE_PARTITION` | `long` | A number representing a weight's associated edge's partition ID |
+| `EDGE_WKTLINE` | `wkt` | A WKT string representing a weight's associated edge geospatial line; e.g., `LINESTRING(X1 Y1 [Z1], X2 Y2 [Z2])` <br/> <br/> See [Geospatial Objects](/content/location_intelligence/geo_objects) for more information on WKTs. |
+| `FACTORSPECIFIED` | `float`, `double`, `int`, `long` | A number representing how much incoming cost values will be multiplied |
+| `FROM_EDGE_ID` | `int`, `long` | A number representing a weight's associated edge identifier that signifies the start of a turn; paired with `TO_EDGE_ID` to define additionally-weighted traversal from one edge to another through any single node <br/> <Info> Only applicable if the `add_turns` option was set to true during [/create/graph](/content/api/rest/create_graph_rest) . This identifier can be used to locally override any `*_turn_penalty` and/or `intersection_penalty` options previously set. See [Using Turn-based Weights & Restrictions](/content/graph_solver/network_graph_solver#turn-pen-restr) for more information. </Info> |
+| `TO_EDGE_ID` | `int`, `long` | A number representing a weight's associated edge identifier that signifies the end of a turn; paired with `FROM_EDGE_ID` to define additionally-weighted traversal from one edge to another through any single node <br/> <Info> Only applicable if the `add_turns` option was set to true during [/create/graph](/content/api/rest/create_graph_rest) . This identifier can be used to locally override any `*_turn_penalty` and/or `intersection_penalty` options previously set. See [Using Turn-based Weights & Restrictions](/content/graph_solver/network_graph_solver#turn-pen-restr) for more information. </Info> |
+| `WKTPOINT` | `wkt` | A WKT string representing a weight's associated WKT point <br/> <Info> Used exclusively in conjunction with `FACTORSPECIFIED` to create a [combination](/content/graph_solver/network_graph_solver#weight-combos) for graphing weights by the inverse distance weighted averaging of WKT points composing a graph. </Info> |
+| `VALUESPECIFIED` | `float`, `double`, `int`, `long` | A number representing the weight's value |
+
+
+<Note>
+Currently, `FACTORSPECIFIED` will only affect the cost if the
+*edge* has a `VALUESPECIFIED` already established. This means that
+`FACTORSPECIFIED` should only be used in
+[/solve/graph](/content/api/rest/solve_graph_rest) or in conjunction with a
+`VALUESPECIFIED` during [/create/graph](/content/api/rest/create_graph_rest).
+</Note>
+
+<a id="restrictions"></a>
+
+<a id="graph-restrictions"></a>
+
+<a id="restriction-identifiers"></a>
+
+
+### Restrictions
+
+
+*Restrictions* represent a method of informing the graph solver which *edges*
+and/or *nodes* should be ignored for the solution. *Restrictions* can be
+defined using an integer ID and a value or as a switch (`on` or `off`).
+
+| Identifier | Supported Types | Description |
+| --- | --- | --- |
+| `EDGE_DIRECTION` | `int` | A number representing what direction the edge can be traveled: <br/> <br/> * `0`: forward one-way edge (**node 1 --&gt; node 2**) <br/> * `1`: two-way edge (**node 1 --&gt; node 2** and **node 2 --&gt; node 1**) <br/> * `2`: backward one-way edge (**node 2 --&gt; node 1**) |
+| `EDGE_ID` | `int`, `long` | A number representing the restriction's associated edge identifier |
+| `EDGE_LABEL` | `string` | A string value referring to an edge label for restrictive purposes |
+| `EDGE_NODE1_ID` | `int`, `long` | A number representing a restriction's associated edge's first node |
+| `EDGE_NODE1_NAME` | `string` | A string value representing a restriction's associated edge's first node's name |
+| `EDGE_NODE2_ID` | `int`, `long` | A number representing a restriction's associated edge's second node |
+| `EDGE_NODE2_NAME` | `string` | A string value representing a restriction's associated edge's second node's name |
+| `EDGE_PARTITION` | `long` | A number representing a restriction's associated edge's partition ID |
+| `EDGE_WKTLINE` | `wkt` | A WKT string representing a weight's associated edge geospatial line; e.g., `LINESTRING(X1 Y1 [Z1], X2 Y2 [Z2])` <br/> <br/> See [Geospatial Objects](/content/location_intelligence/geo_objects) for more information on WKTs. |
+| `FROM_EDGE_ID` | `int`, `long` | A number representing the restriction's associated edge identifier that signifies the start of a turn; paired with `TO_EDGE_ID` to define traversal restriction from one edge to another through any single node <br/> <Info> Only applicable if the `add_turns` option was set to true during [/create/graph](/content/api/rest/create_graph_rest) . This identifier can be used to locally override any `*_turn_penalty` and/or `intersection_penalty` options previously set. See [Using Turn-based Weights & Restrictions](/content/graph_solver/network_graph_solver#turn-pen-restr) for more information. </Info> |
+| `NODE_ID` | `int`, `long` | A number representing the restriction's associated node identifier |
+| `NODE_LABEL` | `string` | A string value referring to a node label for restrictive purposes |
+| `NODE_NAME` | `string` | A string value representing the restriction's associated node |
+| `NODE_WKTPOINT` | `wkt` | A WKT string representing the restriction's associated node's geospatial point, e.g., `POINT(X Y [Z])` <br/> <br/> See [Geospatial Objects](/content/location_intelligence/geo_objects) for more information on WKTs. |
+| `ONOFFCOMPARED` | `int` | A number representing if the associated node or edge cannot be traversed, with `1` meaning it can be traversed and `0` meaning it cannot |
+| `TO_EDGE_ID` | `int`, `long` | A number representing the restriction's associated edge identifier that signifies the end of a turn; paired with `FROM_EDGE_ID` to define traversal restriction from one edge to another through any single node <br/> <Info> Only applicable if the `add_turns` option was set to true during [/create/graph](/content/api/rest/create_graph_rest) . This identifier can be used to locally override any `*_turn_penalty` and/or `intersection_penalty` options previously set. See [Using Turn-based Weights & Restrictions](/content/graph_solver/network_graph_solver#turn-pen-restr) for more information. </Info> |
+| `VALUECOMPARED` | `float`, `double`, `int`, `long` | A number representing the value against which incoming costs will be compared |
+
+
+<Info>
+When using `VALUECOMPARED`, solvers will not use the given *node* or
+*edge* if the current cost is **less** than the *restriction* value.  When
+using `ONOFFCOMPARED`, solvers will not use the given *node* or *edge* if
+the `ONOFFCOMPARED` value is set to `0` (`off`).
+</Info>
+
+<a id="id-combos"></a>
+
+
+## Identifier Combinations
+
+
+For each component, there's a minimum set of identifiers that must be used
+to properly create a graph. Each component's identifier combinations must
+reference columns from the same table, e.g., the node combination of `ID` and
+`NAME` must both use the same table. The columns must also not be
+nullable. Identifier types across components should match where possible.
+
+
+<Note>
+WKT identifiers can be matched to X/Y identifiers (and vice versa) within
+a user-specified tolerance (`merge_tolerance` under the `/create/graph`
+endpoint's `options` map). Using `ID` or `NAME` identifiers relies on
+exact matching. The WKTLINE identifiers will use the line's start and end
+points to map to an XY pair or WKTPOINT.
+</Note>
+
+For example, if the identifier combination used for *nodes* is:
+
+{/* Source: ../examples/python/graph/solve_graph_nyctaxi_page_rank.py (lines 179-181) */}
+```python Node Identifier Combination Example
+nodes = [
+    TABLE_TAXI_N + ".id AS ID"
+],
+```
+
+The *edges* identifier combination should include a match for the node
+`ID`. The following *edge* combination would match correctly with the
+*node* combination; note that matching *node* point(s) to *edge* endpoint(s)
+requires two *edge* endpoints to make an implicit *edge* between the points:
+
+{/* Source: ../examples/python/graph/solve_graph_nyctaxi_page_rank.py (lines 182-185) */}
+```python Edge Identifier Combination Example
+edges = [
+    TABLE_TAXI_E + ".pickup_id AS NODE1_ID",
+    TABLE_TAXI_E + ".dropoff_id AS NODE2_ID"
+],
+```
+
+
+<Info>
+The above example is not the only edge combinations available for the
+node `ID` identifier combination. See the [Edges](/content/graph_solver/network_graph_solver#edge-combos)
+section below for other combinations.
+</Info>
+
+If using multiple groups of combinations while creating, solving, querying, or
+matching a graph, the combinations must be separated by empty quotes (`""`) in
+the respective array, e.g.:
+
+{/* Source: ../examples/python/graph/labels_invalid.py (lines 145-149) */}
+```python Query Identifier Combination Example
+queries = [
+    "{'Jane'} AS NODE_NAME",
+    "",
+    "{'chess'} AS TARGET_NODE_LABEL"
+],
+```
+
+If specifying identifier combinations as raw values, the number of values within
+each identifier must match across the combination group, e.g.:
+
+{/* Source: ../examples/python/graph/labels_invalid.py (lines 254-257) */}
+```python Query Identifier Combination Group Matching Example
+restrictions = [
+    "{'Susan', 'Tom'} AS NODE_NAME",
+    "{0, 0} AS ONOFFCOMPARED"
+],
+```
+
+
+<a id="node-combos"></a>
+
+
+### Nodes
+
+
+* `ID`
+* `ID`, `NAME`
+* `ID`, `WKTPOINT`
+* `ID`, `X`, `Y`
+* `NAME`
+* `NAME`, `WKTPOINT`
+* `NAME`, `X`, `Y`
+* `WKTPOINT`
+* `X`, `Y`
+
+The following identifiers can be added to any valid *node* combination:
+
+* `LABEL`
+* `LABEL_KEY`
+* `PARTITION_BOUNDARY`
+
+
+<a id="edge-combos"></a>
+
+
+### Edges
+
+
+* `ID`, `NODE1_ID`, `NODE2_ID`
+* `ID`, `NODE1_ID`, `NODE2_ID`, `DIRECTION`
+* `ID`, `NODE1_NAME`, `NODE2_NAME`
+* `ID`, `NODE1_WKTPOINT`, `NODE2_WKTPOINT`
+* `ID`, `NODE1_X`, `NODE1_Y`, `NODE2_X`, `NODE2_Y`
+* `ID`, `WKTLINE`
+* `ID`, `WKTLINE`, `DIRECTION`
+* `NODE1_ID`, `NODE2_ID`
+* `NODE1_NAME`, `NODE2_NAME`
+* `NODE1_WKTPOINT`, `NODE2_WKTPOINT`
+* `NODE1_X`, `NODE1_Y`, `NODE2_X`, `NODE2_Y`
+* `WKTLINE`
+* `WKTLINE`, `DIRECTION`
+
+Any or all of the following identifiers can be added to any valid *edge*
+combination:
+
+* `LABEL`
+* `LABEL_KEY`
+* `PARTITION`
+* `WEIGHT_VALUESPECIFIED`
+
+
+<a id="weight-combos"></a>
+
+
+### Weights
+
+
+* `EDGE_ID`, `VALUESPECIFIED`
+* `EDGE_ID`, `FACTORSPECIFIED`
+* `EDGE_WKTLINE`, `EDGE_DIRECTION`, `VALUESPECIFIED`
+* `EDGE_WKTLINE`, `VALUESPECIFIED`
+* `EDGE_WKTLINE`, `FACTORSPECIFIED`
+* `EDGE_NODE1_NAME`, `EDGE_NODE2_NAME`, `VALUESPECIFIED`
+* `EDGE_NODE1_NAME`, `EDGE_NODE2_NAME`, `FACTORSPECIFIED`
+* `EDGE_NODE1_ID`, `EDGE_NODE2_ID`, `VALUESPECIFIED`
+* `EDGE_NODE1_ID`, `EDGE_NODE2_ID`, `FACTORSPECIFIED`
+* `WKTPOINT`, `FACTORSPECIFIED`
+
+If utilizing [turn penalties](/content/graph_solver/network_graph_solver#turn-pen-restr), the following combination
+becomes applicable:
+
+* `FROM_EDGE_ID`, `TO_EDGE_ID`, `VALUESPECIFIED`
+
+
+<a id="restriction-combos"></a>
+
+
+### Restrictions
+
+
+* `EDGE_ID`, `ONOFFCOMPARED`
+* `EDGE_ID`, `VALUECOMPARED`
+* `EDGE_LABEL`, `ONOFFCOMPARED`
+* `EDGE_NODE1_ID`, `EDGE_NODE2_ID`, `ONOFFCOMPARED`
+* `EDGE_NODE1_NAME`, `EDGE_NODE2_NAME`, `ONOFFCOMPARED`
+* `EDGE_WKTLINE`, `EDGE_DIRECTION`, `ONOFFCOMPARED`
+* `EDGE_WKTLINE`, `EDGE_DIRECTION`, `VALUECOMPARED`
+* `EDGE_WKTLINE`, `ONOFFCOMPARED`
+* `EDGE_WKTLINE`, `VALUECOMPARED`
+* `NODE_ID`, `ONOFFCOMPARED`
+* `NODE_ID`, `VALUECOMPARED`
+* `NODE_LABEL`, `ONOFFCOMPARED`
+* `NODE_NAME`, `VALUECOMPARED`
+* `NODE_NAME`, `ONOFFCOMPARED`
+* `NODE_WKTPOINT`, `ONOFFCOMPARED`
+* `NODE_WKTPOINT`, `VALUECOMPARED`
+
+If utilizing [turn restrictions](/content/graph_solver/network_graph_solver#turn-pen-restr), the following
+combination becomes applicable:
+
+* `FROM_EDGE_ID`, `TO_EDGE_ID`, `ONOFFCOMPARED`
+
+
+<a id="using-labels"></a>
+
+
+## Using Labels
+
+
+Labels are a type of [identifier](/content/graph_solver/network_graph_solver#identifiers) that provide
+additional context to a *node* or *edge* and can act as a target for a query,
+among other things.  Labels are paired with another identifier in several valid
+[combinations](/content/graph_solver/network_graph_solver#id-combos) listed above, but each unique label must
+be part of its own combination; i.e., there cannot be two labels in the same
+identifier combination.
+
+For example, this is a valid multi-label configuration:
+
+{/* Source: ../examples/python/graph/labels_invalid.py (lines 113-119) */}
+```python Valid Multi-Label Configuration
+nodes = [
+    TABLE_P + ".name AS NAME",
+    TABLE_P + ".interest AS LABEL",
+    "",
+    TABLE_P + ".name AS NAME",
+    TABLE_P + ".gender AS LABEL"
+],
+```
+
+But this example is invalid:
+
+{/* Source: ../examples/python/graph/labels_invalid.py (lines 219-223) */}
+```python Invalid Multi-Label Configuration
+nodes = [
+    TABLE_P + ".name AS NAME",
+    TABLE_P + ".interest AS LABEL",
+    TABLE_P + ".gender AS LABEL"
+],
+```
+
+`LABEL` values can be used in graph queries, matches, & solves.
+
+
+### Node / Edge Labels
+
+
+The `LABEL` [node identifiers](/content/graph_solver/network_graph_solver#node-identifiers) &
+[edge identifiers](/content/graph_solver/network_graph_solver#edge-identifiers) are used
+to provide additional string-based information about a node or edge
+respectively, similarly to the node `NAME` (and other related) identifiers.
+Multiple labels can be applied to the same node or edge.
+
+The `LABEL_KEY` [node identifiers](/content/graph_solver/network_graph_solver#node-identifiers) &
+[edge identifiers](/content/graph_solver/network_graph_solver#edge-identifiers) are used to create groupings
+of corresponding `LABEL` identifier values.  Any node or edge with a *label*
+that is part of a *label key* group will also have that *label key* applied to
+it as an additional `LABEL` value.
+
+`LABEL_KEY` values can be used in graph queries, matches, & solves.
+
+<CodeGroup>
+
+{/* Source: ../examples/python/graph/labels.py (lines 150 159-166) */}
+```python Node Label Key Configuration
+nodes = [
+    TABLE_M + ".title AS NAME",
+    TABLE_M + ".genre AS LABEL",
+    "",
+    # Apply the label key "movie" to any node that also has been labeled
+    # with a value from the genre column of TABLE_M (movie nodes, above)
+    "{'movie'} AS LABEL_KEY",
+    TABLE_M + ".genre AS LABEL"
+],
+```
+
+{/* Source: ../examples/python/graph/labels.py (lines 167 176-184) */}
+```python Edge Label Key Configuration
+edges = [
+    TABLE_I + ".person AS NODE1_NAME",
+    TABLE_I + ".film AS NODE2_NAME",
+    TABLE_I + ".participation AS LABEL",
+    "",
+    # Apply the label key "participation" to any edge that also has been labeled
+    # with a value from the participation column of TABLE_I (person-to-film edges, above)
+    "{'participation'} AS LABEL_KEY",
+    TABLE_I + ".participation AS LABEL"
+],
+```
+
+</CodeGroup>
+
+
+### Restriction Labels
+
+
+The `NODE_LABEL` and `EDGE_LABEL`
+[restriction identifiers](/content/graph_solver/network_graph_solver#restriction-identifiers) are used to
+restrict the value set defined as node & edge `LABEL` respectively. These
+restrictive *identifiers* must follow an already-defined node or edge `LABEL`;
+i.e., they cannot be used on their own at graph creation time. They are used in
+[restriction combinations](/content/graph_solver/network_graph_solver#restriction-combos) just like other
+restriction *identifiers*.
+
+For example, if the `relation` between two people is used as the edge
+`LABEL` when creating a graph:
+
+{/* Source: ../examples/python/graph/query_graph_social.py (lines 125-129) */}
+```python Edge Identifier Combination
+edges = [
+    knows_table + ".name1 AS NODE1_NAME",
+    knows_table + ".name2 AS NODE2_NAME",
+    knows_table + ".relation AS LABEL"
+],
+```
+
+Then the `family` relation label can be restricted during the subsequent
+query using the `EDGE_LABEL` restriction *identifier*, meaning that the query
+will not traverse any `family` relationship *edges* when moving from person
+*node* to person *node*:
+
+{/* Source: ../examples/python/graph/query_graph_social.py (lines 186-188) */}
+```python Restriction Identifier Combination Example
+restrictions = [
+    "{'family'} AS EDGE_LABEL"
+],
+```
+
+
+<a id="turn-pen-restr"></a>
+
+
+## Using Turn-based Weights & Restrictions
+
+
+Turn-based weights and restrictions are used to add a cost to solutions
+utilizing turn types implemented during graph
+[creation](/content/api/rest/create_graph_rest) or
+[modification](/content/api/rest/modify_graph_rest). If the `add_turns` option
+is set to `true` during `/create/graph` or `/modify/graph` operations,
+dummy pillowed edges will be added to each intersection of edges in a graph
+to mimic realistic turns. These dummy edges will not have any weight by
+default and will have the coordinates of their origin point. The available turn
+types are as follows:
+
+* Left turns -- turning left from one edge on to another
+* Right turns -- turning right from one edge on to another
+* Intersection -- continuing through an intersection of edges (e.g., a
+  stoplight)
+* Sharp turns -- turning sharply left or right *or* a u-turn; a sharp turn or
+  u-turn attribution is determined by the angle of the turn (the
+  `turn_angle` setting)
+
+For example, say you have a dataset featuring the intersection (designated by
+the traffic light) below:
+
+
+![../img/turns_example_base.png](/content/graph_solver/img/turns_example_base.png)
+
+Road 1 is a one-way road going north. Road 2 is a one-way road going west. If
+you were to create a graph from this dataset with `add_turns` set to
+`false`, the edges might look like this:
+
+
+![../img/turns_example_no_turn.png](/content/graph_solver/img/turns_example_no_turn.png)
+
+A solution containing the left turn from road 1 on to road 2 using this graph
+would incorporate **edge 1 --&gt; edge 3**.
+
+On the other hand, if you were to create a graph from this dataset with
+`add_turns` set to `true`, the edges might look like this instead (note the
+two additional dummy edges designated by the dotted lines):
+
+
+![../img/turns_example_turn.png](/content/graph_solver/img/turns_example_turn.png)
+
+The `L` and the `X` associated with the dummy edges designate a left turn
+and intersection respectively, but these attributions could change depending on
+the turn angle set. A solution containing the left turn from road 1 on to road
+2 using this graph instead would incorporate
+**edge 1 --&gt; edge 4 --&gt; edge 3**.
+
+
+Once turns have been enabled and the turn angle has been set, turn penalties
+can be incurred via the [/solve/graph](/content/api/rest/solve_graph_rest) or the
+[/match/graph](/content/api/rest/match_graph_rest) endpoints using two methods:
+
+* Setting penalties uniformly per turn type across the graph using the
+  `left_turn_penalty`, `right_turn_penalty`, `intersection_penalty`, or
+  `sharp_turn_penalty` options
+* Setting penalties on a per-edge basis using the following
+  [weight identifier combinations](/content/graph_solver/network_graph_solver#weight-combos):
+
+  `FROM_EDGE_ID`, `TO_EDGE_ID`, `VALUESPECIFIED`
+
+* Setting restrictions on a per-edge basis using the following
+  [restriction identifier combinations](/content/graph_solver/network_graph_solver#restriction-combos):
+
+  `FROM_EDGE_ID`, `TO_EDGE_ID`, `ONOFFCOMPARED`
+
+
+<Tip>
+Using the weight or restriction combinations will locally override any
+penalty options set.
+</Tip>
+
+For more information on using turn penalties and restrictions, see the
+[turn penalties and restrictions graph example](/content/guides/solve_graph_dc_shortest_path_turn).
+
+<a id="graph-create"></a>
+
+
+## Creating a Graph
+
+
+Creating a graph is serviced by the
+[/create/graph](/content/api/rest/create_graph_rest) endpoint; this involves
+reading from tables with annotated component [identifiers](/content/graph_solver/network_graph_solver#identifiers)
+and drawing relationships between given nodes and/or edges on a graph, taking
+into account nodes or edges between nodes that should be favored or ignored.
+
+
+<Info>
+Though it's recommended *edges* and *weights* are kept in the same table,
+it's not required.
+</Info>
+
+Once the components are setup, the graph can be created. Requirements for
+creating a graph include:
+
+* name for the graph
+* if the graph is [directed](/content/graph_solver/network_graph_solver#directed-graphs) or not
+* *edges*
+* *weights* (for most solver types)
+
+
+<Note>
+*Nodes* and *restrictions* are not required to create a graph. If *nodes*
+are included, however, they should be kept in a separate table from *edges*
+and *weights*. If *restrictions* are included, they can exist in either the
+*nodes* table and/or *edges*/*weights* table(s) or in an entirely separate
+table.
+</Note>
+
+A graph name must adhere to the standard
+[naming criteria](/content/concepts/tables#table-naming-criteria). Each graph exists
+within a [schema](/content/concepts/schemas) and follows the standard
+[name resolution rules](/content/sql/naming#sql-name-resolution) for *tables*.
+
+
+<a id="directed-graphs"></a>
+
+
+### Directed Graphs
+
+
+Whether a graph is directed or not can determine how a graph is solved or
+queried. Using [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and [Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for context, edges
+connect two nodes together ("node 1" and "node 2"). When a graph is directed,
+these nodes that comprise a given edge have an implicit direction: "node 1"
+**to** "node 2". Regardless if these nodes have a spatial context, *Kinetica*
+will treat "node 2" as if it must be traveled to directly from "node 1"
+(whatever their underlying values may be: `Jim` and `George` ,
+`POINT(0 0)` and `POINT(9 10)`, `32` and `45`, etc.).
+
+For example, given the below **non-directed** graph:
+
+
+![../img/non_directed_example.png](/content/graph_solver/img/non_directed_example.png)
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/-lUZo2GMSes" title="Shortest Path Solver" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+Attempting to solve for the shortest path from node `F` to node `A` would
+result in a `SOLVERS_EDGE_PATH` of `F, E, D, C, B, A`. Querying for
+other nodes attached to node `E` would result in two adjacencies: `F` and
+`D`.
+
+On the other hand, given the below **directed** graph:
+
+
+![../img/directed_example.png](/content/graph_solver/img/directed_example.png)
+
+Attempting to solve for the shortest path from node `F` to node `A` would
+be unsuccessful because there are only edges going **toward** `F` (and none
+**leading away** from `F` and subsequently **toward** `A`). Querying for
+other nodes attached to node `E` would result in a single adjacency: `F`.
+
+
+<a id="modifying-a-graph"></a>
+
+
+## Modifying a Graph
+
+
+Modifying a graph is serviced by the
+[/modify/graph](/content/api/rest/modify_graph_rest) endpoint; this
+involves using given node(s), edge(s), weight(s), restriction(s), and option(s)
+to update an existing graph. All parameters and options available to
+`/modify/graph` are also available to `/create/graph`; as such, many of the
+same principles apply to using `/modify/graph`.
+
+Requirements for modifying a graph include:
+
+* name for the existing graph
+* components/identifiers and options used to modify the graph
+
+
+<a id="solving-a-graph"></a>
+
+
+## Solving a Graph
+
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/zL1hJw5lx3Q" title="Page Rank" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+Solving a graph is serviced by the
+[/solve/graph](/content/api/rest/solve_graph_rest) endpoint; this involves using
+given source node(s), destination node(s), and any *weights* or *restrictions*
+from an existing graph to calculate a given solution type. Off-graph spatial
+locations are accepted in all solvers, with the results being corrected to snap
+locations. The calculated solution is then placed in a *table* in *Kinetica*;
+note that many concurrent solves over the same graph are possible. The source
+node determines from which node the graph solution routing is started; the
+destination node(s) determines at which node the graph solution will complete
+routes. Source/destination node(s) can be an ID, name, or WKT point.
+
+Requirements for solving a graph include:
+
+* name of the graph to solve
+* solution type
+
+
+<Note>
+Additional *weights* and *restrictions* beyond those defined in the graph
+creation stage can also be provided. Any provided *weights* will be
+added (in the case of `VALUESPECIFIED`) to or multiplied by
+(in the case of `FACTORSPECIFIED`) the existing *weight(s)*.
+Consult [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) for formatting and specifications.
+</Note>
+
+There are several solution types to choose from:
+
+
+| Solver | Description | CPU Parallel |
+| --- | --- | --- |
+| `ALLPATHS` | Determines all reasonable paths between a source and destination pair. | X |
+| `BACKHAUL_ROUTING` | Determines the optimal routes between remote asset *nodes* and fixed asset nodes. | X |
+| `CENTRALITY` | Calculates the degree of a *node* to depict how many pairs of individuals that would have to go through the *node* to reach one another in the minimum number of hops. Also known as betweenness. | X |
+| `CLOSENESS` | Calculates the centrality closeness score per *node* as the sum of the inverse shortest path costs to all *nodes* in the graph. | X |
+| `INVERSE_SHORTEST_PATH` | Determines the shortest path downstream using multiple technician routing. | X |
+| `MULTIPLE_ROUTING` | Calculates the shortest possible route between the *nodes* and returns to the origin *node* -- also known as the traveling salesman. | X |
+| `PAGE_RANK` | Calculates how connected the *nodes* are and determines which *nodes* are the most important.  Weights are not required. | X |
+| `PROBABILITY_RANK` | Calculates the probability of a *node* being connected to another *node* using hidden Markov chains. | X |
+| `SHORTEST_PATH` | Determines the shortest path upstream between given source(s) and destination(s). | X |
+| `STATS_ALL` | Calculates graph statistics such as graph diameter, longest pairs, vertex valences, topology numbers, average and max cluster sizes, etc. | X |
+
+
+<a id="graph-nonbatch-solve"></a>
+
+
+### Non-Batch Solving
+
+
+*Non-batch* solving is utilized exclusively with every solver except for
+`SHORTEST_PATH`, in which case the length of the source and destination node
+lists will determine if *non-batch* or [Batch Solving](/content/graph_solver/network_graph_solver#graph-batch-solve) is utilized. If
+the source and destination lists do not match **and** the `SHORTEST_PATH`
+solver is specified, *batch* solving will be used. If the source and destination
+node lists match in length (and `SHORTEST_PATH` is the specified solver),
+*non-batch* solving will be used. This means that the first source index would
+only be matched with the first destination index, the second source index to
+the second destination index, etc.
+
+For example, if you attempt to solve *three* unique sources (`node_1`,
+`node_2`, and `node_3`) to *three* unique destinations (`dest_1`,
+`dest_2`, `dest_3`) by only listing each source and destination once
+(calling [/solve/graph](/content/api/rest/solve_graph_rest) with `source_nodes` set to
+`["node_1", "node_2", "node_3"]` and `destination_nodes` set to
+`["dest_1", "dest_2", "dest_3"]`), it would yield a result set like this:
+
+```
++--------+--------+
+| SOURCE | TARGET |
++========+========+
+| node_1 | dest_1 |
++--------+--------+
+| node_2 | dest_2 |
++--------+--------+
+| node_3 | dest_3 |
++--------+--------+
+```
+<a id="graph-batch-solve"></a>
+
+
+### Batch Solving
+
+
+If using the `SHORTEST_PATH` solver, multiple sources can be routed to
+multiple destinations using *batch* solving. A *batch* will be defined by each
+unique source node visiting each destination node provided which will yield
+a Cartesian product.
+
+
+<Tip>
+Calculations from multiple unique sources are faster and more efficient
+than calculations with one unique source, but results may differ
+slightly between multiple unique source calculations and single unique
+source calculations (less than ~1% variance).
+</Tip>
+
+For example, if you wish to batch solve two unique sources (`node_1`,
+`node_2`) each routing to three unique destinations (`dest_1`,
+`dest_2`, `dest_3`), you'd list each source and each destination, noting
+that the solution will automatically map `node_1` **and** `node_2` to
+`dest_1`, `dest_2`, and `dest_3` individually. A call to
+[/solve/graph](/content/api/rest/solve_graph_rest) with `source_nodes` set to
+`["node_1", "node_2"]` and `destination_nodes` set to
+`["dest_1", "dest_2", "dest_3"]` would yield a result set like this:
+
+```
++--------+--------+
+| SOURCE | TARGET |
++========+========+
+| node_1 | dest_1 |
++--------+--------+
+| node_1 | dest_2 |
++--------+--------+
+| node_1 | dest_3 |
++--------+--------+
+| node_2 | dest_1 |
++--------+--------+
+| node_2 | dest_2 |
++--------+--------+
+| node_2 | dest_3 |
++--------+--------+
+```
+However, if you wish to *batch* solve three unique sources (`node_1`,
+`node_2`, `node_3`) to three unique destinations (`dest_1`,
+`dest_2`, `dest_3`) (or *n* sources to *n* destinations for that matter),
+you'll need to list out all 9 combinations manually, e.g.,:
+
+```python title="Source & Destination Node Definitions When the Lists Are the Same Size"
+source_nodes=[
+    "node1", "node1", "node1",
+    "node2", "node2", "node2",
+    "node3", "node3", "node3"
+],
+destination_nodes=[
+    "dest_1", "dest_2", "dest_3",
+    "dest_1", "dest_2", "dest_3",
+    "dest_1", "dest_2", "dest_3"
+],
+```
+
+
+<Note>
+Remember, if the source and destination nodes lists match in
+length, [non-batch solving](/content/graph_solver/network_graph_solver#graph-nonbatch-solve)
+is used.
+</Note>
+
+The above setup would yield a similar result set as the first example:
+
+```
++--------+--------+
+| SOURCE | TARGET |
++========+========+
+| node_1 | dest_1 |
++--------+--------+
+| node_1 | dest_2 |
++--------+--------+
+| node_1 | dest_3 |
++--------+--------+
+| node_2 | dest_1 |
++--------+--------+
+| node_2 | dest_2 |
++--------+--------+
+| node_2 | dest_3 |
++--------+--------+
+| node_3 | dest_1 |
++--------+--------+
+| node_3 | dest_2 |
++--------+--------+
+| node_3 | dest_3 |
++--------+--------+
+```
+<a id="query-graph"></a>
+
+
+## Querying a Graph
+
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/hfn-CvTk820" title="Querying Graphs" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+Querying a graph is serviced by the
+[/query/graph](/content/api/rest/query_graph_rest) endpoint; this involves
+querying a graph for adjacent *nodes* (if provided *edges*) or adjacent *edges*
+(if provided *nodes*) using integer IDs, names, or WKT information. Additional
+adjacent rings around the specified *nodes* can also be queried.
+Results can be exported to a *table* in *Kinetica*.
+
+Requirements for querying a graph include:
+
+* name of the graph to query
+* a list of edge or node IDs, names, or WKTs to query
+
+
+<Note>
+Additional *restrictions* beyond those defined in the graph
+creation stage can also be provided. Query *restrictions* can utilize any of
+the *restriction* identifiers, including the unique `LABEL` identifiers.
+</Note>
+
+<a id="query-identifiers"></a>
+
+
+### Query Identifiers
+
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/HRfNSEcNYEs" title="Querying Graphs" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+*Nodes* or *edges* to be queried can be identified using any of the
+query-specific identifiers below.
+
+
+<Note>
+Consult [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and [Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for general information on
+identifiers and combinations. Note that the same
+[limitations](/content/graph_solver/network_graph_solver#graph-limitations) that apply to
+[/create/graph](/content/api/rest/create_graph_rest) and [/solve/graph](/content/api/rest/solve_graph_rest)
+identifiers also apply to [/query/graph](/content/api/rest/query_graph_rest) identifiers
+</Note>
+
+| Identifier | Supported Types | Description |
+| --- | --- | --- |
+| `EDGE_ID` | `int`, `long` | Defines the edge `ID` value that will be matched against in the source graph to determine the source for the query |
+| `EDGE_LABEL` | `string` | Defines the edge `LABEL` value that will be matched against in the source graph to determine the source(s) for the query <br/> <br/> See [Using Labels](/content/graph_solver/network_graph_solver#using-labels) for more information. |
+| `EDGE_WKTLINE` | `wkt` | Defines the edge `WKTLINE` value that will be matched against in the source graph to determine the source for the query |
+| `HOP_ID` | `int`, `long` | Defines the number of hops from the source node or edge at which the associated node or edge filter should be applied; use a negative number to allow directed edges to be traversed in the reverse direction for that hop number specifically <br/> <br/> See [Using Hops](/content/graph_solver/network_graph_solver#query-using-hops) for more information. |
+| `NODE_ID` | `int`, `long` | Defines the node `ID` value that will be matched against in the source graph to determine the source for the query |
+| `NODE_LABEL` | `string` | Defines the node `LABEL` value that will be matched against in the source graph to determine the source(s) for the query <br/> <br/> See [Using Labels](/content/graph_solver/network_graph_solver#using-labels) for more information. |
+| `NODE_NAME` | `string` | Defines the node `NAME` value that will be matched against in the the source graph to determine the source for the query |
+| `NODE_WKTPOINT` | `wkt` | Defines the node `WKTPOINT` value that will be matched against in the source graph to determine the source for the query |
+| `NODE1_ID` | `int`, `long` | Defines the node `ID` value that will be matched against in the source graph (in conjunction with `NODE2_ID`) to determine the source for the query |
+| `NODE1_NAME` | `string` | Defines the node `NAME` value that will be matched against in the source graph (in conjunction with `NODE2_NAME`) to determine the source for the query |
+| `NODE1_WKTPOINT` | `wkt` | Defines the node `WKTPOINT` value that will be matched against in the source graph (in conjunction with `NODE2_WKTPOINT`) to determine the source for the query |
+| `NODE2_ID` | `int`, `long` | Defines the node `ID` value that will be matched against in the source graph (in conjunction with `NODE1_ID`) to determine the source for the query |
+| `NODE2_NAME` | `string` | Defines the node `NAME` value that will be matched against in the source graph (in conjunction with `NODE1_NAME`) to determine the source for the query |
+| `NODE2_WKTPOINT` | `wkt` | Defines the node `WKTPOINT` value that will be matched against in the source graph (in conjunction with `NODE1_WKTPOINT`) to determine the source for the query |
+| `TARGET_NODE_LABEL` | `string` | Defines the node `LABEL` value that will be matched against in the source graph to determine the destination for the query as well as the path taken through the graph to arrive at the destination |
+
+
+<a id="query-combinations"></a>
+
+
+### Query Identifier Combinations
+
+
+To properly query a graph using identifiers, there's a minimum set of
+identifiers that must be used. Each identifier combination must reference
+columns from the same table, e.g., the combination `NODE1_ID` and
+`NODE2_ID` must both use columns from the same table. The columns
+must also not be nullable.
+
+
+#### Nodes
+
+
+The following combinations will query for *edges* adjacent to the *node*
+associated with the given information:
+
+* `NODE_ID`
+* `NODE_NAME`
+* `NODE_WKTPOINT`
+
+The following label can be used to select multiple matching *nodes* as the
+starting point:
+
+* `NODE_LABEL`
+
+The following identifier can be added to any valid *node* combination to match
+the associated *node* criteria at the given number of hops from the source:
+
+* `HOP_ID`
+
+
+#### Edges
+
+
+The following combinations will query for *nodes* adjacent to the *edge*
+associated with the given information:
+
+* `EDGE_ID`
+* `EDGE_WKTLINE`
+* `NODE1_ID`, `NODE2_ID`
+* `NODE1_NAME`, `NODE2_NAME`
+* `NODE1_WKTPOINT`, `NODE2_WKTPOINT`
+
+The following label can be used to select multiple matching *edges* as the
+starting point:
+
+* `EDGE_LABEL`
+
+The following identifier can be added to any valid *edge* combination to match
+the associated *edge* criteria at the given number of hops from the source:
+
+* `HOP_ID`
+
+
+<a id="using-query-identifiers"></a>
+
+
+### Using Query Identifiers
+
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/FZ6VoHrH4JM" title="Social Graphs" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+A *node* identifier can be used to identify the source of a query, returning
+features connected to that *node* within the provided number of rings:
+
+{/* Source: ../examples/python/graph/graph_social.py (lines 222-224) */}
+```python Query Node Identifier Example (Single Key Search)
+queries = [
+    "{'Al Pacino'} AS NODE_NAME"
+],
+```
+
+Multiple *node* identifiers can be used to start the search from multiple
+sources:
+
+{/* Source: ../examples/python/graph/graph_social.py (lines 264-266) */}
+```python Query Node Identifiers Example (Multiple Key Search, X OR Y)
+queries = [
+    "{'Al Pacino', 'The Godfather'} AS NODE_NAME"
+],
+```
+
+
+<Info>
+A rings value of `1` will return *nodes* connected directly to
+*nodes* that match the provided query exactly; in this case, the
+query would return movies connected to *Al Pacino* and
+actors/directors connected to *The Godfather*.
+</Info>
+
+A set of *edge* identifiers can be used to determine whether there is a direct
+connection between two entities:
+
+{/* Source: ../examples/python/graph/graph_social.py (lines 309-312) */}
+```python Query Edge Identifiers Example (Single Key Search)
+queries = [
+    "{'Al Pacino'} AS NODE1_NAME",
+    "{'The Godfather'} AS NODE2_NAME"
+],
+```
+
+
+<Info>
+The `restriction` & `rings` options do not apply when querying on
+*edges*, so only exact matches with edge identifiers are possible.
+</Info>
+
+
+<Note>
+Implicitly defined *nodes*, e.g., from graphs defined with just
+*edges* and/or *weights*, cannot be queried.
+</Note>
+
+
+#### Node / Edge Labels
+
+
+The `NODE_LABEL` and `EDGE_LABEL`
+[query identifiers](/content/graph_solver/network_graph_solver#query-identifiers) are not paired with other
+[query combinations](/content/graph_solver/network_graph_solver#query-combinations); they are used to
+retrieve only the *nodes* and/or *edges* associated with a given label.
+
+For example, a *node label* could be used to find the directors of *thrillers*:
+
+{/* Source: ../examples/python/graph/graph_social.py (lines 344-346) */}
+```python Query Node Label Example
+queries = [
+    "{'thriller'} AS NODE_LABEL"
+],
+```
+
+An *edge label* could be used to find all directors and the movies they've
+directed:
+
+{/* Source: ../examples/python/graph/graph_social.py (lines 383-385) */}
+```python Query Edge Label Example
+queries = [
+    "{'directed'} AS EDGE_LABEL"
+],
+```
+
+
+#### Target Labels
+
+
+The `TARGET_NODE_LABEL` [query identifier](/content/graph_solver/network_graph_solver#query-identifiers) is
+always paired with another query combination to define a source-destination
+relationship and pathing for a query. This *identifier* also must follow an
+already-defined node `LABEL`. Note that an adjacency output table will have
+two additional columns if the `TARGET_NODE_LABEL` identifier is used:
+
+* `PATH_ID` - an ID that helps identify the different paths taken to arrive
+  at the query target if there is more than one adjacency for a given query.
+* `RING_ID` - an ID that helps identify the steps taken to arrive at a
+  query target. The `RING_ID` can also be referred to as the hop ID or number
+  of hops it took to arrive at the query target
+
+For example, with a `rings` of `3`, a starting *node* of `Jean Reno` and a
+target *node* of `drama`; one could find actors & directors involved in dramas
+that have also acted in or directed *Jean Reno* movies:
+
+{/* Source: ../examples/python/graph/graph_social.py (lines 420-424) */}
+```python Query Target Node Label Example
+queries = [
+    "{'Jean Reno'} AS NODE_NAME",
+    "",
+    "{'drama'} AS TARGET_NODE_LABEL"
+],
+```
+
+The query results in two tables--the adjacency table contains the result edges,
+while the adjacency node table contains the result nodes.
+
+The adjacency node table for this query might show the following, that the drama
+*Jean Reno* is connected to in 3 hops is *The Godfather*:
+
+{/* Source: ../examples/python/graph/graph_social.out (lines 242-246) */}
+``` Query Target Node Label Node Results
++--------------------------+
+| QUERY_NODE_NAME_TARGET   |
++==========================+
+| The Godfather            |
++--------------------------+
+```
+
+The adjacency table for this query might show the following, that the path from
+*Jean Reno* to *The Godfather* is as follows:
+
+* *Jean Reno* acted in *Ronin*
+* *Robert DeNiro* acted in *Ronin*
+* *Robert DeNiro* acted in the drama *The Godfather*
+
+{/* Source: ../examples/python/graph/graph_social.out (lines 231-239) */}
+``` Query Target Node Label Edge Results
++--------------------+--------------------+
+| QUERY_NODE1_NAME   | QUERY_NODE2_NAME   |
++====================+====================+
+| Jean Reno          | Ronin              |
++--------------------+--------------------+
+| Robert De Niro     | The Godfather      |
++--------------------+--------------------+
+| Ronin              | Robert De Niro     |
++--------------------+--------------------+
+```
+
+
+<a id="query-using-hops"></a>
+
+
+#### Using Hops
+
+
+Queries can make use of hop-based filtering--matching only those nodes or edges
+at a certain hop-distance from the source node.
+
+The number associated with the `HOP_ID` label tells the query at how many
+moves away from the source node or edge the paired *query identifier* should be
+matched.  For instance, a `HOP_ID` of `3` paired with a `NODE_LABEL` of
+`actor` will only return results where the node *3* hops from the source has a
+label of `actor`.
+
+To traverse directed (one-way) edges in the reverse direction for a given hop,
+make the `HOP_ID` a negative number.  For instance, a `HOP_ID` of `-2`
+will allow directed edges that are *2* hops from the source to be crossed in
+either direction.  In contrast, the `force_undirected` option allows all
+directed edges to be traversed in either direction, regardless of distance from
+the source.
+
+The following is an example query that returns the titles and directors of
+movies in which James Spader has acted, given an appropriately configured graph
+of actors, directors, & movies/shows.  Here, the query starts with the James
+Spader actor node and uses the sequence of `HOP_ID` filters to:
+
+* move to all the nodes in which James Spader has acted in the 1st hop
+* filter out any 1st-hop nodes which aren't a `MOVIE` (e.g., TV shows)
+* find the director nodes connected to those movies in the 2nd hop; note the
+  `-2` for the `HOP_ID` allows edges from the director to the movie they
+  directed, which are one-way edges from director to movie, to be traversed in
+  reverse in order to find the director of the movie
+
+{/* Source: /examples/python/graph/labels.py (lines 226-242) */}
+```python Query by Hop ID Example
+query_response = kinetica.query_graph(
+    graph_name = GRAPH_NAME,
+    queries = [
+        "{'James Spader'} AS NODE_NAME",
+        "",
+        "{1} AS HOP_ID",
+        "{'acted'} AS EDGE_LABEL",
+        "",
+        "{1} AS HOP_ID",
+        "{'MOVIE'} AS NODE_LABEL",
+        "",
+        "{-2} AS HOP_ID",
+        "{'directed'} AS EDGE_LABEL"
+    ],
+    adjacency_table = GRAPH_ADJ_TABLE,
+    rings = 2
+)
+```
+
+
+#### Finding Common Labels
+
+
+To find labels shared by both the source & target nodes in a query result, as
+well as labels shared by edges along the result path, use the
+`find_common_labels` option.  This will return a `LABELS` column in the
+response edge list, or `LABELS` columns in both the edges & nodes output
+tables if `adjacency_table` is specified.  The `LABELS` column will contain
+all labels that the edges along the result path have in common; and, when
+`adjacency_table` is given, all the labels that the source & target nodes have
+in common.
+
+
+<a id="match-graph"></a>
+
+
+## Matching a Graph
+
+
+Matching a graph is serviced by the
+[/match/graph](/content/api/rest/match_graph_rest) endpoint; this involves
+matching a directed route implied by a given set of latitude/longitude points to
+an existing underlying road network graph using a given solution type. The
+solution is then calculated and output to two tables (consult
+[/match/graph](/content/api/rest/match_graph_rest) for more information):
+
+1. A table containing [track](/content/location_intelligence/geo_objects#geospatial-tracks) information and
+   the mean square error score -- the lower the number, the more accurate a
+   match.
+2. A table containing the coordinate information and how it relates to the track
+   information and segment from the underlying graph.
+
+Requirements for matching a graph include:
+
+* name of the graph to match
+* sample points
+* solution type
+
+Solution types available:
+
+
+| Solver | Description | CPU Parallel |
+| --- | --- | --- |
+| `MARKOV_CHAIN` | Matches sample points to the graph using the Hidden Markov Model (HMM)-based method, which conducts a range-tree closest-edge search to find the best combinations of possible road segments for each sample point to create the best route. The route is secured one point at a time, so the prediction is corrected after each point. This solution type is the most accurate, but also the most computationally intensive. | X |
+| `MATCH_BATCH_SOLVES` | Matches each provided sample source and destination pair using the shortest path between the points. | X |
+| `MATCH_CHARGING_STATIONS` | Matches a given sample source and destination pair to the optimal recharging stations along the route (for EVs). | X |
+| `MATCH_CLUSTERS` | Matches the graph nodes with a cluster index using the Louvain clustering algorithm. <br/> <br/> .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked .. note:: Parallel running of this solver is experimental and can be invoked with the `parallel_clustering` option. | X* <br/> <Info> Parallel running of this solver is experimental and can be invoked \| </Info> |
+| `MATCH_LOOPS` | Matches closed loops (Eulerian paths) originating and ending at each graph node between min and max hops (levels). | X |
+| `MATCH_OD_PAIRS` | Matches sample points to find the most probable path between origin and destination (OD) pairs with given cost constraints. | X |
+| `MATCH_SIMILARITY` | Computes the Jaccard similarity between vertex pairs and N-level intersections within M hops. | X |
+| `MATCH_SUPPLY_DEMAND` | Matches sample generic supply depots to generic demand points using abstract transportation (referred to as trucks). Each route is determined by a truck's ability (size) to service demand at each demand point. | X |
+
+
+<a id="match-identifiers"></a>
+
+
+### Match Identifiers
+
+
+Mapping a graph to a table requires a set of sample points. Sample points must
+be provided to the [/match/graph](/content/api/rest/match_graph_rest) endpoint
+using the unique identifiers below.
+
+
+<Note>
+Consult [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and [Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for general information on
+identifiers and combinations. Note that the same
+[limitations](/content/graph_solver/network_graph_solver#graph-limitations) that apply to
+[/create/graph](/content/api/rest/create_graph_rest) and [/solve/graph](/content/api/rest/solve_graph_rest)
+identifiers also apply to [/match/graph](/content/api/rest/match_graph_rest) identifiers
+</Note>
+
+| Identifier | Supported Types | Description |
+| --- | --- | --- |
+| `DEMAND_ID` | `int`, `long` | A number representing a demand's unique identifier |
+| `DEMAND_PENALTY` | `int`, `long`, `float`, `double` | A number representing the cost for unloading at this site per unit unloaded, regardless of which supplier is unloading at it, and in addition to the global unloading cost per unit |
+| `DEMAND_REGION_ID` | `int`, `long` | A number representing a demand source's unique identifier |
+| `DEMAND_SIZE` | `int`, `long`, `float` | A number representing the size of the primary (or only) demand; used in demanding the supply denoted by `SUPPLY_SIZE` |
+| `DEMAND_SIZE2` | `int`, `long`, `float` | A number representing the size of the secondary demand; used in demanding the supply denoted by `SUPPLY_SIZE2`, when there are two different demand type constraints (e.g., weight & volume) |
+| `DEMAND_WKTPOINT` | `wkt` | A WKT string representing a demand's geospatial source point |
+| `DESTINATION_WKTPOINT` | `wkt` | A WKT string representing a sample's geospatial destination point; e.g., `POINT(X Y [Z])` <br/> <br/> See [Geospatial Objects](/content/location_intelligence/geo_objects) for more information on WKTs. |
+| `ID` | `int`, `long` | A number representing a sample's unique identifier |
+| `NAME` | `string` | A string value representing a sample's name |
+| `OD_ID` | `int`, `long` | A number representing an OD-pair-related sample's unique identifier |
+| `OD_TIME` | `float`, `double` | A number representing an origin-destination (OD) pair-related sample's cost <br/> <Info> `OD_TIME` may not necessarily depict time, e.g., if the graph's weights were distance-based, `OD_TIME` could theoretically reflect distance as well, assuming the values are consistent with the values used to create the original weights. </Info> |
+| `ORIGIN_WKTPOINT` | `wkt` | A WKT string representing a sample's geospatial origin point; e.g., `POINT(X Y [Z])` <br/> <br/> See [Geospatial Objects](/content/location_intelligence/geo_objects) for more information on WKTs. |
+| `PRIORITY` | `int` | A number representing a sample's priority in match processing |
+| `SUPPLY_ID` | `int`, `long` | A number representing a supplier's unique identifier |
+| `SUPPLY_ODDEVEN` | `int` | A number representing whether the supplier is "odd", "even", or neither; used in applying odd/even-based restrictions, such as those used in Jakarta, Indonesia: <br/> <br/> * `0`: supplier is not subject to odd/even-based restrictions <br/> * `1`: supplier is "odd" numbered <br/> * `2`: supplier is "even" numbered |
+| `SUPPLY_PENALTY` | `int`, `long`, `float`, `double` | A number representing the cost for unloading this supplier per unit unloaded, regardless of which demand site it is visiting, and in addition to the global unloading cost per unit |
+| `SUPPLY_REGION_ID` | `int`, `long` | A number representing a supplier source's unique identifier |
+| `SUPPLY_SIZE` | `int`, `long`, `float` | A number representing a supplier's primary (or only) capacity; used in meeting the demand denoted by `DEMAND_SIZE` |
+| `SUPPLY_SIZE2` | `int`, `long`, `float` | A number representing a supplier's secondary capacity; used in meeting the demand denoted by `DEMAND_SIZE2`, when there are two different capacity type constraints (e.g., weight & volume) |
+| `SUPPLY_WKTPOINT` | `wkt` | A WKT string representing a supplier's geospatial source point |
+| `TIME` | `long`, `double` | A number representing a sample's time value <br/> <Info> `TIME` could theoretically represent any time unit (seconds, minutes, epoch, etc.) as long as the representations are consistent for the column in the source table. </Info> |
+| `TRIPID` | `int`, `long` | A number representing a unique trip identifier |
+| `WKTPOINT` | `wkt` | A WKT string representing a sample's geospatial point; e.g., `POINT(X Y [Z])` <br/> <br/> See [Geospatial Objects](/content/location_intelligence/geo_objects) for more information on WKTs. |
+| `X` | `float`, `double` | A number representing a sample's X or longitude value |
+| `Y` | `float`, `double` | A number representing a sample's Y or latitude value |
+
+
+<Info>
+Records with a timestamp of `0` for the `TIME` column will be ignored
+when calculating the solution.
+</Info>
+
+<a id="match-combinations"></a>
+
+
+### Match Identifier Combinations
+
+
+To properly match a graph using identifiers, there's a minimum set of
+identifiers that must be used. Each identifier combination must reference
+columns from the same table, e.g., the combination `WKTPOINT` and `TIME`
+must both use columns from the same table. The columns must also not be
+nullable. The valid match identifier combinations per
+[match graph solver](/content/graph_solver/network_graph_solver#solvers) are as follows:
+
+
+#### Markov Chain
+
+
+* `X`, `Y`, `TIME`
+* `WKTPOINT`, `TIME`
+* `X`, `Y`, `TIME`, `TRIPID`
+* `WKTPOINT`, `TIME`, `TRIPID`
+
+
+<Info>
+If using the `TRIPID` identifier to match the graph, all trip IDs will be
+used in the solution.
+</Info>
+
+
+#### Match Batch Solves
+
+
+* `ORIGIN_WKTPOINT`, `DESTINATION_WKTPOINT`, `OD_ID`
+
+
+#### Match Loops
+
+
+* `ID`
+* `NAME`
+* `WKTPOINT`
+
+
+<Info>
+Using no identifier combination will result in loops being searched for
+across the entire graph
+</Info>
+
+
+#### Match OD Pairs
+
+
+* `ORIGIN_WKTPOINT`, `DESTINATION_WKTPOINT`, `OD_TIME`
+* `ORIGIN_WKTPOINT`, `DESTINATION_WKTPOINT`, `OD_TIME`, `OD_ID`
+
+
+#### Match Supply Demand
+
+
+A supply and demand combination are used in conjunction with each other to
+match suppliers to demand. Reference [Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for using
+multiple combinations syntax.
+
+
+<p><strong>Demand Combinations</strong></p>
+
+
+* `DEMAND_ID`, `DEMAND_WKTPOINT`, `DEMAND_SIZE`, `DEMAND_REGION_ID`
+* `DEMAND_ID`, `DEMAND_WKTPOINT`, `DEMAND_SIZE`, `DEMAND_REGION_ID`, `PRIORITY`
+
+Any or all of the following identifiers can be added to a demand combination:
+
+* `DEMAND_PENALTY`
+* `DEMAND_SIZE2` *(must be paired with a supply combination using*
+  `SUPPLY_SIZE2` *)*
+
+
+<p><strong>Supply Combinations</strong></p>
+
+
+* `SUPPLY_REGION_ID`, `SUPPLY_WKTPOINT`, `SUPPLY_ID`, `SUPPLY_SIZE`
+
+Any or all of the following identifiers can be added to a supply combination:
+
+* `SUPPLY_ODDEVEN`
+* `SUPPLY_PENALTY`
+* `SUPPLY_SIZE2` *(must be paired with a demand combination using*
+  `DEMAND_SIZE2` *)*
+
+
+## Showing a Graph
+
+
+Using [/show/graph](/content/api/rest/show_graph_rest) will provide detailed
+information about a graph, including number of nodes and edges in the graph,
+whether the graph is directed or persisted, and more.
+
+
+<a id="graph-delete"></a>
+
+
+## Deleting a Graph
+
+
+Deleting a graph is serviced by the
+[/delete/graph](/content/api/rest/delete_graph_rest) endpoint; this involves
+providing a graph name to delete the graph from the graph server (memory) and
+persist (if applicable).
+
+
+<Tip>
+If a graph was saved to persist upon creation and then was deleted from the
+server (but **NOT** persist), it can be reloaded from persist by recreating
+the graph using the same `graph_name`.
+</Tip>
+
+<a id="graph-permissions"></a>
+
+
+## Managing Permissions for a Graph
+
+
+[Graph permissions](/content/security/sec_concepts#security-concepts-permissions-graph) can be
+managed either through [SQL](/content/sql/security#sql-security-priv-mgmt-graph-grant)
+or through the [native API](/content/security/sec_usage#sec-usage-perm-graph).
+
+
+## Examples
+
+
+For detailed usage of the graph capability, see [Guides](/content/guides):
+
+* [All Graph Guides](/content/guide-tags/graph)
+* [Graph Matching](/content/guide-tags/graph---match)
+* [Graph Querying](/content/guide-tags/graph---query)
+* [Graph Solving](/content/guide-tags/graph---solve)
+
+
+<a id="graph-limitations"></a>
+
+
+## Limitations and Cautions
+
+
+* Groups of valid identifier combinations must be from the same table, e.g.,
+  *node* `ID` & `NAME` must reference columns from the same table
+* *Node*, *edge*, *weight*, and optional *restriction* identifiers should be
+  matched to yield a useful graph
+  (**node ID --&gt; edge NODE1_ID** and
+  **edge ID --&gt; weights EDGE_ID**, etc.)
+* Groups of valid numerical identifier combinations must be the same type, e.g.,
+  if edge `ID` is identified from an `int` column, both edge `NODE1_ID` &
+  `NODE2_ID` must also be `int`
+* Graphs cannot be created using columns with the `nullable` property
+* If no `ID` identifier is provided, *weights* will be matched with *edges* by
+  *table* row, e.g., the first record in the *weight table* will be used for the
+  first record in the *edge table* (should the *weights* and *edges* be
+  separate). If two *weights* are specified for the same *edge*, the *weights*
+  are added (if both are using the `VALUESPECIFIED` identifier) or multiplied
+  (if one or both are using the `FACTORSPECIFIED` identifier) together.
+* A *node* or *edge* can have up to 64 unique labels.

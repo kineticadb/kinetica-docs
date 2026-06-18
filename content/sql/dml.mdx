@@ -1,0 +1,416 @@
+---
+title: Data Manipulation (DML)
+sidebarTitle: DML
+---
+
+<a id="sql-dml"></a>
+
+<a id="sql-dml-insert"></a>
+
+<a id="sql-insert"></a>
+
+
+## INSERT
+
+
+There are two methods for inserting data into a table from within the database:
+
+* [Inserting values](/content/sql/dml#sql-dml-insert-values)
+* [Copying data from another table](/content/sql/dml#sql-dml-insert-select)
+
+When specifying a column list using either method, any non-nullable fields not
+included in the list will be given default values--empty string for strings, and
+`0` for numerics.  The fields in the column list and the values or fields
+selected must align.
+
+
+<Tip>
+If [Multi-Head Ingest](/content/tuning/multihead/multihead_ingest) has
+been [enabled on the database server](/content/tuning/multihead/multihead_ingest#multi-head-ingest-configuration),
+`INSERT` operations will automatically leverage it, when
+[applicable](/content/tuning/multihead/multihead_ingest#multi-head-ingest-considerations).
+</Tip>
+
+See [Loading Data](/content/sql/load#sql-load-file) for inserting data into a table from sources external
+to the database.
+
+
+<a id="sql-dml-insert-values"></a>
+
+<a id="sql-insert-values"></a>
+
+
+### INSERT INTO ... VALUES
+
+
+Records with literal values can be inserted into the database.
+
+```sql title="INSERT INTO ... VALUES Syntax"
+INSERT INTO [<schema name>.]<table name> [(<column list>)]
+VALUES (<column value list>)[,...]
+[WITH OPTIONS (<insert option name> = '<insert option value>'[,...])]
+```
+
+{/* Source: /examples/sql/dml/insert.kisql (lines 45-52) */}
+```sql INSERT INTO ... VALUES Example
+INSERT INTO example.employee (id, dept_id, manager_id, first_name, last_name, sal, hire_date)
+VALUES
+    (1, 1, null, 'Anne', 'Arbor', 200000, '2000-01-01'),
+    (2, 2, 1, 'Brooklyn', 'Bridges', 100000, '2000-02-01'),
+    (3, 3, 1, 'Cal', 'Cutta', 100000, '2000-03-01'),
+    (4, 2, 2, 'Dover', 'Della', 150000, '2000-04-01'),
+    (5, 2, 2, 'Elba', 'Eisle', 50000, '2000-05-01'),
+    (6, 4, 1, 'Frank', 'Furt', 12345.67, '2000-06-01')
+```
+
+<a id="sql-insert-values-opt"></a>
+
+
+#### Insert Options
+
+
+The following options can be specified to modify the way data is inserted (or
+not inserted) into the target table.
+
+
+<Info>
+The `WITH OPTIONS` clause is only valid when used within JDBC.
+</Info>
+
+<AccordionGroup>
+
+<Accordion title="BATCH SIZE" id="batch-size" defaultOpen>
+
+Use an ingest batch size of the given number of records.
+
+The default batch size is *50,000*.
+
+</Accordion>
+
+<Accordion title="ON ERROR" id="on-error" defaultOpen>
+
+When an error is encountered inserting a record, handle it using one of the
+following modes.  The default mode is `ABORT`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Mode</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>PERMISSIVE</code></td>
+    <td>If an error is encountered parsing a source record, attempt to insert as many of the valid fields from the record as possible; insert a null for each errant value found.</td>
+  </tr>
+  <tr>
+    <td><code>SKIP</code></td>
+    <td>If an error is encountered parsing a source record, skip the record.</td>
+  </tr>
+  <tr>
+    <td><code>ABORT</code></td>
+    <td>If an error is encountered parsing a source record, stop the insert process.  Primary key collisions are considered abortable errors in this mode.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-dml-insert-select"></a>
+
+<a id="sql-insert-select"></a>
+
+
+### INSERT INTO ... SELECT
+
+
+Records that are the result set of a query can be inserted into the database.
+
+```sql title="INSERT INTO ... SELECT Syntax"
+INSERT INTO [<schema name>.]<table name> [(<column list>)]
+<select statement>
+```
+
+{/* Source: /examples/sql/dml/insert.kisql (lines 72-75) */}
+```sql INSERT INTO ... SELECT Example
+INSERT INTO example.employee_backup (id, dept_id, manager_id, first_name, last_name, sal)
+SELECT id, dept_id, manager_id, first_name, last_name, sal
+FROM example.employee
+WHERE hire_date >= '2000-04-01'
+```
+
+
+<a id="sql-dml-upsert"></a>
+
+<a id="sql-upsert"></a>
+
+<a id="sql-insert-upsert"></a>
+
+
+### Upserting
+
+
+To *upsert* records, inserting new records and updating existing ones
+*(as denoted by primary key)*, use the `KI_HINT_UPDATE_ON_EXISTING_PK` hint.
+If the target table has no *primary key*, this hint will be ignored.
+
+
+<Tip>
+This hint can be specified as the connection option
+`UpdateOnExistingPk` when using
+[JDBC/ODBC](/content/connectors/sql_guide#jdbc-config-override).
+</Tip>
+
+{/* Source: /examples/sql/dml/insert.kisql (lines 126-129) */}
+```sql Upsert Example
+INSERT INTO example.employee_backup /* KI_HINT_UPDATE_ON_EXISTING_PK */
+SELECT *
+FROM example.employee
+WHERE hire_date >= '2000-01-01'
+```
+
+
+<Note>
+By default, any record being inserted that matches the
+*primary key* of an existing record in the target table will be discarded,
+and the existing record will remain unchanged.  The
+`KI_HINT_UPDATE_ON_EXISTING_PK` hint overrides this behavior, favoring the
+source records over the target ones.
+</Note>
+
+<a id="sql-insert-ignore"></a>
+
+
+### Ignoring Duplicates
+
+
+To discard duplicate records *(as denoted by primary key)* when inserting data,
+use the `KI_HINT_IGNORE_EXISTING_PK` hint.  If the target table has no
+*primary key* or if in *upsert* mode (using `KI_HINT_UPDATE_ON_EXISTING_PK`),
+this hint will be ignored.
+
+
+<Tip>
+Both of these hints can be specified as the connection options
+`IgnoreExistingPk` & `UpdateOnExistingPk`, respectively, when using
+[JDBC/ODBC](/content/connectors/sql_guide#jdbc-config-override).
+</Tip>
+
+{/* Source: /examples/sql/dml/insert.kisql (lines 169-172) */}
+```sql Ignore Duplicates Example
+INSERT INTO example.employee_backup /* KI_HINT_IGNORE_EXISTING_PK */
+SELECT *
+FROM example.employee
+WHERE hire_date >= '2000-01-01'
+```
+
+
+<a id="sql-dml-update"></a>
+
+<a id="sql-update"></a>
+
+
+## UPDATE
+
+
+Updates can set columns to specified constant values or expressions.
+
+```sql title="UPDATE Syntax"
+UPDATE [<schema name>.]<table name>
+SET
+    <column 1> = <expression 1>,
+    ...
+    <column n> = <expression n>
+[FROM <table expression>]
+[WHERE <expression list>]
+```
+
+For example, to update employee with ID `5` to have a new manager, with
+ID `3`, and to have a *10%* salary increase:
+
+{/* Source: /examples/sql/dml/update.kisql (lines 81-85) */}
+```sql UPDATE Example
+UPDATE example.employee
+SET
+    sal = sal * 1.10,
+    manager_id = 3
+WHERE id = 5
+```
+
+Subqueries can be used in the expression list *and* within the `SET` clause.
+To update all the bottom earners in each department with a *5%* salary increase
+using a subquery in the expression list:
+
+{/* Source: /examples/sql/dml/update.kisql (lines 98-105) */}
+```sql UPDATE with Subquery in WHERE Clause Example
+UPDATE example.employee b
+SET sal = sal * 1.05
+WHERE sal =
+    (
+        SELECT MIN(sal)
+        FROM example.employee l
+        WHERE b.dept_id = l.dept_id
+    )
+```
+
+To update a backup table to match the source table that was just updated for
+new salary values using a subquery within the `SET` clause:
+
+{/* Source: /examples/sql/dml/update.kisql (lines 117-123) */}
+```sql UPDATE with Subquery in SET Clause Example
+UPDATE  example.employee_backup eb
+SET     sal =
+    (
+        SELECT sal
+        FROM example.employee e
+        WHERE eb.id = e.id
+    )
+```
+
+[Joins](/content/concepts/joins) can be used within an `UPDATE` statement
+to update records based on the results of a `JOIN`.
+
+
+<Note>
+The `JOIN` statement cannot be part of the `SET` clause.
+Also, primary key column updates are not supported using `JOIN`
+operations. The table to be updated must be in the `FROM`
+clause.
+</Note>
+
+For example, to update a backup table to match the source table that was just
+updated for new manager and salary values using an `INNER JOIN`:
+
+{/* Source: /examples/sql/dml/update.kisql (lines 143-146) */}
+```sql UPDATE with JOIN Clause Example
+UPDATE  eb
+SET     sal = e.sal, manager_id = e.manager_id
+FROM    example.employee_backup eb
+JOIN    example.employee e ON eb.id = e.id
+```
+
+
+<Tip>
+Simplified `JOIN` syntax is also supported:
+</Tip>
+
+{/* Source: /examples/sql/dml/update.kisql (lines 166-169) */}
+```sql UPDATE with JOIN Clause Alternate Example
+UPDATE  eb
+SET     sal = e.sal, manager_id = e.manager_id
+FROM    example.employee_backup eb, example.employee e
+WHERE   eb.id = e.id
+```
+
+
+<a id="sql-update-overwrite"></a>
+
+
+### Overwriting Duplicates
+
+
+When updating the *primary key* value(s) of a record, it is possible for that
+updated record to collide with another record with the same *primary key*.  To
+update the original record with the values specified in the `SET` clause and
+remove the other existing record with the same *primary key*, use the
+`KI_HINT_UPDATE_ON_EXISTING_PK` hint.  If the target table has no
+*primary key*, this hint will be ignored.
+
+
+<Tip>
+This hint can be specified as the connection option
+`UpdateOnExistingPk` when using
+[JDBC/ODBC](/content/connectors/sql_guide#jdbc-config-override).
+</Tip>
+
+{/* Source: /examples/sql/dml/update.kisql (lines 196-198) */}
+```sql UPDATE Overwrite Duplicates Example
+UPDATE example.employee /* KI_HINT_UPDATE_ON_EXISTING_PK */
+SET id = 1, sal = 123000
+WHERE id = 6
+```
+
+
+<Note>
+By default, updates resulting in *primary key* collisions will be
+rejected, and the existing record(s) will remain unchanged.  The
+`KI_HINT_UPDATE_ON_EXISTING_PK` hint overrides this behavior, favoring the
+original record being updated and the new values used to update it,
+specified in the `SET` clause, over the other existing record with the same
+*primary key*.
+</Note>
+
+<a id="sql-update-ignore"></a>
+
+
+### Ignoring Duplicates
+
+
+When updating the *primary key* value(s) of a record, it is possible for that
+updated record to collide with another record with the same primary key.  To
+discard updates that result in *primary key* collisions and not return an error,
+use the `KI_HINT_IGNORE_EXISTING_PK` hint.  If the target table has no
+*primary key* or if using `KI_HINT_UPDATE_ON_EXISTING_PK`, this hint will be
+ignored.
+
+
+<Tip>
+These hints can be specified as connection options
+(`IgnoreExistingPk`, `UpdateOnExistingPk`) when using
+[JDBC/ODBC](/content/connectors/sql_guide#jdbc-config-override).
+</Tip>
+
+{/* Source: /examples/sql/dml/update.kisql (lines 218-220) */}
+```sql UPDATE Ignore Duplicates Example
+UPDATE example.employee /* KI_HINT_IGNORE_EXISTING_PK */
+SET id = 1, sal = 123000
+WHERE id = 6
+```
+
+
+<a id="sql-dml-delete"></a>
+
+<a id="sql-delete"></a>
+
+
+## DELETE
+
+
+Deletes records from a table.
+
+```sql title="DELETE Syntax"
+DELETE
+FROM [<schema name>.]<table name>
+[WHERE <expression list>]
+```
+
+For example, to delete employee with ID `6`:
+
+{/* Source: /examples/sql/dml/delete.kisql (lines 59-61) */}
+```sql DELETE Example
+DELETE
+FROM example.employee
+WHERE id = 6
+```
+
+Subqueries can also be used in the expression list.  To delete all the most
+recent hires in each department:
+
+{/* Source: /examples/sql/dml/delete.kisql (lines 73-80) */}
+```sql DELETE with Subquery Example
+DELETE
+FROM example.employee b
+WHERE hire_date =
+    (
+        SELECT MAX(hire_date)
+        FROM example.employee l
+        WHERE b.dept_id = l.dept_id
+    )
+```

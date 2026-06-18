@@ -1,0 +1,278 @@
+---
+title: Get JSON Records
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="get-records-json-feature-overview"></a>
+
+
+## Overview
+
+
+*Kinetica* provides a direct JSON egress service to allow records to be
+retrieved as raw JSON from the database.
+
+Several options can be used to identify & filter the data being requested.
+There is also limited support for aggregation.
+
+JSON objects will be returned as an array:
+
+{/* Source: /examples/data/products.json (lines 1-8 93-100) */}
+```json Single or Multiple Records
+[
+	{
+		"id": 1,
+		"category": "Furniture",
+		"name": "Clamp-on Lamps",
+		"description": "Strong, steadfast fasteners; localized lighting for laboring",
+		"stock": 10
+	},
+	{
+		"id": 14,
+		"category": "Technology",
+		"name": "Dot Matrix Printers",
+		"description": "Impactful industrial implements for impressing ink iteratively",
+		"stock": 27
+	}
+]
+```
+
+For examples, see [Examples](#examples) or [JSON Egress Snippets](/content/snippets/json-egress).
+
+
+## Usage
+
+
+The base JSON egress endpoint URL is:
+
+```
+http://<db.host>:9191/get/records/json
+```
+Authentication credentials should be passed with the request.
+
+Endpoint-specific options can be passed as request parameters, as well.
+
+
+### Parameters
+
+
+| Name | Default | Description |
+| --- | --- | --- |
+| `table_name` |  | Name of the table from which to request records, in *[schema_name.]table_name* format. |
+| `column_names` | `*` | Names of the columns to extract from `table_name`. |
+| `offset` | `0` | Positive integer indicating the number of initial results to skip (this can be useful for paging through the results). |
+| `limit` | `-9999` | Positive integer indicating the maximum number of results to be returned, or -9999 to indicate that the maximum number of results allowed by the server should be returned. The number of records returned will never exceed the server's own limit, defined by the `max_get_records_size` parameter in the server configuration. Use response parameter `has_more_records` to see if more records exist in the result to be fetched, and request parameters `offset` & `limit` to request subsequent pages of results. |
+| `expression` |  | Filter expression to apply to the table data.  In the case of requests with aggregation in them, this filter will be applied before the aggregation occurs. |
+| `order_by` |  | Comma-separated list of the columns to sort by as well as the sort order; e.g., `timestamp asc, x desc`. |
+| `having` |  | Filter expression to apply to the aggregated table data. <br/> <Info> This only applies to requests with aggregation in them. </Info> |
+
+
+## Examples
+
+
+Below are templates of requesting table data as JSON, via the
+`/get/records/json` REST endpoint:
+
+<CodeGroup>
+
+{/* Source: /examples/bash/get_records_json.sh (lines 24 28-30 32  44-45 47-49) */}
+```bash cURL
+KINETICA_URL=http://localhost:9191
+USERNAME=auser
+PASSWORD=apassword
+TABLE_NAME=product
+
+# Quote the URL when passing multiple options, or any & will stop the URL
+#   parsing and run the URL parsed up to that point as a background job
+curl -sS ${KINETICA_URL}/get/records/json?table_name=${TABLE_NAME} \
+--header "Content-Type: application/json" \
+--user "${USERNAME}:${PASSWORD}"
+```
+
+{/* Source: /examples/python/get_records_json.py (lines 19 23-24 33 36  38-39) */}
+```python Python
+kinetica_url = "http://localhost:9191"
+username = "auser"
+password = "apassword"
+table_name = "product"
+kinetica_url += "/get/records/json?table_name=" + table_name
+
+response = requests.get(kinetica_url, auth = (username, password))
+```
+
+</CodeGroup>
+
+
+Endpoint-specific options can be passed as URL-encoded data parameters instead
+of being appended to the URL:
+
+<CodeGroup>
+
+{/* Source: /examples/bash/get_records_json.sh (lines 24 28-30 32  56-57 59-65) */}
+```bash cURL
+KINETICA_URL=http://localhost:9191
+USERNAME=auser
+PASSWORD=apassword
+TABLE_NAME=product
+
+# Using data-urlencode can make params easier to read than appending to URL
+#   Use the G option to pass the data-urlencode options as GET query parameters
+curl -sSG ${KINETICA_URL}/get/records/json \
+--header "Content-Type: application/json" \
+--user "${USERNAME}:${PASSWORD}" \
+--data-urlencode "table_name=${TABLE_NAME}" \
+--data-urlencode "column_names=name,category,description,stock" \
+--data-urlencode "expression=stock > 100000" \
+--data-urlencode "order_by=name"
+```
+
+{/* Source: /examples/python/get_records_json.py (lines 19 23-24 54  56-66) */}
+```python Python
+kinetica_url = "http://localhost:9191"
+username = "auser"
+password = "apassword"
+table_name = "product"
+
+response = requests.post(
+    kinetica_url + "/get/records/json",
+    params = {
+        "table_name": table_name,
+        "column_names": ["name", "category", "description", "stock"],
+        "expression": "stock > 100000",
+        "order_by": "name"
+    },
+    auth = (username, password)
+)
+```
+
+</CodeGroup>
+
+
+Requests containing aggregation functions are also supported:
+
+<CodeGroup>
+
+{/* Source: /examples/bash/get_records_json.sh (lines 24 28-30 32  72-73 75-81) */}
+```bash cURL
+KINETICA_URL=http://localhost:9191
+USERNAME=auser
+PASSWORD=apassword
+TABLE_NAME=product
+
+# Using data-urlencode can make params easier to read than appending to URL
+#   Use the G option to pass the data-urlencode options as GET query parameters
+curl -sSG ${KINETICA_URL}/get/records/json \
+--header "Content-Type: application/json" \
+--user "${USERNAME}:${PASSWORD}" \
+--data-urlencode "table_name=${TABLE_NAME}" \
+--data-urlencode "column_names=category,COUNT(1) AS total_products" \
+--data-urlencode "expression=stock >= 1000" \
+--data-urlencode "having=COUNT(1) > 1"
+```
+
+{/* Source: /examples/python/get_records_json.py (lines 19 23-24 81  83-93) */}
+```python Python
+kinetica_url = "http://localhost:9191"
+username = "auser"
+password = "apassword"
+table_name = "product"
+
+response = requests.post(
+    kinetica_url + "/get/records/json",
+    params = {
+        "table_name": table_name,
+        "column_names": ["category", "COUNT(1) AS total_products"],
+        "expression": "stock >= 1000",
+        "having": "COUNT(1) > 1"
+    },
+    auth = (username, password)
+)
+```
+
+</CodeGroup>
+
+
+<a id="fo-get-records-json-response"></a>
+
+
+## Responses
+
+
+The endpoint calls will respond with one of two message formats, one for
+successes and one for failures:
+
+<CodeGroup>
+
+{/* Source: /examples/bash/get_records_json.resp (lines 3-24) */}
+```json Success
+{
+	"status": "OK",
+	"data":
+	{
+		"records":
+		[
+			{
+				"<record_1_column_1>": "<record_1_value_1>",
+				...
+				"<record_1_column_N>": "<record_1_value_N>"
+			},
+			...
+			{
+				"<record_N_column_1>": "<record_N_value_1>",
+				...
+				"<record_N_column_N>": "<record_N_value_N>"
+			}
+		],
+		"total_number_of_records": <count of records retrieved>,
+		"has_more_records": <whether more records exist in the result set>
+	}
+}
+```
+
+{/* Source: /examples/bash/get_records_json.resp (lines 28-31) */}
+```json Failure
+{
+	"status": "ERROR",
+	"message": "<retrieval failure error message>"
+}
+```
+
+</CodeGroup>
+
+
+An example of each of these is as follows:
+
+<CodeGroup>
+
+{/* Source: /examples/bash/get_records_json.out (lines 141-157) */}
+```json Success
+{
+    "status": "OK",
+    "data": {
+        "records": [
+            {
+                "category": "Technology",
+                "total_products": 2
+            },
+            {
+                "category": "Office Supplies",
+                "total_products": 3
+            }
+        ],
+        "total_number_of_records": 2,
+        "has_more_records": false
+    }
+}
+```
+
+{/* Source: /examples/bash/get_records_json.out (lines 161-164) */}
+```json Failure
+{
+    "status": "ERROR",
+    "message": "order_by not supported with aggregate(s) (E/Ec:162)"
+}
+```
+
+</CodeGroup>

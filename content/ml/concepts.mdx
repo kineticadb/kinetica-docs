@@ -1,0 +1,132 @@
+---
+title: Machine Learning Concepts
+sidebarTitle: ML Concepts
+---
+
+<a id="ml-concepts"></a>
+
+
+*Kinetica* provides a machine learning (ML) capability for simplifying and
+accelerating data science in a scalable fashion. With ML, users can ingest data,
+train models, make inferences (answers/output from models), and even audit
+models.  ML leverages *Kubernetes* to deploy, train, and test models.
+
+
+<Info>
+To work with models in SQL, see [Machine Learning (ML)](/content/sql/ml#sql-ml).  For
+statistical analysis functions that don't require a model, see
+[ML Functions](/content/sql/query#sql-ml-functions).
+</Info>
+
+
+## Concepts
+
+
+The ML workflow is defined by five key concepts:
+
+* [Registries](#registries)
+* [Data](#data)
+* [Models](#models)
+* [Deployments](#deployments)
+* [Audits](#audits)
+
+
+<a id="ml-registry"></a>
+
+
+### Registries
+
+
+*Docker container registries* house the ML models themselves and abstract their
+implementation details.  Any model used by *Kinetica* must exist in a
+*Docker container registry*.
+
+
+<a id="ml-data"></a>
+
+
+### Data
+
+
+*Data* comprises *ingests*, *datasets*, and *feature sets*.
+
+* *Ingests* represent an ingest tool (e.g., *Kafka*) that pulls
+  data from a given source (*Kinetica*, *PostgreSQL*, *S3*, etc.) and puts it
+  in a new table inside *Kinetica*. Data can be pulled in batches
+  or via continuous streaming.
+* *Datasets* represent a set (or sub-set) of column data from a source table
+  in *Kinetica*. One or more columns can be filtered to create a *dataset*.
+* *Feature sets* represent a group of features, which are *datasets*
+  transformed inline with functions or relationally using
+  [Materialized Views](/content/concepts/materialized_views)
+
+
+<a id="ml-model"></a>
+
+
+### Models
+
+
+A *model* can be a function, statistical model, regression, data model, and more
+that is deployed to enable inferencing capabilities. *Kinetica* can deploy any
+number of replicas of the model, allowing for scalability and better resource
+management. Currently, only *Blackbox models* are supported, which are models
+where implementation details are abstracted and housed in *Docker* containers.
+Input and output are the only available interface; they also don't require a
+training *dataset*.
+
+
+<a id="ml-deployment"></a>
+
+
+### Deployments
+
+
+A *deployment* represents a *model* that has been deployed. A *deployed model*
+can have inference tests run manually, automatically, or in batches, depending
+on the type of *deployment*. Currently there are three types of *deployments*:
+
+* *On-Demand* -- inference tests are run as necessary using user-provided input
+  with results being returned based on the given input
+* *Continuous* -- inference tests are run automatically against records being
+  streamed into an input table; inference results are inserted into an output
+  table
+* *Batch* -- inference tests are run against a batch of data in an existing
+  table all at once
+
+
+<a id="ml-audit"></a>
+
+
+### Audits
+
+
+An *audit* represents the ability to *audit* a *model* deployment to ensure its
+training, testing, and inferencing are untampered. An *audit* enables drilling
+into specific inferences from a deployment and filtering the inference by input
+parameter, process status, and more.
+
+
+<a id="kml-install"></a>
+
+
+## Installation
+
+
+*Kinetica* recommends installing *KML*
+[using KAgent](/content/install/kagent_install), as *KAgent* can install
+everything *KML* requires and can preconfigure everything for the best
+out-of-the-box experience. Consult [Cluster](/content/install/kagent_install#kagent-ui-cluster) for *KML* package
+install instructions using *KAgent*. Since *KML* relies on *Kubernetes*, an external
+*Kubernetes* cluster needs to be provided; *KAgent* will configure *KML* to
+communicate with the external *Kubernetes* cluster .
+
+
+<a id="kml-logging"></a>
+
+
+## Logging
+
+
+All the main logs for the *KML* service are located in
+<Badge color="gray">/opt/gpudb/kml/logs</Badge>.

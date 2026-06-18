@@ -1,0 +1,152 @@
+---
+title: Schemas
+---
+
+<a id="collection"></a>
+
+<a id="collections"></a>
+
+<a id="schema"></a>
+
+<a id="schemas"></a>
+
+
+A *schema* is a container for all database objects, providing namespacing for
+them.
+
+Namespacing occurs at the schema level and at the category level, meaning that:
+
+* One *schema* could contain a *table* with the same name as a *table* in
+  another *schema*.
+* One *schema* could contain a *data source* and *data sink* with the same name.
+* One *schema* cannot contain an *external table* and a *view* with the same
+  name.
+
+Each object in the database will have a containing *schema*; no object will
+exist outside of all *schemas*.
+
+
+## Name Resolution
+
+
+A database object within a specific *schema* can be addressed by
+*qualified name*, prefixing the *object* name with the *schema* name separated
+by a dot; e.g.:
+
+```
+<schema name>.<object name>
+```
+Database objects referenced without a *qualified name* will be looked for in the
+user's [default schema](/content/concepts/schemas#schema-default), if assigned.
+
+
+<a id="schema-naming-criteria"></a>
+
+
+## Naming Criteria
+
+
+Each *schema* is identified by a name, which must meet the following criteria:
+
+* Between 1 and 200 characters long
+* Alphanumeric, including spaces and these symbols: `_` `{` `}` `[`
+  `]` `:` `-` `(` `)` `#`
+* First character is alphanumeric or an underscore
+* Unique among *schemas*--cannot have the same name as another *schema*, but can
+  have the same name as any other database object
+
+
+<a id="schema-visibility"></a>
+
+
+## Visibility
+
+
+A *schema* will be visible to any user in any of the following situations:
+
+* The user has `system_admin`, `system_read`, or `system_write` permission
+* The user has `table_admin` or `table_read` permission on the *schema*
+* The user has `table_admin` or `table_read` permission on at least one
+  *table* or *view* within the *schema*
+
+The [home schema](/content/concepts/schemas#schema-home) will always be visible to all users.
+
+
+<a id="schema-default"></a>
+
+
+## Default Schema
+
+
+A *default schema* can be associated with any user, to apply a default
+containing *schema* to any *table* or other object references that a user makes
+when the user does not specify a *schema* explicitly.
+
+When creating a *table* or other object, including the result table of any
+operation, without specifying the *schema*, that object will be created in the
+user's *default schema*.  If the user has no *default schema*, an error will be
+returned.
+
+When attempting to perform an operation on an existing *table* or other object
+(reading, writing, altering, etc.) without specifying a *schema*, the object
+will be looked for in the user's *default schema*.  If it is not found
+there, or if the user has no *default schema*, an error will be returned.
+
+A user can be assigned a *default schema* during creation, using the
+[/create/user/internal](/content/api/rest/create_user_internal_rest#create-user-internal-rest) endpoint, or after creation, using the
+[/alter/user](/content/api/rest/alter_user_rest#alter-user-rest) endpoint.
+
+
+<a id="schema-home"></a>
+
+
+## Home Schema
+
+
+Upgrades from releases of *Kinetica* prior to version *7.1* will have a
+*home schema* named `ki_home`.
+
+Any top-level tables (those not contained within a *schema*) that existed prior
+to the upgrade will be moved to the *home schema* during the upgrade.
+
+Any users that existed prior to the upgrade will be given the *home schema* as
+their *default schema*, so that any unqualified references to those top-tables
+in existing applications will continue to function without modification.  All
+new users will have the *home schema* as their *default schema* by default as
+well, for consistency.
+
+
+## Built-in Schemas
+
+
+In addition to the [home schema](/content/concepts/schemas#schema-home), there are several
+*schemas* that may exist in a default *Kinetica* installation.
+
+| Schema | Description |
+| --- | --- |
+| `demo` | Contains any [demo datasets](/content/admin/gadmin/cluster#cluster-demo) loaded into the database. |
+| `ki_home` | The *Kinetica* [home schema](/content/concepts/schemas#schema-home), and the [default schema](/content/concepts/schemas#schema-default) for all users. |
+| `sys_security` | Contains temporary tables created during row/column security processing. <br/> <Info> Only visible to users with `sys_admin` permission. </Info> |
+| `sys_sql_temp` | Contains temporary tables created during the execution of SQL queries. <br/> <Info> Only visible to users with `sys_admin` permission. </Info> |
+| `sys_temp` | Contains temporary tables created in processing user requests. <br/> <Info> Only visible to users with `sys_admin` permission. </Info> |
+| `SYSTEM` | Contains the [ITER](/content/sql/query#sql-iteration) virtual table. |
+
+
+## Schema Management
+
+
+*Schemas* have the same naming criteria as [tables](/content/concepts/tables#table), and cannot be
+named any of the following, regardless of case:
+
+* `KINETICA`
+* `PUBLIC`
+* `ROOT`
+* `SYSTEM`
+
+A *schema* can be created using the [/create/schema](/content/api/rest/create_schema_rest#create-schema-rest) endpoint.
+
+After a *schema* is created, *tables* and other objects can be added to the
+*schema* at creation time using any endpoints that create them, prefixing the
+name of the object to create with the *schema* name, separated by a dot.
+
+A *schema* can be dropped using the [/drop/schema](/content/api/rest/drop_schema_rest#drop-schema-rest) endpoint.

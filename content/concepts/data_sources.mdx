@@ -1,0 +1,627 @@
+---
+title: Data Sources
+---
+
+A *data source* is reference object for a data set that is external to the
+database.  It consists of the location & connection information to that external
+source, but doesn't hold the names of any specific data sets/files within that
+source.  A *data source* can make use of a
+[credential](/content/concepts/credentials) object for storing remote authentication
+information.
+
+A *data source* name must adhere to the standard
+[naming criteria](/content/concepts/tables#table-naming-criteria).  Each *data source*
+exists within a [schema](/content/concepts/schemas) and follows the standard
+[name resolution rules](/content/concepts/tables#table-name-resolution) for *tables*.
+
+The following *data source* providers are supported:
+
+* Azure *(Microsoft blob storage)*
+* GCS *(Google Cloud Storage)*
+* HDFS *(Apache Hadoop Distributed File System)*
+* JDBC *(Java Database Connectivity, using a user-supplied driver or one of the*
+  *drivers on the [supported list](/content/concepts/jdbc_drivers))*
+* Kafka *(streaming feed)*
+
+  * *Apache*
+  * *Confluent*
+
+* S3 *(Amazon S3 Bucket)*
+
+
+<Info>
+The following default hosts are used for Azure, GCS, & S3, but can be
+overridden in the `location` parameter:
+
+* Azure:  `<service_account_name>.blob.core.windows.net`
+* GCS:    `storage.googleapis.com`
+* S3:     `<region>.amazonaws.com`
+</Info>
+
+*Data sources* perform no function by themselves, but act as proxies for
+accessing external data when referenced in certain database operations.  The
+following can make use of *data sources*:
+
+* [External tables](/content/concepts/external_tables)
+  (see also the [CREATE EXTERNAL TABLE](/content/sql/ddl#sql-create-ext-table) command in SQL)
+* [Insert records (from files) API calls](/content/feature_overview/insert_records_fromfiles_feature_overview#insert-records-fromfiles-feature-overview)
+  (see also the [LOAD DATA](/content/sql/load#sql-load-file-server) command in SQL)
+
+Individual files within a *data source* need to be identified when the
+*data source* is referenced within these calls.
+
+
+<Info>
+The *data source* will be validated upon creation, by default, and will
+fail to be created if an authorized connection cannot be established.
+</Info>
+
+
+## Managing Data Sources
+
+
+A *data source* can be managed using the following API endpoint calls.  For
+managing *data sources* in SQL, see [CREATE DATA SOURCE](/content/sql/ddl#sql-create-data-source).
+
+| API Call | Description |
+| --- | --- |
+| [/create/datasource](/content/api/rest/create_datasource_rest#create-datasource-rest) | Creates a *data source*, given a location and connection information |
+| [/alter/datasource](/content/api/rest/alter_datasource_rest#alter-datasource-rest) | Modifies the properties of a *data source*, validating the new connection |
+| [/drop/datasource](/content/api/rest/drop_datasource_rest#drop-datasource-rest) | Removes the *data source* reference from the database; will not modify the external source data |
+| [/show/datasource](/content/api/rest/show_datasource_rest#show-datasource-rest) | Outputs the *data source* properties; passwords are redacted |
+| [/grant/permission/datasource](/content/api/rest/grant_permission_datasource_rest#grant-permission-datasource-rest) | Grants the [permission](/content/security/sec_concepts#security-concepts-permissions-datasource) for a user to connect to a *data source* |
+| [/revoke/permission/datasource](/content/api/rest/revoke_permission_datasource_rest#revoke-permission-datasource-rest) | Revokes the [permission](/content/security/sec_concepts#security-concepts-permissions-datasource) for a user to connect to a *data source* |
+
+
+## Creating a Data Source
+
+
+To create a *data source*, `kin_ds`, that connects to an Amazon S3 bucket,
+`kinetica_ds`, in the **US East (N. Virginia)** region:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_source/data_source.kisql (lines 21-22 33-34 25-29) */}
+```sql SQL
+CREATE DATA SOURCE kin_ds
+LOCATION = 'S3'
+USER = '<aws access id>'
+PASSWORD = '<aws access key>'
+WITH OPTIONS
+(
+    BUCKET NAME = 'kinetica-ds',
+    REGION = 'us-east-1'
+)
+```
+
+{/* Source: /examples/python/data_source.py (lines 34-43) */}
+```python Python
+kinetica.create_datasource(
+    name = 'kin_ds',
+    location = 's3',
+    user_name = aws_id,
+    password = aws_key,
+    options = {
+        's3_bucket_name': 'kinetica-ds',
+        's3_region': 'us-east-1'
+    }
+)
+```
+
+</CodeGroup>
+
+
+<Note>
+For Amazon S3 connections, the `user_name` & `password`
+parameters refer to the AWS Access ID & Key, respectively.
+</Note>
+
+
+<a id="create-data-source-providers"></a>
+
+
+### Provider-Specific Syntax
+
+
+Several authentication schemes across multiple providers are supported.
+
+* [Azure](/content/concepts/data_sources#create-data-source-providers-azure)
+* [GCS](/content/concepts/data_sources#create-data-source-providers-gcs)
+* [HDFS](/content/concepts/data_sources#create-data-source-providers-hdfs)
+* [JDBC](/content/concepts/data_sources#create-data-source-providers-jdbc)
+* [Kafka (Apache)](/content/concepts/data_sources#create-data-source-providers-kafka)
+* [Kafka (Confluent)](/content/concepts/data_sources#create-data-source-providers-confluent)
+* [S3](/content/concepts/data_sources#create-data-source-providers-s3)
+
+
+<a id="create-data-source-providers-azure"></a>
+
+
+#### Azure
+
+
+<CodeGroup>
+
+{/* Source: syntax/data_sources_azure.txt (lines 77-86) */}
+```python Credential
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'azure[://<host>]',
+    user_name = '',
+    password = '',
+    options = {
+        'credential': '[<credential schema name>.]<credential name>',
+        'azure_container_name': '<azure container name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_azure.txt (lines 21-30) */}
+```python Managed Credentials
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'azure[://<host>]',
+    options = {
+    	'use_managed_credentials': 'true',
+        'azure_storage_account_name': '<azure storage account name>',
+        'azure_container_name': '<azure container name>',
+        'azure_tenant_id': '<azure tenant id>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_azure.txt (lines 8-16) */}
+```python Public (No Auth)
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'azure[://<host>]',
+    user_name = '<azure storage account name>',
+    password = '',
+    options = {
+        'azure_container_name': '<azure container name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_azure.txt (lines 35-43) */}
+```python Password
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'azure[://<host>]',
+    user_name = '<azure storage account name>',
+    password = '<azure storage account key>',
+    options = {
+        'azure_container_name': '<azure container name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_azure.txt (lines 48-57) */}
+```python SAS Token
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'azure[://<host>]',
+    user_name = '<azure storage account name>',
+    password = '',
+    options = {
+        'azure_sas_token': '<azure sas token>',
+        'azure_container_name': '<azure container name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_azure.txt (lines 62-72) */}
+```python Active Directory
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'azure[://<host>]',
+    user_name = '<ad client id>',
+    password = '<ad client secret key>',
+    options = {
+        'azure_storage_account_name': '<azure storage account name>',
+        'azure_container_name': '<azure container name>',
+        'azure_tenant_id': '<azure tenant id>'
+    }
+)
+```
+
+</CodeGroup>
+
+
+<a id="create-data-source-providers-gcs"></a>
+
+
+#### GCS
+
+
+<CodeGroup>
+
+{/* Source: syntax/data_sources_gcs.txt (lines 51-61) */}
+```python Credential
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'gcs[://<host>]',
+    user_name = '',
+    password = '',
+    options = {
+    	'credential': '[<credential schema name>.]<credential name>',
+    	['gcs_project_id': '<gcs project id>',]
+    	'gcs_bucket_name': '<gcs bucket name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_gcs.txt (lines 66-76) */}
+```python Managed Credentials
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'gcs[://<host>]',
+    user_name = '',
+    password = '',
+    options = {
+    	'use_managed_credentials': 'true',
+    	['gcs_project_id': '<gcs project id>',]
+    	'gcs_bucket_name': '<gcs bucket name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_gcs.txt (lines 8-17) */}
+```python Public (No Auth)
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'gcs[://<host>]',
+    user_name = '',
+    password = '',
+    options = {
+    	['gcs_project_id': '<gcs project id>',]
+    	'gcs_bucket_name': '<gcs bucket name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_gcs.txt (lines 22-31) */}
+```python User ID & Key
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'gcs[://<host>]',
+    user_name = '<gcs account id>',
+    password = '<gcs account private key>',
+    options = {
+    	['gcs_project_id': '<gcs project id>',]
+    	'gcs_bucket_name': '<gcs bucket name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_gcs.txt (lines 36-46) */}
+```python JSON Key
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'gcs[://<host>]',
+    user_name = '',
+    password = '',
+    options = {
+    	'gcs_service_account_keys': '<gcs account json key text>',
+    	['gcs_project_id': '<gcs project id>',]
+    	'gcs_bucket_name': '<gcs bucket name>'
+    }
+)
+```
+
+</CodeGroup>
+
+
+<a id="create-data-source-providers-hdfs"></a>
+
+
+#### HDFS
+
+
+<CodeGroup>
+
+{/* Source: syntax/data_sources_hdfs.txt (lines 45-53) */}
+```python Credential
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'hdfs://<host>:<port>',
+    user_name = '',
+    password = '',
+    options = {
+        'credential': '[<credential schema name>.]<credential name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_hdfs.txt (lines 8-14) */}
+```python Password
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'hdfs://<host>:<port>',
+    user_name = '<hdfs username>',
+    password = '<hdfs password>',
+    options = {}
+)
+```
+
+{/* Source: syntax/data_sources_hdfs.txt (lines 19-27) */}
+```python Kerberos Token
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'hdfs://<host>:<port>',
+    user_name = '<hdfs username>',
+    password = '',
+    options = {
+        'hdfs_use_kerberos': 'true'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_hdfs.txt (lines 32-40) */}
+```python Kerberos Keytab
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'hdfs://<host>:<port>',
+    user_name = '<hdfs username>',
+    password = '',
+    options = {
+        'hdfs_kerberos_keytab': 'kifs://<keytab file/path>'
+    }
+)
+```
+
+</CodeGroup>
+
+
+<a id="create-data-source-providers-jdbc"></a>
+
+
+#### JDBC
+
+
+<CodeGroup>
+
+{/* Source: syntax/data_sources_jdbc.txt (lines 22-32) */}
+```python Credential
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = '<jdbc url>',
+    user_name = '',
+    password = '',
+    options = {
+        'credential': '[<credential schema name>.]<credential name>',
+        'jdbc_driver_class_name': '<jdbc driver class full path>',
+        'jdbc_driver_jar_path': 'kifs://<jdbc driver jar path>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_jdbc.txt (lines 8-17) */}
+```python Password
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = '<jdbc url>',
+    user_name = '<jdbc username>',
+    password = '<jdbc password>',
+    options = {
+        'jdbc_driver_class_name': '<jdbc driver class full path>',
+        'jdbc_driver_jar_path': 'kifs://<jdbc driver jar path>'
+    }
+)
+```
+
+</CodeGroup>
+
+
+<a id="create-data-source-providers-kafka"></a>
+
+
+#### Kafka (Apache)
+
+
+<Info>
+The `location` can be a comma-delimited list of Kafka URLs to be
+used for high-availability; only one of which will be streamed from
+at any given time.
+</Info>
+
+<CodeGroup>
+
+{/* Source: syntax/data_sources_kafka.txt (lines 21-30) */}
+```python Credential
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'kafka://<host>:<port>',
+    user_name = '',
+    password = '',
+    options = {
+        'credential': '[<credential schema name>.]<credential name>',
+        'kafka_topic_name': '<kafka topic name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_kafka.txt (lines 35-46) */}
+```python Credential w/ Schema Registry
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'kafka://<host>:<port>',
+    user_name = '',
+    password = '',
+    options = {
+        'credential': '[<credential schema name>.]<credential name>',
+        'kafka_topic_name': '<kafka topic name>',
+        'schema_registry_credential': '[<sr credential schema name>.]<sr credential name>',
+        'schema_registry_location': '<schema registry url>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_kafka.txt (lines 8-16) */}
+```python Public (No Auth)
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'kafka://<host>:<port>',
+    user_name = '',
+    password = '',
+    options = {
+        'kafka_topic_name': '<kafka topic name>'
+    }
+)
+```
+
+</CodeGroup>
+
+
+<a id="create-data-source-providers-confluent"></a>
+
+
+#### Kafka (Confluent)
+
+
+<Info>
+The `location` can be a comma-delimited list of Kafka URLs to be
+used for high-availability; only one of which will be streamed from
+at any given time.
+</Info>
+
+<CodeGroup>
+
+{/* Source: syntax/data_sources_confluent.txt (lines 21-30) */}
+```python Credential
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'confluent://<host>:<port>',
+    user_name = '',
+    password = '',
+    options = {
+        'credential': '[<credential schema name>.]<credential name>',
+        'kafka_topic_name': '<kafka topic name>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_confluent.txt (lines 35-46) */}
+```python Credential w/ Schema Registry
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'confluent://<host>:<port>',
+    user_name = '',
+    password = '',
+    options = {
+        'credential': '[<credential schema name>.]<credential name>',
+        'kafka_topic_name': '<kafka topic name>',
+        'schema_registry_credential': '[<sr credential schema name>.]<sr credential name>',
+        'schema_registry_location': '<schema registry url>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_confluent.txt (lines 8-16) */}
+```python Public (No Auth)
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 'confluent://<host>:<port>',
+    user_name = '',
+    password = '',
+    options = {
+        'kafka_topic_name': '<kafka topic name>'
+    }
+)
+```
+
+</CodeGroup>
+
+
+<a id="create-data-source-providers-s3"></a>
+
+
+#### S3
+
+
+<CodeGroup>
+
+{/* Source: syntax/data_sources_s3.txt (lines 66-76) */}
+```python Credential
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 's3[://<host>]',
+    user_name = '',
+    password = '',
+    options = {
+        'credential': '[<credential schema name>.]<credential name>',
+        's3_bucket_name': '<aws s3 bucket name>',
+        's3_region': '<aws s3 region>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_s3.txt (lines 22-32) */}
+```python Managed Credentials
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 's3[://<host>]',
+    user_name = '',
+    password = '',
+    options = {
+        'use_managed_credentials': 'true',
+        's3_bucket_name': '<aws s3 bucket name>',
+        's3_region': '<aws s3 region>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_s3.txt (lines 8-17) */}
+```python Public (No Auth)
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 's3[://<host>]',
+    user_name = '',
+    password = '',
+    options = {
+        's3_bucket_name': '<aws s3 bucket name>',
+        's3_region': '<aws s3 region>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_s3.txt (lines 37-46) */}
+```python Access Key
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 's3[://<host>]',
+    user_name = '<aws access key id>',
+    password = '<aws secret access key>',
+    options = {
+        's3_bucket_name': '<aws s3 bucket name>',
+        's3_region': '<aws s3 region>'
+    }
+)
+```
+
+{/* Source: syntax/data_sources_s3.txt (lines 51-61) */}
+```python IAM Role
+kinetica.create_datasource(
+    name = '[<data source schema name>.]<data source name>',
+    location = 's3[://<host>]',
+    user_name = '<aws access key id>',
+    password = '<aws secret access key>',
+    options = {
+        's3_bucket_name': '<aws s3 bucket name>',
+        's3_region': '<aws s3 region>',
+        's3_aws_role_arn': '<amazon resource name>'
+    }
+)
+```
+
+</CodeGroup>
+
+
+## Limitations
+
+
+* Azure anonymous *data sources* are only supported when both the container and
+  the contained objects allow anonymous access.
+* HDFS systems with wire encryption are not supported.
+* Kafka *data sources* require an associated
+  [credential](/content/concepts/credentials) object for authentication.

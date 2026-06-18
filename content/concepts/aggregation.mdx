@@ -1,0 +1,219 @@
+---
+title: Aggregation
+---
+
+<a id="aggregation"></a>
+
+
+*Kinetica* is able to aggregate data via the native APIs and SQL using
+various [aggregate expressions](/content/concepts/expressions#aggregate-expressions-label). The native
+API endpoints related to aggregation:
+
+* [/aggregate/convexhull](/content/api/rest/aggregate_convexhull_rest)
+* [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest)
+* [/aggregate/histogram](/content/api/rest/aggregate_histogram_rest)
+* [/aggregate/kmeans](/content/api/rest/aggregate_kmeans_rest)
+* [/aggregate/minmax](/content/api/rest/aggregate_minmax_rest)
+* [/aggregate/minmax/geometry](/content/api/rest/aggregate_minmax_geometry_rest)
+* [/aggregate/statistics](/content/api/rest/aggregate_statistics_rest)
+* [/aggregate/statistics/byrange](/content/api/rest/aggregate_statistics_byrange_rest)
+* [/aggregate/unique](/content/api/rest/aggregate_unique_rest)
+* [/aggregate/unpivot](/content/api/rest/aggregate_unpivot_rest)
+
+To read more about aggregation in SQL, see [Aggregation](/content/sql/query#sql-aggregation).
+
+
+## Execution
+
+
+In SQL, to find the minimum, maximum, & average trip distances, as well as the
+average passenger count for each vendor per year from the taxi data set (weeding
+out data with errant trip distances):
+
+{/* Source: /examples/sql/aggregation.kisql (lines 19-31) */}
+```sql
+SELECT
+    vendor_id AS Vendor_ID,
+    YEAR(pickup_datetime) AS Year,
+    MAX(trip_distance) AS Max_Trip,
+    MIN(trip_distance) AS Min_Trip,
+    ROUND(AVG(trip_distance),2) AS Avg_Trip,
+    INT(AVG(passenger_count)) AS Avg_Passenger_Count
+FROM demo.nyctaxi
+WHERE
+    trip_distance > 0 AND
+    trip_distance < 100
+GROUP BY vendor_id, 2
+ORDER BY Vendor_ID, Year
+```
+
+In *Python*, create a histogram based on passenger counts from taxi data:
+
+{/* Source: /examples/python/aggregation.py (lines 13-21) */}
+```python
+    resp = kinetica.aggregate_histogram(
+            table_name="demo.nyctaxi",
+            column_name="passenger_count",
+            start=1, end=6, interval=1
+    )
+
+    print("Passenger count groups by size:")
+    for histo_group in zip([1, 2, 3, 4, 5, 6], resp['counts']):
+        print("\t{}s: {:4.0f}".format(*histo_group))
+```
+
+In *Python*, unpivot a `student_grade` table and then create a memory-only
+table `student_quarter_grade` of the results:
+
+{/* Source: /examples/python/unpivot.py (lines 173-185) */}
+```python
+        kinetica.aggregate_unpivot(
+            table_name = "example.student_grade",
+            column_names = ["*"],
+            variable_column_name = "quarter",
+            value_column_name = "grade",
+            pivoted_columns = [
+                "q1_grade AS q1",
+                "q2_grade AS q2",
+                "q3_grade AS q3",
+                "q4_grade AS q4"
+            ],
+            options= {"result_table":"example.student_quarter_grade"}
+        )
+```
+
+In *Java*, find aggregate statistics for the `trip_distance` column from taxi
+data:
+
+```java
+Map<String,Double> stats = gpudb.aggregateStatistics("nyctaxi", "trip_distance", "count,min,max,mean,percentile(50,200)", null).getStats();
+System.out.println("Statistics of values in the trip_distance column:");
+System.out.printf
+(
+    "\tCount: %.0f%n\tMin:  %4.2f%n\tMean: %4.2f%n\tMax:  %4.2f%n%n",
+    stats.get("count"), stats.get("min"), stats.get("mean"),
+    stats.get("max")
+);
+```
+
+In the REST API, find the unique Sector values from the `stocks` table using
+[/aggregate/unique](/content/api/rest/aggregate_unique_rest):
+
+```json
+{
+    "table_name":"stocks",
+    "column_name":"Sector",
+    "offset":0,
+    "limit":-9999,
+    "encoding":"json",
+    "options":{}
+}
+```
+
+
+### Pivot
+
+
+A pivot operation does not have its own endpoint and is instead achieved through
+the [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest) endpoint options. Details can be
+found on [Pivot](/content/concepts/pivot).
+
+
+### Unpivot
+
+
+As mentioned above, unpivot operations have their own
+[endpoint](/content/api/rest/aggregate_unpivot_rest). Details on unpivot
+operations can be found on [Unpivot](/content/concepts/unpivot).
+
+
+## Memory-Only Tables and Persistence
+
+
+The following aggregate endpoints have the ability to create and persist
+[memory-only tables](/content/concepts/tables_memory_only) from query results:
+
+* [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest)
+* [/aggregate/unique](/content/api/rest/aggregate_unique_rest)
+* [/aggregate/unpivot](/content/api/rest/aggregate_unpivot_rest)
+
+To create a memory-only table from any of the above endpoint operations, specify
+the name of the table in the `options` map:
+
+```text
+"result_table":"my_table_name"
+```
+
+To persist the memory-only table, specify the `result_table_persist` option as
+well:
+
+```text
+"result_table":"my_table_name",
+"result_table_persist":"true"
+```
+
+A *memory-only table* name must adhere to the standard
+[naming criteria](/content/concepts/tables#table-naming-criteria). Each *memory-only table*
+exists within a [schema](/content/concepts/schemas) and follows the standard
+[name resolution rules](/content/concepts/tables#table-name-resolution) for *tables*.
+
+
+### Sharding and Replication
+
+
+*Aggregate memory-only tables* can vary in how they are sharded or replicated
+depending on the endpoint they are created from.
+
+* [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest): The *aggregate groupby memory-only*
+  *table* will be [sharded](/content/concepts/tables#sharded) if the entire *shard key* is included
+  in the `column_names` parameter and all result records are selected
+  (`offset` is 0 and `limit` is -9999). The *aggregate groupby memory-only table*
+  can be [replicated](/content/concepts/tables#replicated) if the `result_table_force_replicated`
+  option is set to `true`, regardless if the source *table* or *view* is
+  *sharded* or not.
+
+* [/aggregate/unique](/content/api/rest/aggregate_unique_rest): An *aggregate unique memory-only*
+  *table* is [replicated](/content/concepts/tables#replicated) by default, but it can be
+  [sharded](/content/concepts/tables#sharded) if the *shard key* is included in the
+  `column_names` parameter. If the `result_table_force_replicated` option is
+  set to `true`, the *aggregate unique memory-only table* will be *replicated*
+  regardless if the source *table* or *view* is *sharded* or not.
+
+* [/aggregate/unpivot](/content/api/rest/aggregate_unpivot_rest): The *aggregate unpivot memory-only*
+  *table* will be [sharded](/content/concepts/tables#sharded) if the *shard key* is **not** part of
+  the `pivoted_columns` parameter. The *aggregate unpivot memory-only table*
+  will be [replicated](/content/concepts/tables#replicated) if the source *table* or *view* is
+  *replicated*.
+
+
+<a id="aggregation-limitations"></a>
+
+
+## Limitations
+
+
+### General
+
+
+* The *vector* [data type](/content/concepts/types) cannot be grouped on.
+* [Aggregate expressions](/content/concepts/expressions#aggregate-expressions-label) can only be
+  applied to integer, floating-point, and basic string types; other types may
+  have the `COUNT` function applied.
+* In the native APIs, an alias must be used for the column name if using column
+  or aggregate functions in the relevant selected columns parameter, e.g.,
+  `count(column_name) as count_col_records`.
+
+
+### Aggregate Memory-Only Tables
+
+
+* Creating a [memory-only table](/content/concepts/tables_memory_only) results in an
+  entirely new data set, so be mindful of the memory usage implications.
+* If an *aggregate memory-only table* is created and its source data set's
+  rows are updated (or removed), the *memory-only table* will not be updated to
+  reflect the changes in the source data set.
+* An *aggregate memory-only table* is transient, by default, and will expire
+  after the default [TTL](/content/concepts/ttl) setting.
+* An *aggregate memory-only table* is not persisted, by default, and will not
+  survive a database restart; specifying a `result_table_persist` option of
+  `true` will make the *table* permanent and not expire.

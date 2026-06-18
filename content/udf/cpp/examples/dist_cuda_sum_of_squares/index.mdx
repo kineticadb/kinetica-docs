@@ -1,0 +1,230 @@
+---
+title: Example UDF (CUDA) - Sum of Squares
+---
+
+The following implements the sum-of-squares algorithm as a distributed *UDF*
+using the CUDA-based *UDF C++* API.  The initialization script will be run
+separately from the *UDF* itself, and the execution script will need to target
+the *UDF C++* binary.
+
+This example will take a list of *input tables* and corresponding
+*output tables* (must be the same number) and, for each record of each
+*input table*, sums the squares of all *input table* columns and saves the
+result to the first column of the corresponding *output table* record; i.e.:
+
+   in.a<sup>2</sup> + in.b<sup>2</sup> + ... + in.n<sup>2</sup> -&gt; out.a
+
+This setup assumes the *UDF* is being developed on the *Kinetica* host (or head
+node host, if a multi-node *Kinetica* cluster); and that the *Python* database
+API is available at <Badge color="gray">/opt/gpudb/api/python</Badge> and the *C++ UDF* API is
+available at <Badge color="gray">/opt/gpudb/udf/api/cpp</Badge>.
+
+This example will contain the following *(click to download)*:
+
+* [udf_sos_cpp_init.py](udf_sos_cpp_init.py): creates the schema, input & output tables,
+  and loads test data
+* [udf_sos_cpp_proc.cu](udf_sos_cpp_proc.cu): implements the *UDF* itself
+* [makefile](makefile): compiles the *UDF*
+* [udf_sos_cpp_exec.py](udf_sos_cpp_exec.py): creates & executes the *UDF*
+
+
+<Info>
+All commands should be run as the `gpudb` user.
+</Info>
+
+After copying these four files to a `gpudb`-accessible directory on the
+*Kinetica* head node, the example can be run as follows, optionally
+specifying the database host and a username & password to the Python scripts:
+
+```bash
+$ /opt/gpudb/bin/gpudb_python udf_sos_cpp_init.py [--host <kinetica-host> [--username <kinetica-user> --password <kinetica-pass>]]
+$ make
+$ /opt/gpudb/bin/gpudb_python udf_sos_cpp_exec.py [--host <kinetica-host> [--username <kinetica-user> --password <kinetica-pass>]]
+```
+
+The results of the run can be checked via [Kinetica Administration Application (GAdmin)](/content/admin/gadmin).  There
+should exist two tables within the `udf_example_cpp` schema,
+`udf_sos_in_table` & `udf_sos_out_table`, each holding 10,000 records; the
+former containing pairs of numbers and the latter containing the sums of squares
+of those numbers.  Each table will carry an `id`, which can be used to
+associate input values to output sums.
+
+To verify the existence of the tables, in *GAdmin*, click **Data** &gt;
+**Tables**.  Both tables should appear in the `udf_example_cpp`
+schema, each with 10,000 records.
+
+To verify the calculations, click **Query** &gt; **KiSQL**.  Enter
+the following query into the **SQL Statement** box:
+
+```sql
+SELECT
+   sos_in.id,
+   STRING(x1) || '^2 + ' || STRING(x2) || '^2 = ' || STRING(y) AS "Equation"
+FROM
+   udf_example_cpp.udf_sos_in_table sos_in,
+   udf_example_cpp.udf_sos_out_table sos_out
+WHERE
+   sos_in.id = sos_out.id
+ORDER BY
+   id;
+```
+
+The **Query Result** box should show each of the 10,000 calculations
+made.
+
+
+## Execution Detail
+
+
+While the example *UDF* itself can run against multiple tables, the example run
+will use a single schema-qualified table, `udf_example_cpp.udf_sos_in_table`,
+as input and a matching schema-qualified table,
+`udf_example_cpp.udf_sos_out_table`, for output.
+
+The input table will contain two *float* columns and be populated with 10,000
+pairs of randomly-generated numbers.  The output table will contain one *float*
+column that will hold the sums calculated by the *UDF*.  Both tables will also
+contain an *int* column that is the calculation identifier, allowing the input
+data to be matched up with the output data after the *UDF* has run.
+
+
+<Info>
+The *UDF* will assume the first column of the input table, as defined
+in the original table creation process, is the identifier field.  All
+of the remaining columns after the first will be used in the
+sum-of-squares calculation.
+</Info>
+
+The *UDF* will calculate the sum of the squares of each of the 10,000 pairs of
+numbers and insert into the output table the corresponding 10,000 sums.
+
+
+### udf_sos_cpp_init.py
+
+
+This initialization script creates the schema, input & output tables, and
+populates the input data using the standard *Kinetica Python* API, all outside
+of the *UDF* execution framework.
+
+Several aspects of the initialization process are noteworthy:
+
+* The external database connection, indicative of the use of the standard
+  *Kinetica Python* API--the *UDF* will not have this, as it runs within the
+  database:
+
+{/* Source: udf_sos_cpp_init.py (lines 60) */}
+```python
+kinetica = gpudb.GPUdb(host = ['http://' + args.host + ':9191'], username = args.username, password = args.password)
+```
+
+* Schema, input, and output table creation:
+
+{/* Source: udf_sos_cpp_init.py (lines 16) */}
+```python
+kinetica.create_schema(SCHEMA, options=OPTION_NO_CREATE_ERROR)
+```
+
+{/* Source: udf_sos_cpp_init.py (lines 19-22 26) */}
+```python
+columns = []
+columns.append(gpudb.GPUdbRecordColumn("id", gpudb.GPUdbRecordColumn._ColumnType.INT, [gpudb.GPUdbColumnProperty.PRIMARY_KEY, gpudb.GPUdbColumnProperty.INT16]))
+columns.append(gpudb.GPUdbRecordColumn("x1", gpudb.GPUdbRecordColumn._ColumnType.FLOAT))
+columns.append(gpudb.GPUdbRecordColumn("x2", gpudb.GPUdbRecordColumn._ColumnType.FLOAT))
+input_table = gpudb.GPUdbTable(columns, INPUT_TABLE, db = kinetica)
+```
+
+{/* Source: udf_sos_cpp_init.py (lines 39-41 45) */}
+```python
+columns = []
+columns.append(gpudb.GPUdbRecordColumn("id", gpudb.GPUdbRecordColumn._ColumnType.INT, [gpudb.GPUdbColumnProperty.PRIMARY_KEY, gpudb.GPUdbColumnProperty.INT16]))
+columns.append(gpudb.GPUdbRecordColumn("y", gpudb.GPUdbRecordColumn._ColumnType.FLOAT))
+gpudb.GPUdbTable(columns, OUTPUT_TABLE, db = kinetica)
+```
+
+
+### udf_sos_cpp_proc.cu
+
+
+This is the *UDF* itself.  It uses the *Kinetica C++ UDF* API to compute the
+sums of squares of input table columns and output those sums to an output table.
+It runs within the *UDF* execution framework, and as such, is not called
+directly--instead, it is registered and launched by
+<Badge color="blue-destructive">udf_sos_cpp_exec.py</Badge>.
+
+Noteworthy in the *UDF* are the following:
+
+* The initial call to `ProcData()` to access the database:
+
+{/* Source: udf_sos_cpp_proc.cu (lines 30) */}
+```c++
+kinetica::ProcData* procData = kinetica::ProcData::get();
+```
+
+* The size of the output table must be specified before writing to it:
+
+{/* Source: udf_sos_cpp_proc.cu (lines 43 47-48) */}
+```c++
+size_t recordCount = inputTable.getSize();
+
+outputTable.setSize(recordCount);
+```
+
+* The final call to `complete()` to mark the process as finished and ready for
+  clean-up:
+
+{/* Source: udf_sos_cpp_proc.cu (lines 90) */}
+```c++
+procData->complete();
+```
+
+
+### makefile
+
+
+This standard *makefile* is used to compile the *C++ UDF* source before
+registering the *UDF* with <Badge color="blue-destructive">udf_sos_cpp_exec.py</Badge>.
+
+Noteworthy in the *makefile* are the following:
+
+* The assumption of the *C++ UDF* library installed at the default location of a
+  typical *Kinetica* deployment, and the location of a local *CUDA* install:
+
+{/* Source: makefile (lines 1 4) */}
+```make
+UDF_LIB=/opt/gpudb/udf/api/cpp/kinetica
+CUDADIR := /usr/local/cuda
+```
+
+* The inclusion of <Badge color="gray">Proc.cpp</Badge> & <Badge color="gray">Proc.hpp</Badge> as the only *UDF*-centric
+  compilation dependence:
+
+{/* Source: makefile (lines 10-11) */}
+```make
+${TARGET}: makefile ${TARGET}.cu ${UDF_LIB}/Proc.cpp ${UDF_LIB}/Proc.hpp
+	nvcc -o ${TARGET} ${TARGET}.cu ${UDF_LIB}/Proc.cpp -I${UDF_LIB} -m64
+```
+
+
+### udf_sos_cpp_exec.py
+
+
+The execution script uses the standard *Kinetica Python* API to register the
+*UDF* in the database and then execute it.
+
+The registration step associates a name with the *UDF* execution code compiled
+from <Badge color="blue-destructive">udf_sos_cpp_proc.cu</Badge>, the command
+*(the name of the compiled executable, referenced locally)* to use to run it,
+and that it will run in *distributed* mode.
+
+{/* Source: udf_sos_cpp_exec.py (lines 22) */}
+```python
+response = kinetica.create_proc(proc_name, 'distributed', files, './' + file_name, [], {})
+```
+
+The execution step invokes the *UDF* by name, passing in the input & output
+table names against which the *UDF* will execute.
+
+{/* Source: udf_sos_cpp_exec.py (lines 26) */}
+```python
+response = kinetica.execute_proc(proc_name, {}, {}, [INPUT_TABLE], {}, [OUTPUT_TABLE], {})
+```

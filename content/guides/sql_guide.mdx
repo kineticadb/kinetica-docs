@@ -1,0 +1,717 @@
+---
+title: SQL Developer Guide
+description: Step-by-step instructions to interact with Kinetica via SQL
+slug: sql_guide
+# time_estimate: 30 MIN
+---
+
+<a id="sql-guide"></a>
+
+
+The following guide provides step-by-step instructions to get started
+interacting with *Kinetica* using SQL.  This guide demonstrates some of the most
+common and useful SQL commands, but a detailed look into the full SQL support is
+available on the [SQL](/content/sql) page.
+
+
+## Prerequisites
+
+
+For a description of how to configure various clients for issuing SQL commands,
+see [Connecting](/content/connectors/sql_guide#odbc-connecting).
+
+
+### Data File
+
+
+The [tutorial script](/examples/sql/sql_tutorial.kisql) makes
+reference to a [data file](/examples/data/taxi_trip_data.csv)
+in the current directory. This path can be updated to point to a different path
+local to where the script is being run:
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 135-136) */}
+```sql Upload Data File
+UPLOAD FILE '../data/taxi_trip_data.csv'
+INTO 'data'
+```
+
+The data file will be uploaded into [KiFS](/content/tools/kifs) and then
+loaded into the table from there:
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 140-141) */}
+```sql Insert Data from File
+LOAD INTO tutorial_sql.taxi_trip_data
+FROM FILE PATHS 'kifs://data/taxi_trip_data.csv'
+```
+
+
+## Creating a Type and Table
+
+
+Before creating any database objects for this tutorial, a
+[schema](/content/sql/ddl#sql-create-schema) needs to be created to contain them:
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 21) */}
+```sql Create Tutorial Schema
+CREATE SCHEMA tutorial_sql
+```
+
+[Tables](/content/sql/ddl#sql-create-table) can be created as
+[replicated](/content/concepts/tables#replicated) using the `REPLICATED` specification.
+The `OR REPLACE` specification can be added to ensure the *table* is replaced
+if it already exists in the database. Adding a schema name before the table name
+in the `CREATE TABLE` command, e.g., `CREATE TABLE my_schema.mytable` will
+create the table under the given schema; however, the schema must first exist.
+For this tutorial, three *tables* will be created:
+
+* A base *table* containing a sample of NYC taxi cab ride data
+* A lookup *table* containing sample cab vendor information
+* A 1-to-1 relation *table* containing payment information for a subset of the
+  cab-ride transactions
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 28-41) */}
+```sql Create Vendor Table
+CREATE OR REPLACE REPLICATED TABLE tutorial_sql.vendor
+(
+  vendor_id VARCHAR(4) NOT NULL,
+  vendor_name VARCHAR(32) NOT NULL,
+  phone VARCHAR(10),
+  email VARCHAR(32),
+  hq_street VARCHAR(32) NOT NULL,
+  hq_city VARCHAR(8) NOT NULL,
+  hq_state VARCHAR(2) NOT NULL,
+  hq_zip INT NOT NULL,
+  num_emps INT NOT NULL,
+  num_cabs INT NOT NULL,
+  PRIMARY KEY (vendor_id)
+)
+```
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 47-60) */}
+```sql Create Payment Table
+CREATE OR REPLACE TABLE tutorial_sql.payment
+(
+  payment_id LONG NOT NULL,
+  payment_type VARCHAR(16),
+  credit_type VARCHAR(16),
+  payment_timestamp TYPE_TIMESTAMP,
+  fare_amount DECIMAL(7,2),
+  surcharge DECIMAL(7,2),
+  mta_tax DECIMAL(5,2),
+  tip_amount DECIMAL(7,2),
+  tolls_amount DECIMAL(7,2),
+  total_amount DECIMAL(7,2),
+  PRIMARY KEY (payment_id)
+)
+```
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 66-80) */}
+```sql Create Taxi Trip Table
+CREATE OR REPLACE TABLE tutorial_sql.taxi_trip_data
+(
+  transaction_id LONG NOT NULL,
+  payment_id LONG(SHARD_KEY) NOT NULL,
+  vendor_id VARCHAR(4) NOT NULL,
+  pickup_datetime TYPE_TIMESTAMP,
+  dropoff_datetime TYPE_TIMESTAMP,
+  passenger_count TINYINT,
+  trip_distance REAL,
+  pickup_longitude REAL,
+  pickup_latitude REAL,
+  dropoff_longitude REAL,
+  dropoff_latitude REAL,
+  PRIMARY KEY (transaction_id, payment_id)
+)
+```
+
+
+## Inserting Data
+
+
+The [INSERT INTO ... VALUES](/content/sql/dml#sql-dml-insert-values) statement is used to insert records
+into a [table](/content/sql/ddl#sql-create-table). At a minimum, each record must
+have values specified for all of the `NOT NULL` columns in the table.  The
+values specified in the `VALUES` clause must match the number and order of
+the columns specified, or they must align with the ordering of the columns in
+the table if no columns were specified:
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 86-98) */}
+```sql Insert Data into Specified Columns
+-- Use explicit column name syntax when the ordering of values for the set of
+-- records doesn't match the natural ordering of all of the columns defined
+-- within the Vendor table; here, num_emps and num_cabs are reversed
+INSERT INTO tutorial_sql.vendor (vendor_id, vendor_name, phone, email, hq_street, hq_city, hq_state, hq_zip, num_cabs, num_emps)
+VALUES
+  ('VTS','Vine Taxi Service','9998880001','admin@vtstaxi.com','26 Summit St.','Flushing','NY',11354,450,400),
+  ('YCAB','Yes Cab','7895444321',null,'97 Edgemont St.','Brooklyn','NY',11223,445,425),
+  ('NYC','New York City Cabs',null,'support@nyc-taxis.com','9669 East Bayport St.','Bronx','NY',10453,505,500),
+  ('DDS','Dependable Driver Service',null,null,'8554 North Homestead St.','Bronx','NY',10472,200,124),
+  ('CMT','Crazy Manhattan Taxi','9778896500','admin@crazymanhattantaxi.com','950 4th Road Suite 78','Brooklyn','NY',11210,500,468),
+  ('TNY','Taxi New York',null,null,'725 Squaw Creek St.','Bronx','NY',10458,315,305),
+  ('NYMT','New York Metro Taxi',null,null,'4 East Jennings St.','Brooklyn','NY',11228,166,150),
+  ('5BTC','Five Boroughs Taxi Co.','4566541278','mgmt@5btc.com','9128 Lantern Street','Brooklyn','NY',11229,193,175)
+```
+
+If each record in the `VALUES` clause specifies values for all columns in
+their natural table ordering (the order in which they appeared in the original
+`CREATE TABLE` statement) no column names need to be specified, like so:
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 101-130) */}
+```sql Insert Data into All Columns
+-- Use shorthand syntax, where each record of values matches the natural
+-- ordering of all of the columns defined within the Payment table
+INSERT INTO tutorial_sql.payment
+VALUES
+  (136,'Cash',null,'2015-04-11 01:42:01',4,0.5,0.5,1,0,6.3),
+  (148,'Cash',null,'2015-04-27 08:49:41',9.5,0,0.5,1,0,11.3),
+  (114,'Cash',null,'2015-04-05 18:47:53',5.5,0,0.5,1.89,0,8.19),
+  (180,'Cash',null,'2015-04-13 22:57:03',6.5,0.5,0.5,1,0,8.8),
+  (109,'Cash',null,'2015-04-13 18:08:33',22.5,0.5,0.5,4.75,0,28.55),
+  (132,'Cash',null,'2015-04-19 19:46:19',6.5,0.5,0.5,1.55,0,9.35),
+  (134,'Cash',null,'2015-04-19 19:44:28',33.5,0.5,0.5,0,0,34.8),
+  (176,'Cash',null,'2015-04-07 10:52:42',9,0.5,0.5,2.06,0,12.36),
+  (100,'Cash',null,null,9,0,0.5,2.9,0,12.7),
+  (193,'Cash',null,null,3.5,1,0.5,1.59,0,6.89),
+  (140,'Credit','Visa',null,28,0,0.5,0,0,28.8),
+  (161,'Credit','Visa',null,7,0,0.5,0,0,7.8),
+  (199,'Credit','Visa',null,6,1,0.5,1,0,8.5),
+  (159,'Credit','Visa','2015-04-10 14:01:27',7,0,0.5,0,0,7.8),
+  (156,'Credit','MasterCard','2015-04-10 13:32:33',12.5,0.5,0.5,0,0,13.8),
+  (198,'Credit','MasterCard','2015-04-19 19:43:56',9,0,0.5,0,0,9.8),
+  (107,'Credit','MasterCard','2015-04-11 01:56:17',5,0.5,0.5,0,0,6.3),
+  (166,'Credit','American Express','2015-04-12 03:18:43',17.5,0,0.5,0,0,18.3),
+  (187,'Credit','American Express','2015-04-10 12:49:41',14,0,0.5,0,0,14.8),
+  (125,'Credit','Discover','2015-04-24 10:01:13',8.5,0.5,0.5,0,0,9.8),
+  (119,null,null,'2015-04-30 22:04:31',9.5,0,0.5,0,0,10.3),
+  (150,null,null,'2015-04-30 22:20:47',7.5,0,0.5,0,0,8.3),
+  (170,'No Charge',null,'2015-04-30 22:05:02',28.6,0,0.5,0,0,28.6),
+  (123,'No Charge',null,'2015-04-27 12:10:49',20,0.5,0.5,0,0,21.3),
+  (181,null,null,'2015-04-27 11:51:01',6.5,0.5,0.5,0,0,7.8),
+  (189,'No Charge',null,null,6.5,0,0.5,0,0,7)
+```
+
+As mentioned in the [Prerequisites](#prerequisites) section, the data file is uploaded into
+[Kifs](/content/tools/KiFS) and then inserted into the target table from there:
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 140-141) */}
+```sql Insert Data from KiFS File
+LOAD INTO tutorial_sql.taxi_trip_data
+FROM FILE PATHS 'kifs://data/taxi_trip_data.csv'
+```
+
+
+## Retrieving Data
+
+
+A [SELECT](/content/sql/query) statement will retrieve the records from the
+given *table*. You can reduce the amount of records returned by using a
+`TOP n` clause. This will select the first *n* records returned by the query.
+Use `*` to select all columns in the *table*.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 149-151) */}
+```sql Retrieve 10 Records
+SELECT TOP 10 *
+FROM tutorial_sql.payment
+ORDER BY payment_id
+```
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 155-157) */}
+```sql Retrieve All Records
+SELECT *
+FROM tutorial_sql.vendor
+ORDER BY vendor_id
+```
+
+
+## Updating Records
+
+
+The [UPDATE](/content/sql/dml#sql-update) statement is used to update matching key values
+for all records in a *table*.  A `WHERE` clause can be used to specify the
+records to update.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 164-170) */}
+```sql Update Records
+-- Update the e-mail of, and add two employees and one cab to, the DDS vendor
+UPDATE tutorial_sql.vendor
+SET
+  email = 'management@ddstaxico.com',
+  num_emps = num_emps + 2,
+  num_cabs = num_cabs + 1
+WHERE vendor_id = 'DDS'
+```
+
+
+## Deleting Records
+
+
+The [DELETE](/content/sql/dml#sql-delete) statement is used to delete records from a
+*table*. A `WHERE` clause can be used to specify the records to delete.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 182-185) */}
+```sql Delete Records
+-- Delete payment 189
+DELETE
+FROM tutorial_sql.payment
+WHERE payment_id = 189
+```
+
+
+## Alter Table
+
+
+Some properties can be altered or added after
+[table](/content/sql/ddl#sql-create-table) creation, including *indexes* and
+*dictionary encoding*. Use the [ALTER TABLE](/content/sql/ddl#sql-alter-table) command to specify
+the table and property you want to alter.
+
+
+### Indexes
+
+
+[ADD INDEX](/content/sql/ddl#sql-alter-table-column-index-add) will add a column
+index to a table column.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 203-204) */}
+```sql Add Index on Column
+ALTER TABLE tutorial_sql.payment
+ADD INDEX (fare_amount)
+```
+
+
+### Dictionary Encoding
+
+
+Use [ALTER COLUMN](/content/sql/ddl#sql-alter-table-column-modify) to add column
+properties like
+[dictionary encoding](/content/concepts/dictionary_encoding).
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 218-219) */}
+```sql Dictionary Encode Column
+ALTER TABLE tutorial_sql.taxi_trip_data
+ALTER COLUMN vendor_id VARCHAR(4, DICT) NOT NULL
+```
+
+
+<Note>
+When adding a new property, all existing column properties must
+be listed along with any new properties; those not listed will be removed.
+</Note>
+
+
+## Filters & Aggregates
+
+
+A simple filter can be performed using the [SELECT](/content/sql/query)
+statement's `WHERE` clause.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 226-230) */}
+```sql Filter by Value
+-- Select all payments with a fare amount greater than 8
+SELECT payment_id, fare_amount
+FROM tutorial_sql.payment
+WHERE fare_amount > 8
+ORDER BY payment_id
+```
+
+
+<Info>
+This query makes use of the column index created in the preceding
+[Indexes](#indexes) section.
+</Info>
+
+`BETWEEN` can be used to filter values within a range, inclusively.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 233-237) */}
+```sql Filter by Range
+-- Select trips with passenger counts between 6 and 10
+SELECT pickup_datetime, dropoff_datetime, trip_distance, passenger_count
+FROM tutorial_sql.taxi_trip_data
+WHERE passenger_count BETWEEN 6 AND 10
+ORDER BY pickup_datetime
+```
+
+The `CASE ... WHEN` statement is a logical function that allows you to
+categorize records based on given filters.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 240-257) */}
+```sql Filter by Multiple Conditions
+-- Select the top 30 records where the pickup is between April 20th and
+-- April 26th, then order them from longest trip to shortest trip.  A trip
+-- description will also be returned, designating any trip of over six miles as
+-- a "long trip", between three and six miles as a "medium trip", and three or
+-- shorter as a "short trip".
+SELECT TOP 30
+  vendor_id,
+  pickup_datetime,
+  dropoff_datetime,
+  passenger_count,
+  CASE
+    WHEN trip_distance > 6 THEN 'long trip'
+    WHEN trip_distance > 3 THEN 'medium trip'
+    ELSE 'short trip'
+  END AS trip_description
+FROM tutorial_sql.taxi_trip_data
+WHERE pickup_datetime BETWEEN '2015-04-20 00:00:00.000' AND '2015-04-27 00:00:00.000'
+ORDER BY trip_distance DESC
+```
+
+Aggregate functions are just a small offering of the available
+[SQL functions](/content/sql/query#sql-functions). Aggregate functions are paired
+with a `GROUP BY` clause that groups the returned records by values in a given
+column. The `HAVING` clause filters records after they've been aggregated.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 260-271) */}
+```sql Filter Aggregation by Value
+-- Select the longest, shortest, and average trip distance & passenger count for
+-- each vendor whose average passenger count is higher than 1.4
+SELECT
+  vendor_id,
+  MAX(trip_distance) max_trip,
+  MIN(trip_distance) min_trip,
+  ROUND(AVG(trip_distance),2) avg_trip,
+  INT(AVG(passenger_count)) avg_passenger_count
+FROM tutorial_sql.taxi_trip_data
+GROUP BY vendor_id
+HAVING AVG(passenger_count) > 1.4
+ORDER BY vendor_id
+```
+
+
+## Subqueries
+
+
+Subqueries allow for nested queries within the clauses of a SQL statement. The
+below example is a simple [SELECT](/content/sql/query) statement that
+includes subqueries in each of its three clauses.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 278-310) */}
+```sql Subqueries in SELECT, FROM, & WHERE Clauses
+-- Show how tips compare between cash and credit card payments: retrieve unique
+-- paid-by-cash fare & tip combinations and calculate the relationship between
+-- the cash tip percentage and the average credit tip percentage, across all
+-- cash fares that were at least as much as the lowest credit card fare.  The
+-- tip factor will be the size of the cash tip in terms of the average credit
+-- tip; e.g., "10" indicates the cash tip percentage is 10 times higher than the
+-- average credit tip
+SELECT
+  fare_amount,
+  tip_amount,
+  DECIMAL
+  (
+    (tip_amount / fare_amount) * 100 /
+    (
+      SELECT AVG(tip_amount / fare_amount) * 100 as avg_credit_tip_pct
+      FROM tutorial_sql.payment
+      WHERE payment_type = 'Credit'
+    )
+  ) as tip_factor_cash_vs_credit_pct
+FROM
+(
+  SELECT DISTINCT
+    fare_amount,
+    tip_amount
+  FROM tutorial_sql.payment
+  WHERE payment_type = 'Cash'
+) cash_fare_tip
+WHERE fare_amount >=
+(
+  SELECT MIN(fare_amount)
+  FROM tutorial_sql.payment
+  WHERE payment_type = 'Credit'
+)
+```
+
+
+## Common Table Expression / With
+
+
+The [WITH](/content/sql/query#sql-with) statement can be used to give a subquery an
+alias for use in a larger query.  You can reuse the aliased query as if it were
+another result set, but only in the query immediately following the `WITH`
+statement.  The "parameters" to  the `WITH` statement are the aliases that
+will be given to the result columns returned by the `SELECT` contained within
+the `WITH`; the number of "parameters" and columns in the `SELECT` clause
+should match.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 318-338) */}
+```sql Filter Using CTE
+-- Retrieve the set of cash payments that fall within the timestamp range of
+-- recorded credit payments
+WITH credit_pay_ts_min_max (min_pay_ts, max_pay_ts) AS
+(
+  SELECT
+    MIN(payment_timestamp) AS min_pay_ts,
+    MAX(payment_timestamp) AS max_pay_ts
+  FROM tutorial_sql.payment
+  WHERE payment_type = 'Credit'
+)
+SELECT
+  payment_id,
+  payment_timestamp,
+  total_amount
+FROM tutorial_sql.payment
+WHERE
+  payment_type = 'Cash' AND
+  payment_timestamp BETWEEN
+    (SELECT min_pay_ts FROM credit_pay_ts_min_max) AND
+    (SELECT max_pay_ts FROM credit_pay_ts_min_max)
+ORDER BY payment_timestamp
+```
+
+
+## Joins
+
+
+[Joins](/content/sql/query#sql-join) allow you to link multiple *tables* together,
+along their relations, retrieving associated information from any or all of
+them.  Tables can only be *joined* if they're [sharded](/content/concepts/tables#sharded)
+similarly or [replicated](/content/concepts/tables#replicated).
+
+An *inner join* returns only records that have matching values in both *tables*.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 346-358) */}
+```sql Inner Join
+-- Retrieve payment information for rides having more than three passengers
+SELECT
+  t.payment_id,
+  payment_type,
+  total_amount,
+  passenger_count,
+  vendor_id,
+  trip_distance
+FROM tutorial_sql.taxi_trip_data t
+INNER JOIN tutorial_sql.payment p ON t.payment_id = p.payment_id
+WHERE
+  passenger_count > 3
+ORDER BY payment_id
+```
+
+A *left join* returns all of the records an *inner join* does, but additionally,
+for each record in the table on the *left* side of the *join* that has no match
+along the relation to a record in the table on the *right* side of the *join*, a
+corresponding record will be returned with "left-side" columns populated with
+the "left-side" record data and the "right-side" columns populated with *nulls*.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 362-374) */}
+```sql Left Join
+-- Retrieve cab ride transactions and the full name of the associated vendor (if
+-- available--blank if vendor name is unknown) for transactions with associated
+-- payment data, sorting by increasing values of transaction ID.
+SELECT
+  transaction_id,
+  pickup_datetime,
+  trip_distance,
+  t.vendor_id,
+  vendor_name
+FROM tutorial_sql.taxi_trip_data t
+LEFT JOIN tutorial_sql.vendor v ON t.vendor_id = v.vendor_id
+WHERE payment_id != 0
+ORDER BY transaction_id
+```
+
+
+<Info>
+Full outer joins may require both tables to be replicated or joined on
+their shard keys. Set merges that perform deduplication of records, like
+`UNION DISTINCT`, `INTERSECT`, and `EXCEPT` may also need to use
+replicated tables to ensure the correct results, so a replicated version of
+the taxi (`taxi_trip_data_replicated`) table is created at this point in
+the tutorial.
+</Info>
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 382-394) */}
+```sql Create Replicated Table for Full Outer Join
+CREATE OR REPLACE REPLICATED TABLE tutorial_sql.taxi_trip_data_replicated (
+  transaction_id LONG NOT NULL,
+  payment_id LONG NOT NULL,
+  vendor_id VARCHAR(4) NOT NULL,
+  pickup_datetime TYPE_TIMESTAMP,
+  dropoff_datetime TYPE_TIMESTAMP,
+  passenger_count DECIMAL(2),
+  trip_distance FLOAT,
+  pickup_longitude FLOAT,
+  pickup_latitude FLOAT,
+  dropoff_longitude FLOAT,
+  dropoff_latitude FLOAT
+)
+```
+
+A *full outer join* returns all of the records a *left join* does, but
+additionally, for each record in the table on the *right* side of the *join*
+that has no match along the relation to a record in the table on the *left* side
+of the *join*, a corresponding record will be returned with "right-side" columns
+populated with the "right-side" record data and the "left-side" columns
+populated with *nulls*.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 403-418) */}
+```sql Full Outer Join
+-- Retrieve the vendor IDs of known vendors with no recorded cab ride
+-- transactions, as well as the vendor ID and number of transactions for unknown
+-- vendors with recorded cab ride transactions
+SELECT
+  v.vendor_id vend_table_vendors,
+  t.vendor_id taxi_table_vendors,
+  COUNT(*) as total_records
+FROM tutorial_sql.taxi_trip_data_replicated t
+FULL OUTER JOIN tutorial_sql.vendor v ON v.vendor_id = t.vendor_id
+WHERE
+  v.vendor_id IS null OR
+  t.vendor_id IS null
+GROUP BY
+  v.vendor_id,
+  t.vendor_id
+ORDER BY 1, 2
+```
+
+
+## Create Table As
+
+
+You can also create a *table* directly from a query using
+[CREATE TABLE ... AS](/content/sql/ddl#sql-create-table-as). These can also be created as temporary
+*tables* by applying the `TEMP` specification. Much like regular *table*
+creation, you can also specify `OR REPLACE` to replace the *table* if it
+already exists.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 425-430) */}
+```sql Create Temp Table from Query
+-- Create a memory-only table containing all payments by credit card
+CREATE OR REPLACE TEMP TABLE tutorial_sql.credit_payment AS (
+  SELECT *
+  FROM tutorial_sql.payment
+  WHERE payment_type = 'Credit'
+)
+```
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 439-451) */}
+```sql Create Table from Query
+-- Create a persisted table with cab ride transactions greater than 5 miles
+-- whose trip started during lunch hours
+CREATE OR REPLACE TABLE tutorial_sql.lunch_time_rides AS (
+  SELECT
+    HOUR(pickup_datetime) hour_of_day,
+    vendor_id,
+    passenger_count,
+    trip_distance
+  FROM tutorial_sql.taxi_trip_data
+  WHERE
+    HOUR(pickup_datetime) BETWEEN '11' AND '14' AND
+    trip_distance > 5
+)
+```
+
+
+## Union, Intersect, and Except
+
+
+A [UNION](/content/sql/query#sql-union) can be used to combine homogeneous data sets into one
+larger data set. `UNION` & `UNION DISTINCT` will both combine data sets but
+only retain the records that are unique across the chosen columns, removing all
+duplicates.  `UNION ALL` will combine data sets, retaining all records from
+the source data sets.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 465-485) */}
+```sql Set Union Retaining Duplicates
+-- Calculate the average number of passengers, as well as the shortest, average,
+-- and longest trips for all trips in each of the two time periods--from April
+-- 1st through the 15th, 2015 and from April 16th through the 23rd, 2015--and
+-- return those two sets of statistics in a single result set
+SELECT
+  '2015-04-01 - 2015-04-15' pickup_window_range,
+  INT(AVG(passenger_count)) avg_pass_count,
+  ROUND(AVG(trip_distance),2) avg_trip,
+  MIN(trip_distance) min_trip,
+  MAX(trip_distance) max_trip
+FROM tutorial_sql.taxi_trip_data
+WHERE pickup_datetime BETWEEN '2015-04-01' AND '2015-04-15 23:59:59.999'
+UNION ALL
+SELECT
+  '2015-04-16 - 2015-04-23',
+  INT(AVG(passenger_count)),
+  ROUND(AVG(trip_distance),2),
+  MIN(trip_distance),
+  MAX(trip_distance)
+FROM tutorial_sql.taxi_trip_data
+WHERE pickup_datetime BETWEEN '2015-04-16' AND '2015-04-23 23:59:59.999'
+```
+
+A [INTERSECT](/content/sql/query#sql-intersect) will combine data sets but only include the
+records found in both data sets, removing duplicate result records.
+`INTERSECT ALL` will retain duplicate intersecting records.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 489-503) */}
+```sql Set Intersection
+-- Retrieve locations (as lat/lon pairs) that were both pick-up and drop-off
+-- points
+SELECT
+  pickup_latitude AS latitude,
+  pickup_longitude AS longitude
+FROM tutorial_sql.taxi_trip_data_replicated
+WHERE
+  pickup_latitude <> 0 AND
+  pickup_longitude <> 0
+INTERSECT
+SELECT
+  dropoff_latitude,
+  dropoff_longitude
+FROM tutorial_sql.taxi_trip_data_replicated
+ORDER BY latitude, longitude
+```
+
+A [EXCEPT](/content/sql/query#sql-except) will return records that appear in the first data
+set but not the second data set.  Note that the data sets on each side of the
+`EXCEPT` will have duplicates removed *first*, and then the set subtraction
+will be processed.  `EXCEPT ALL` will retain duplicates from the first set.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 507-517) */}
+```sql Set Exception (Subtraction)
+-- Show vendors that operate before noon, but not after noon:  retrieve the
+-- unique list of IDs of vendors who provided cab rides between midnight and
+-- noon, and remove from that list the IDs of any vendors who provided cab rides
+-- between noon and midnight
+SELECT vendor_id
+FROM tutorial_sql.taxi_trip_data_replicated
+WHERE HOUR(pickup_datetime) BETWEEN 0 AND 11
+EXCEPT
+SELECT vendor_id
+FROM tutorial_sql.taxi_trip_data_replicated
+WHERE HOUR(pickup_datetime) BETWEEN 12 AND 23
+```
+
+
+## Truncate
+
+
+Use [TRUNCATE TABLE](/content/sql/ddl#sql-truncate-table) to remove all records from a *table*
+without deleting the *table*.
+
+{/* Source: /examples/sql/sql_tutorial.kisql (lines 525) */}
+```sql Truncate Table
+TRUNCATE TABLE tutorial_sql.credit_payment
+```
+
+
+## Complete Sample
+
+
+Included below is a complete example containing all the above queries, the data
+files, and output.
+
+* [SQL Script](/examples/sql/sql_tutorial.kisql)
+* [SQL Data File (taxi trip data)](/examples/data/taxi_trip_data.csv)
+* [SQL Output](/examples/sql/sql_tutorial.out)
+
+The script can be run via any SQL client, including
+[KiSQL](/content/tools/kisql), as follows:
+
+```bash title="Run Tutorial"
+$ kisql --url http://<db.host>:9191 --user <username> --file sql_tutorial.kisql
+```
+
+
+<Info>
+As this script creates a schema and several database objects within
+it, [system admin permission](/content/security/sec_concepts#security-concepts-permissions-system)
+is required to run it.
+</Info>

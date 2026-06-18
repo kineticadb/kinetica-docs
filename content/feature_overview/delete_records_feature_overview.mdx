@@ -1,0 +1,38 @@
+---
+title: Delete Records
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="delete-records-feature-overview"></a>
+
+
+Deletes record(s) matching the provided criteria from the given table. The
+record selection criteria can either be one or more  input parameter
+*expressions* (matching multiple records), a single record identified by
+*record_id* options, or all records when using *delete_all_records*.  Note that
+the three selection criteria are mutually exclusive.  This operation cannot be
+run on a view.  The operation is synchronous meaning that a response will not
+be available until the request is completely processed and all the matching
+records are deleted.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of the table from which to delete records, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). Must contain the name of an existing table; not applicable to views. |
+| expressions | array of strings | A list of the actual predicates, one for each select; format should follow the guidelines provided [here](../../concepts/expressions/). Specifying one or more input parameter *expressions* is mutually exclusive to specifying *record_id* in the input parameter *options*. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> global_expression: An optional global expression to reduce the search space of the input parameter *expressions*. The default value is ''. <br/> <br/> record_id: A record ID identifying a single record, obtained at the time of [insertion of the record](/content/feature_overview/insert_records_feature_overview#insert-records-feature-overview) or by calling [Get Records from Collection](/content/feature_overview/get_records_fromcollection_feature_overview#get-records-fromcollection-feature-overview) with the *return_record_ids* option. This option cannot be used to delete records from [replicated](../../concepts/tables/#replication) tables. <br/> <br/> delete_all_records: If set to *true*, all records in the table will be deleted. If set to *false*, then the option is effectively ignored. The default value is `false`. The supported values are: * true * false |
+
+
+## Output Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| count_deleted | long | Total number of records deleted across all expressions. |
+| counts_deleted | array of longs | Total number of records deleted per expression. |
+| info | map of string to strings | Additional information. |

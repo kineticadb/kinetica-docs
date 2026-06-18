@@ -1,0 +1,40 @@
+---
+title: /show/proc/status
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="show-proc-status-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/show/proc/status
+```
+Shows the statuses of running or completed proc instances. Results are grouped
+by run ID (as returned from [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest))
+and data segment ID (each invocation of the proc command on a data segment is
+assigned a data segment ID).
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| run_id | string | The run ID of a specific proc instance for which the status will be returned. If a proc with a matching run ID is not found, the response will be empty. If not specified, the statuses of all executed proc instances will be returned. <br/> <br/> The default value is ''. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> clear_complete: If set to *true*, if a proc instance has completed (either successfully or unsuccessfully) then its status will be cleared and no longer returned in subsequent calls. The default value is `false`. The supported values are: * true * false <br/> <br/> run_tag: If input parameter *run_id* is specified, return the status for a proc instance that has a matching run ID and a matching run tag that was provided to [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) . If input parameter *run_id* is not specified, return statuses for all proc instances where a matching run tag was provided to [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) . The default value is ''. |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'show_proc_status_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /show/proc/status endpoint: <br/> <br/> proc_names: [map of string to strings] The proc names corresponding to the returned run IDs. <br/> <br/> params: [map of string to maps of string to strings] The string params passed to [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) for the returned run IDs. <br/> <br/> bin_params: [map of string to maps of string to bytes] The binary params passed to [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) for the returned run IDs. <br/> <br/> input_table_names: [map of string to arrays of strings] The input table names passed to [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) for the returned run IDs. <br/> <br/> input_column_names: [map of string to maps of string to arrays of strings] The input column names passed to [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) for the returned run IDs, supplemented with the column names for input tables not included in the input column name map. <br/> <br/> output_table_names: [map of string to arrays of strings] The output table names passed to [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) for the returned run IDs. <br/> <br/> options: [map of string to maps of string to strings] The optional parameters passed to [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) for the returned run IDs. <br/> <br/> overall_statuses: [map of string to strings] Overall statuses for the returned run IDs. Note that these are rollups and individual statuses may differ between data segments for the same run ID; see output parameter *statuses* and output parameter *messages* for statuses from individual data segments. +---------+------------------------------------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+==================================================================+ \|running \|The proc instance is currently running. \| \| \| \| +---------+------------------------------------------------------------------+ \|complete \|The proc instance completed with no errors. \| \| \| \| +---------+------------------------------------------------------------------+ \|killed \|The proc instance was killed before completion. \| \| \| \| +---------+------------------------------------------------------------------+ \|error \|The proc instance failed with an error. \| \| \| \| +---------+------------------------------------------------------------------+ \|none \|The proc instance does not have a status, i.e. it has not yet ran.\| \| \| \| +---------+------------------------------------------------------------------+ <br/> <br/> statuses: [map of string to maps of string to strings] Statuses for the returned run IDs, grouped by data segment ID. +---------+------------------------------------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+==================================================================+ \|running \|The proc instance is currently running. \| \| \| \| +---------+------------------------------------------------------------------+ \|complete \|The proc instance completed with no errors. \| \| \| \| +---------+------------------------------------------------------------------+ \|killed \|The proc instance was killed before completion. \| \| \| \| +---------+------------------------------------------------------------------+ \|error \|The proc instance failed with an error. \| \| \| \| +---------+------------------------------------------------------------------+ \|none \|The proc instance does not have a status, i.e. it has not yet ran.\| \| \| \| +---------+------------------------------------------------------------------+ <br/> <br/> messages: [map of string to maps of string to strings] Messages containing additional status information for the returned run IDs, grouped by data segment ID. <br/> <br/> results: [map of string to maps of string to maps of string to strings] String results for the returned run IDs, grouped by data segment ID. <br/> <br/> bin_results: [map of string to maps of string to maps of string to bytes] Binary results for the returned run IDs, grouped by data segment ID. <br/> <br/> output: [map of string to maps of string to maps of string to arrays of strings] Output lines for the returned run IDs, grouped by data segment ID. +----------+-------------------------+ \|Supported \|Parameter Description \| \|Parameters\| \| \|(keys) \| \| +==========+=========================+ \|stdout \|Output lines from stdout.\| \| \| \| +----------+-------------------------+ \|stderr \|Output lines from stderr.\| \| \| \| +----------+-------------------------+ <br/> <br/> timings: [map of string to maps of string to maps of string to longs] Timing information for the returned run IDs, grouped by data segment ID. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

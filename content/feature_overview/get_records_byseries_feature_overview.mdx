@@ -1,0 +1,48 @@
+---
+title: Get Records by Series
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="get-records-byseries-feature-overview"></a>
+
+
+Retrieves the complete series/track records from the given input parameter
+*world_table_name* based on the partial track information contained in the
+input parameter *table_name*.
+
+This operation supports paging through the data via the input parameter
+*offset* and input parameter *limit* parameters.
+
+In contrast to [Get Records](/content/feature_overview/get_records_feature_overview#get-records-feature-overview) this
+returns records grouped by series/track. So if input parameter *offset* is 0
+and input parameter *limit* is 5 this operation would return the first 5
+series/tracks in input parameter *table_name*. Each series/track will be
+returned sorted by their TIMESTAMP column.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of the table or view for which series/tracks will be fetched, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). |
+| world_table_name | string | Name of the table containing the complete series/track information to be returned for the tracks present in the input parameter *table_name*, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). Typically this is used when retrieving series/tracks from a view (which contains partial series/tracks) but the user wants to retrieve the entire original series/tracks. Can be blank. |
+| offset | int | A positive integer indicating the number of initial series/tracks to skip (useful for paging through the results). <br/> <br/> The default value is 0. The minimum allowed value is 0. The maximum allowed value is MAX_INT. |
+| limit | int | A positive integer indicating the maximum number of series/tracks to be returned. Or END_OF_SET (-9999) to indicate that the max number of results should be returned. <br/> <br/> The default value is 250. |
+| encoding | string | Specifies the encoding for returned records; either *binary* or *json*. <br/> <br/> The default value is `binary`. <br/> <br/> The supported values are: <br/> <br/> * binary <br/> * json |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). |
+
+
+## Output Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_names | array of strings | The table name (one per series/track) of the returned series/tracks. |
+| type_names | array of strings | The type IDs (one per series/track) of the returned series/tracks. |
+| type_schemas | array of strings | The type schemas (one per series/track) of the returned series/tracks. |
+| list_records_binary | array of arrays of bytes | If the encoding parameter of the request was 'binary' then this list-of-lists contains the binary encoded records for each object (inner list) in each series/track (outer list). Otherwise, empty list-of-lists. |
+| list_records_json | array of arrays of strings | If the encoding parameter of the request was 'json' then this list-of-lists contains the JSON-encoded records for each object (inner list) in each series/track (outer list). Otherwise, empty list-of-lists. |
+| info | map of string to strings | Additional information. |

@@ -1,0 +1,421 @@
+---
+title: Page Rank in Python
+description: A Page Rank example using the NYC Taxi dataset
+slug: solve_graph_nyctaxi_page_rank
+# time_estimate: 20 MIN
+---
+
+The following is a complete example, using the *Python API*, of solving a graph
+created with NYC Taxi data for a page rank problem via the
+[/solve/graph](/content/api/rest/solve_graph_rest#solve-graph-rest) endpoint. For more information on Network
+Graphs & Solvers, see [Graphs & Solvers Concepts](/content/graph_solver/network_graph_solver).
+
+
+## Prerequisites
+
+
+The prerequisites for running the page rank solve graph example are listed
+below:
+
+* Graph server enabled
+* Python API
+* [Solve graph script](/examples/python/graph/solve_graph_nyctaxi_page_rank.py)
+* NYC Taxi dataset ingested (see [Demo](/content/admin/gadmin/cluster#cluster-demo) for more information)
+* [NYC Neighborhood CSV file](/examples/data/nyc_neighborhood.csv)
+
+
+### Python API Installation
+
+
+Depending on the target operating system, a Python virtual environment may need
+to be installed first:
+
+* [Python Virtual Environment](#python-virtual-environment)
+
+The native *Kinetica Python API* is accessible through the following means:
+
+* [PyPI](#pypi)
+* [Git](#git)
+
+
+#### Python Virtual Environment
+
+
+A Python virtual environment is necessary to install in an operating environment
+where Python is externally managed.
+
+1. Install a Python virtual environment:
+
+
+   ```bash
+   python3 -m venv .venv
+   ```
+
+2. Activate the Python virtual environment:
+
+
+   ```bash
+   source .venv/bin/activate
+   ```
+
+
+#### PyPI
+
+
+1. Install the API:
+
+
+   ```bash
+   pip3 install gpudb
+   ```
+
+2. Test the installation:
+
+
+   ```python
+   python3 -c "import gpudb;print('Import Successful')"
+   ```
+
+   If *Import Successful* is displayed, the API has been installed as is ready
+   for use.
+
+
+#### Git
+
+
+1. In the desired directory, run the following, but be sure to replace
+   `<kinetica-version>` with the name of the installed Kinetica version,
+   e.g., `v7.2`:
+
+
+   ```bash
+   git clone -b release/<kinetica-version> --single-branch https://github.com/kineticadb/kinetica-api-python.git
+   ```
+
+2. Change directory into the newly downloaded repository:
+
+
+   ```bash
+   cd kinetica-api-python
+   ```
+
+3. In the root directory of the unzipped repository, install the Kinetica API:
+
+
+   ```bash
+   sudo pip3 install .
+   ```
+
+4. Test the installation (*Python3* is necessary for running the API example):
+
+
+   ```bash
+   python3 examples/example.py
+   ```
+
+
+### Data File
+
+
+The example script references the <Badge color="gray">nyc_neighborhood.csv</Badge> data file,
+mentioned in the [Prerequisites](#prerequisites), in the current local directory, by default.
+This directory can specified as a parameter when running the example script.
+
+
+## Script Detail
+
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/zL1hJw5lx3Q" title="Page Rank Solver" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+This example is going to demonstrate solving for the most popular pickup or
+dropoff point in New York City by ranking pickup and dropoff locations in terms
+of how frequently passengers are getting picked up/dropped off there. The more
+connected a point is in relation to other points, the greater its importance.
+
+
+### Constants
+
+
+Several constants are defined at the beginning of the script:
+
+* `SCHEMA` -- the name of the schema in which the tables supporting the
+  graph creation and match operations will be created
+
+
+  <Note>
+  The schema is created during the table setup portion of the
+  script because the schema must exist prior to creating the
+  tables that will later support the graph creation and match
+  operations.
+  </Note>
+
+* `TABLE_NYC_N` -- the name of the table into which the NYC Neighborhood
+  dataset is loaded. This dataset is joined to the `TABLE_TAXI` table
+  to create the `JOIN_TAXI` dataset.
+* `TABLE_TAXI` -- the name of the table into which the NYC taxi dataset is
+  loaded. This dataset is joined to the `TABLE_NYC_N` table to create the
+  `JOIN_TAXI` dataset.
+* `TABLE_TAXI_E` -- the name of the projection derived from the `JOIN_TAXI`
+  dataset that serves as the edges for the `GRAPH_T` graph.
+* `TABLE_TAXI_N` -- the name of the union derived from the `JOIN_TAXI`
+  dataset that serves as the nodes for the `GRAPH_T` graph.
+* `TABLE_TAXI_N_S` -- the same as `TABLE_TAXI_N` but later sharded so it
+  can be joined to the `nyctaxi_graph_id` graph.
+* `JOIN_TAXI` -- the name of the join view that represents the dataset of all
+  the trips found in the `TABLE_TAXI` dataset that overlap with the
+  neighborhood boundaries found in the `TABLE_NYC_N` dataset
+* `JOIN_PR_RESULTS` -- the name of the join view that represents the dataset
+  of all the nodes found in the `TABLE_TAXI_N` where the ID matches the
+  `SOLVERS_NODE_ID` found in `TABLE_GRAPH_T_PRSOLVED_S`
+* `GRAPH_T` -- the NYC taxi graph
+* `TABLE_GRAPH_T_PRSOLVED` -- the solved NYC taxi graph using the `PAGE_RANK`
+  solver type
+* `TABLE_GRAPH_T_PRSOLVED_S` -- the same as `TABLE_GRAPH_T_PRSOLVED` but
+  later sharded so it can be joined to the `nyctaxi_nodes_sharded` table.
+
+{/* Source: /examples/python/graph/solve_graph_nyctaxi_page_rank.py (lines 18-30) */}
+```python Constant Definitions
+SCHEMA = "graph_s_pagerank"
+TABLE_NYC_N = SCHEMA + ".nyc_neighborhood"
+TABLE_TAXI = "demo.nyctaxi"
+TABLE_TAXI_E = SCHEMA + ".nyctaxi_edges_id"
+TABLE_TAXI_N = SCHEMA + ".nyctaxi_nodes"
+TABLE_TAXI_N_S = TABLE_TAXI_N + "_sharded"
+
+JOIN_TAXI = SCHEMA + ".taxi_tables_joined"
+JOIN_PR_RESULTS = SCHEMA + ".page_rank_results_joined"
+
+GRAPH_T = SCHEMA + ".nyctaxi_graph_id"
+TABLE_GRAPH_T_PRSOLVED = GRAPH_T + "_page_rank_solved"
+TABLE_GRAPH_T_PRSOLVED_S = TABLE_GRAPH_T_PRSOLVED + "_sharded"
+```
+
+
+### Graph Creation
+
+
+One graph is used for this example: `nyctaxi_graph_id`, a graph utilizing
+IDs based on a modified version of the standard NYC Taxi dataset (mentioned in
+[Prerequisites](#prerequisites)).
+
+To filter out data that could skew graph `nyctaxi_graph_id`, the
+NYC Neighborhood dataset must be inserted into Kinetica and joined to the
+NYC Taxi dataset using `STXY_CONTAINS` to remove any trip points in the NYC
+Taxi dataset that are not contained within the geospatial boundaries of the
+NYC Neighborhood dataset:
+
+{/* Source: /examples/python/graph/solve_graph_nyctaxi_page_rank.py (lines 102-120) */}
+```python Perform Geospatial Filter of Taxi Data by NYC Neighborhoods
+join_taxi_tables_response = kinetica.create_join_table(
+    join_table_name = JOIN_TAXI,
+    table_names = [TABLE_TAXI + " as t", TABLE_NYC_N + " as n"],
+    column_names = [
+        "CONCAT(CHAR32(pickup_longitude), CHAR32(pickup_latitude)) as pickup_name",
+        "t.pickup_longitude",
+        "t.pickup_latitude",
+        "HASH(t.pickup_longitude + t.pickup_latitude) as pickup_id",
+        "CONCAT(CHAR32(dropoff_longitude), CHAR32(dropoff_latitude)) as dropoff_name",
+        "t.dropoff_longitude",
+        "t.dropoff_latitude",
+        "HASH(t.dropoff_longitude + t.dropoff_latitude) as dropoff_id",
+        "t.total_amount"
+    ],
+    expressions = [
+        "(STXY_CONTAINS(n.geom, t.pickup_longitude, t.pickup_latitude)) AND"
+        "(STXY_CONTAINS(n.geom, t.dropoff_longitude, t.dropoff_latitude)) "
+    ]
+)["status_info"]["status"]
+```
+
+Before `nyctaxi_graph_id` can be created, the *edges* must be derived from
+the `taxi_tables_joined` dataset's XY pickup and dropoff pairs to create the
+`nyctaxi_edges_id` dataset:
+
+{/* Source: /examples/python/graph/solve_graph_nyctaxi_page_rank.py (lines 124-125 127-146 149-150 152-156) */}
+```python Create Node & Edge Tables from Taxi Trips
+# Union the JOIN_TAXI view to itself to collapse pickup & dropoff
+# locations into a unified set of endpoint locations to serve as node IDs
+nodes_response = kinetica.execute_sql(
+    statement = (
+        "CREATE TABLE " + TABLE_TAXI_N + " AS "
+        "SELECT "
+              "pickup_id as id, "
+              "pickup_longitude as lon, "
+              "pickup_latitude as lat "
+        "FROM " + JOIN_TAXI + " "
+        "UNION "
+        "SELECT "
+              "dropoff_id, "
+              "dropoff_longitude, "
+              "dropoff_latitude "
+        "FROM " + JOIN_TAXI
+    ),
+    offset = 0,
+    limit = gpudb.GPUdb.END_OF_SET,
+    encoding = "json",
+    options = {}
+)["status_info"]["status"]
+
+# Create a projection to contain the graph edges (based on NODE_ID)
+edges_id_response = kinetica.create_projection(
+    table_name = JOIN_TAXI,
+    projection_name = TABLE_TAXI_E,
+    column_names = ["pickup_id", "dropoff_id"]
+)["status_info"]["status"]
+```
+
+Now, `nyctaxi_graph_id` is created with the following characteristics:
+
+* It is not [directed](/content/graph_solver/network_graph_solver#directed-graphs)
+  because direction is irrelevant to this example
+* The `nodes` in this graph are represented using the IDs created from the
+  union of pickup and dropoff points IDs of the `nyctaxi_nodes` table
+  (`ID`).
+* The `edges` in this graph are using the individual pickup and dropoff point
+  IDs of the `nyctaxi_edges_id` table as the edge endpoints
+  (`NODE1_ID` / `NODE2_ID`).
+* It has no `weights` because one does not need to influence the ranking in
+  any way
+* It has no inherent `restrictions` for any of the nodes or edges in the graph
+* It will be replaced with this instance of the graph if a graph of the same
+  name exists (`recreate`).
+
+{/* Source: /examples/python/graph/solve_graph_nyctaxi_page_rank.py (lines 176-191) */}
+```python Create NYC Taxi Routes Graph
+create_t_graph_response = kinetica.create_graph(
+    graph_name = GRAPH_T,
+    directed_graph = False,
+    nodes = [
+        TABLE_TAXI_N + ".id AS ID"
+    ],
+    edges = [
+        TABLE_TAXI_E + ".pickup_id AS NODE1_ID",
+        TABLE_TAXI_E + ".dropoff_id AS NODE2_ID"
+    ],
+    weights = [],
+    restrictions = [],
+    options = {
+        "recreate": "true"
+    }
+)
+```
+
+
+### Page Rank
+
+
+The graph is solved:
+
+{/* Source: /examples/python/graph/solve_graph_nyctaxi_page_rank.py (lines 222-229) */}
+```python Solve Graph
+solve_pr_graph_response = kinetica.solve_graph(
+    graph_name = GRAPH_T,
+    solver_type = "PAGE_RANK",
+    source_nodes = ["129341667930495514"],
+    destination_nodes = [],
+    solution_table = TABLE_GRAPH_T_PRSOLVED,
+    options = {}
+)["status_info"]["status"]
+```
+
+
+<Note>
+A source node ID was selected at random from the
+`nyctaxi_nodes`. Since page rank is ranking each node's
+connectedness in relation to other nodes, any node can be the
+source
+</Note>
+
+A sharded version of the `nyctaxi_nodes` *union* (created earlier) is created
+so it can be joined:
+
+{/* Source: /examples/python/graph/solve_graph_nyctaxi_page_rank.py (lines 235-240) */}
+```python Shard Node Table for Geospatial Join with Graph Solution
+nodes_sharded_response = kinetica.create_projection(
+    table_name = TABLE_TAXI_N,
+    projection_name = TABLE_TAXI_N_S,
+    column_names = ["id", "lon", "lat"],
+    options = {"shard_key": "id"}
+)["status_info"]["status"]
+```
+
+A sharded version of the `nyctaxi_graph_id_page_rank_solved` table is also
+created so it can be joined to the `nyctaxi_nodes` *union*:
+
+{/* Source: /examples/python/graph/solve_graph_nyctaxi_page_rank.py (lines 245-250) */}
+```python Shard Graph Solution for Geospatial Join with Node Table
+graph_sharded_response = kinetica.create_projection(
+    table_name = TABLE_GRAPH_T_PRSOLVED,
+    projection_name = TABLE_GRAPH_T_PRSOLVED_S,
+    column_names = ["SOLVERS_NODE_ID", "SOLVERS_NODE_COSTS"],
+    options = {"shard_key": "SOLVERS_NODE_ID"}
+)["status_info"]["status"]
+```
+
+The *union* and graph results table are joined on ID:
+
+{/* Source: /examples/python/graph/solve_graph_nyctaxi_page_rank.py (lines 253-269) */}
+```python Join Node Table with Graph Solution
+# Join the TABLE_TAXI_N_S and TABLE_GRAPH_T_PRSOLVED_S tables to pair the page
+# rank results IDs and costs with the longitude/latitude pair of each node
+join_pr_response = kinetica.create_join_table(
+    join_table_name = JOIN_PR_RESULTS,
+    table_names = [
+        TABLE_TAXI_N_S + " as n",
+        TABLE_GRAPH_T_PRSOLVED_S + " as s"
+    ],
+    column_names = [
+        "n.lon",
+        "n.lat",
+        "s.SOLVERS_NODE_ID",
+        "s.SOLVERS_NODE_COSTS"
+    ],
+    expressions = ["n.id = s.SOLVERS_NODE_ID"],
+    options = {}
+)["status_info"]["status"]
+```
+
+The top 10 nodes (sorted by descending cost) are retrieved. The higher the cost,
+the more frequently the node was visited:
+
+{/* Source: /examples/python/graph/solve_graph_nyctaxi_page_rank.out (lines 43-56) */}
+```text Page Rank Results
++-------------+------------+----------------------+-------------+
+|   Longitude |   Latitude |                   ID |        Cost |
+|-------------+------------+----------------------+-------------|
+|    -74.0028 |    40.7606 | -5733631352137098805 | 0.000197256 |
+|    -73.9935 |    40.7513 | -5733631352137098805 | 0.000197256 |
+|    -73.9873 |    40.7451 | -5733631352137098805 | 0.000197256 |
+|    -73.9823 |    40.7401 | -5733631352137098805 | 0.000197256 |
+|    -73.9771 |    40.7879 |  7374672091319971430 | 0.000197256 |
+|    -73.9651 |    40.7758 |  7374672091319971430 | 0.000197256 |
+|    -73.9648 |    40.7755 |  7374672091319971430 | 0.000197256 |
+|    -73.9573 |    40.768  |  7374672091319971430 | 0.000197256 |
+|    -74.0059 |    40.7401 | -2255210994170551411 | 0.00019047  |
+|    -74.0053 |    40.7395 | -2255210994170551411 | 0.00019047  |
++-------------+------------+----------------------+-------------+
+```
+
+
+## Download & Run
+
+
+Included below is a complete example containing all the above requests, the data
+files, and output.
+
+* [Page rank solve graph script](/examples/python/graph/solve_graph_nyctaxi_page_rank.py)
+* [NYC neighborhoods data file](/examples/data/nyc_neighborhood.csv)
+* [Python output](/examples/python/graph/solve_graph_nyctaxi_page_rank.out)
+
+To run the complete sample, ensure that:
+
+* the NYC Taxi dataset has been loaded into the database
+* the <Badge color="gray">solve_graph_nyctaxi_page_rank.py</Badge> script is in the current
+  directory
+* the <Badge color="gray">nyc_neighborhood.csv</Badge> file is in the current directory or
+  use the `data_dir` parameter to specify the local directory containing it
+
+Then, run the following:
+
+```bash title="Run Example"
+python solve_graph_nyctaxi_page_rank.py [--url <kinetica_url>] --username <username> --password <password> [--data_dir <data_file_directory>]
+```

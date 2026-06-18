@@ -1,0 +1,240 @@
+---
+title: Exporting Data
+description: Copy-paste examples of exporting data with SQL
+slug: export-data
+# time_estimate: 5 MIN
+---
+
+## EXPORT ... INTO
+
+
+### Sources (Table/Query)
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/export/source.kisql (lines 45-46) */}
+```sql Table
+EXPORT TABLE employee
+INTO FILE PATH '/export/employee.csv'
+```
+
+{/* Source: /examples/sql/export/source.kisql (lines 52-58) */}
+```sql Query
+EXPORT QUERY
+(
+    SELECT id, manager_id, first_name, last_name, salary, hire_date
+    FROM employee
+    WHERE dept_id = 2
+)
+INTO FILE PATH '/export/employee_dept2.csv'
+```
+
+</CodeGroup>
+
+
+### Data Sinks (File/Table/DML)
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/export/data_sink.kisql (lines 90-92) */}
+```sql File
+EXPORT TABLE employee
+INTO FILE PATH '/data/employee.csv'
+WITH OPTIONS (DATASINK_NAME = 's3_dsink')
+```
+
+{/* Source: /examples/sql/export/data_sink.kisql (lines 98-100) */}
+```sql Table (via JDBC)
+EXPORT TABLE employee
+INTO REMOTE TABLE 'example.remote_employee'
+WITH OPTIONS (DATASINK_NAME = 'jdbc_dsink')
+```
+
+{/* Source: /examples/sql/export/data_sink.kisql (lines 128-130) */}
+```sql DML (via JDBC)
+EXPORT TABLE employee
+INTO REMOTE QUERY 'INSERT INTO example.remote_employee VALUES (?, ?, ?, ?, ?, ?, ?)'
+WITH OPTIONS (DATASINK_NAME = 'jdbc_dsink')
+```
+
+{/* Source: /examples/sql/export/jdbc_init.kisql (lines 109-116) */}
+```sql Init Options (via JDBC)
+EXPORT TABLE ts_source
+INTO REMOTE TABLE 'ts'
+WITH OPTIONS
+(
+	DATASINK_NAME = 'jdbc_dsink',
+	JDBC_SESSION_INIT_STATEMENT = 'SET TIMEZONE=''EST''',
+	JDBC_CONNECTION_INIT_STATEMENT = 'CREATE TABLE ts (ts DATETIME)'
+)
+```
+
+</CodeGroup>
+
+
+### Delimited Text Options
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/export/formats.kisql (lines 45-46) */}
+```sql CSV
+EXPORT TABLE product
+INTO FILE PATH '/export/products.csv'
+```
+
+{/* Source: /examples/sql/export/formats.kisql (lines 53-55) */}
+```sql Forced Format
+EXPORT TABLE product
+INTO FILE PATH '/export/products_text.dat'
+FORMAT TEXT
+```
+
+{/* Source: /examples/sql/export/formats.kisql (lines 45-47) */}
+```sql No Header
+EXPORT TABLE product
+INTO FILE PATH '/export/products.csv'
+FORMAT TEXT (INCLUDES HEADER = FALSE)
+```
+
+{/* Source: /examples/sql/export/formats.kisql (lines 61-63) */}
+```sql Columns Mapped by Name
+EXPORT TABLE product
+INTO FILE PATH '/export/products_name.csv'
+WITH OPTIONS (FIELDS MAPPED BY NAME(id, name, stock))
+```
+
+{/* Source: /examples/sql/export/formats.kisql (lines 69-71) */}
+```sql Columns Ignored by Position
+EXPORT TABLE product
+INTO FILE PATH '/export/products_pos.csv'
+WITH OPTIONS (FIELDS IGNORED BY POSITION(2, 4))
+```
+
+{/* Source: /examples/sql/export/formats.kisql (lines 77-84) */}
+```sql Parsing Options
+EXPORT TABLE product
+INTO FILE PATH '/export/products.ssv'
+FORMAT TEXT
+(
+    DELIMITER = ';',
+    INCLUDES HEADER = TRUE,
+    NULL = '<null>'
+)
+```
+
+{/* Source: /examples/sql/export/local_file_compression.kisql (lines 59-61) */}
+```sql GZip Compression
+EXPORT TABLE product
+INTO FILE PATH '/export/products.csv.gz'
+WITH OPTIONS (COMPRESSION_TYPE = 'gzip')
+```
+
+</CodeGroup>
+
+
+### Parquet Files
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/export/parquet.kisql (lines 45-47) */}
+```sql Parquet Format
+EXPORT TABLE product
+INTO FILE PATH '/export/products_par.dat'
+FORMAT PARQUET
+```
+
+{/* Source: /examples/sql/export/parquet.kisql (lines 53-56) */}
+```sql Properties Mapped By Name
+EXPORT TABLE product
+INTO FILE PATH '/export/products_name.parquet'
+FORMAT PARQUET
+WITH OPTIONS (FIELDS MAPPED BY NAME(id, name, stock))
+```
+
+{/* Source: /examples/sql/export/parquet.kisql (lines 62-65) */}
+```sql Properties Ignored By Name
+EXPORT TABLE product
+INTO FILE PATH '/export/products_pos.parquet'
+FORMAT PARQUET
+WITH OPTIONS (FIELDS IGNORED BY POSITION(category, description))
+```
+
+{/* Source: /examples/sql/export/local_file_compression.kisql (lines 77-78) */}
+```sql Snappy Compression (default)
+EXPORT TABLE product
+INTO FILE PATH '/export/products.parquet'
+```
+
+{/* Source: /examples/sql/export/local_file_compression.kisql (lines 99-101) */}
+```sql GZip Compression
+EXPORT TABLE product
+INTO FILE PATH '/export/products.gz.parquet'
+WITH OPTIONS (COMPRESSION_TYPE = 'gzip')
+```
+
+</CodeGroup>
+
+
+### Naming Options
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/export/local_file_naming.kisql (lines 87-91) */}
+```sql Single File w/o Code
+-- Creates a file with a name like:
+--   export/product.csv
+EXPORT TABLE product
+INTO FILE PATH '/export/product.csv'
+WITH OPTIONS (SINGLE_FILE = 'overwrite')
+```
+
+{/* Source: /examples/sql/export/local_file_naming.kisql (lines 49-52) */}
+```sql Single File w/ Code
+-- Creates a file with a name like:
+--   export/product_611460000.csv
+EXPORT TABLE product
+INTO FILE PATH '/export/product.csv'
+```
+
+{/* Source: /examples/sql/export/local_file_naming.kisql (lines 107-112) */}
+```sql Multiple Files w/ Code
+-- Creates a set of files with names like:
+-- * export/product_611641000.csv
+-- * export/product_611642000.csv
+EXPORT TABLE product
+INTO FILE PATH '/export/product.csv'
+WITH OPTIONS (SINGLE_FILE = false)
+```
+
+</CodeGroup>
+
+
+### Sizing Options
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/export/local_file_size.kisql (lines 41-43) */}
+```sql Batch (Local File)
+EXPORT TABLE product
+INTO FILE PATH '/export/products_exp.csv'
+WITH OPTIONS (BATCH SIZE = 20000)
+```
+
+{/* Source: /examples/sql/export/remote_dml_size.kisql (lines 61-67) */}
+```sql Batch (Remote Table)
+EXPORT TABLE product
+INTO REMOTE TABLE 'product_exp'
+WITH OPTIONS
+(
+	DATASINK_NAME = 'jdbc_dsink',
+	BATCH SIZE = 20000
+)
+```
+
+</CodeGroup>

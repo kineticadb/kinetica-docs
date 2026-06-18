@@ -1,0 +1,214 @@
+---
+title: Node.js Developer Guide
+description: Step-by-step instructions on writing Node.js applications with Kinetica
+slug: nodejs_guide
+# time_estimate: 30 MIN
+---
+
+The following guide provides step-by-step instructions to get started writing
+*Node.js* applications using the client-side *Node.js* module for *Kinetica*.
+This guide demonstrates only a small set of the available API.  A detailed
+description of the complete interface is available under
+[Node.js API Reference](/content/api/nodejs-mod).
+
+
+## API Download
+
+
+The source code for the *Node.js* API is available for download from the
+*GitHub* repository [kineticadb/kinetica-api-javascript](https://github.com/kineticadb/kinetica-api-javascript).
+Follow the instructions in the included README file to use the API library.
+
+
+## Connecting to the Database
+
+
+To connect to the database, instantiate an object of the
+[GPUdb](../../api/nodejs-mod/?GPUdb.html) class, providing the connection URL,
+including host & port of the database server as well as an optional username &
+password for secure connections:
+
+{/* Source: /examples/nodejs/tutorial.js (lines 8) */}
+```javascript
+var db = new GPUdb([url], {"username": user, "password": pass});
+```
+
+
+## Loading Data
+
+
+Before any data can be loaded into the system, a
+[Type](/content/concepts/types#gpudb-type-desc-label) needs to be defined in the system.  The type
+definition is a JSON string describing the fields (i.e. columns) of the type
+along with a name for the type. Each field consists of a name and a data type:
+
+{/* Source: /examples/nodejs/tutorial.js (lines 67-76) */}
+```javascript
+var my_type = new GPUdb.Type(
+		"my_type",
+		new GPUdb.Type.Column("col1", "double"),
+		new GPUdb.Type.Column("col2", "string"),
+		new GPUdb.Type.Column("group_id", "string")
+);
+
+my_type.create(db, build_callback( function( response ) {
+	type_id = response;
+} ));
+```
+
+The returned object from the `Type.create()` call contains a unique type
+identifier allocated by the system.  This identifier can then be used in the
+request to create a new table as follows:
+
+{/* Source: /examples/nodejs/tutorial.js (lines 81) */}
+```javascript
+db.create_table( table_name, type_id, {}, build_callback() );
+```
+
+Once the table is created, data can be inserted as follows:
+
+{/* Source: /examples/nodejs/tutorial.js (lines 86-99) */}
+```javascript
+var records = [];
+
+for (var i = 0; i < 10; i++) {
+	records.push({
+		col1: i + 0.1,
+		col2: "string " + i,
+		group_id: "Group 1"
+	});
+}
+
+var insert_options = { "return_record_ids" : "true" }
+db.insert_records( table_name, records, insert_options, build_callback(function(response) {
+	console.log("Record IDs for newly inserted records: " + response.record_ids);
+}));
+```
+
+
+## Retrieving Data
+
+
+Once the table is populated with data, the data can be retrieved from the system
+by a call to `get_records()` as shown below:
+
+{/* Source: /examples/nodejs/tutorial.js (lines 104-107) */}
+```javascript
+db.get_records( table_name, 0, -9999, {}, build_callback(function(response) {
+	console.log("Retrieved records: ");
+	console.log(response.data);
+}));
+```
+
+For large tables, the data can be easily be retrieved in smaller blocks by using
+the `offset` and `limit` parameters.  The returned response also contains
+the schema (or data type) of the results.
+
+
+## Running Queries
+
+
+To filter a subset of the records, use the `filter()` method with an
+expression as follows:
+
+{/* Source: /examples/nodejs/tutorial.js (lines 112-114) */}
+```javascript
+db.filter( table_name, view1_name, "col1 = 1.1", {}, build_callback(function(response) {
+	console.log("Number of filtered records: " + response.count);
+}));
+```
+
+
+To filter all the records matching a known list of values:
+
+{/* Source: /examples/nodejs/tutorial.js (lines 147-153) */}
+```javascript
+var column_values_map = {
+	col1 : [ "1.1", "2.1", "5.1" ]
+};
+
+db.filter_by_list( table_name, view2_name, column_values_map, {}, build_callback(function(response) {
+	console.log("Number of records filtered by list: " + response.count);
+}));
+```
+
+
+To retrieve a list of all the unique values for a column or a set of columns or
+expression:
+
+{/* Source: /examples/nodejs/tutorial.js (lines 204-207) */}
+```javascript
+db.aggregate_unique( table_name, "group_id", 0, -9999, {}, build_callback(function(response) {
+	console.log("Unique values in 'group_id': ");
+	console.log(response.data);
+}));
+```
+
+
+*Kinetica* supports various group-by queries.  To group by one or more columns
+and return the count of the unique values, use the `aggregate_group_by()`
+method as shown below.  The next query shows how to get the count of records,
+as well as the sum and average of the values of column `col1`, within each
+group in `group_id`:
+
+{/* Source: /examples/nodejs/tutorial.js (lines 212-216) */}
+```javascript
+var column_names = [ "col2" ];
+db.aggregate_group_by( table_name, column_names, 0, -9999, {}, build_callback(function(response) {
+	console.log("Unique values of col2: ");
+	console.log(response.data);
+}));
+```
+
+{/* Source: /examples/nodejs/tutorial.js (lines 221-225) */}
+```javascript
+var column_names = [ "group_id", "count(*)", "sum(col1)", "avg(col1)" ];
+db.aggregate_group_by( table_name, column_names, 0, -9999, {}, build_callback(function(response) {
+	console.log("Count, sum, & average per group: ");
+	console.log(response.data);
+}));
+```
+
+*Kinetica* supports grouping numerical data into a histogram.  The input range
+is divided into equal sized bins and the count of objects in each bin are
+returned:
+
+{/* Source: /examples/nodejs/tutorial.js (lines 254-261) */}
+```javascript
+var start = 1.1;
+var end = 2;
+var interval = 1;
+
+db.aggregate_histogram( table_name, "col1", start, end, interval, {}, build_callback(function(response) {
+	console.log("Histogram results: ");
+	console.log(response);
+}));
+```
+
+
+## Download & Run
+
+
+Included below is a complete example containing all the above requests, the data
+file, and output.
+
+* [Tutorial Script](/examples/nodejs/tutorial.js)
+* [Tutorial Output](/examples/nodejs/tutorial.out)
+
+To run the complete sample, ensure the <Badge color="gray">GPUdb.js</Badge> reference in the
+<Badge color="gray">tutorial.js</Badge> file points to the correct location of the Kinetica Node.js
+API library on your Kinetica instance (the default is to be co-located with the
+tutorial script); then switch to the directory containing <Badge color="gray">tutorial.js</Badge>
+and run the following, passing the Kinetica URL, and optionally, the
+credentials to authenticate to that instance:
+
+```bash
+node tutorial.js [<url> [<user> <pass>]]
+```
+
+
+<Info>
+As this script creates a schema and several database objects within
+it, [system admin permission](/content/security/sec_concepts#security-concepts-permissions-system) is
+required to run it.
+</Info>

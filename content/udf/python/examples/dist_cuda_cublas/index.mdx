@@ -1,0 +1,178 @@
+---
+title: Example UDF (CUDA) - cuBLAS
+---
+
+The following is a complete example, using the *Python* API, of a CUDA-based
+*UDF* that performs various computations using the *scikit-CUDA* interface.  It
+will take two vectors and one matrix of data loaded from a *Kinetica* table and
+perform various operations in both *NumPy* & *cuBLAS*, writing the comparison
+output to the [system log](/content/install/kagent_install#logging-ref).
+
+This setup assumes the *UDF* is being developed on the *Kinetica* host (or head
+node host, if a multi-node *Kinetica* cluster); and that the *Python* database
+API is available at <Badge color="gray">/opt/gpudb/api/python</Badge> and the *Python UDF* API is
+available at <Badge color="gray">/opt/gpudb/udf/api/python</Badge>.  This setup also assumes a local
+CUDA installation at <Badge color="gray">/usr/local/cuda</Badge>.
+
+This example will contain the following *Python* scripts *(click to download)*:
+
+* [udf_cublas_py_init.py](udf_cublas_py_init.py): creates the schema & input table and loads
+  test data
+* [udf_cublas_py_proc.py](udf_cublas_py_proc.py): the *UDF* itself
+* [udf_cublas_py_exec.py](udf_cublas_py_exec.py): creates & executes the *UDF*
+
+The *CUDA Toolkit* is a pre-requisite for this example.  Visit
+[Nvidia](http://www.nvidia.com/getcuda) for details.
+
+
+<Info>
+All commands should be run as the `gpudb` user.
+</Info>
+
+The *Scikit-CUDA* package is also required and must first be installed.
+
+```console title="Set CUDA Path"
+$ export CUDA_ROOT=/usr/local/cuda
+$ export PATH=$PATH:$CUDA_ROOT/bin
+$ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CUDA_ROOT/lib64
+```
+
+```bash title="Install Scikit-CUDA Package"
+$ /opt/gpudb/bin/gpudb_pip install scikit-cuda
+```
+
+After copying the three example scripts to a `gpudb`-accessible
+directory on the *Kinetica* head node, the example can be run as follows,
+specifying the database URL, username, & password to the Python scripts:
+
+```bash title="Run Example"
+$ /opt/gpudb/bin/gpudb_python udf_cublas_py_init.py --url <kinetica-url> --username <kinetica-user> --password <kinetica-pass>
+$ /opt/gpudb/bin/gpudb_python udf_cublas_py_exec.py --url <kinetica-url> --username <kinetica-user> --password <kinetica-pass>
+```
+
+The results of the *UDF* run can be seen in the
+[system log](/content/install/kagent_install#logging-ref) file.
+
+
+## Execution Detail
+
+
+The *UDF* will load data upon which calculations will be performed from
+`example_udf_python.udf_cublas_in_table`.  Results of those calculations will
+be logged to the [system log](/content/install/kagent_install#logging-ref).
+
+The input table will contain three *float* columns and be populated with 10
+sets of randomly-generated numbers.  The output log will contain the results of
+each operation, first in *NumPy* and then in *cuBLAS*, which should match.
+
+
+### udf_cublas_py_init.py
+
+
+This initialization script creates the schema & input table and populates it
+using the standard *Kinetica Python* API outside of the *UDF* execution
+framework.
+
+Several aspects of the initialization process are noteworthy:
+
+* The external database connection, indicative of the use of the standard
+  *Kinetica Python* API--the *UDF* itself will not have this, as it runs within
+  the database:
+
+    {/* Source: udf_cublas_py_init.py (lines 49) */}
+  ```python Connect to the Database
+  kinetica = gpudb.GPUdb(host=[args.url], username=args.username, password=args.password)
+  ```
+
+* Schema and input table creation:
+
+    {/* Source: udf_cublas_py_init.py (lines 7 15) */}
+  ```python Create Schema
+  MA = 'example_udf_python'
+  kinetica.create_schema(SCHEMA, options=OPTION_NO_CREATE_ERROR)
+  ```
+
+    {/* Source: udf_cublas_py_init.py (lines 19-28) */}
+  ```python Create Input Table
+  input_table = gpudb.GPUdbTable(
+      _type = [
+          ["x", "float"],
+          ["y", "float"],
+          ["z", "float"]
+      ],
+      name = INPUT_TABLE,
+      db = kinetica,
+      options = gpudb.GPUdbTableOptions.default().is_replicated(True)
+  )
+  ```
+
+
+### udf_cublas_py_proc.py
+
+
+This is the *UDF* itself.  It uses the *Kinetica Python UDF* API to perform
+various mathematical functions against the input table column values and output
+the results to the [system log](/content/install/kagent_install#logging-ref).  It runs within the *UDF*
+execution framework, and as such, is not called directly--instead, it is
+registered and launched by <Badge color="blue-destructive">udf_cublas_py_exec.py</Badge>.
+
+Noteworthy in the *UDF* are the following:
+
+* The initial call to `ProcData()` to access the database:
+
+    {/* Source: udf_cublas_py_proc.py (lines 134) */}
+  ```python Begin UDF
+  proc_data = ProcData()
+  ```
+
+* The retrieval of input data values:
+
+    {/* Source: udf_cublas_py_proc.py (lines 56-68) */}
+  ```python Retrieve Input Data Values
+  in_table = pd.input_data[0]
+
+  x = np.ndarray(shape=(in_table.size, 1), dtype=float).astype(np.float32)
+  y = np.ndarray(shape=(in_table.size, 1), dtype=float).astype(np.float32)
+  M = np.ndarray(shape=(in_table.size, 3), dtype=float).astype(np.float32)
+
+  # Initialize vectors & matrix with database values
+  for i in xrange(0, in_table.size):
+      x[i,0] = in_table['x'][i]
+      y[i,0] = in_table['y'][i]
+      M[i,0] = in_table['x'][i]
+      M[i,1] = in_table['y'][i]
+      M[i,2] = in_table['z'][i]
+  ```
+
+* The final call to `complete()` to mark the process as finished and ready for
+  clean-up:
+
+    {/* Source: udf_cublas_py_proc.py (lines 139) */}
+  ```python End UDF
+  proc_data.complete()
+  ```
+
+
+### udf_cublas_py_exec.py
+
+
+The execution script uses the standard *Kinetica Python* API to register the
+*UDF* in the database and then execute it.
+
+The registration step associates a name with the *UDF* execution code contained
+in <Badge color="blue-destructive">udf_cublas_py_proc.py</Badge>, the command
+*(* <Badge color="blue-destructive">python</Badge> *)* and arguments *(the name of the proc script)*
+to use to run it, and that it will run in *distributed* mode.
+
+{/* Source: udf_cublas_py_exec.py (lines 22) */}
+```python Create UDF
+response = kinetica.create_proc(proc_name, 'distributed', files, 'python', [file_name], {})
+```
+
+The execution step invokes the *UDF* by name, passing in the input table name
+against which the *UDF* will execute.
+
+{/* Source: udf_cublas_py_exec.py (lines 26) */}
+```python Execute UDF
+response = kinetica.execute_proc(proc_name, {}, {}, [INPUT_TABLE], {}, [], {})
+```

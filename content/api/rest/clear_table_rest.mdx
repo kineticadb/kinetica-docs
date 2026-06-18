@@ -1,0 +1,41 @@
+---
+title: /clear/table
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="clear-table-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/clear/table
+```
+Clears (drops) one or all tables in the database cluster. The operation is
+synchronous meaning that the table will be cleared before the function returns.
+The response payload returns the status of the operation along with the name of
+the table that was cleared.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of the table to be cleared, in [schema_name.]table_name format, using standard [name resolution rules](../../../concepts/tables/#table-name-resolution). Must be an existing table. Empty string clears all available tables, though this behavior is be prevented by default via gpudb.conf parameter 'disable_clear_all'. <br/> <br/> The default value is ''. |
+| authorization | string | No longer used. User can pass an empty string. <br/> <br/> The default value is ''. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> no_error_if_not_exists: If *true* and if the table specified in input parameter *table_name* does not exist no error is returned. If *false* and if the table specified in input parameter *table_name* does not exist then an error is returned. The default value is `false`. The supported values are: * true * false |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'clear_table_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /clear/table endpoint: <br/> <br/> table_name: [string] Value of input parameter *table_name* for a given table, or 'ALL CLEARED' in case of clearing all tables. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

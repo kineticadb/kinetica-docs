@@ -1,0 +1,284 @@
+---
+title: Creating Data Sinks
+description: Copy-paste examples of how to create data sinks with SQL
+# time_estimate: 5 MIN
+---
+
+Several authentication schemes across multiple consumers are supported. For a
+detailed overview of all of the consumer-specific options, see the
+[SQL documentation](/content/sql/ddl#sql-create-data-sink).
+
+
+<Info>
+Creating an authenticated *data sink* may require creating a
+corresponding  [credential](/content/sql/ddl#sql-create-credential) object to
+store the authentication information and then referencing that object when
+creating the *data sink*. See [Creating Credentials](/content/snippets/create-credentials) for
+examples.
+</Info>
+
+<a id="snippet-sql-create-data-sink-azure"></a>
+
+
+## Azure BLOB
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_sink/data_sink_format_azure.kisql (lines 22-25 27-29) */}
+```sql Credential
+CREATE DATA SINK azure_dsink
+LOCATION = 'AZURE'
+WITH OPTIONS
+(
+    CREDENTIAL = 'azure_cred',
+    CONTAINER NAME = 'samplecontainer'
+)
+```
+
+{/* Source: /examples/sql/data_sink/data_sink_format_azure.kisql (lines 40-43 45-49) */}
+```sql Managed Credentials
+CREATE DATA SINK azure_dsink
+LOCATION = 'AZURE'
+WITH OPTIONS
+(
+    USE_MANAGED_CREDENTIALS = true,
+    STORAGE ACCOUNT NAME = 'sampleacc',
+    CONTAINER NAME = 'samplecontainer',
+    TENANT ID = 'x0xxx10-00x0-0x01-0xxx-x0x0x01xx100'
+)
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-data-sink-gcs"></a>
+
+
+## Google Cloud Storage
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_sink/data_sink_format_gcs.kisql (lines 86-89   91    15  93) */}
+```sql Credential
+CREATE DATA SINK gcs_dsink
+LOCATION = 'GCS'
+WITH OPTIONS
+(
+	CREDENTIAL = 'gcs_cred',
+	GCS_BUCKET_NAME = 'gcs-private'
+)
+```
+
+{/* Source: /examples/sql/data_sink/data_sink_format_gcs.kisql (lines 101-104 106    15 108) */}
+```sql Managed Credentials
+CREATE DATA SINK gcs_dsink
+LOCATION = 'GCS'
+WITH OPTIONS
+(
+	USE_MANAGED_CREDENTIALS = true,
+	GCS_BUCKET_NAME = 'gcs-private'
+)
+```
+
+{/* Source: /examples/sql/data_sink/data_sink_format_gcs.kisql (lines 46-47         13) */}
+```sql Public (No Auth)
+CREATE DATA SINK gcs_dsink
+LOCATION = 'GCS'
+WITH OPTIONS (GCS_BUCKET_NAME = 'gcs-public')
+```
+
+{/* Source: /examples/sql/data_sink/data_sink_format_gcs.kisql (lines 60-63   17-29 15  78) */}
+```sql JSON Key
+CREATE DATA SINK gcs_dsink
+LOCATION = 'GCS'
+WITH OPTIONS
+(
+	GCS_SERVICE_ACCOUNT_KEYS = '
+	{
+		"type": "service_account",
+		"project_id": "auser",
+		"private_key_id": "abcdef1234567890",
+		"private_key": "-----BEGIN PRIVATE KEY-----\nABCDEFG=\n-----END PRIVATE KEY-----\n",
+		"client_email": "auser@auser.iam.gserviceaccount.com",
+		"client_id": "1234567890",
+		"auth_uri": "https://accounts.google.com/o/oauth2/auth",
+		"token_uri": "https://oauth2.googleapis.com/token",
+		"auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+		"client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/auser%40auser.iam.gserviceaccount.com"
+	}',
+	GCS_BUCKET_NAME = 'gcs-private'
+)
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-data-sink-hdfs"></a>
+
+
+## HDFS
+
+
+{/* Source: /examples/sql/data_sink/data_sink_format_hdfs.kisql (lines 13-16 18-19) */}
+```sql Credential
+CREATE DATA SINK hdfs_dsink
+LOCATION = 'HDFS://example.com:8020'
+WITH OPTIONS
+(
+	CREDENTIAL = 'hdfs_cred'
+)
+```
+
+
+<a id="snippet-sql-create-data-sink-jdbc"></a>
+
+
+## JDBC
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_sink/data_sink_format_jdbc.kisql (lines 44-51) */}
+```sql Credential
+CREATE DATA SINK jdbc_dsink
+LOCATION = 'jdbc:postgresql://localhost:5432/ki_home'
+WITH OPTIONS
+(
+	CREDENTIAL = 'jdbc_cred',
+	JDBC_DRIVER_CLASS_NAME = 'org.postgresql.Driver',
+	JDBC_DRIVER_JAR_PATH = 'kifs://drivers/postgresql.jar'
+)
+```
+
+{/* Source: /examples/sql/data_sink/data_sink_format_jdbc.kisql (lines 30-36) */}
+```sql Password in URL
+CREATE DATA SINK jdbc_dsink
+LOCATION = 'jdbc:postgresql://localhost:5432/ki_home?user=dsink_user&password=Passw0rd!'
+WITH OPTIONS
+(
+	JDBC_DRIVER_CLASS_NAME = 'org.postgresql.Driver',
+	JDBC_DRIVER_JAR_PATH = 'kifs://drivers/postgresql.jar'
+)
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-data-sink-kafka"></a>
+
+
+## Kafka
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_sink/data_sink_format_kafka.kisql (lines 38-41 43-45) */}
+```sql Credential
+CREATE DATA SINK kafka_dsink
+LOCATION = 'kafka://example.com:9092'
+WITH OPTIONS
+(
+    KAFKA_TOPIC_NAME = 'sample',
+    CREDENTIAL = 'kafka_cred'
+)
+```
+
+{/* Source: /examples/sql/data_sink/data_sink_format_kafka.kisql (lines 13-16 18-19) */}
+```sql Public (No Auth)
+CREATE DATA SINK kafka_dsink
+LOCATION = 'kafka://example.com:9092'
+WITH OPTIONS
+(
+    KAFKA_TOPIC_NAME = 'sample'
+)
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-data-sink-local"></a>
+
+
+## Local Table
+
+
+{/* Source: /examples/sql/data_sink/data_sink_format_local.kisql (lines 15-16) */}
+```sql User Auth
+CREATE DATA SINK local_table_dsink
+LOCATION = 'table://example.local_target_table'
+```
+
+
+<a id="snippet-sql-create-data-sink-s3"></a>
+
+
+## S3
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_sink/data_sink_format_s3.kisql (lines 33-36 38-41) */}
+```sql Credential
+CREATE DATA SINK s3_dsink
+LOCATION = 'S3'
+WITH OPTIONS
+(
+    CREDENTIAL = 's3_cred',
+    BUCKET NAME = 'samplebucket',
+    REGION = 'us-east-2'
+)
+```
+
+{/* Source: /examples/sql/data_sink/data_sink_format_s3.kisql (lines 51-54 56-59) */}
+```sql Managed Credentials
+CREATE OR REPLACE DATA SINK s3_dsink
+LOCATION = 'S3'
+WITH OPTIONS
+(
+    USE_MANAGED_CREDENTIALS = true,
+    BUCKET NAME = 'samplebucket',
+    REGION = 'us-east-1'
+)
+```
+
+{/* Source: /examples/sql/data_sink/data_sink_format_s3.kisql (lines 13-16 18-20) */}
+```sql Public (No Auth)
+CREATE DATA SINK s3_dsink
+LOCATION = 'S3'
+WITH OPTIONS
+(
+    BUCKET NAME = 'quickstartpublic',
+    REGION = 'us-west-1'
+)
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-data-sink-webhook"></a>
+
+
+## Webhook
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_sink/data_sink_format_webhook.kisql (lines 13-14) */}
+```sql HTTP
+CREATE DATA SINK http_dsink
+LOCATION = 'http://example.com/webhook'
+```
+
+{/* Source: /examples/sql/data_sink/data_sink_format_webhook.kisql (lines 36-39 41-42) */}
+```sql HTTPS
+CREATE DATA SINK https_dsink
+LOCATION = 'https://example.com/webhook'
+WITH OPTIONS
+(
+	CREDENTIAL = 'https_cred'
+)
+```
+
+</CodeGroup>

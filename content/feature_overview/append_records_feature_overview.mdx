@@ -1,0 +1,35 @@
+---
+title: Append Records
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="append-records-feature-overview"></a>
+
+
+Append (or insert) all records from a source table (specified by input
+parameter *source_table_name*) to a particular target table (specified by input
+parameter *table_name*). The field map (specified by input parameter
+*field_map*) holds the user specified map of target table column names with
+their mapped source column names.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | The table name for the records to be appended, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). Must be an existing table. |
+| source_table_name | string | The source table name to get records from, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). Must be an existing table name. |
+| field_map | map of string to strings | Contains the mapping of column names from the target table (specified by input parameter *table_name*) as the keys, and corresponding column names or expressions (e.g., 'col_name+1') from the source table (specified by input parameter *source_table_name*). Must be existing column names in source table and target table, and their types must be matched. For details on using expressions, see [Expressions](../../concepts/expressions/). |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> offset: A positive integer indicating the number of initial results to skip from input parameter *source_table_name*. Default is 0. The minimum allowed value is 0. The maximum allowed value is MAX_INT. The default value is `0`. <br/> <br/> limit: A positive integer indicating the maximum number of results to be returned from input parameter *source_table_name*. Or END_OF_SET (-9999) to indicate that the max number of results should be returned. The default value is `-9999`. <br/> <br/> expression: Filter expression to apply to the input parameter *source_table_name*. The default value is ''. <br/> <br/> order_by: Comma-separated list of the columns to be sorted by from source table (specified by input parameter *source_table_name*), e.g., 'timestamp asc, x desc'. The *order_by* columns do not have to be present in input parameter *field_map*. The default value is ''. <br/> <br/> update_on_existing_pk: Specifies the record collision policy for inserting source table records (specified by input parameter *source_table_name*) into a target table (specified by input parameter *table_name*) with a [primary key](../../concepts/tables/#primary-keys). If set to *true*, any existing table record with primary key values that match those of a source table record being inserted will be replaced by that new record (the new data will be "upserted"). If set to *false*, any existing table record with primary key values that match those of a source table record being inserted will remain unchanged, while the source record will be rejected and an error handled as determined by *ignore_existing_pk*. If the specified table does not have a primary key, then this option has no effect. The default value is `false`. +---------+------------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+==========================================+ \|true \|Upsert new records when primary keys match\| \| \|existing records. \| \| \| \| +---------+------------------------------------------+ \|false \|Reject new records when primary keys match\| \| \|existing records. \| \| \| \| +---------+------------------------------------------+ <br/> <br/> ignore_existing_pk: Specifies the record collision error-suppression policy for inserting source table records (specified by input parameter *source_table_name*) into a target table (specified by input parameter *table_name*) with a [primary key](../../concepts/tables/#primary-keys), only used when not in upsert mode (upsert mode is disabled when *update_on_existing_pk* is *false*). If set to *true*, any source table record being inserted that is rejected for having primary key values that match those of an existing target table record will be ignored with no error generated. If *false*, the rejection of any source table record for having primary key values matching an existing target table record will result in an error being raised. If the specified table does not have a primary key or if upsert mode is in effect (*update_on_existing_pk* is *true*), then this option has no effect. The default value is `false`. +---------+-------------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+===========================================+ \|true \|Ignore source table records whose primary \| \| \|key values collide with those of target \| \| \|table records. \| \| \| \| +---------+-------------------------------------------+ \|false \|Raise an error for any source table record \| \| \|whose primary key values collide with those\| \| \|of a target table record. \| \| \| \| +---------+-------------------------------------------+ <br/> <br/> pk_conflict_predicate_higher: The record with higher value for the column resolves the primary-key insert conflict. The default value is ''. <br/> <br/> pk_conflict_predicate_lower: The record with lower value for the column resolves the primary-key insert conflict. The default value is ''. <br/> <br/> truncate_strings: If set to *true*, it allows inserting longer strings into smaller charN string columns by truncating the longer strings to fit. The default value is `false`. The supported values are: * true * false |
+
+
+## Output Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string |  |
+| info | map of string to strings | Additional information. <br/> <br/> The default value is an empty map ( \{\} ). |

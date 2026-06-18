@@ -1,0 +1,64 @@
+---
+title: /aggregate/unique
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="aggregate-unique-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/aggregate/unique
+```
+Returns all the unique values from a particular column (specified by input
+parameter *column_name*) of a particular table or view (specified by input
+parameter *table_name*). If input parameter *column_name* is a numeric column,
+the values will be in output parameter *binary_encoded_response*. Otherwise if
+input parameter *column_name* is a string column, the values will be in output
+parameter *json_encoded_response*.  The results can be paged via input
+parameter *offset* and input parameter *limit* parameters.
+
+\{"limit":"10","sort_order":"descending"\}
+
+The response is returned as a dynamic schema. For details see:
+[dynamic schemas documentation](../../../api/concepts/#dynamic-schemas).
+
+If a *result_table* name is specified in the input parameter *options*, the
+results are stored in a new table with that name--no results are returned in
+the response.  Both the table name and resulting column name must adhere to
+[standard naming conventions](../../../concepts/tables/#table); any column
+expression will need to be aliased.  If the source table's
+[shard key](../../../concepts/tables/#shard-keys) is used as the input
+parameter *column_name*, the result table will be sharded, in all other cases
+it will be replicated.  Sorting will properly function only if the result table
+is replicated or if there is only one processing node and should not be relied
+upon in other cases.  Not available if the value of input parameter
+*column_name* is an unrestricted-length string.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of an existing table or view on which the operation will be performed, in [schema_name.]table_name format, using standard [name resolution rules](../../../concepts/tables/#table-name-resolution). |
+| column_name | string | Name of the column or an expression containing one or more column names on which the unique function would be applied. |
+| offset | long | A positive integer indicating the number of initial results to skip (this can be useful for paging through the results). <br/> <br/> The default value is 0. The minimum allowed value is 0. The maximum allowed value is MAX_INT. |
+| limit | long | A positive integer indicating the maximum number of results to be returned, or END_OF_SET (-9999) to indicate that the maximum number of results allowed by the server should be returned.  The number of records returned will never exceed the server's own limit, defined by the [max_get_records_size](../../../config/#config-main-general) parameter in the server configuration. Use output parameter *has_more_records* to see if more records exist in the result to be fetched, and input parameter *offset* and input parameter *limit* to request subsequent pages of results. <br/> <br/> The default value is -9999. |
+| encoding | string | Specifies the encoding for returned records. <br/> <br/> The default value is `binary`. <br/> <br/> binary: Indicates that the returned records should be binary encoded. <br/> <br/> json: Indicates that the returned records should be JSON-encoded. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> create_temp_table: If *true*, a unique temporary table name will be generated in the sys_temp schema and used in place of *result_table*. If *result_table_persist* is *false* (or unspecified), then this is always allowed even if the caller does not have permission to create tables. The generated name is returned in *qualified_result_table_name*. The default value is `false`. The supported values are: * true * false <br/> <br/> collection_name: [DEPRECATED--please specify the containing schema as part of *result_table* and use [/create/schema](/content/api/rest/create_schema_rest#create-schema-rest) to create the schema if non-existent] Name of a schema which is to contain the table specified in *result_table*. If the schema provided is non-existent, it will be automatically created. <br/> <br/> expression: Filter expression to apply to the table. <br/> <br/> sort_order: String indicating how the returned values should be sorted. The default value is `ascending`. The supported values are: * ascending * descending <br/> <br/> order_by: Comma-separated list of the columns to be sorted by as well as the sort direction, e.g., 'timestamp asc, x desc'. The default value is ''. <br/> <br/> result_table: The name of the table used to store the results, in [schema_name.]table_name format, using standard [name resolution rules](../../../concepts/tables/#table-name-resolution) and meeting [table naming criteria](../../../concepts/tables/#table-naming-criteria). If present, no results are returned in the response. Not available if input parameter *column_name* is an unrestricted-length string. <br/> <br/> result_table_persist: If *true*, then the result table specified in *result_table* will be persisted and will not expire unless a *ttl* is specified. If *false*, then the result table will be an in-memory table and will expire unless a *ttl* is specified otherwise. The default value is `false`. The supported values are: * true * false <br/> <br/> result_table_force_replicated: Force the result table to be replicated (ignores any sharding). Must be used in combination with the *result_table* option. The default value is `false`. The supported values are: * true * false <br/> <br/> result_table_generate_pk: If *true* then set a primary key for the result table. Must be used in combination with the *result_table* option. The default value is `false`. The supported values are: * true * false <br/> <br/> ttl: Sets the [TTL](../../../concepts/ttl/) of the table specified in *result_table*. <br/> <br/> chunk_size: Indicates the number of records per chunk to be used for the result table. Must be used in combination with the *result_table* option. <br/> <br/> chunk_column_max_memory: Indicates the target maximum data size for each column in a chunk to be used for the result table. Must be used in combination with the *result_table* option. <br/> <br/> chunk_max_memory: Indicates the target maximum data size for all columns in a chunk to be used for the result table. Must be used in combination with the *result_table* option. <br/> <br/> compression_codec: The default [compression codec](../../../concepts/column_compression/) for the result table's columns. <br/> <br/> view_id: ID of view of which the result table will be a member. The default value is ''. |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'aggregate_unique_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /aggregate/unique endpoint: <br/> <br/> table_name: [string] The same table name as was passed in the parameter list. <br/> <br/> response_schema_str: [string] Avro schema of output parameter *binary_encoded_response* or output parameter *json_encoded_response*. <br/> <br/> binary_encoded_response: [bytes] Avro binary encoded response. <br/> <br/> json_encoded_response: [string] Avro JSON encoded response. <br/> <br/> has_more_records: [boolean] Too many records. Returned a partial set. <br/> <br/> info: [map of string to strings] Additional information. The default value is an empty map ( \{\} ). +---------------------------+--------------------------------------------------------------------------------------------+ \|Supported Parameters (keys)\|Parameter Description \| +===========================+============================================================================================+ \|qualified_result_table_name\|The fully qualified name of the table (i.e. including the schema) used to store the results.\| \| \| \| +---------------------------+--------------------------------------------------------------------------------------------+ <br/> <br/> Empty string in case of an error. |

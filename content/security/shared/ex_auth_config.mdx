@@ -1,0 +1,329 @@
+---
+title: External Authentication Configuration
+---
+
+External authentication data store integration with *Kinetica* is accomplished
+through an *Apache HTTPD* proxy.  This proxy comes packaged with *Kinetica* and
+can be found in <Badge color="gray">/opt/gpudb/httpd</Badge>. Since this portion is controlled by
+*Apache HTTP* not *Kinetica*, see the
+[Apache documentation](https://httpd.apache.org/docs/2.4/) for further
+details. External authentication can be configured for *Kinetica* with or
+without SSL.
+
+*Kinetica* currently supports the following external authentication sources:
+
+
+<Note>
+See [Obfuscating Plain-Text Passwords](/content/security/sec_hardening#sec-hard-obf-ex)
+for an example of obfuscating the plain-text LDAP/AD password in the HTTPD
+configuration file.
+</Note>
+
+
+<Info>
+For testing purposes, *Kinetica* is packaged with an *OpenLDAP* server daemon
+(`slapd`) that already includes several sample users. It can be started
+& initialized manually, using the commands:
+
+
+ ```bash
+ $ sudo /opt/gpudb/httpd/gpudb-openldap.sh start
+ $ /opt/gpudb/httpd/openldap/openldap-init.sh
+ ```
+
+Only run <Badge color="gray">/opt/gpudb/httpd/openldap/openldap-init.sh</Badge> the
+**first** time the included *OpenLDAP* instance is started.
+</Info>
+
+
+## LDAP
+
+
+1. Before making configuration changes, ensure host manager is stopped:
+
+   ```
+   service gpudb_host_manager stop
+   ```
+2. Navigate to <Badge color="gray">/opt/gpudb/httpd/conf/data.conf</Badge>, uncomment the following
+   settings, and update them as necessary. Read more about the *HTTPD* LDAP
+   settings in the *Apache HTTPD* [LDAP documentation](http://httpd.apache.org/docs/2.0/mod/mod_auth_ldap.html):
+
+   ```
+   # Clear the REMOTE_USER and KINETICA_ROLES headers, so that they
+   # cannot be passed through by the client.
+   Header unset REMOTE_USER
+   Header unset KINETICA_ROLES
+
+   ## The following is an example configuration for authenticating Kinetica
+   ## users against an LDAP server. Please refer to the Apache httpd
+   ## configuration manual for assistance. Note that in order to use LDAP
+   ## authentication, enable_external_authentication must be set to true in
+   ## gpudb.conf.
+   AuthName "Kinetica Authentication"
+
+   ## LDAP server URL and full LDAP path to users directory with search
+   ## parameters. If an attribute other than "uid" is used for the user ID,
+   ## update it below.
+   AuthLDAPUrl ldap://<ldap-hostname:ldap-port>/dc=gpudb,dc=com?uid?sub
+
+   ## Valid LDAP user to use for search during bind
+   AuthLDAPBindDN cn=admin,dc=gpudb,dc=com
+   ## Password of user for search during bind
+   AuthLDAPBindPassword admin
+
+   AuthType Basic
+   ## The following (AuthBasicAllowAnonymous) is a custom httpd configuration
+   ## parameter which will allow failed LDAP lookups to trickle through to
+   ## GPUdb, where it can attempt an internal authentication and/or reach
+   ## endpoints without credentials if auth is not required.  This can be
+   ## turned off when internal users are not being used, and no anonymous
+   ## access is desired.
+   AuthBasicAllowAnonymous on
+   AuthBasicProvider ldap
+
+   ## To attempt authentication, uncomment the following
+   ## <LimitExcept>..</LimitExcept> block.  Once authentication is enabled,
+   ## you can also limit access to gpudb and translate LDAP groups to
+   ## Kinetica Roles...
+   ##
+   ## To prevent users outside certain LDAP groups from accessing the
+   ## system, uncomment the <RequireAny> block within the <LimitExcept>
+   ## block below, and list each accepted LDAP group, one per
+   ## Require ldap-group entry, in the format:
+   ##
+   ##     <RequireAny>
+   ##         Require ldap-group <ldap-group1-cn>
+   ##         ...
+   ##         Require ldap-group <ldap-groupN-cn>
+   ##     </RequireAny>
+   ##
+   ## If membership in all groups is required, rather than any one of the
+   ## groups, change the RequireAny tags to RequireAll tags.
+   ##
+   ## To translate membership in LDAP groups to membership in Kinetica
+   ## roles, uncomment the <RequireAll> block within the <LimitExcept>
+   ## block below, and replace the example mappings with mappings in the
+   ## format:
+   ##
+   ##     <RequireAll>
+   ##         Require kinetica-ldap-role-mapping <kinetica-role1-to-grant> <ldap-group1-cn>
+   ##         ...
+   ##         Require kinetica-ldap-role-mapping <kinetica-roleN-to-grant> <ldap-groupN-cn>
+   ##     </RequireAll>
+   ##
+   ## Note that access is not restricted to users in these groups (use
+   ## Require ldap-group, demonstrated above, to enforce group
+   ## restrictions). Also note that enable_authorization,
+   ## auto_grant_external_roles and potentially auto_revoke_external_roles
+   ## must be set to true in gpudb.conf to enable role mappings.
+
+   <LimitExcept OPTIONS>
+       <RequireAll>
+           #<RequireAny>
+           #    Require ldap-group cn=group1,dc=gpudb,dc=com
+           #    Require ldap-group cn=group2,dc=gpudb,dc=com
+           #</RequireAny>
+           <RequireAny>
+               #<RequireAll>
+               #    Require kinetica-ldap-role-mapping kinetica-role-1 cn=group1,dc=gpudb,dc=com
+               #    Require kinetica-ldap-role-mapping kinetica-role-2 cn=group2,dc=gpudb,dc=com
+               #</RequireAll>
+               Require valid-user
+           </RequireAny>
+       </RequireAll>
+   </LimitExcept>
+
+   ...
+
+   ## Add REMOTE_USER and KINETICA_ROLES HTTP headers, and do not pass
+   ## through any AUTHORIZATION header containing LDAP credentials. Update
+   ## the first line below if an attribute other than "uid" is used for the
+   ## user ID.
+   RequestHeader set REMOTE_USER %{AUTHENTICATE_uid}e env=AUTHENTICATE_uid
+   RequestHeader set KINETICA_ROLES %{KINETICA_ROLES}e env=KINETICA_ROLES
+   RequestHeader unset AUTHORIZATION env=REMOTE_USER
+   ```
+
+   <Note>
+   If you have groups you want to map to Kinetica roles, edit the
+   `LimitExcept` tag, noted above.
+   </Note>
+
+3. After making configuration changes, start the database:
+
+   ```
+   service gpudb start
+   ```
+
+## Microsoft Active Directory
+
+
+1.  Before making configuration changes, ensure host manager is stopped:
+
+    ```
+    service gpudb_host_manager stop
+    ```
+2. Navigate to <Badge color="gray">/opt/gpudb/httpd/conf/data.conf</Badge>, uncomment the following
+   settings, and update them as necessary, ensuring you replace any instances of
+   `uid` with `samaccountname`:
+
+   ```
+   # Clear the REMOTE_USER and KINETICA_ROLES headers, so that they
+   # cannot be passed through by the client.
+   Header unset REMOTE_USER
+   Header unset KINETICA_ROLES
+
+   ## The following is an example configuration for authenticating Kinetica
+   ## users against an LDAP server. Please refer to the Apache httpd
+   ## configuration manual for assistance. Note that in order to use LDAP
+   ## authentication, enable_external_authentication must be set to true in
+   ## gpudb.conf.
+   AuthName "Kinetica Authentication"
+
+   ## LDAP server URL and full LDAP path to users directory with search
+   ## parameters. If an attribute other than "uid" is used for the user ID,
+   ## update it below.
+   AuthLDAPUrl ldap://127.0.0.1:9009/dc=gpudb,dc=com?samaccountname?sub
+
+   ## Valid LDAP user to use for search during bind
+   AuthLDAPBindDN cn=admin,dc=gpudb,dc=com
+   ## Password of user for search during bind
+   AuthLDAPBindPassword admin
+
+   AuthType Basic
+   ## The following (AuthBasicAllowAnonymous) is a custom httpd configuration
+   ## parameter which will allow failed LDAP lookups to trickle through to
+   ## GPUdb, where it can attempt an internal authentication and/or reach
+   ## endpoints without credentials if auth is not required.  This can be
+   ## turned off when internal users are not being used, and no anonymous
+   ## access is desired.
+   AuthBasicAllowAnonymous on
+   AuthBasicProvider ldap
+
+   ## To attempt authentication, uncomment the following
+   ## <LimitExcept>..</LimitExcept> block.  Once authentication is enabled,
+   ## you can also limit access to gpudb and translate LDAP groups to
+   ## Kinetica Roles...
+   ##
+   ## To prevent users outside certain LDAP groups from accessing the
+   ## system, uncomment the <RequireAny> block within the <LimitExcept>
+   ## block below, and list each accepted LDAP group, one per
+   ## Require ldap-group entry, in the format:
+   ##
+   ##     <RequireAny>
+   ##         Require ldap-group <ldap-group1-cn>
+   ##         ...
+   ##         Require ldap-group <ldap-groupN-cn>
+   ##     </RequireAny>
+   ##
+   ## If membership in all groups is required, rather than any one of the
+   ## groups, change the RequireAny tags to RequireAll tags.
+   ##
+   ## To translate membership in LDAP groups to membership in Kinetica
+   ## roles, uncomment the <RequireAll> block within the <LimitExcept>
+   ## block below, and replace the example mappings with mappings in the
+   ## format:
+   ##
+   ##     <RequireAll>
+   ##         Require kinetica-ldap-role-mapping <kinetica-role1-to-grant> <ldap-group1-cn>
+   ##         ...
+   ##         Require kinetica-ldap-role-mapping <kinetica-roleN-to-grant> <ldap-groupN-cn>
+   ##     </RequireAll>
+   ##
+   ## Note that access is not restricted to users in these groups (use
+   ## Require ldap-group, demonstrated above, to enforce group
+   ## restrictions). Also note that enable_authorization,
+   ## auto_grant_external_roles and potentially auto_revoke_external_roles
+   ## must be set to true in gpudb.conf to enable role mappings.
+
+   <LimitExcept OPTIONS>
+       <RequireAll>
+           #<RequireAny>
+           #    Require ldap-group cn=group1,dc=gpudb,dc=com
+           #    Require ldap-group cn=group2,dc=gpudb,dc=com
+           #</RequireAny>
+           <RequireAny>
+               #<RequireAll>
+               #    Require kinetica-ldap-role-mapping kinetica-role-1 cn=group1,dc=gpudb,dc=com
+               #    Require kinetica-ldap-role-mapping kinetica-role-2 cn=group2,dc=gpudb,dc=com
+               #</RequireAll>
+               Require valid-user
+           </RequireAny>
+       </RequireAll>
+   </LimitExcept>
+
+   ...
+
+   ## Add REMOTE_USER and KINETICA_ROLES HTTP headers, and do not pass
+   ## through any AUTHORIZATION header containing LDAP credentials. Update
+   ## the first line below if an attribute other than "uid" is used for the
+   ## user ID.
+   RequestHeader set REMOTE_USER %{AUTHENTICATE_samaccountname}e env=AUTHENTICATE_samaccountname
+   RequestHeader set KINETICA_ROLES %{KINETICA_ROLES}e env=KINETICA_ROLES
+   RequestHeader unset AUTHORIZATION env=REMOTE_USER
+   ```
+
+   <Note>
+   If you have groups you want to map to Kinetica roles, edit the
+   `LimitExcept` tag, noted above.
+   </Note>
+
+3. After making configuration changes, start the database:
+
+   ```
+   service gpudb start
+   ```
+
+## Kerberos
+
+
+1. Before making configuration changes, ensure host manager is stopped:
+
+   ```
+   service gpudb_host_manager stop
+   ```
+2. Navigate to <Badge color="gray">/opt/gpudb/httpd/conf/data.conf</Badge>, uncomment the following
+   settings, and update them as necessary:
+
+   ```
+   # Clear the REMOTE_USER and KINETICA_ROLES headers, so that they
+   # cannot be passed through by the client.
+   Header unset REMOTE_USER
+   Header unset KINETICA_ROLES
+
+   ## The following is an example configuration for authenticating Kinetica
+   ## users against an LDAP server. Please refer to the Apache httpd
+   ## configuration manual for assistance. Note that in order to use LDAP
+   ## authentication, enable_external_authentication must be set to true in
+   ## gpudb.conf.
+   AuthName "Kinetica Authentication"
+   ```
+3. Add the following settings below the settings you just uncommented, ensuring
+   you replace the *Kerberos* realm and service name as well as the path to the
+   keytab file with the appropriate values:
+
+   ```
+   Allow from ALL
+   AuthType Kerberos
+   KrbAuthRealms <kerberos-realm-name>
+   KrbServiceName <kerberos-service-name>
+   Krb5Keytab </path/to/file.keytab>
+   KrbMethodNegotiate On
+   KrbMethodK5Passwd On
+   KrbVerifyKDC Off
+   KrbLocalUserMapping On
+   Require valid-user
+   RequestHeader set REMOTE_USER %{REMOTE_USER}s
+   RequestHeader unset AUTHORIZATION env=REMOTE_USER
+   ```
+4. Navigate to <Badge color="gray">/opt/gpudb/httpd/conf/httpd.conf</Badge> and add the following
+   line to the end of the file:
+
+   ```
+   LoadModule auth_kerb_module /opt/gpudb/httpd/modules/mod_auth_kerb.so
+   ```
+5. After making configuration changes, start the database:
+
+   ```
+   service gpudb start
+   ```

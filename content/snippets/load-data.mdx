@@ -1,0 +1,493 @@
+---
+title: Loading Data
+description: Copy-paste examples of loading data with SQL
+slug: load-data
+# time_estimate: 5 MIN
+---
+
+## LOAD INTO
+
+
+### Single & Multiple KiFS Files
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/formats.kisql (lines 70-71) */}
+```sql Single File
+LOAD DATA INTO example.product
+FROM FILE PATHS 'kifs://data/products.csv'
+```
+
+{/* Source: /examples/sql/load/formats.kisql (lines 127-128) */}
+```sql Multiple Files by List
+LOAD DATA INTO example.product
+FROM FILE PATHS 'kifs://data/products.csv', 'kifs://data/products.kh.csv'
+```
+
+</CodeGroup>
+
+
+### Data Sources
+
+
+#### File/Queue-Based
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/remote_file.kisql (lines 52-54) */}
+```sql One-Time Load
+LOAD DATA INTO example.product
+FROM FILE PATHS 'products.csv'
+WITH OPTIONS (DATA SOURCE = 'example.product_ds')
+```
+
+{/* Source: /examples/sql/load/remote_file_sub.kisql (lines 34-43) */}
+```sql Change Data Capture
+-- Load files in the orders directory with timestamps newer than the time of the
+--   previous poll interval; poll every 5 minutes
+LOAD DATA INTO example.orders
+FROM FILE PATHS 'orders/'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.order_ds',
+	SUBSCRIBE = TRUE,
+	POLL_INTERVAL = 300
+)
+```
+
+{/* Source: /examples/sql/load/load_into_format_kafka.sql (lines 3-5) */}
+```sql Streaming
+LOAD DATA INTO example.orders
+FORMAT JSON
+WITH OPTIONS (DATA SOURCE = 'kafka_ds', SUBSCRIBE = TRUE)
+```
+
+{/* Source: /examples/sql/load/load_into_format_kafka.sql (lines 39-46) */}
+```sql Streaming w/ Schema Registry
+LOAD DATA INTO example.orders
+FORMAT AVRO
+WITH OPTIONS
+(
+	DATA SOURCE = 'kafka_ds',
+	SCHEMA_REGISTRY_SCHEMA_NAME = 'order_schema',
+	SUBSCRIBE = TRUE
+)
+```
+
+</CodeGroup>
+
+
+#### Query-Based
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/remote_query.kisql (lines 59-61) */}
+```sql One-Time Load
+LOAD INTO example.employee_dept2
+FROM REMOTE QUERY 'SELECT * FROM example.employee WHERE dept_id = 2'
+WITH OPTIONS (DATA SOURCE = 'example.jdbc_ds')
+```
+
+{/* Source: /examples/sql/load/remote_query_cdc.kisql (lines 57-62 64-67) */}
+```sql Change Data Capture
+-- Load new orders for product 42 continuously into a table
+--   order_id is an ever-increasing sequence allotted to each new order
+LOAD INTO example.order_product42
+FROM REMOTE QUERY 'SELECT * FROM example.orders WHERE product_id = 42'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.jdbc_ds',
+	SUBSCRIBE = TRUE,
+	REMOTE_QUERY_INCREASING_COLUMN = 'order_id'
+)
+```
+
+{/* Source: /examples/sql/load/remote_query_init.kisql (lines 82-88) */}
+```sql Init Options
+LOAD INTO example.ts
+FROM REMOTE QUERY 'SELECT ts FROM example.ts_source'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.jdbc_ds',
+	JDBC_SESSION_INIT_STATEMENT = 'SET TIME ZONE ''EST'''
+)
+```
+
+{/* Source: /examples/sql/load/remote_query_size.kisql (lines 59-66) */}
+```sql Sizing Options
+LOAD INTO example.employee_dept2
+FROM REMOTE QUERY 'SELECT * FROM example.employee WHERE dept_id = 2'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.jdbc_ds',
+	BATCH SIZE = 10000,
+	JDBC_FETCH_SIZE = 10000
+)
+```
+
+</CodeGroup>
+
+
+### File Types
+
+
+#### Delimited Text Files
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/formats.kisql (lines 70-71) */}
+```sql CSV
+LOAD DATA INTO example.product
+FROM FILE PATHS 'kifs://data/products.csv'
+```
+
+{/* Source: /examples/sql/load/formats.kisql (lines 169-171) */}
+```sql Forced Format
+LOAD DATA INTO example.product
+FROM FILE PATHS 'kifs://data/products.dat'
+FORMAT TEXT
+```
+
+{/* Source: /examples/sql/load/formats.kisql (lines 92-94) */}
+```sql No Header
+LOAD DATA INTO example.product
+FROM FILE PATHS 'kifs://data/products.nh.csv'
+FORMAT TEXT (INCLUDES HEADER = FALSE)
+```
+
+{/* Source: /examples/sql/load/load_into_format_delimited.kisql (lines 16-18) */}
+```sql Columns Mapped by Name
+LOAD DATA INTO example.product_name_stock
+FROM FILE PATHS 'kifs://data/products.title-case.csv'
+WITH OPTIONS (FIELDS MAPPED BY NAME(ID, Name, Stock))
+```
+
+{/* Source: /examples/sql/load/load_into_format_delimited.kisql (lines 25-27) */}
+```sql Columns Ignored by Position
+LOAD DATA INTO example.product_name_stock
+FROM FILE PATHS 'kifs://data/products.title-case.csv'
+WITH OPTIONS (FIELDS IGNORED BY POSITION(2, 4))
+```
+
+{/* Source: /examples/sql/load/formats.kisql (lines 148-158) */}
+```sql Text Options
+LOAD DATA INTO example.product
+FROM FILE PATHS 'kifs://data/products.ssv'
+FORMAT TEXT
+(
+	COMMENT = '--',
+	DELIMITER = ';',
+	ESCAPE = '`',
+	INCLUDES HEADER = TRUE,
+	NULL = '<null>',
+	QUOTE = ''''
+)
+```
+
+</CodeGroup>
+
+
+#### JSON/GeoJSON Files
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_into_format_json.kisql (lines 8-9) */}
+```sql JSON File
+LOAD DATA INTO example.product
+FROM FILE PATHS 'kifs://data/products.json'
+```
+
+{/* Source: /examples/sql/load/load_into_format_json.kisql (lines 18-19) */}
+```sql GeoJSON File
+LOAD DATA INTO example.events
+FROM FILE PATHS 'kifs://data/events.json'
+```
+
+{/* Source: /examples/sql/load/load_into_format_json.kisql (lines 28-30) */}
+```sql Forced Format
+LOAD DATA INTO example.product
+FROM FILE PATHS 'kifs://data/products.js'
+FORMAT JSON
+```
+
+{/* Source: /examples/sql/load/load_into_format_json.kisql (lines 39-41) */}
+```sql Properties Mapped by Name
+LOAD DATA INTO example.product_name_stock
+FROM FILE PATHS 'kifs://data/products.json'
+WITH OPTIONS (FIELDS MAPPED BY NAME(id, name, stock))
+```
+
+{/* Source: /examples/sql/load/load_into_format_json.kisql (lines 50-52) */}
+```sql Properties Ignored by Name
+LOAD DATA INTO example.product_name_stock
+FROM FILE PATHS 'kifs://data/products.json'
+WITH OPTIONS (FIELDS IGNORED BY NAME(category, description))
+```
+
+</CodeGroup>
+
+
+#### Parquet Files
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_into_format_parquet.kisql (lines 7-8) */}
+```sql Implicit Format
+LOAD DATA INTO example.ext_employee
+FROM FILE PATHS 'kifs://data/employee.parquet'
+```
+
+{/* Source: /examples/sql/load/load_into_format_parquet.kisql (lines 15-17) */}
+```sql Forced Format
+CREATE EXTERNAL TABLE example.ext_employee
+FILE PATHS 'kifs://data/employee.pq'
+FORMAT PARQUET
+```
+
+{/* Source: /examples/sql/load/load_into_format_parquet.kisql (lines 24-26) */}
+```sql Properties Mapped By Name
+LOAD DATA INTO example.product_name_stock
+FROM FILE PATHS 'kifs://data/products.parquet'
+WITH OPTIONS (FIELDS MAPPED BY NAME(id, name, stock))
+```
+
+{/* Source: /examples/sql/load/load_into_format_parquet.kisql (lines 33-35) */}
+```sql Properties Ignored By Name
+LOAD DATA INTO example.product_name_stock
+FROM FILE PATHS 'kifs://data/products.parquet'
+WITH OPTIONS (FIELDS IGNORED BY NAME(category, description))
+```
+
+</CodeGroup>
+
+
+#### Shapefiles
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_into_format_shapefile.kisql (lines 28-30) */}
+```sql Implicit Format
+LOAD DATA INTO example.events
+FROM FILE PATHS 'shapefile/events.shp'
+WITH OPTIONS (DATA SOURCE = 'example.events_ds')
+```
+
+{/* Source: /examples/sql/load/load_into_format_shapefile.kisql (lines 37-39) */}
+```sql Forced Format
+LOAD DATA INTO example.events
+FROM FILE PATHS 'kifs://data/events.shp'
+FORMAT SHAPEFILE
+```
+
+{/* Source: /examples/sql/load/load_into_format_shapefile.kisql (lines 46-49) */}
+```sql Properties Mapped by Name
+LOAD DATA INTO example.events
+FROM FILE PATHS 'kifs://data/events.shp'
+FORMAT SHAPEFILE
+WITH OPTIONS (FIELDS MAPPED BY NAME(ID, kiGeometry))
+```
+
+{/* Source: /examples/sql/load/load_into_format_shapefile.kisql (lines 56-59) */}
+```sql Properties Ignored by Name
+LOAD DATA INTO example.events
+FROM FILE PATHS 'kifs://data/events.shp'
+FORMAT SHAPEFILE
+WITH OPTIONS (FIELDS IGNORED BY NAME(type))
+```
+
+</CodeGroup>
+
+
+#### Avro Files
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_into_format_kafka.sql (lines 28-34) */}
+```sql Embedded Schema
+LOAD DATA INTO example.orders
+FORMAT AVRO
+WITH OPTIONS
+(
+	DATA SOURCE = 'kafka_ds',
+	SUBSCRIBE = TRUE
+)
+```
+
+{/* Source: /examples/sql/load/load_into_format_kafka.sql (lines 39-46) */}
+```sql Schema Registry Lookup
+LOAD DATA INTO example.orders
+FORMAT AVRO
+WITH OPTIONS
+(
+	DATA SOURCE = 'kafka_ds',
+	SCHEMA_REGISTRY_SCHEMA_NAME = 'order_schema',
+	SUBSCRIBE = TRUE
+)
+```
+
+</CodeGroup>
+
+
+### Primary/Shard Keys
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/pksk.kisql (lines 33-35) */}
+```sql Primary Key
+LOAD INTO example.employee
+FROM FILE PATHS 'kifs://data/employee.parquet'
+WITH OPTIONS (PRIMARY KEY = (id))
+```
+
+{/* Source: /examples/sql/load/pksk.kisql (lines 56-62) */}
+```sql Primary & Shard Key
+LOAD INTO example.employee
+FROM FILE PATHS 'kifs://data/employee.csv'
+WITH OPTIONS
+(
+    PRIMARY KEY = (id, dept_id),
+    SHARD KEY = (id)
+)
+```
+
+</CodeGroup>
+
+
+### Query Partitioning Options
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/remote_query_part.kisql (lines 83-86 89-91) */}
+```sql Partition Column
+LOAD INTO example.employee_local
+FROM REMOTE QUERY 'SELECT * FROM example.employee'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.jdbc_ds',
+	REMOTE_QUERY_PARTITION_COLUMN = 'id'
+)
+```
+
+{/* Source: /examples/sql/load/remote_query_part.kisql (lines 115-118 121-123) */}
+```sql Ordered Blocks
+LOAD INTO example.employee_local
+FROM REMOTE QUERY 'SELECT * FROM example.employee'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.jdbc_ds',
+	REMOTE_QUERY_ORDER_BY = 'hire_date, dept_id'
+)
+```
+
+{/* Source: /examples/sql/load/remote_query_part.kisql (lines 159-162 165-167) */}
+```sql Disable Partitioning
+LOAD INTO example.employee_local
+FROM REMOTE QUERY 'SELECT * FROM example.employee'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.jdbc_ds',
+	REMOTE_QUERY_NO_SPLIT = true
+)
+```
+
+{/* Source: /examples/sql/load/remote_query_rank.kisql (lines 75-82) */}
+```sql Rank/Split Processing
+LOAD INTO example.employee_local
+FROM REMOTE QUERY 'SELECT * FROM example.employee'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.jdbc_ds',
+	NUM_SPLITS_PER_RANK = 16,
+	NUM_TASKS_PER_RANK = 4
+)
+```
+
+</CodeGroup>
+
+
+### Other Options
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/options.kisql (lines 51-59) */}
+```sql Column Formats
+LOAD INTO example.employee
+FROM FILE PATHS 'kifs://data/employee.csv'
+WITH OPTIONS
+(
+	COLUMN FORMATS = '
+	{
+		"hire_date": {"date": "YYYY-MM-DD"}
+	}'
+)
+```
+
+{/* Source: /examples/sql/load/options.kisql (lines 70-72) */}
+```sql Table Options
+LOAD DATA INTO example.product_create_options
+FROM FILE PATHS 'kifs://data/products.csv'
+USING TABLE PROPERTIES (CHUNK SIZE = 1000000, TTL = 5)
+```
+
+{/* Source: /examples/sql/load/options.kisql (lines 83-85) */}
+```sql Load Options
+LOAD DATA INTO example.product_load_options
+FROM FILE PATHS 'kifs://data/products.csv'
+WITH OPTIONS (BATCH SIZE = 20000)
+```
+
+</CodeGroup>
+
+
+## External Tables
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/external_table/remote_file_refresh.kisql (lines 35-37) */}
+```sql Refresh on Start
+CREATE EXTERNAL TABLE example.ext_product
+FILE PATHS 'products.csv'
+WITH OPTIONS (DATA SOURCE = 'example.product_ds', REFRESH ON START = TRUE)
+```
+
+{/* Source: /examples/sql/external_table/remote_file_sub.kisql (lines 35-37) */}
+```sql File Change Data Capture
+CREATE EXTERNAL TABLE example.ext_order
+FILE PATHS 'orders/'
+WITH OPTIONS (DATA SOURCE = 'example.order_ds', SUBSCRIBE = TRUE)
+```
+
+{/* Source: /examples/sql/external_table/remote_query.kisql (lines 59-61) */}
+```sql JDBC Data Source Remote Query
+CREATE EXTERNAL TABLE example.ext_employee_dept2
+REMOTE QUERY 'SELECT * FROM example.employee WHERE dept_id = 2'
+WITH OPTIONS (DATA SOURCE = 'example.jdbc_ds')
+```
+
+{/* Source: /examples/sql/external_table/remote_query_cdc.kisql (lines 57-62 64-67) */}
+```sql Query Change Data Capture
+-- Load new orders for product 42 continuously into a table
+--   order_id is an ever-increasing sequence allotted to each new order
+CREATE EXTERNAL TABLE example.ext_order_product42
+REMOTE QUERY 'SELECT * FROM example.orders WHERE product_id = 42'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.jdbc_ds',
+	SUBSCRIBE = TRUE,
+	REMOTE_QUERY_INCREASING_COLUMN = 'order_id'
+)
+```
+
+</CodeGroup>

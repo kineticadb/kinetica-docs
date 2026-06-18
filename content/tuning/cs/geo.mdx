@@ -1,0 +1,192 @@
+---
+title: Geospatial Queries
+---
+
+<a id="geo-partitioning"></a>
+
+
+## Geospatial Partitioning
+
+
+*Geospatial partitioning* is a method for organizing geospatial data, grouping
+spatial entities in close proximity to each other.  This geospatial grouping
+allows for accelerated geospatial processing of the grouped data.
+
+Geospatial joins, specifically, will take advantage of this process improvement.
+An increase in performance using this technique will be proportional to the size
+of the data being joined.
+
+<a id="geo-join-example"></a>
+
+
+### Example
+
+
+The goal of the geospatial join in this example is to show flights that landed
+at (or passed over) JFK airport.  It will do this by joining geolocation data
+sampled at various points of disparate airline flight paths with neighborhood
+zone data from the NYC NTA data set, and specifically, the JFK airport zones.
+
+This example relies on the *flights* data set, which can be
+[imported](/content/admin/gadmin/cluster#cluster-demo) into *Kinetica* via *GAdmin*.
+That data will be copied to two tables, one with no geopartitioning and one with
+geopartitioning, and then increased in size by a magnitude of order to show the
+performance difference between querying the two.
+
+The zone data, which includes JFK airport, will come from the
+[NYC Neighborhood](/examples/data/nyct2010.csv) data file.
+
+
+#### Setup
+
+
+First, create the two flight data tables, with and without geopartitioning.
+The partitioned table is partitioned on the geohash of the flight path data
+points with a precision of 2, which partitions the data into 135 different
+groups.
+
+{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 15-23 25-36) */}
+```sql
+CREATE OR REPLACE TABLE example_geospatial.flights_nongeopartitioned
+(
+	"from" VARCHAR(8),
+	"to" VARCHAR(8),
+	x REAL,
+	y REAL,
+	eta_mins INT,
+	flight_time LONG
+)
+
+CREATE OR REPLACE TABLE example_geospatial.flights_geopartitioned
+(
+	"from" VARCHAR(8),
+	"to" VARCHAR(8),
+	x REAL,
+	y REAL,
+	eta_mins INT,
+	flight_time LONG
+)
+PARTITION BY LIST (GEOHASH_ENCODE(y, x, 2))
+AUTOMATIC
+```
+
+Then, load them up with 10 times the original flight data.
+
+{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 41-44 46-50) */}
+```sql
+INSERT INTO example_geospatial.flights_nongeopartitioned
+SELECT "from", "to", x, y, eta_mins, timestamp
+FROM demo.flights, ITER
+WHERE i < 10
+
+INSERT INTO example_geospatial.flights_geopartitioned
+SELECT "from", "to", x, y, eta_mins, timestamp
+FROM demo.flights, ITER
+WHERE i < 10
+```
+
+Lastly, import the NYC neighborhood data
+
+{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 57-72) */}
+```sql
+CREATE OR REPLACE REPLICATED TABLE example_geospatial.nyct2010
+(
+   "gid" INTEGER (primary_key) NOT NULL,
+   "geom" GEOMETRY NOT NULL,
+   "CTLabel" VARCHAR (16) NOT NULL,
+   "BoroCode" VARCHAR (16) NOT NULL,
+   "BoroName" VARCHAR (16) NOT NULL,
+   "CT2010" VARCHAR (16) NOT NULL,
+   "BoroCT2010" VARCHAR (16) NOT NULL,
+   "CDEligibil" VARCHAR (16) NOT NULL,
+   "NTACode" VARCHAR (16) NOT NULL,
+   "NTAName" VARCHAR (64) NOT NULL,
+   "PUMA" VARCHAR (16) NOT NULL,
+   "Shape_Leng" DOUBLE NOT NULL,
+   "Shape_Area" DOUBLE NOT NULL
+)
+```
+
+{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 75-76) */}
+```sql
+LOAD INTO example_geospatial.nyct2010
+FROM FILE PATH 'kifs://geo_data/nyct2010.csv';
+```
+
+
+#### Geo-Join
+
+
+Now that the tables are ready, the same geospatial join can be run, one using
+the geospatially partitioned table, and one using the non-partitioned table.
+
+
+<p><strong>Without Geopartitioning</strong></p>
+
+
+Non-partitioned query:
+
+{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 86-96) */}
+```sql
+SELECT
+	"from",
+	"to",
+	eta_mins,
+	flight_time,
+	z.BoroName AS boro_name,
+	z.NTAName AS nta_name
+FROM
+	example_geospatial.flights_nongeopartitioned f
+JOIN
+	example_geospatial.nyct2010 z ON STXY_CONTAINS(z.geom, f.x, f.y) AND z.NTAName = 'Airport'
+```
+
+Sample runtime:
+
+```
+Query Execution Time: 0.453 s
+```
+
+<p><strong>With Geopartitioning</strong></p>
+
+
+Partitioned query:
+
+{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 101-111) */}
+```sql
+SELECT
+	"from",
+	"to",
+	eta_mins,
+	flight_time,
+	z.BoroName AS boro_name,
+	z.NTAName AS nta_name
+FROM
+	example_geospatial.flights_geopartitioned f
+JOIN
+	example_geospatial.nyct2010 z ON STXY_CONTAINS(z.geom, f.x, f.y) AND z.NTAName = 'Airport'
+```
+
+Sample runtime:
+
+```
+Query Execution Time: 0.196 s
+```
+
+#### Conclusion & Cautions
+
+
+In this example, the same query, run against a geopartitioned table, is able to
+execute more than twice as fast as when run against a table without
+geopartitioning.  Note that only the point data table was partitioned, using a
+geohash precision of 2.  This will not be the optimal configuration in every
+case.
+
+This geopartitioning technique may require testing several configurations to
+determine the one that provides optimal performance for the given data set and
+query.  For each of the tables involved in the join, a decision must be made to
+partition the table (or not), and if so, what precision to use for the geohash
+used to partition the table.  The size & geospatial distribution of both data
+sets, as well as the extent to which they overlap, will have an impact on the
+performance of the query and the configuration required to process it in the
+best case.

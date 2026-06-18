@@ -1,0 +1,40 @@
+---
+title: /get/job
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="get-job-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/get/job
+```
+Get the status and result of asynchronously running job.  See the
+[/create/job](/content/api/rest/create_job_rest#create-job-rest) for starting an asynchronous job.
+Some fields of the response are filled only after the submitted job has
+finished execution.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| job_id | long | A unique identifier for the job whose status and result is to be fetched. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> job_tag: Job tag returned in call to create the job. |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'get_job_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /get/job endpoint: <br/> <br/> endpoint: [string] The endpoint which is being executed asynchronously.  E.g. '/alter/table'. <br/> <br/> job_status: [string] Status of the submitted job. +---------+------------------------------------------------------------------------------------------------------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+====================================================================================================================================+ \|RUNNING \|The job is currently executing. \| \| \| \| +---------+------------------------------------------------------------------------------------------------------------------------------------+ \|DONE \|The job execution has successfully completed and the response is included in the output parameter *job_response* or output parameter\| \| \|*job_response_str* field. \| \| \| \| +---------+------------------------------------------------------------------------------------------------------------------------------------+ \|ERROR \|The job was attempted, but an error was encountered. The output parameter *status_map* contains the details of the error in \| \| \|error_message. \| \| \| \| +---------+------------------------------------------------------------------------------------------------------------------------------------+ \|CANCELLED\|Job cancellation was requested while the execution was in progress. \| \| \| \| +---------+------------------------------------------------------------------------------------------------------------------------------------+ <br/> <br/> running: [boolean] True if the end point is still executing. <br/> <br/> progress: [int] Approximate percentage of the job completed. <br/> <br/> successful: [boolean] True if the job execution completed and no errors were encountered. <br/> <br/> response_encoding: [string] The encoding of the job result (contained in output parameter *job_response* or output parameter *job_response_str*. +---------+----------------------------------------------------------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+========================================================================================+ \|binary \|The job result is binary-encoded. It is contained in output parameter *job_response*. \| \| \| \| +---------+----------------------------------------------------------------------------------------+ \|json \|The job result is JSON-encoded. It is contained in output parameter *job_response_str*.\| \| \| \| +---------+----------------------------------------------------------------------------------------+ <br/> <br/> job_response: [bytes] The binary-encoded response of the job.  This field is populated only when the job has completed and output parameter *response_encoding* is *binary*. <br/> <br/> job_response_str: [string] The json-encoded response of the job.  This field is populated only when the job has completed and output parameter *response_encoding* is *json*. <br/> <br/> status_map: [map of string to strings] Map of various status strings for the executed job. +-------------+--------------------------------------------------------------------------------------------------------------------------+ \|Supported \|Parameter Description \| \|Parameters \| \| \|(keys) \| \| +=============+==========================================================================================================================+ \|error_message\|Explains what error occurred while running the job asynchronously. This entry only exists when the job status is *ERROR*.\| \| \| \| +-------------+--------------------------------------------------------------------------------------------------------------------------+ <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

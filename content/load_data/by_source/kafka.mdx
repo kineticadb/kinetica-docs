@@ -1,0 +1,449 @@
+---
+title: Load Data from Apache Kafka
+description: Copy and paste tutorial for loading data from Apache Kafka
+sidebarTitle: Kafka (Apache)
+---
+
+<a id="load-data-by-source-kafka"></a>
+
+
+Loading data from Apache Kafka can be done in three easy steps:
+
+1. [Create a credential](/content/load_data/by_source/kafka#load-from-kafka-credential) - holds
+   Kafka account authentication information
+2. [Create a data source](/content/load_data/by_source/kafka#load-from-kafka-data-source) - holds
+   Kafka connection information; uses the *credential* for authentication
+3. [Ingest the data](/content/load_data/by_source/kafka#load-from-kafka-ingest) - Load data from
+   Kafka; uses the *data source* to identify the Kafka source
+
+
+<Info>
+Only Avro, delimited text, GeoJSON, & JSON are supported for Kafka
+ingest.
+</Info>
+
+
+<a id="load-from-kafka-credential"></a>
+
+
+## Create Credential
+
+
+To store the access details for your *data source*, first create a *credential*
+with the [CREATE CREDENTIAL](/content/sql/ddl#sql-create-credential) command, and
+reference it in your `CREATE DATA SOURCE` statement.  This will allow you to
+store the authentication details of your connection separately.
+
+If connecting to a Kafka topic that allows anonymous access, this step can be
+skipped.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/credential/credentials_format_kafka.kisql (lines 24-30) */}
+```sql SSL with CA Cert
+CREATE CREDENTIAL kafka_cred
+TYPE = 'kafka'
+WITH OPTIONS
+(
+    'security.protocol' = 'SSL',
+    'ssl.ca.location' = 'kifs://ssl/ca-bundle.crt'
+)
+```
+
+{/* Source: /examples/sql/credential/credentials_format_kafka.kisql (lines 37-44) */}
+```sql SSL with CA Cert/Client Auth
+CREATE CREDENTIAL kafka_cred
+TYPE = 'kafka'
+WITH OPTIONS
+(
+    'security.protocol' = 'SSL',
+    'ssl.ca.location' = 'kifs://ssl/ca-bundle.crt',
+    'ssl.certificate.location' = 'kifs://ssl/client.pem'
+)
+```
+
+{/* Source: /examples/sql/credential/credentials_format_kafka.kisql (lines 51-60) */}
+```sql SSL with Encryption
+CREATE CREDENTIAL kafka_cred
+TYPE = 'kafka'
+WITH OPTIONS
+(
+    'security.protocol' = 'SSL',
+    'ssl.ca.location' = 'kifs://ssl/ca-bundle.crt',
+    'ssl.certificate.location' = 'kifs://ssl/client.pem',
+    'ssl.key.location' = 'kifs://ssl/client.key',
+    'ssl.key.password' = 'foobaz123'
+)
+```
+
+{/* Source: /examples/sql/credential/credentials_format_kafka.kisql (lines 67-75) */}
+```sql SASL
+CREATE CREDENTIAL kafka_cred
+TYPE = 'kafka'
+WITH OPTIONS
+(
+    'security.protocol' = 'SASL_SSL',
+    'sasl.mechanism' = 'PLAIN',
+    'sasl.username' = 'jdoe',
+    'sasl.password' = 'foobaz123'
+)
+```
+
+{/* Source: /examples/sql/credential/credentials_format_kafka.kisql (lines 82-91) */}
+```sql Kerberos
+CREATE CREDENTIAL kafka_cred
+TYPE = 'kafka'
+WITH OPTIONS
+(
+    'security.protocol' = 'SASL_PLAINTEXT',
+    'sasl.mechanism' = 'GSSAPI',
+    'sasl.kerberos.service.name' = 'kafka',
+    'sasl.kerberos.keytab' = 'kifs://security/jdoe.keytab',
+    'sasl.kerberos.principal' = 'jdoe@example.com'
+)
+```
+
+{/* Source: /examples/sql/credential/credentials_format_kafka.kisql (lines 98-111) */}
+```sql Kerberos SSL
+CREATE CREDENTIAL kafka_cred
+TYPE = 'kafka'
+WITH OPTIONS
+(
+    'security.protocol' = 'SASL_SSL',
+    'sasl.mechanism' = 'GSSAPI',
+    'sasl.kerberos.service.name' = 'kafka',
+    'sasl.kerberos.keytab' = 'kifs://security/jdoe.keytab',
+    'sasl.kerberos.principal' = 'jdoe@example.com',
+    'ssl.ca.location' = 'kifs://ssl/ca-bundle.crt',
+    'ssl.certificate.location' = 'kifs://ssl/client.pem',
+    'ssl.key.location' = 'kifs://ssl/client.key',
+    'ssl.key.password' = 'foobaz123'
+)
+```
+
+</CodeGroup>
+
+
+<a id="load-from-kafka-data-source"></a>
+
+
+## Create Data Source
+
+
+Next, create a *data source* using the
+[CREATE DATA SOURCE](/content/sql/ddl#sql-create-data-source) command in Kinetica.
+The *data source* defines how Kinetica connects to your Kafka topic.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_source/data_source_format_kafka.kisql (lines 28-31 33-35) */}
+```sql Credential
+CREATE DATA SOURCE kafka_ds
+LOCATION = 'KAFKA://example.com:9092'
+WITH OPTIONS
+(
+    KAFKA_TOPIC_NAME = 'sample',
+    CREDENTIAL = 'kafka_cred'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_kafka.kisql (lines 43-46 48-52) */}
+```sql Credential w/ Schema Registry
+CREATE DATA SOURCE kafka_ds
+LOCATION = 'KAFKA://example.com:9092'
+WITH OPTIONS
+(
+    KAFKA_TOPIC_NAME = 'sample',
+    CREDENTIAL = 'kafka_cred',
+    SCHEMA_REGISTRY_LOCATION = 'https://example.com:8082',
+    SCHEMA_REGISTRY_CREDENTIAL = 'kafka_sr_cred'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_kafka.kisql (lines 14-17 19-20) */}
+```sql Public (No Auth)
+CREATE DATA SOURCE kafka_ds
+LOCATION = 'KAFKA://example.com:9092'
+WITH OPTIONS
+(
+    KAFKA_TOPIC_NAME = 'sample'
+)
+```
+
+</CodeGroup>
+
+
+<a id="load-from-kafka-ingest"></a>
+
+
+## Ingest Data
+
+
+To initiate the ingest of data into a Kinetica table, use the
+[LOAD INTO](/content/sql/load#sql-load-into) command with the option
+`SUBSCRIBE = TRUE`. This will start the stream of data from your Kafka topic
+into the specified table. You can control the ingest (pause, resume, and cancel)
+by using the [ALTER TABLE](/content/sql/ddl#sql-alter-table-manage-sub) command.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_into_format_kafka.sql (lines 3-5) */}
+```sql Start Ingest
+LOAD DATA INTO example.orders
+FORMAT JSON
+WITH OPTIONS (DATA SOURCE = 'kafka_ds', SUBSCRIBE = TRUE)
+```
+
+{/* Source: /examples/sql/load/load_into_format_kafka.sql (lines 10-11) */}
+```sql Pause Ingest
+ALTER TABLE example.orders
+PAUSE SUBSCRIPTION kafka_ds
+```
+
+{/* Source: /examples/sql/load/load_into_format_kafka.sql (lines 16-17) */}
+```sql Resume Ingest
+ALTER TABLE example.orders
+RESUME SUBSCRIPTION kafka_ds
+```
+
+{/* Source: /examples/sql/load/load_into_format_kafka.sql (lines 22-23) */}
+```sql Cancel Ingest
+ALTER TABLE example.orders
+CANCEL SUBSCRIPTION kafka_ds
+```
+
+</CodeGroup>
+
+
+## Considerations
+
+
+The following are some common options used when loading.  For the full list of
+options, see [LOAD INTO](/content/sql/load#sql-load-into).  For copy/paste examples of many of
+the options, see [Loading Data](/content/snippets/load-data).
+
+
+### Error Handling
+
+
+Kinetica has two different
+[error handling modes](/content/sql/load#sql-load-file-server-load-opt) for dealing
+with erroneous data. To halt ingestion after a bad record is found, use the
+`ABORT` mode. To skip erroneous records and continue the ingest, use the
+`SKIP` mode.
+
+To inspect erroneous records, you may use the
+[BAD RECORD TABLE NAME](/content/sql/load#sql-load-file-server-load-opt) option.
+All bad records encountered will be stored there for review. The bad records
+table is limited to 10,000 records by default and may be overridden using the
+[BAD RECORD TABLE LIMIT](/content/sql/load#sql-load-file-server-load-opt) option.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_into_kafka_snippets.sql (lines 59-65) */}
+```sql Abort
+LOAD INTO ki_home.error_example
+FORMAT JSON
+WITH OPTIONS (
+    DATA SOURCE = 'kafka_ds',
+    SUBSCRIBE = true,
+    ON ERROR = ABORT
+)
+```
+
+{/* Source: /examples/sql/load/load_into_kafka_snippets.sql (lines 69-76) */}
+```sql Log Bad Records
+LOAD INTO ki_home.error_example
+FORMAT JSON
+WITH OPTIONS (
+    DATA SOURCE = 'kafka_ds',
+    SUBSCRIBE = true,
+    BAD RECORD TABLE NAME = 'error_example_invalid',
+    ON ERROR = SKIP
+)
+```
+
+</CodeGroup>
+
+
+### Load Specific Columns
+
+
+In some cases, you may only want to store certain columns from your source data.
+Use the [FIELDS MAPPED BY NAME(...)](/content/sql/load#sql-load-file-server-load-opt)
+option, which allows you to specify the desired fields to store in Kinetica.
+
+```sql title="Load Specific Columns Example"
+LOAD DATA INTO example.orders
+FORMAT JSON
+WITH OPTIONS (
+    DATA SOURCE = 'kafka_ds',
+    FIELDS MAPPED BY NAME(ID, Name, Product_ID, Quantity)
+)
+```
+
+
+### DateTime Formatting
+
+
+Use the  [COLUMN FORMATS](/content/sql/load#sql-load-file-server-load-opt) option
+to format date and time fields into Kinetica Date, Time, and DateTime columns.
+Time formats are specified using a JSON formatted string. Non-placeholder characters
+must be wrapped in quotes, which must also be escaped (e.g.
+`'{"dt": {"date": "\"(\"YYYY\")\" Mon, DD"}}'`). Alternatively, you can use
+the `?` character as a wildcard character. Note that
+Kinetica does not handle or store timezones and they will be discarded.
+See the full list of supported
+[date and time format codes](/content/sql/query#sql-datetime-conversion-codes).
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_into_kafka_snippets.sql (lines 7-21) */}
+```sql ISO 8601 Timestamps
+-- Example Data:
+-- {
+--   "dt": "2022-01-19T15:50:42Z+05:00"
+-- }
+
+LOAD INTO ki_home.timestamp_example
+FORMAT JSON
+WITH OPTIONS (
+    DATA SOURCE = 'kafka_ds',
+    SUBSCRIBE = true,
+    COLUMN FORMATS = '
+    {
+        "dt": {"datetime": "YYYY-MM-DD?HH:MI:SS"}
+    }'
+)
+```
+
+{/* Source: /examples/sql/load/load_into_kafka_snippets.sql (lines 25-36) */}
+```sql Custom Date
+-- Example Data:
+-- {
+--   "d": "(2022) Feb, 22"
+-- }
+
+LOAD INTO ki_home.date_example
+FORMAT JSON
+WITH OPTIONS (
+    DATA SOURCE = 'kafka_ds',
+    SUBSCRIBE = true,
+    COLUMN FORMATS = '{"d": {"date": "\"(\"YYYY\")\" Mon, DD"}}'
+)
+```
+
+{/* Source: /examples/sql/load/load_into_kafka_snippets.sql (lines 40-51) */}
+```sql Custom Time
+-- Example Data:
+-- {
+--   "t": "18-27-59.5536"
+-- }
+
+LOAD INTO ki_home.time_example
+FORMAT JSON
+WITH OPTIONS (
+    DATA SOURCE = 'kafka_ds',
+    SUBSCRIBE = true,
+    COLUMN FORMATS = '{"t": {"time": "HH-MI-SS.MS"}}'
+)
+```
+
+</CodeGroup>
+
+
+### Null Value Handling
+
+
+By default, Kinetica will use the native `null` type in JSON for null values.
+However, if your data uses a custom string to specify null (e.g. `"null"`) use
+the [NULL](/content/sql/load#sql-load-file-server-load-opt) option.
+
+{/* Source: /examples/sql/load/load_into_kafka_snippets.sql (lines 84-95) */}
+```sql Null String
+-- Example Data:
+-- {
+--   "example_null": "null"
+-- }
+
+LOAD INTO ki_home.null_example
+FORMAT JSON
+WITH OPTIONS (
+    DATA SOURCE = 'kafka_ds',
+    SUBSCRIBE = true,
+    NULL = 'null'
+)
+```
+
+
+<a id="load-from-kafka-schema-registry"></a>
+
+
+### Avro w/ Schema Registry
+
+
+To load Avro data where the data schema is stored in a Confluent Schema
+Registry, follow three steps:
+
+1. Create [credentials](/content/sql/ddl#sql-create-credential) for both the Kafka
+   source and the Schema Registry service.
+2. Create a [data source](/content/sql/ddl#sql-create-data-source) that references
+   the Kafka source, the Schema Registry service, and both *credentials*.
+3. Initiate a [load](/content/sql/load#sql-load-into) that references the
+   *data source* and the name of the schema to use.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/credential/credentials_format_kafka.kisql (lines 82-91) */}
+```sql Create Kafka Credentials
+CREATE CREDENTIAL kafka_cred
+TYPE = 'kafka'
+WITH OPTIONS
+(
+    'security.protocol' = 'SASL_PLAINTEXT',
+    'sasl.mechanism' = 'GSSAPI',
+    'sasl.kerberos.service.name' = 'kafka',
+    'sasl.kerberos.keytab' = 'kifs://security/jdoe.keytab',
+    'sasl.kerberos.principal' = 'jdoe@example.com'
+)
+```
+
+{/* Source: /examples/sql/credential/credentials_format_kafka.kisql (lines 118-126) */}
+```sql Create Schema Registry Credentials
+CREATE CREDENTIAL kafka_sr_cred
+TYPE = 'kafka'
+WITH OPTIONS
+(
+    'security.protocol' = 'SASL_SSL',
+    'sasl.mechanism' = 'PLAIN',
+    'sasl.username' = 'jdoe',
+    'sasl.password' = 'foobaz123'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_kafka.kisql (lines 43-46 48-52) */}
+```sql Create Data Source
+CREATE DATA SOURCE kafka_ds
+LOCATION = 'KAFKA://example.com:9092'
+WITH OPTIONS
+(
+    KAFKA_TOPIC_NAME = 'sample',
+    CREDENTIAL = 'kafka_cred',
+    SCHEMA_REGISTRY_LOCATION = 'https://example.com:8082',
+    SCHEMA_REGISTRY_CREDENTIAL = 'kafka_sr_cred'
+)
+```
+
+{/* Source: /examples/sql/load/load_into_format_kafka.sql (lines 39-46) */}
+```sql Initiate Load
+LOAD DATA INTO example.orders
+FORMAT AVRO
+WITH OPTIONS
+(
+	DATA SOURCE = 'kafka_ds',
+	SCHEMA_REGISTRY_SCHEMA_NAME = 'order_schema',
+	SUBSCRIBE = TRUE
+)
+```
+
+</CodeGroup>

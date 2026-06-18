@@ -1,0 +1,223 @@
+---
+title: Alerting
+---
+
+<a id="alerting"></a>
+
+<a id="alerts"></a>
+
+
+*Kinetica* provides a simple alerting system controlled by *Host Manager* that
+can monitor the health of the system and resource usage.
+
+
+Alerts are enabled by default and pre-configured to report on errors, critical
+system states, and a nominal set of resource usage thresholds.
+
+If an alert is triggered, the alert is stored in memory and also logged to
+<Badge color="gray">alert_store.json</Badge> in the head node's *persist* directory.  In a default
+configuration that file is here:
+
+```
+/opt/gpudb/persist/gpudb/rank-0/alert_store.json
+```
+The alert is viewable through the
+[Kinetica Administration Application](/content/admin/gadmin) under
+[Alerts](/content/admin/gadmin/cluster#cluster-alerts). The [/admin/show/alerts](/content/api/rest/admin_show_alerts_rest#admin-show-alerts-rest) endpoint can be used to
+retrieve previous alerts.
+
+If specified, the system can run a user-provided executable upon receiving each
+alert.  See [Run an Executable](#run-an-executable) for details.
+
+
+## Alert Parameters
+
+
+Below is a table containing the different alert types and the parameters
+associated with each.
+
+| Alert Type | Parameters |
+| --- | --- |
+| `host_status` | `host [host IP]` `status [status code]` |
+| `rank_status` | `rank [rank number]` `status [status code]` |
+| `memory_absolute` | `host [host IP]` `threshold [threshold crossed]` `available_memory [free mem in bytes]` `total_memory [total mem on host]` `percentage_space [percent free mem]` |
+| `memory_percentage` | `host [host IP]` `threshold [threshold crossed]` `available_memory [free mem in bytes]` `total_memory [total mem on host]` `percentage_space [percent free mem]` |
+| `disk_absolute` | `directory [directory where threshold crossed]` `host [host IP]` `threshold [threshold crossed]` `available_space [free space in bytes]` `total_space [total space on disk]` `percentage_space [percentage of free disk space]` |
+| `disk_percentage` | `directory [directory where threshold crossed]` `host [host IP]` `threshold [threshold crossed]` `available_space [free space in bytes]` `total_space [total space on disk]` `percentage_space [percentage of free disk space]` |
+| `rank_cuda_error` | `rank [rank where error occurred]` `error_count [number of calls with errors]` `error_code [most recent cuda error code]` `error_string [most recent error message]` |
+| `rank_fallback_allocator` | `failure_count [number of GPU memory allocation failures]` `min_failure_size [smallest allocation that failed in bytes]` `avg_failure_size [average size of allocation failure]` `max_failure_size [largest allocation that failed in bytes]` |
+| `error_message` | `rank [rank where error occurred]` `topic [1-2 word string that indicates what functionality caused the error]` `message [free text description of error wrapped in single quotes]` |
+
+
+## Using Alerts
+
+
+To enable alerts, navigate to <Badge color="gray">/opt/gpudb/core/etc/gpudb.conf</Badge> and modify
+the `enable_alerts` parameter:
+
+```
+enable_alerts = true
+```
+Alerting can be modified in any of the following ways by setting the
+appropriate parameter in <Badge color="gray">/opt/gpudb/core/etc/gpudb.conf</Badge>:
+
+* [Run an Executable](#run-an-executable)
+* [Status Changes](#status-changes)
+* [CUDA Errors](#cuda-errors)
+* [Fallback Allocator Errors](#fallback-allocator-errors)
+* [System Errors](#system-errors)
+* [Memory Usage](#memory-usage)
+* [Disk Usage](#disk-usage)
+* [Maximum Alerts](#maximum-alerts)
+
+
+### Run an Executable
+
+
+An executable can be run if an alert is triggered.  The executable cannot have
+command-line parameters as the system passes parameters that pertain to the
+alert itself.  The executable must be present on the host where the head node is
+located and it must be executable by the `gpudb` user. The executable
+does not need to be present on other hosts.
+
+
+```
+alert_exe = /file/path/to/script
+```
+The executable will be passed alert strings in the form:
+
+```
+[alert_type] --[parameter1] [value1] ... --[parameterN] [valueN]
+```
+For instance:
+
+```
+rank_status --rank 0 --status running
+```
+
+<Note>
+The order of command line parameters passed to the executable
+can't be guaranteed.
+</Note>
+
+
+### Status Changes
+
+
+Alerts can be generated if the status of a host or rank changes.  Filters can be
+applied which govern which statuses generate alerts.  All the statuses are
+available [here](/content/admin/services#statuses).
+
+
+```
+alert_host_status = true
+alert_host_status_filter = fatal_init_error
+alert_rank_status = true
+alert_rank_status_filter = fatal_init_error, not_responding, terminated
+```
+
+<Note>
+The host and rank status filters are inclusive, alerting only on
+the specified statuses; e.g.,
+`alert_host_status_filter = fatal_init_error, shutdown` would only display
+alerts for fatal init errors and shutdown events.  Leave filter setting blank
+to alert on all status changes.
+</Note>
+
+
+### CUDA Errors
+
+
+CUDA errors on ranks can generate alerts.
+
+
+```
+alert_rank_cuda_error = true
+```
+
+### Fallback Allocator Errors
+
+
+Rank fallback allocator errors can generate alerts.
+
+
+```
+alert_rank_fallback_allocator = true
+```
+
+### System Errors
+
+
+System errors can generate alerts in the event of significant or noteworthy
+runtime issues.
+
+
+```
+alert_error_messages = true
+```
+
+### Memory Usage
+
+
+Memory usage alerts can be generated based on either an absolute threshold (in
+bytes) or a percentage.  These thresholds will be measured against the available
+host memory as reported by `sysconf`.
+
+
+```
+alert_memory_absolute = <mem-free-in-bytes>
+
+# or
+
+alert_memory_percentage = <mem-free-percent>
+```
+
+<Info>
+While only one type of threshold can be enabled, the settings support
+multiple values, e.g., `alert_memory_percent = 20, 10, 5, 1`.  However, if
+multiple thresholds are crossed, only the lowest one will trigger an alert.
+</Info>
+
+
+### Disk Usage
+
+
+Disk usage alerts can be generated based on either an absolute threshold (in
+bytes) or a percentage.  These thresholds will be measured against the available
+disk space on the drive(s) hosting each *persist* directory.
+
+
+```
+alert_disk_absolute = <disk-free-in-bytes>
+
+# or
+
+alert_disk_percentage = <disk-free-percent>
+```
+The monitored *persist* directories are those specified in the following
+<Badge color="gray">/opt/gpudb/core/etc/gpudb.conf</Badge> settings:
+
+* `persist_directory`
+* `data_directory`
+* `object_directory`
+* `sms_directory`
+* `text_index_directory`
+
+
+<Info>
+While only one type of threshold can be enabled, the settings support
+multiple values, e.g., `alert_disk_percent = 20, 10, 5, 1`.  However, if
+multiple thresholds are crossed, only the lowest one will trigger an alert.
+</Info>
+
+
+### Maximum Alerts
+
+
+The number of generated alerts stored in memory/disk can be limited to a
+specified maximum.
+
+
+```
+alert_max_stored_alerts = 100
+```

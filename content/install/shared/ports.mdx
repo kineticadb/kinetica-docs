@@ -1,0 +1,117 @@
+---
+title: Ports
+---
+
+## Default Ports
+
+
+The default ports used for communication with *KAgent*, *Kinetica* (and between
+servers, if operating in a cluster), and various important services follow.  The
+**Nodes** column will list either **Head**--that the
+corresponding port only needs to be opened on the *head node*, or
+**All**--that the corresponding port needs to be opened on the
+*head node* & *worker nodes*.
+
+
+<Note>
+While the table below lists *KAgent* and the graph server as being on the
+*head node*, these features could be kept on machines entirely separate from
+*Kinetica* if desired.
+</Note>
+
+| Port | Function | Nodes | Usage |
+| --- | --- | --- | --- |
+| 22 | This port is used by *KAgent* to manage cluster servers.  For clusters not managed by *KAgent*, this will be needed to manage servers directly. | All | Required Internally |
+| 2003 | This port must be open to collect the runtime system statistics. | All | Required Internally |
+| 2004 | This port must be open to collect the runtime system statistics. | All | Required Internally |
+| 4000+N | For installations which have the external text search server enabled and communicating over TCP (`rankN.text_index_address = tcp://…`), there will be one instance of the text search server listening for each *rank* on every server in the cluster.  Each of these daemons will be listening on a port starting at `4000` on each server and incrementing by one for each additional *rank*. | All | Optional Internally |
+| 5432 | The listener for *PostgreSQL Wire Protocol* connections | Head | Optional Externally |
+| 5552 | *Host Manager* status notification channel | All | Required Internally |
+| 5553 | *Host Manager* message publishing channel | All | Required Internally |
+| 6555+N | Provides distributed processing of communications between the network and different *ranks* used in *Kinetica*. There is one port for each *rank* running on each server, starting on each server at port `6555` and incrementing by one for each additional *rank*. | All | Required Internally |
+| 7002 | This port must be open to collect the runtime system statistics. | All | Required Internally |
+| 8000 | The *Tomcat* listener for the *Workbench* user interface. | Head | Optional Externally |
+| 8005 | The *Tomcat* shutdown port for the *Kinetica* *Administration Application* (*GAdmin*) user interface.   This port should **not** be exposed publicly. | Head | Required Internally |
+| 8006 | The *Tomcat* shutdown port for the *KAgent* user interface. This port should **not** be exposed publicly. | Head | Required Internally |
+| 8009 | The *Tomcat* AJP connector port for the *GAdmin* user interface. | Head | Required Internally |
+| 8010 | The *Tomcat* AJP connector port for the *KAgent* user interface. | Head | Required Internally |
+| 8080 | The *Tomcat* listener for the *GAdmin* user interface. | All | Optional Externally |
+| 8081 | The *Tomcat* listener for the *KAgent* user interface. | Head | Optional Externally |
+| 8082 | In installations where users need to be authenticated to access the database, a preconfigured HTTPd instance listens on this port, which will authenticate incoming HTTP requests before passing them along to *Kinetica*. When authorization is required, all requests to *Kinetica* should be sent here, rather than the standard `9191+` ports. | All | Optional Externally |
+| 8088 | This is the port on which *Kinetica Reveal* is exposed.  For installations that have this feature enabled, it should be exposed to users. | Head | Optional Externally |
+| 8099 | This is the port used for pushing data to the graph server (if enabled) | Head | Required Internally |
+| 8100 | This is the port used for pulling data from the graph server (if enabled) | Head | Required Internally |
+| 8181 | This is the port used to host the system and process stats server | Head | Optional Externally |
+| 8443 | The *Tomcat* listener for the *GAdmin* user interface using SSL. | All | Optional Externally |
+| 8444 | This is the port on which *Kinetica Reveal* is exposed using SSL.  For installations that have this feature enabled, it should be exposed to users. | Head | Optional Externally |
+| 8445 | This is the port on which *Kinetica Workbench* is exposed using SSL.  For installations that have this feature enabled, it should be exposed to users. | Head | Optional Externally |
+| 9001 | Database trigger ZMQ publishing server port.  Users of database triggers will need the ability to connect to this port to receive data generated via the trigger. | Head | Optional Externally |
+| 9002 | *Table monitor* publishing server port.  Users of database *table monitors* will need the ability to connect to this port to receive data generated via the *table monitor*. | Head | Optional Externally |
+| 9003 | *Table monitor* internal publishing server port.  Users of database *table monitors* on tables that are the targets of *multi-head ingest* will need to allow worker nodes the ability to connect to this port to receive data generated via the *table monitor*. | Head | Optional Internally |
+| 9010 | Host collector metrics port. CPU, disk, processes, and other metrics are collected from the `/proc` filesystem and posted here. | All | Required Internally |
+| 9080 | Port used to host *Grafana Loki*, a log aggregation system. | All | Required Internally |
+| 9089 | Port used to host the Alert Manager, which manages alerts from *Grafana* *Prometheus* and events from *Grafana Loki*. | All | Required Internally |
+| 9090 | Port used to host *Grafana Prometheus*, a metric aggregation system. | All | Required Internally |
+| 9091 | Port used to host the *Grafana* user interface and embeddable metric dashboards in *GAdmin*. | All | Required Internally, Optional Externally |
+| 9187 | The primary port used for communications with *KML*. This port should be exposed for any system using the *KML* API without authorization. | All | Required Internally |
+| 9191+N | The primary port(s) used for public and internal *Kinetica* communications. There is one port for each *rank* running on each server, starting on each server at port `9191` and incrementing by one for each additional *rank*. These should be exposed for any system using the *Kinetica* APIs without authorization and must be exposed between all servers in the cluster.  For installations where users should be authenticated, these ports should **NOT** be exposed publicly, but still should be exposed between servers within the cluster. | All | Required Internally, Optional Externally |
+| 9300 | Port used to query *Host Manager* for status | All | Required Internally |
+
+
+## Port Usage Scenarios
+
+
+*Kinetica* highly encourages that proper firewalls be maintained and used to
+protect the database and the network at large.  A full tutorial on how to
+properly set up a firewall is beyond the scope of this document, but the
+following are some best practices and starting points for more research.
+
+All machines connected to the Internet at large should be protected from
+intrusion.  As shown in the list above, there are no ports which are necessarily
+required to be accessible from outside of a trusted network, so we recommend
+only opening ports to the Internet and/or untrusted network(s) which are truly
+needed based on requirements.
+
+There are some common scenarios which can act as guidelines on which ports
+should be available.
+
+
+### Connection to the Internet
+
+
+If *Kinetica* is running on a server where it will be accessible to the Internet
+at large, it is our strong suggestion that security and authentication be used
+and ports `9191+N` and `8080` are **NOT** exposed to the public, if
+possible.  Those ports can potentially allow users to run commands anonymously
+and unless security is configured to prevent it, any users connecting to them
+will have full control of the database.
+
+
+### Dependence on Kinetica via the API
+
+
+For applications in which requests are being made to *Kinetica* via client APIs
+that do not use authentication, the `9191+N` ports should be made available to
+the relevant set of servers.  For applications using authentication via the
+bundled version of *httpd*, port `8082` should be opened.  It is possible to
+have both ports open at the same time in cases where anonymous access is
+permitted, however the security settings should be carefully set in this case to
+ensure that anonymous users have the appropriate access limitations.
+
+Additionally, if the API client is using *table monitors* or *triggers*, ports
+`9001`, `9002`, and/or `9003` should also be opened, as needed.
+
+
+### Reveal
+
+
+In cases where the GUI interface to *Reveal* is required, the `8088`
+port should be made available.
+
+
+### Administration
+
+
+System administrators may wish to have access to the administrative web
+interface, in which case port `8080` should be opened, but carefully
+controlled.

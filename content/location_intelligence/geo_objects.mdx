@@ -1,0 +1,97 @@
+---
+title: Geospatial Objects
+sidebarTitle: Geospatial Objects
+---
+
+<a id="geometry-points"></a>
+
+
+## Points
+
+
+A point can be any record that has fields containing the longitude and latitude
+of a geospatial point.
+
+
+<a id="geometry-types"></a>
+
+<a id="geometry-shapes"></a>
+
+
+## Shapes
+
+
+Kinetica supports the following WKT types: Point, LineString, Polygon,
+MultiPoint, MultiLineString, MultiPolygon, and GeometryCollection.
+
+WKT shapes can include a z-level value ranging from `-128` to `+128` but
+rendering points on the z-axis (e.g., via [Web Map Service](/content/feature_overview/wms_feature_overview) or
+[GAdmin](/content/admin/gadmin/data#gadmin-table-wms)) is currently not supported.
+
+
+<Info>
+Though `LINEARRING` WKT types may be inserted into tables, any
+`LINEARRINGs` used within a
+[geospatial function](/content/location_intelligence/geo_functions) will be
+converted to a `LINESTRING`
+</Info>
+
+Examples of WKTs include:
+
+| Type | WKT |
+| --- | --- |
+| Point | `POINT (-77.1151397 38.8814540)` |
+| LineString | `LINESTRING (-77.1151397 38.8814540, -122.3979088 37.7929045)` |
+| Polygon | `POLYGON ((-77.115 38.881, -71.054 42.364, -122.398 37.793, -77.115 38.881))` |
+| MultiPoint | `MULTIPOINT ((-77.115 38.881), (-122.398 37.793))` |
+| MultiLineString | `MULTILINESTRING ((-77.115 38.881, -122.398 37.793), (-77.115 38.881, -71.054 42.364))` |
+| MultiPolygon | `MULTIPOLYGON (((-77 38, -71 42, -122 37, -77 38)), ((-122 37, -77 38, -71 42, -122 37)))` |
+| GeometryCollection | `GEOMETRYCOLLECTION (POINT (-77.115 38.881), LINESTRING (-77.115 38.881, -122.398 37.793))` |
+
+
+<a id="geospatial-tracks"></a>
+
+
+## Tracks
+
+
+Tracks are a set of points which represent the path an object takes
+across the map.  Unlike a WKT multiline string, each point in a track has an
+associated timestamp.  Taken together: the longitude, latitude, and timestamp in
+each record describe where the object was at a given time; all points in a given
+track should contain the same track ID.  Tables containing tracks must have
+columns of the following names and [types](/content/concepts/types) (names are
+case-sensitive):
+
+| Column | Type | Description |
+| --- | --- | --- |
+| `TRACKID` | Select *string* types (*unrestricted*, *charN*, *UUID*) | Must be the table's [shard key](/content/concepts/tables#shard-key) |
+| `x` | Any numeric type (*int*, *float*, *double*, etc.) | Corresponds to the longitude |
+| `y` | Any numeric type (*int*, *float*, *double*, etc.) | Corresponds to the latitude |
+| `TIMESTAMP` | Any numeric or time-based type (*long*, *datetime*, etc.) |  |
+
+Any table created with these columns that does not define a
+[shard key](/content/concepts/tables#shard-key) with automatically have one added.
+
+*Track*-based tables can utilize *partitioning* for better performance and data
+management. See [Partitioning](/content/concepts/tables#partitioning) for details and limitations.
+
+Tracks can be accessed via the following means:
+
+* [SQL](/content/sql/query#sql-geo-functions-track)
+* Native API endpoints:
+
+  * [/filter/byseries](/content/api/rest/filter_byseries_rest)
+  * [/get/records/byseries](/content/api/rest/get_records_byseries_rest)
+  * [/wms](/content/api/rest/wms_rest)
+
+
+<a id="geometry-labels"></a>
+
+
+## Labels
+
+
+Labels are text labels located at specified positions on the map.  Each label
+can optionally be enclosed in a box and can have a line pointing to a specific
+location.

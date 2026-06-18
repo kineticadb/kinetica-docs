@@ -1,0 +1,127 @@
+---
+title: Column Compression
+---
+
+*Column compression* is the application of a standard compression algorithm to a
+persisted column's data.
+
+Column data will be compressed on disk for faster loading into memory at the
+cost of the decompression processing time on that loaded data.  Once in memory,
+the data will remain uncompressed until it is no longer needed.  Any inserting
+or updating of data in memory would result in column data being compressed and
+written to disk depending on which of these conditions is reached first:
+
+* Memory data chunk being written to becomes full
+* System compression timeout (`disk_auto_optimize_timeout`) is reached
+
+*Column compression* can be specified at three different levels, and the
+compression applied to an individual column (if any) will be determined by
+which of the following configuration items is found first, in this order:
+
+* Compression explicitly defined on the column (`compress` column property)
+* Compression explicitly defined on the column's table at the time of its
+  creation, applying to any columns on that table with no explicit compression
+  definition of their own (`compression_codec` table property)
+* Global default column compression (`compression_codec`)
+
+Available *column compression* algorithms are as follows.  Those with an
+optional compression parameter are shown with the minimum & maximum values for
+that parameter.
+
+| Name | Arg. Min. | Arg. Max. | Notes |
+| --- | --- | --- | --- |
+| `none` |  |  | Apply no compression to this column, overriding any higher-level defaults. |
+| `lz4` | 0 | 12 | Default is 0.  Values of 9 and above enable *LZ4_HC*. |
+| `snappy` |  |  |  |
+| `zstd` | -131072 | 22 | Default is 3.  Negative values prioritize speed over compression ratio. |
+
+
+For example, to apply the following *column compression* during table creation:
+
+* *LZ4* compression on the `first_name`
+* *zstd* compression on the `last_name`
+* *Snappy* compression on all other columns
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/compression.kisql (lines 18-30) */}
+```sql SQL
+CREATE OR REPLACE TABLE example.employee
+(
+    id INTEGER NOT NULL,
+    dept_id INTEGER NOT NULL,
+    manager_id INTEGER,
+    first_name VARCHAR(32, COMPRESS(LZ4(9))),
+    last_name VARCHAR(32, COMPRESS(ZSTD)),
+    salary DECIMAL(18,4),
+    hire_date DATE,
+    PRIMARY KEY (id, dept_id),
+    SHARD KEY (dept_id)
+)
+USING TABLE PROPERTIES (COMPRESSION_CODEC = 'snappy')
+```
+
+{/* Source: /examples/python/table/compression.py (lines 93-111) */}
+```python Python
+# Create a column list with compression on name columns
+columns = [
+    [ "id", "int", "primary_key" ],
+    [ "dept_id", "int", "primary_key", "shard_key" ],
+    [ "manager_id", "int", "nullable" ],
+    [ "first_name", "string", "char32", "compress(lz4(9))", "nullable" ],
+    [ "last_name", "string", "char32", "compress(zstd)", "nullable" ],
+    [ "salary", "string", "decimal", "nullable" ],
+    [ "hire_date", "string", "date", "nullable" ]
+]
+
+# Create a simple table using the column list, applying snappy compression
+#   to all columns without explicit compression defined
+t = gpudb.GPUdbTable(
+    columns,
+    name = table_name,
+    db = kinetica,
+    options = {"compression_codec": "snappy"}
+)
+```
+
+</CodeGroup>
+
+To add a new column with *column compression* to a table:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/compression.kisql (lines 36-37) */}
+```sql SQL
+ALTER TABLE example.employee
+ADD last_reviewed_by VARCHAR(64, COMPRESS(LZ4))
+```
+
+{/* Source: /examples/python/table/compression.py (lines 157-166) */}
+```python Python
+# Add column with explicit compression to the employee table
+resp = kinetica.alter_table(
+    table_name = table_name,
+    action = "add_column",
+    value = "last_reviewed_by",
+    options = {
+        "column_type": "string",
+        "column_properties": "char64,compress(lz4),nullable"
+    }
+)
+```
+
+</CodeGroup>
+
+
+## Limitations and Cautions
+
+
+* Columns with any of the following characteristics are **not** eligible for
+  *column compression*:
+
+  * Member of a [filtered view](/content/concepts/filtered_views) or
+    [join view](/content/concepts/joins)
+  * Member of a [logical external table](/content/concepts/external_tables) or
+    [SQL view](/content/sql/ddl#sql-create-view)
+
+* The *column compression* of an existing column cannot be modified directly.

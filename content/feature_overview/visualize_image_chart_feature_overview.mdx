@@ -1,0 +1,51 @@
+---
+title: Visualize Image Chart
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="visualize-image-chart-feature-overview"></a>
+
+
+Scatter plot is the only plot type currently supported. A non-numeric column
+can be specified as x or y column and jitters can be added to them to avoid
+excessive overlapping. All color values must be in the format RRGGBB or
+AARRGGBB (to specify the alpha value). The image is contained in the output
+parameter *image_data* field.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of the table containing the data to be drawn as a chart, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). |
+| x_column_names | array of strings | Names of the columns containing the data mapped to the x axis of a chart. |
+| y_column_names | array of strings | Names of the columns containing the data mapped to the y axis of a chart. |
+| min_x | double | Lower bound for the x column values. For non-numeric x column, each x column item is mapped to an integral value starting from 0. |
+| max_x | double | Upper bound for the x column values. For non-numeric x column, each x column item is mapped to an integral value starting from 0. |
+| min_y | double | Lower bound for the y column values. For non-numeric y column, each y column item is mapped to an integral value starting from 0. |
+| max_y | double | Upper bound for the y column values. For non-numeric y column, each y column item is mapped to an integral value starting from 0. |
+| width | int | Width of the generated image in pixels. |
+| height | int | Height of the generated image in pixels. |
+| bg_color | string | Background color of the generated image. |
+| style_options | map of string to arrays of strings | Rendering style options for a chart. <br/> <br/> pointcolor: The color of points in the plot represented as a hexadecimal number. The default value is `0000FF`. <br/> <br/> pointsize: The size of points in the plot represented as number of pixels. The default value is `3`. <br/> <br/> pointshape: The shape of points in the plot. The default value is `square`. The supported values are: * none * circle * square * diamond * hollowcircle * hollowsquare * hollowdiamond <br/> <br/> cb_pointcolors: Point color class break information consisting of three entries: class-break attribute, class-break values/ranges, and point color values. This option overrides the pointcolor option if both are provided. Class-break ranges are represented in the form of "min:max". Class-break values/ranges and point color values are separated by cb_delimiter, e.g. \{"price", "20:30;30:40;40:50", "0xFF0000;0x00FF00;0x0000FF"\}. <br/> <br/> cb_pointsizes: Point size class break information consisting of three entries: class-break attribute, class-break values/ranges, and point size values. This option overrides the pointsize option if both are provided. Class-break ranges are represented in the form of "min:max". Class-break values/ranges and point size values are separated by cb_delimiter, e.g. \{"states", "NY;TX;CA", "3;5;7"\}. <br/> <br/> cb_pointshapes: Point shape class break information consisting of three entries: class-break attribute, class-break values/ranges, and point shape names. This option overrides the pointshape option if both are provided. Class-break ranges are represented in the form of "min:max". Class-break values/ranges and point shape names are separated by cb_delimiter, e.g. \{"states", "NY;TX;CA", "circle;square;diamond"\}. <br/> <br/> cb_delimiter: A character or string which separates per-class values in a class-break style option string. The default value is `;`. <br/> <br/> x_order_by: An expression or aggregate expression by which non-numeric x column values are sorted, e.g. "avg(price) descending". <br/> <br/> y_order_by: An expression or aggregate expression by which non-numeric y column values are sorted, e.g. "avg(price)", which defaults to "avg(price) ascending". <br/> <br/> scale_type_x: Type of x axis scale. The default value is `none`. +---------+---------------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+=============================================+ \|none \|No scale is applied to the x axis. \| \| \| \| +---------+---------------------------------------------+ \|log \|A base-10 log scale is applied to the x axis.\| \| \| \| +---------+---------------------------------------------+ <br/> <br/> scale_type_y: Type of y axis scale. The default value is `none`. +---------+---------------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+=============================================+ \|none \|No scale is applied to the y axis. \| \| \| \| +---------+---------------------------------------------+ \|log \|A base-10 log scale is applied to the y axis.\| \| \| \| +---------+---------------------------------------------+ <br/> <br/> min_max_scaled: If this options is set to *false*, this endpoint expects request's min/max values are not yet scaled. They will be scaled according to scale_type_x or scale_type_y for response. If this options is set to *true*, this endpoint expects request's min/max values are already scaled according to scale_type_x/scale_type_y. Response's min/max values will be equal to request's min/max values. The default value is `false`. <br/> <br/> jitter_x: Amplitude of horizontal jitter applied to non-numeric x column values. The default value is `0.0`. <br/> <br/> jitter_y: Amplitude of vertical jitter applied to non-numeric y column values. The default value is `0.0`. <br/> <br/> plot_all: If this options is set to *true*, all non-numeric column values are plotted ignoring min_x, max_x, min_y and max_y parameters. The default value is `false`. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> image_encoding: Encoding to be applied to the output image. When using JSON serialization it is recommended to specify this as *base64*. The default value is `none`. +---------+-------------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+===========================================+ \|base64 \|Apply base64 encoding to the output image. \| \| \| \| +---------+-------------------------------------------+ \|none \|Do not apply any additional encoding to the\| \| \|output image. \| \| \| \| +---------+-------------------------------------------+ |
+
+
+## Output Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| min_x | double | Lower bound for the x column values as provided in input parameter *min_x* or calculated for non-numeric columns when plot_all option is used. |
+| max_x | double | Upper bound for the x column values as provided in input parameter *max_x* or calculated for non-numeric columns when plot_all option is used. |
+| min_y | double | Lower bound for the y column values as provided in input parameter *min_y* or calculated for non-numeric columns when plot_all option is used. |
+| max_y | double | Upper bound for the y column values as provided in input parameter *max_y* or calculated for non-numeric columns when plot_all option is used. |
+| width | int | Width of the image as provided in input parameter *width*. |
+| height | int | Height of the image as provided in input parameter *height*. |
+| bg_color | string | Background color of the image as provided in input parameter *bg_color*. |
+| image_data | bytes | The generated image data. |
+| axes_info | map of string to arrays of strings | Information returned for drawing labels for the axes associated with non-numeric columns. <br/> <br/> sorted_x_values: Sorted non-numeric x column value list for drawing x axis label. <br/> <br/> location_x: X axis label positions of sorted_x_values in pixel coordinates. <br/> <br/> sorted_y_values: Sorted non-numeric y column value list for drawing y axis label. <br/> <br/> location_y: Y axis label positions of sorted_y_values in pixel coordinates. |
+| info | map of string to strings | Additional information. |

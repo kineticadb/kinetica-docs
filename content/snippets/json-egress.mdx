@@ -1,0 +1,311 @@
+---
+title: JSON Egress
+description: Copy-paste examples of retrieving JSON data with the /get/records/json endpoint
+# time_estimate: 5 MIN
+---
+
+The [/get/records/json](/content/api/rest/get_records_json_rest) REST
+endpoint can be called to retrieve data in JSON form directly from the database.
+
+See [Overview](/content/api/rest/get_records_json_rest) for call details
+and [Responses](/content/api/rest/get_records_json_rest#get-records-json-response) for return values.
+
+
+## Simple Egress
+
+
+<CodeGroup>
+
+{/* Source: /examples/bash/get_records_json.sh (lines 24 28-30 32  44-45 47-49) */}
+```bash cURL
+KINETICA_URL=http://localhost:9191
+USERNAME=auser
+PASSWORD=apassword
+TABLE_NAME=product
+
+# Quote the URL when passing multiple options, or any & will stop the URL
+#   parsing and run the URL parsed up to that point as a background job
+curl -sS ${KINETICA_URL}/get/records/json?table_name=${TABLE_NAME} \
+--header "Content-Type: application/json" \
+--user "${USERNAME}:${PASSWORD}"
+```
+
+{/* Source: /examples/python/json_egress.py (lines 12 16-17 24-25  38-39  41-42) */}
+```python Python
+kinetica_url = "http://localhost:9191"
+username = "auser"
+password = "apassword"
+kinetica = gpudb.GPUdb([kinetica_url], username = username, password = password)
+
+table_name = "example.product"
+order = None
+
+response = kinetica.get_records_json(table_name, orderby_columns = order)
+```
+
+{/* Source: /examples/java/json/src/main/java/JsonExampleGetUrl.java (lines 19 31-35  25 45  49) */}
+```java Java
+String url = "http://localhost:9191"
+GPUdb.Options options = new GPUdb.Options();
+options.setUsername(username);
+options.setPassword(password);
+GPUdb kdb = new GPUdb(url, options);
+
+String tableName = "product";
+
+GetRecordsJsonResponse response = kdb.getRecordsJson(tableName, null, 0, GPUdb.END_OF_SET);
+```
+
+{/* Source: /examples/javascript/json_egress.js (lines 6 10-11 19-21  33  35-44) */}
+```javascript JavaScript
+const kinetica_url = 'http://localhost:9191'
+const username = 'auser'
+const password = 'apassword'
+const db = new GPUdb([kinetica_url], {'username': username, 'password': password});
+
+let tableName = 'product';
+let order = [];
+
+db.get_records_json(tableName, [], 0, GPUdb.END_OF_SET, null, order, null, (err,  response) => {
+	if (err)
+		console.error(err);
+	else
+		console.info("All records:");
+		response.records.forEach(element => {
+			console.info(element);
+		});
+});
+```
+
+{/* Source: /examples/nodejs/json_egress.js (lines 6 10-11 23-24  25 37  39-48) */}
+```javascript Node.js
+const kinetica_url = 'http://localhost:9191'
+const username = 'auser'
+const password = 'apassword'
+const db = new GPUdb([kinetica_url], {'username': username, 'password': password});
+
+let tableName = 'product';
+let order = [];
+
+db.get_records_json(tableName, [], 0, GPUdb.END_OF_SET, null, order, null, (err,  response) => {
+	if (err)
+		console.error(err);
+	else
+		console.info("All records:");
+		response.records.forEach(element => {
+			console.info(element);
+		});
+});
+```
+
+</CodeGroup>
+
+
+## Egress with Parameters
+
+
+<CodeGroup>
+
+{/* Source: /examples/bash/get_records_json.sh (lines 24 28-30 32  56-57 59-65) */}
+```bash cURL
+KINETICA_URL=http://localhost:9191
+USERNAME=auser
+PASSWORD=apassword
+TABLE_NAME=product
+
+# Using data-urlencode can make params easier to read than appending to URL
+#   Use the G option to pass the data-urlencode options as GET query parameters
+curl -sSG ${KINETICA_URL}/get/records/json \
+--header "Content-Type: application/json" \
+--user "${USERNAME}:${PASSWORD}" \
+--data-urlencode "table_name=${TABLE_NAME}" \
+--data-urlencode "column_names=name,category,description,stock" \
+--data-urlencode "expression=stock > 100000" \
+--data-urlencode "order_by=name"
+```
+
+{/* Source: /examples/python/json_egress.py (lines 12 16-17 24-25  56-60  61) */}
+```python Python
+kinetica_url = "http://localhost:9191"
+username = "auser"
+password = "apassword"
+kinetica = gpudb.GPUdb([kinetica_url], username = username, password = password)
+
+table_name = "example.product"
+column_names = ["name", "category", "description", "stock"]
+expr = "stock > 100000"
+order = ["name"]
+
+response = kinetica.get_records_json(table_name, column_names, expression = expr, orderby_columns = order)
+```
+
+{/* Source: /examples/java/json/src/main/java/JsonExampleGetData.java (lines 21 32-36  27 47-50  54-55) */}
+```java Java
+String url = "http://localhost:9191"
+GPUdb.Options options = new GPUdb.Options();
+options.setUsername(username);
+options.setPassword(password);
+GPUdb kdb = new GPUdb(url, options);
+
+String tableName = "product";
+List<String> columnNames = GPUdb.list("name", "category", "description", "stock");
+String expression = "stock > 100000";
+List<String> order = GPUdb.list("name");
+
+GetRecordsJsonResponse response =
+        kdb.getRecordsJson(tableName, columnNames, 0, GPUdb.END_OF_SET, expression, order);
+```
+
+{/* Source: /examples/javascript/json_egress.js (lines 6 10-11 19-21  52-54  55-64) */}
+```javascript JavaScript
+const kinetica_url = 'http://localhost:9191'
+const username = 'auser'
+const password = 'apassword'
+const db = new GPUdb([kinetica_url], {'username': username, 'password': password});
+
+let tableName = 'product';
+const columnNames = ['name', 'category', 'description', 'stock'];
+const expression = 'stock > 100000';
+const order = ['name'];
+
+db.get_records_json(tableName, columnNames, 0, GPUdb.END_OF_SET, expression, order, null, (err,  response) => {
+	if (err)
+		console.error(err);
+	else
+		console.info("Filtered records:");
+		response.records.forEach(element => {
+			console.info(element);
+		});
+});
+```
+
+{/* Source: /examples/nodejs/json_egress.js (lines 6 10-11 23-24  25  56-68) */}
+```javascript Node.js
+const kinetica_url = 'http://localhost:9191'
+const username = 'auser'
+const password = 'apassword'
+const db = new GPUdb([kinetica_url], {'username': username, 'password': password});
+
+let tableName = 'product';
+const columnNames = ['name', 'category', 'description', 'stock'];
+const expression = 'stock > 100000';
+const order = ['name'];
+
+db.get_records_json(tableName, columnNames, 0, GPUdb.END_OF_SET, expression, order, null, (err,  response) => {
+	if (err)
+		console.error(err);
+	else
+		console.info("Filtered records:");
+		response.records.forEach(element => {
+			console.info(element);
+		});
+});
+```
+
+</CodeGroup>
+
+
+## Egress with Aggregation
+
+
+<CodeGroup>
+
+{/* Source: /examples/bash/get_records_json.sh (lines 24 28-30 32  72-73 75-81) */}
+```bash cURL
+KINETICA_URL=http://localhost:9191
+USERNAME=auser
+PASSWORD=apassword
+TABLE_NAME=product
+
+# Using data-urlencode can make params easier to read than appending to URL
+#   Use the G option to pass the data-urlencode options as GET query parameters
+curl -sSG ${KINETICA_URL}/get/records/json \
+--header "Content-Type: application/json" \
+--user "${USERNAME}:${PASSWORD}" \
+--data-urlencode "table_name=${TABLE_NAME}" \
+--data-urlencode "column_names=category,COUNT(1) AS total_products" \
+--data-urlencode "expression=stock >= 1000" \
+--data-urlencode "having=COUNT(1) > 1"
+```
+
+{/* Source: /examples/python/json_egress.py (lines 12 16-17 24-25  75-79  80) */}
+```python Python
+kinetica_url = "http://localhost:9191"
+username = "auser"
+password = "apassword"
+kinetica = gpudb.GPUdb([kinetica_url], username = username, password = password)
+
+table_name = "example.product"
+column_names = ["category", "COUNT(1) AS total_products"]
+expr = "stock >= 1000"
+having = "COUNT(1) > 1"
+
+response = kinetica.get_records_json(table_name, column_names, expression = expr, having_clause = having)
+```
+
+{/* Source: /examples/java/json/src/main/java/JsonExampleGetAgg.java (lines 21 32-36  27 47-50  54-55) */}
+```java Java
+String url = "http://localhost:9191"
+GPUdb.Options options = new GPUdb.Options();
+options.setUsername(username);
+options.setPassword(password);
+GPUdb kdb = new GPUdb(url, options);
+
+String tableName = "product";
+List<String> columnNames = GPUdb.list("category", "COUNT(1) AS total_products");
+String expression = "stock > 1000";
+String having = "COUNT(1) > 1";
+
+GetRecordsJsonResponse response =
+        kdb.getRecordsJson(tableName, columnNames, 0, GPUdb.END_OF_SET, expression, having);
+```
+
+{/* Source: /examples/javascript/json_egress.js (lines 6 10-11 19-21  72-75  76-85) */}
+```javascript JavaScript
+const kinetica_url = 'http://localhost:9191'
+const username = 'auser'
+const password = 'apassword'
+const db = new GPUdb([kinetica_url], {'username': username, 'password': password});
+
+let tableName = 'product';
+const columnNames = ['category', 'COUNT(1) AS total_products'];
+const expression = 'stock >= 1000';
+const having = 'COUNT(1) > 1';
+const order = [];
+
+db.get_records_json(tableName, columnNames, 0, GPUdb.END_OF_SET, expression, order, having, (err,  response) => {
+	if (err)
+		console.error(err);
+	else
+		console.info("Aggregated records:");
+		response.records.forEach(element => {
+			console.info(element);
+		});
+});
+```
+
+{/* Source: /examples/nodejs/json_egress.js (lines 6 10-11 23-24  25  76-89) */}
+```javascript Node.js
+const kinetica_url = 'http://localhost:9191'
+const username = 'auser'
+const password = 'apassword'
+const db = new GPUdb([kinetica_url], {'username': username, 'password': password});
+
+let tableName = 'product';
+const columnNames = ['category', 'COUNT(1) AS total_products'];
+const expression = 'stock >= 1000';
+const having = 'COUNT(1) > 1';
+const order = [];
+
+db.get_records_json(tableName, columnNames, 0, GPUdb.END_OF_SET, expression, order, having, (err,  response) => {
+	if (err)
+		console.error(err);
+	else
+		console.info("Aggregated records:");
+		response.records.forEach(element => {
+			console.info(element);
+		});
+});
+```
+
+</CodeGroup>

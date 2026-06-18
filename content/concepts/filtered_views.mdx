@@ -1,0 +1,90 @@
+---
+title: Filtered Views
+---
+
+A *filtered view* is a queryable filter of a [table](/content/concepts/tables#table) or
+another *view*. A *filtered view* can be created by filtering an existing
+*table* or *view* using the `/filter` endpoint.
+
+
+<Info>
+For SQL views, see [CREATE VIEW](/content/sql/ddl#sql-create-view).
+</Info>
+
+Given the need to minimize memory usage,
+*filtered views* are given a default [time-to-live](/content/concepts/ttl), after
+which they will expire and be removed from memory.  Each access of the
+*filtered view* causes the remaining *time-to-live* to be reset.  Thus, a
+*filtered view* accessed more frequently than its *time-to-live* will
+effectively remain in memory indefinitely.
+
+A *filtered view* name must adhere to the standard
+[naming criteria](/content/concepts/tables#table-naming-criteria).  Each *filtered view*
+exists within a [schema](/content/concepts/schemas) and follows the standard
+[name resolution rules](/content/concepts/tables#table-name-resolution) for *tables*.
+
+
+## Creating a Filtered View
+
+
+To create a *filtered view*, the [/filter](/content/api/rest/filter_rest#filter-rest) endpoint
+requires three parameters:
+
+1. the name of the data set to create the *filtered view* from
+2. the name of the *filtered view* to create
+3. an expression used to filter the source data set
+
+
+### Examples
+
+
+In *Python*, given the `nyctaxi` demo table, a *filtered view* can be created
+for all taxi rides from the `YCAB` vendor via:
+
+{/* Source: /examples/python/filter.py (lines 23-27) */}
+```python
+kinetica.filter(
+    table_name = "demo.nyctaxi",
+    view_name = "example.nyctaxi_ycab",
+    expression = "vendor_id = 'YCAB'"
+)
+```
+
+The resulting *filtered view* can then be further filtered for expensive
+single-passenger rides:
+
+{/* Source: /examples/python/filter.py (lines 38-42) */}
+```python
+kinetica.filter(
+    table_name = "example.nyctaxi_ycab",
+    view_name = "example.nyctaxi_ycab_single_expensive",
+    expression = "passenger_count = 1 and total_amount > 150"
+)
+```
+
+
+## Limitations and Cautions
+
+
+* When a record contained in a *filtered view* is modified by an update of the
+  underlying data set, the record is removed from the *filtered view* regardless
+  of whether the update impacted the record's qualifications for membership in
+  the *filtered view*.
+* When a *table* or *view* is dropped, all of the *filtered views* created from
+  it are also automatically cleared.
+* Records accessible through a *filtered view* cannot be added, edited, or
+  deleted through that same *view*.
+* A *filtered view* is transient, by default, and will expire after the default
+  [TTL](/content/concepts/ttl) setting.
+* A *filtered view* is not persisted, and will not survive a database restart.
+
+
+### Memory Implications
+
+
+A *filtered view* has a relatively lower memory footprint compared to a
+[join](/content/concepts/joins) *view* or a
+[memory-only table](/content/concepts/tables_memory_only), such as a
+[projection](/content/concepts/projections) or [union](/content/concepts/unions). Read
+more about *memory-only tables* and their relative memory implications on
+[Memory-Only Tables](/content/concepts/tables_memory_only).

@@ -1,0 +1,326 @@
+---
+title: Insert JSON Records
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="insert-records-json-feature-overview"></a>
+
+
+## Overview
+
+
+*Kinetica* provides a direct JSON ingest service to allow raw JSON to be
+translated into records and inserted into the database.
+
+If the target table exists, inserted records will be appended to it.
+
+If the target table does not exist, it will be created automatically, with type
+inferencing used to determine column types & sizes, before inserting data.
+
+
+<Tip>
+To ensure a particular column ordering with a created target table, use
+the `columns_to_load` parameter, specifying all columns in the
+desired order.
+</Tip>
+
+Either a single JSON object or multiple JSON objects (as an array) can be
+ingested at once:
+
+<CodeGroup>
+
+{/* Source: /examples/data/products.json (lines 93-99) */}
+```json Single Record (Object)
+{
+	"id": 14,
+	"category": "Technology",
+	"name": "Dot Matrix Printers",
+	"description": "Impactful industrial implements for impressing ink iteratively",
+	"stock": 27
+}
+```
+
+{/* Source: /examples/data/products.json (lines 1-8 93-100) */}
+```json Multiple Records (Array of Objects)
+[
+	{
+		"id": 1,
+		"category": "Furniture",
+		"name": "Clamp-on Lamps",
+		"description": "Strong, steadfast fasteners; localized lighting for laboring",
+		"stock": 10
+	},
+	{
+		"id": 14,
+		"category": "Technology",
+		"name": "Dot Matrix Printers",
+		"description": "Impactful industrial implements for impressing ink iteratively",
+		"stock": 27
+	}
+]
+```
+
+</CodeGroup>
+
+
+For examples, see [Examples](#examples) or [JSON Ingest Snippets](/content/snippets/json-ingest).
+
+
+## Usage
+
+
+The base JSON ingest endpoint URL is:
+
+```
+http://<db.host>:9191/insert/records/json
+```
+The JSON payload should be passed as data in the request.
+
+Authentication credentials should be passed with the request, as well.
+
+Endpoint-specific options can be passed as request parameters.  See
+[Insert Records from Payload](/content/feature_overview/insert_records_frompayload_feature_overview) under the `option`
+parameter for a complete list of supported options.
+
+
+<Info>
+Both `columns_to_load` & `columns_to_skip` can only be used with
+named columns, not column positions, as JSON maps don't lend
+themselves to positional references.
+</Info>
+
+
+## Examples
+
+
+Below are templates of ingesting a JSON file of product data into a table, via
+the `/insert/records/json` REST endpoint:
+
+<CodeGroup>
+
+{/* Source: /examples/bash/insert_records_json.sh (lines 24 28-30 32-33 90-93) */}
+```bash cURL
+KINETICA_URL=http://localhost:9191
+USERNAME=auser
+PASSWORD=apassword
+TABLE_NAME=product
+JSON_FILE_NAME=products.json
+
+curl -sS -X POST --header "Content-Type: application/json" \
+--user "${USERNAME}:${PASSWORD}" \
+-d @${JSON_FILE_NAME} \
+${KINETICA_URL}/insert/records/json?table_name=${TABLE_NAME}
+```
+
+{/* Source: /examples/python/insert_records_json.py (lines 19 23-24 34 25 37-43) */}
+```python Python
+kinetica_url = "http://localhost:9191"
+username = "auser"
+password = "apassword"
+table_name = "product"
+json_file_name = "products.json"
+
+response = requests.post(
+    kinetica_url + "/insert/records/json",
+    params = {"table_name": table_name},
+    data = open(json_file_name,"r").read(),
+    auth = (username, password)
+)
+```
+
+</CodeGroup>
+
+
+Endpoint-specific options can be passed as request parameters:
+
+<CodeGroup>
+
+{/* Source: /examples/bash/insert_records_json.sh (lines 24 28-29 31-33 100-101 103-106) */}
+```bash cURL
+KINETICA_URL=http://localhost:9191
+USERNAME=auser
+PASSWORD=apassword
+OPTS_TABLE_NAME=product_options
+JSON_FILE_NAME=products.json
+
+# Quote the URL when passing multiple options, or the & will stop the URL
+#   parsing and run the URL parsed up to that point as a background job
+curl -sS -X POST --header "Content-Type: application/json" \
+--user "${USERNAME}:${PASSWORD}" \
+-d @${JSON_FILE_NAME} \
+"${KINETICA_URL}/insert/records/json?table_name=${OPTS_TABLE_NAME}&batch_size=10000&columns_to_load=name,category,description&truncate_table=true"
+```
+
+{/* Source: /examples/python/insert_records_json.py (lines 19 23-24 58 25 61-72) */}
+```python Python
+kinetica_url = "http://localhost:9191"
+username = "auser"
+password = "apassword"
+table_name = "product_options"
+json_file_name = "products.json"
+
+response = requests.post(
+    kinetica_url + "/insert/records/json",
+    params = {
+        "table_name": table_name,
+        "batch_size": "10000",
+        "columns_to_load": "name,category,description",
+        "truncate_table": "true"
+    },
+    data = open(json_file_name,"r").read(),
+    auth = (username, password)
+)
+```
+
+</CodeGroup>
+
+
+Data can also be in-lined with the command:
+
+<CodeGroup>
+
+{/* Source: /examples/bash/insert_records_json.sh (lines 24 28-30 33 114-123) */}
+```bash cURL
+KINETICA_URL=http://localhost:9191
+USERNAME=auser
+PASSWORD=apassword
+TABLE_NAME=product
+
+curl -sS -X POST --header "Content-Type: application/json" \
+--user "${USERNAME}:${PASSWORD}" \
+-d '{
+	"id": "15",
+	"category": "Technology",
+	"name": "DVDs",
+	"description": "Lightweight storage for low-res screenplays and licensed software",
+	"stock": "5000"
+}' \
+${KINETICA_URL}/insert/records/json?table_name=${TABLE_NAME}
+```
+
+{/* Source: /examples/python/insert_records_json.py (lines 19 23-24 87 89-103) */}
+```python Python
+kinetica_url = "http://localhost:9191"
+username = "auser"
+password = "apassword"
+table_name = "product"
+
+response = requests.post(
+    kinetica_url + "/insert/records/json",
+    params = {"table_name": table_name},
+    data = """
+    {
+        "id":          "15",
+        "category":    "Technology",
+        "name":        "DVDs",
+        "description": "Lightweight storage for low-res screenplays and licensed software",
+        "stock":       "5000"
+    }
+    """,
+    auth = (username, password)
+)
+```
+
+</CodeGroup>
+
+
+<a id="fo-insert-records-json-response"></a>
+
+
+## Responses
+
+
+The endpoint calls will respond with one of two message formats, one for
+successes and one for failures:
+
+<CodeGroup>
+
+{/* Source: /examples/bash/insert_records_json.resp (lines 3-18) */}
+```json Success
+{
+	"status": "OK",
+	"data_type": "insert_records_from_payload_response",
+	"data":
+	{
+		"table_name": "<table name>",
+		"type_id": "<type id>",
+		"type_definition": "<type definition as json string",
+		"type_label": "",
+		"type_properties": <map of column name to extented properties list>,
+		"count_inserted": <count of records inserted>,
+		"count_skipped": <count of records not inserted>,
+		"count_updated": <count of records upserted by primary key match>,
+		"info": {}
+	}
+}
+```
+
+{/* Source: /examples/bash/insert_records_json.resp (lines 22-26) */}
+```json Failure
+{
+	"status": "ERROR",
+	"data_type": "insert_records_from_payload_response",
+	"message": "<insertion failure error message>"
+}
+```
+
+</CodeGroup>
+
+
+An example of each of these is as follows:
+
+<CodeGroup>
+
+{/* Source: /examples/bash/insert_records_json.out (lines 106-142) */}
+```json Success
+{
+    "status": "OK",
+    "data_type": "insert_records_from_payload_response",
+    "data": {
+        "table_name": "test.product",
+        "type_id": "15901623289898927486",
+        "type_definition": "{\"type\":\"record\",\"name\":\"type_name\",\"fields\":[{\"name\":\"category\",\"type\":\"string\"},{\"name\":\"description\",\"type\":\"string\"},{\"name\":\"id\",\"type\":\"int\"},{\"name\":\"name\",\"type\":\"string\"},{\"name\":\"stock\",\"type\":\"long\"}]}",
+        "type_label": "test.product",
+        "type_properties": {
+            "category": [
+                "data",
+                "char64"
+            ],
+            "description": [
+                "data"
+            ],
+            "id": [
+                "data"
+            ],
+            "name": [
+                "data",
+                "char128"
+            ],
+            "stock": [
+                "data"
+            ]
+        },
+        "count_inserted": 1,
+        "count_skipped": 0,
+        "count_updated": 0,
+        "info": {
+            "distribute_all": "true",
+            "external_file_info": "{'column_names':'[\\'category\\',\\'description\\',\\'id\\',\\'name\\',\\'stock\\']','has_kinetica_header':'0','has_name_header':'1','header':'[]','inferred_batch_size':'0','inferred_num_records':'14','is_header_inferred':'0','is_text_column_delimiter_inferred':'0','is_type_from_kinetica_header':'0','is_type_inferred':'1','text_column_delimiter':'44'}",
+            "field_descs": "{'category':{'card_est':'3','count':'14','dict_encoded':'0','field_type':'string','max_string_length':'15','nullable':'0'},'description':{'card_est':'14','count':'14','dict_encoded':'0','field_type':'string','max_string_length':'85','nullable':'0'},'id':{'card_est':'14','count':'14','dict_encoded':'0','field_type':'unsigned','max':'14','max_string_length':'2','nullable':'0'},'name':{'card_est':'14','count':'14','dict_encoded':'0','field_type':'string','max_string_length':'19','nullable':'0'},'stock':{'card_est':'14','count':'14','dict_encoded':'0','field_type':'unsigned','max':'1000000','max_string_length':'7','nullable':'0'}}"
+        }
+    }
+}
+```
+
+{/* Source: /examples/bash/insert_records_json.out (lines 146-150) */}
+```json Failure
+{
+    "status": "ERROR",
+    "data_type": "insert_records_from_payload_response",
+    "message": "Internal_Error: processJsonRecord error processing jsonRecord: {category,Tech}, {description,Video discs}, {id,15}, {name,DVDs}, {stock,five}, err: Cannot convert string 'five' to long (EF/EFRc:2575) (EF/EFRc:1578)(Table:\"test.product\")(Worker:2)  (E/EEFBc:848)"
+}
+```
+
+</CodeGroup>

@@ -1,0 +1,1222 @@
+---
+title: Security Usage
+---
+
+The examples below use the native API to manage users, roles, and permissions.
+Generally, the API is symmetric across the endpoint calls, so similarly named
+calls between API languages should have the same function.
+
+
+## Authentication
+
+
+Connecting & authenticating to a Kinetica instance generally requires four
+parameters:
+
+* Kinetica host
+* Kinetica port
+* User name
+* Password
+
+Once an API connection has been established, those parameters will be reused in
+each subsequent call to the database.
+
+
+<Info>
+API authentication is only required if you've
+[setup HTTPD](/content/security/sec_configuration) for *Kinetica*.
+</Info>
+
+To connect to a Kinetica instance in *Python*:
+
+{/* Source: /api/connecting/python.txt (lines 1-3 4-5 8-9 10 12-13) */}
+```python
+import gpudb
+
+options = gpudb.GPUdb.Options()
+options.username = "<username>"
+options.password = "<password>"
+
+kinetica = gpudb.GPUdb(
+    host=["http://<db.host>:9191"],
+    options = options
+)
+```
+
+To connect in *Java*:
+
+{/* Source: /api/connecting/java.txt (lines 1-3 5-6 8 14) */}
+```java
+import com.gpudb.GPUdb;
+
+GPUdb.Options options = new GPUdb.Options()
+    .setUsername("<username>")
+    .setPassword("<password>");
+
+GPUdb kinetica = new GPUdb("http://<db.host>:9191", options);
+```
+
+
+<a id="sec-usage-user"></a>
+
+
+## User Management
+
+
+User accounts can be added & removed via API call.  In *Python*, internal &
+external (LDAP, AD, etc.) users are created with the `create_user_internal` &
+`create_user_external` functions, respectively.
+
+
+### Creating Users
+
+
+To create an internal user, **auser**, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 87-90) */}
+```python
+kinetica.create_user_internal(
+    name = 'auser',
+    password = 'password'
+)
+```
+
+To create an external user, **ruser**, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 92-94) */}
+```python
+kinetica.create_user_external(
+    name = 'ruser'
+)
+```
+
+
+### Deleting Users
+
+
+To delete the internal user, **auser**, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 104) */}
+```python
+kinetica.delete_user('auser')
+```
+
+To delete the external user, **ruser**, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 105) */}
+```python
+kinetica.delete_user('ruser')
+```
+
+
+<a id="sec-usage-role"></a>
+
+
+## Role Management
+
+
+Roles can be created in and removed from the system, and can be assigned to and
+unassigned from both users & roles, all via API call.
+
+
+### Creating Roles
+
+
+To create a role, **rx_user**, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 115) */}
+```python
+kinetica.create_role('rx_user')
+```
+
+
+### Assigning Roles
+
+
+To assign the role, **rx_user**, to the **auser** user, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 124) */}
+```python
+kinetica.grant_role('rx_user', 'auser')
+```
+
+To assign a role, **rx_user_table_read_access**, to the **rx_user** role, in
+*Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 127) */}
+```python
+kinetica.grant_role('rx_user_table_read_access', 'rx_user')
+```
+
+
+### Unassigning Roles
+
+
+To unassign a role, **rx_user**, from the **auser** user, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 134) */}
+```python
+kinetica.revoke_role('rx_user', 'auser')
+```
+
+To unassign a role, **rx_user_table_read_access**, from the **rx_user** role, in
+*Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 137) */}
+```python
+kinetica.revoke_role('rx_user_table_read_access', 'rx_user')
+```
+
+
+### Deleting Roles
+
+
+To delete a role, **rx_user**, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 146) */}
+```python
+kinetica.delete_role('rx_user')
+```
+
+
+<a id="sec-usage-perm"></a>
+
+
+## Permission Management
+
+
+Permissions on database objects can be assigned to and unassigned from both
+users & roles, all via API call, in each of the following categories:
+
+* [System Permissions](/content/security/sec_usage#sec-usage-perm-system)
+* [Schema Permissions](/content/security/sec_usage#sec-usage-perm-schema)
+* [Table Permissions](/content/security/sec_usage#sec-usage-perm-table)
+* [Credential Permissions](/content/security/sec_usage#sec-usage-perm-credential)
+* [Data Source Permissions](/content/security/sec_usage#sec-usage-perm-datasource)
+* [Data Sink Permissions](/content/security/sec_usage#sec-usage-perm-datasink)
+* [Directory Permissions](/content/security/sec_usage#sec-usage-perm-kifs)
+* [Graph Permissions](/content/security/sec_usage#sec-usage-perm-graph)
+* [Procedure Permissions](/content/security/sec_usage#sec-usage-perm-proc)
+* [Table Monitor Permissions](/content/security/sec_usage#sec-usage-perm-monitor)
+
+
+<a id="sec-usage-perm-system"></a>
+
+
+### Managing System Permissions
+
+
+[System permissions](/content/security/sec_concepts#security-concepts-permissions-system) can be
+granted to and revoked from a user or role using the API.
+
+
+#### Granting System Permissions
+
+
+To grant the system permission, `system_admin`, to the **auser** user, in
+*Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 156) */}
+```python
+kinetica.grant_permission_system('auser', 'system_admin')
+```
+
+To grant the user administration permission, `system_user_admin`, to the
+**auser** user, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 159) */}
+```python
+kinetica.grant_permission_system('auser', 'system_user_admin')
+```
+
+To grant the system permission, `system_read`, to the **rx_auditor** role, in
+*Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 162) */}
+```python
+kinetica.grant_permission_system('rx_auditor', 'system_read')
+```
+
+
+#### Revoking System Permissions
+
+
+To revoke the system permission, `system_admin`, from the **auser** user, in
+*Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 169) */}
+```python
+kinetica.revoke_permission_system('auser', 'system_admin')
+```
+
+To revoke the user administration permission, `system_user_admin`, from the
+**auser** user, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 172) */}
+```python
+kinetica.revoke_permission_system('auser', 'system_user_admin')
+```
+
+To revoke the system permission, `system_read`, from the **rx_auditor** role,
+in *Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 175) */}
+```python
+kinetica.revoke_permission_system('rx_auditor', 'system_read')
+```
+
+
+<a id="sec-usage-perm-schema"></a>
+
+
+### Managing Schema Permissions
+
+
+[Schema permissions](/content/security/sec_concepts#security-concepts-permissions-schema) can be
+granted to and revoked from a user or role using the API.
+
+
+#### Granting Schema Permissions
+
+
+To grant the create data sink permission in the **cschema** schema to the
+**cuser** user, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_create.py (lines 223) */}
+```python
+kinetica.grant_permission("cuser", "cschema", "datasink", "create")
+```
+
+To grant the create data source permission in the **cschema** schema to the
+**crole** role, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_create.py (lines 226) */}
+```python
+kinetica.grant_permission("crole", "cschema", "datasource", "create")
+```
+
+
+#### Revoking Schema Permissions
+
+
+To revoke the create data sink permission in the **cschema** schema from the
+**cuser** user, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_create.py (lines 236) */}
+```python
+kinetica.revoke_permission("cuser", "cschema", "datasink", "create")
+```
+
+To revoke the create data source permission in the **cschema** schema from the
+**crole** role, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_create.py (lines 239) */}
+```python
+kinetica.revoke_permission("cuser", "cschema", "datasink", "create")
+```
+
+
+<a id="sec-usage-perm-table"></a>
+
+
+### Managing Table Permissions
+
+
+[Table permissions](/content/security/sec_concepts#security-concepts-permissions-table) can be
+granted to and revoked from a user or role using the API.
+
+
+#### Granting Table Permissions
+
+
+To grant the table read permission, `table_read`, on the **rx_order** table in
+the **example** schema, to the **zanalyst** user, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 183) */}
+```python
+kinetica.grant_permission_table('zanalyst', 'table_read', 'example.rx_order')
+```
+
+To grant the table administration permission, `table_admin`, on the
+**rx_order** table in the **example** schema, to the **rx_user** role, in
+*Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 186) */}
+```python
+kinetica.grant_permission_table('rx_user', 'table_admin', 'example.rx_order')
+```
+
+
+<Info>
+Specifying only a schema name grants the specified access on all
+present & future tables in that schema to the specified user; this grant is
+maintained separately from any grants to individual tables within the schema.
+</Info>
+
+
+#### Revoking Table Permissions
+
+
+To revoke the table read permission, `table_read`, on the **rx_order** table
+in the **example** schema, from the **zanalyst** user, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 196) */}
+```python
+kinetica.revoke_permission_table('zanalyst', 'table_read', 'example.rx_order')
+```
+
+To revoke the table administration permission, `table_admin`, on the
+**rx_order** table in the **example** schema, from the **rx_user** role, in
+*Python*:
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 199) */}
+```python
+kinetica.revoke_permission_table('rx_user', 'table_admin', 'example.rx_order')
+```
+
+
+<Info>
+Specifying only a schema name revokes the specified access previously
+granted on that schema from the specified user; this revocation will not
+effect any grants the user has to individual tables within the schema.
+</Info>
+
+<a id="sec-usage-perm-table-row"></a>
+
+
+### Managing Table Permissions at the Row Level
+
+
+[Row-level table permissions](/content/security/sec_concepts#sec-concepts-perm-table-row) can be granted
+to and revoked from a user or role using the API.
+
+
+#### Granting Row-Level Table Permissions
+
+
+To grant *row-level table permissions*, in *Python*, with the following
+criteria:
+
+* table read permission (`table_read`)
+* on the **rx_order** table in the **example** schema
+* for records with order timestamps on or after *2002-01-01*
+* to user **zanalyst**
+
+{/* Source: /examples/python/security/security_row_column.py (lines 81-86) */}
+```python
+kinetica.grant_permission_table(
+    'zanalyst',
+    'table_read',
+    'example.rx_order',
+    "order_ts >= '2002-01-01'"
+)
+```
+
+To grant row-level table permissions, in *Python*, with the following criteria:
+
+* table read permission (`table_read`)
+* on the **rx_order** table in the **example** schema
+* for records associated with the querying user, matched by username
+* to role **rx_user**
+
+{/* Source: /examples/python/security/security_row_column.py (lines 92-97) */}
+```python
+kinetica.grant_permission_table(
+    'rx_user',
+    'table_read',
+    'example.rx_order',
+    'name = USER()'
+)
+```
+
+
+#### Revoking Row-Level Table Permissions
+
+
+To revoke *row-level table permissions*, in *Python*, with the following
+criteria:
+
+* table read permission (`table_read`)
+* on the **rx_order** table in the **example** schema
+* for any/all granted rows *(row-level access to a table must be revoked by*
+  *revoking access to the full table)*
+* from user **zanalyst**
+
+{/* Source: /examples/python/security/security_row_column.py (lines 104-108) */}
+```python
+kinetica.revoke_permission_table(
+    'zanalyst',
+    'table_read',
+    'example.rx_order'
+)
+```
+
+To revoke *row-level table permissions*, in *Python*, with the following
+criteria:
+
+* table read permission (`table_read`)
+* on the **rx_order** table in the **example** schema
+* for any/all granted rows *(row-level access to a table must be revoked by*
+  *revoking access to the full column)*
+* from role **rx_user**
+
+{/* Source: /examples/python/security/security_row_column.py (lines 114-118) */}
+```python
+kinetica.revoke_permission_table(
+    'rx_user',
+    'table_read',
+    'example.rx_order'
+)
+```
+
+
+<a id="sec-usage-perm-table-col"></a>
+
+
+### Managing Table Permissions at the Column Level
+
+
+[Column-level table permissions](/content/security/sec_concepts#sec-concepts-perm-table-col) can be
+granted to and revoked from a user or role using the API.
+
+
+#### Granting Column-Level Table Permissions
+
+
+To grant *column-level table permissions*, in *Python*, with the following
+criteria:
+
+* table read permission (`table_read`)
+* on the **rx_order** table in the **example** schema
+* for columns **rx_name**, **order_ts**, and an obfuscated version of **ssn**
+* to user **zanalyst**
+
+{/* Source: /examples/python/security/security_row_column.py (lines 125-130) */}
+```python
+kinetica.grant_permission_table(
+    'zanalyst',
+    'table_read',
+    'example.rx_order',
+    options = {"columns": "HASH(ssn), rx_name, order_ts"}
+)
+```
+
+To grant column-level table permissions, in *Python*, with the following
+criteria:
+
+* table read permission (`table_read`)
+* on the **rx_order** table in the **example** schema
+* for columns **name**, **rx_name**, **order_ts**, as well as a masked version
+  of the **ssn**, only showing the last 4 digits
+* to role **rx_user**
+
+{/* Source: /examples/python/security/security_row_column.py (lines 136-141) */}
+```python
+kinetica.grant_permission_table(
+    'rx_user',
+    'table_read',
+    'example.rx_order',
+    options = {"columns": "MASK(ssn, 1, 6), name, rx_name, order_ts"}
+)
+```
+
+
+#### Revoking Column-Level Table Permissions
+
+
+To revoke *column-level table permissions*, in *Python*, with the following
+criteria:
+
+* table read permission (`table_read`)
+* on the **rx_order** table in the **example** schema
+* for obfuscated column **ssn** *(other granted columns will remain visible)*
+* from user **zanalyst**
+
+{/* Source: /examples/python/security/security_row_column.py (lines 148-153) */}
+```python
+kinetica.revoke_permission_table(
+    'zanalyst',
+    'table_read',
+    'example.rx_order',
+    options = {"columns": "ssn"}
+)
+```
+
+To revoke *column-level table permissions*, in *Python*, with the following
+criteria:
+
+* table read permission (`table_read`)
+* on the **rx_order** table in the **example** schema
+* for column **rx_name** and masked column **ssn**
+  *(other granted columns will remain visible)*
+* from role **rx_user**
+
+{/* Source: /examples/python/security/security_row_column.py (lines 159-164) */}
+```python
+kinetica.revoke_permission_table(
+    'rx_user',
+    'table_read',
+    'example.rx_order',
+    options = {"columns": "ssn, rx_name"}
+)
+```
+
+
+<a id="sec-usage-perm-credential"></a>
+
+
+### Managing Credential Permissions
+
+
+[Credential permissions](/content/security/sec_concepts#security-concepts-permissions-credential)
+can be granted to and revoked from a user or role using the API.
+
+
+#### Granting Credential Permissions
+
+
+To grant the credential permission, `credential_read`, on a credential,
+to the **auser** user, in *Python*:
+
+{/* Source: /examples/python/credentials.py (lines 84-88) */}
+```python
+kinetica.grant_permission_credential(
+    name = 'auser',
+    permission = 'credential_read',
+    credential_name = 'auser_azure_active_dir_creds'
+)
+```
+
+
+#### Revoking Credential Permissions
+
+
+To revoke the credential permission, `credential_read`, on a credential,
+from the **auser** user, in *Python*:
+
+{/* Source: /examples/python/credentials.py (lines 95-99) */}
+```python
+kinetica.revoke_permission_credential(
+    name = 'auser',
+    permission = 'credential_read',
+    credential_name = 'auser_azure_active_dir_creds'
+)
+```
+
+
+<a id="sec-usage-perm-datasource"></a>
+
+
+### Managing Data Source Permissions
+
+
+[Data source permissions](/content/security/sec_concepts#security-concepts-permissions-datasource)
+can be granted to and revoked from a user or role using the API.
+
+
+#### Granting Data Source Permissions
+
+
+To grant the data source permission, `connect`, on the `kin_ds` data source,
+to the **auser** user, in *Python*:
+
+{/* Source: /examples/python/data_source.py (lines 86-90) */}
+```python
+kinetica.grant_permission_datasource(
+    name = 'auser',
+    permission = 'connect',
+    datasource_name = 'kin_ds'
+)
+```
+
+
+#### Revoking Data Source Permissions
+
+
+To revoke the data source permission, `connect`, on the `kin_ds` data
+source, from the **auser** user, in *Python*:
+
+{/* Source: /examples/python/data_source.py (lines 111-115) */}
+```python
+kinetica.revoke_permission_datasource(
+    name = 'auser',
+    permission = 'connect',
+    datasource_name = 'kin_ds'
+)
+```
+
+
+<a id="sec-usage-perm-datasink"></a>
+
+
+### Managing Data Sink Permissions
+
+
+[Data sink permissions](/content/security/sec_concepts#security-concepts-permissions-datasink)
+can be granted to and revoked from a user or role using the API.
+
+
+#### Granting Data Sink Permissions
+
+
+To grant the data sink permission, `connect`, on the `kin_dsink` data sink,
+to the **auser** user, in *Python*:
+
+{/* Source: /examples/python/data_sink.py (lines 176-181) */}
+```python
+kinetica.grant_permission(
+    principal = 'auser',
+    object = 'kin_dsink',
+    object_type = 'datasink',
+    permission = 'connect'
+)
+```
+
+
+#### Revoking Data Sink Permissions
+
+
+To revoke the data sink permission, `connect`, on the `kin_dsink` data sink,
+from the **auser** user, in *Python*:
+
+{/* Source: /examples/python/data_sink.py (lines 187-192) */}
+```python
+kinetica.revoke_permission(
+    principal = 'auser',
+    object = 'kin_dsink',
+    object_type = 'datasink',
+    permission = 'connect'
+)
+```
+
+
+<a id="sec-usage-perm-graph"></a>
+
+
+### Managing Graph Permissions
+
+
+[Graph permissions](/content/security/sec_concepts#security-concepts-permissions-graph)
+can be granted to and revoked from a user or role using the API.
+
+
+#### Granting Graph Permissions
+
+
+To grant the graph permission, `graph_read`, on a graph,
+to the **auser** user, in *Python*:
+
+{/* Source: /examples/python/graph/graph_solvers_sec.py (lines 76-81) */}
+```python
+kinetica.grant_permission(
+    principal = 'auser',
+    object = 'big_cities_graph',
+    object_type = 'graph',
+    permission = 'read'
+)
+```
+
+
+#### Revoking Graph Permissions
+
+
+To revoke the graph permission, `graph_read`, on a graph,
+from the **auser** user, in *Python*:
+
+{/* Source: /examples/python/graph/graph_solvers_sec.py (lines 88-93) */}
+```python
+kinetica.revoke_permission(
+    principal = 'auser',
+    object = 'big_cities_graph',
+    object_type = 'graph',
+    permission = 'read'
+)
+```
+
+
+<a id="sec-usage-perm-kifs"></a>
+
+
+### Managing Directory Permissions
+
+
+[KiFS permissions](/content/security/sec_concepts#security-concepts-permissions-kifs)
+can be granted to and revoked from a user or role using the API.
+
+
+#### Granting Directory Permissions
+
+
+To grant the directory permission, `read`, on the `kdata` directory,
+to the **kuser** user, in *Python*:
+
+{/* Source: /examples/python/kifs.py (lines 87-92) */}
+```python
+kinetica.grant_permission(
+    principal = 'kuser',
+    object = 'kdata',
+    object_type = 'directory',
+    permission = 'read'
+)
+```
+
+To grant the create directory permission to the **crole** role, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_create.py (lines 250-255) */}
+```python
+kinetica.grant_permission(
+    principal = "crole",
+    object = "",
+    object_type = "directory",
+    permission = "create"
+)
+```
+
+
+#### Revoking Directory Permissions
+
+
+To revoke the directory permission, `write`, on the `kdata` directory,
+from the **kuser** user, in *Python*:
+
+{/* Source: /examples/python/kifs.py (lines 120-125) */}
+```python
+kinetica.revoke_permission(
+    principal = 'kuser',
+    object = 'kdata',
+    object_type = 'directory',
+    permission = 'write'
+)
+```
+
+To revoke the create directory permission from the **crole** role, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_create.py (lines 265-270) */}
+```python
+kinetica.revoke_permission(
+    principal = "crole",
+    object = "",
+    object_type = "directory",
+    permission = "create"
+)
+```
+
+
+<a id="sec-usage-perm-proc"></a>
+
+
+### Managing Procedure Permissions
+
+
+[Procedure permissions](/content/security/sec_concepts#security-concepts-permissions-procedure) can
+be granted to and revoked from a user or role using the API.
+
+While permissions for [user-defined functions](/content/udf_overview) are able to
+be managed via the native API, permissions for
+[SQL procedures](/content/sql/procedure#sql-procedures) are managed via
+[SQL](/content/sql/security#sql-security-priv-mgmt-sqlp-grant).
+
+
+#### Granting UDF Permissions
+
+
+To grant the execute permission, `proc_execute`, on a specific UDF to the
+**auser** user, in *Python*:
+
+{/* Source: /examples/python/security/security_udf.py (lines 37) */}
+```python
+kinetica.grant_permission_proc('auser', 'proc_execute', 'sum_of_squares')
+```
+
+To grant execute permission on all present & future UDFs to the **auser** user,
+in *Python*:
+
+{/* Source: /examples/python/security/security_udf.py (lines 40) */}
+```python
+kinetica.grant_permission_proc('a_role', 'proc_execute', '')
+```
+
+To grant the create UDF permission to the **crole** role, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_create.py (lines 281-286) */}
+```python
+kinetica.grant_permission(
+    principal = "crole",
+    object = "",
+    object_type = "proc",
+    permission = "create"
+)
+```
+
+
+#### Revoking UDF Permissions
+
+
+To revoke the execute permission, `proc_execute`, on a specific UDF from the
+**auser** user, in *Python*:
+
+{/* Source: /examples/python/security/security_udf.py (lines 50) */}
+```python
+kinetica.revoke_permission_proc('auser', 'proc_execute', 'sum_of_squares')
+```
+
+To revoke the ability for the **auser** user, to execute all present & future
+UDFs, in *Python*:
+
+{/* Source: /examples/python/security/security_udf.py (lines 53) */}
+```python
+kinetica.revoke_permission_proc('a_role', 'proc_execute', '')
+```
+
+To revoke the create UDF permission from the **crole** role, in *Python*:
+
+{/* Source: /examples/python/security/security_grant_create.py (lines 296-301) */}
+```python
+kinetica.revoke_permission(
+    principal = "crole",
+    object = "",
+    object_type = "proc",
+    permission = "create"
+)
+```
+
+
+<Note>
+This revocation of execute on present & future UDFs is only a
+revocation of the corresponding grant of the same.  This will not revoke
+execute permission to specific UDFs that a user has been granted; each of
+those must be revoked separately.
+</Note>
+
+<a id="sec-usage-perm-monitor"></a>
+
+
+### Managing SQL-GPT Context Permissions
+
+
+[SQL-GPT context permissions](/content/security/sec_concepts#security-concepts-permissions-gpt)
+can be granted to and revoked from a user or role using the API.
+
+
+#### Granting SQL-GPT Context Permissions
+
+
+To grant the SQL-GPT context permission, `context_admin`, on a SQL-GPT context,
+to the **auser** user, in *Python*:
+
+{/* Source: /examples/python/security/sqlgpt_context_sec.py (lines 68-73) */}
+```python
+kinetica.grant_permission(
+    principal = 'auser',
+    object = 'nyctaxi_ctx',
+    object_type = 'context',
+    permission = 'admin'
+)
+```
+
+
+#### Revoking SQL-GPT Context Permissions
+
+
+To revoke the SQL-GPT context permission, `context_admin`, on a SQL-GPT context,
+from the **auser** user, in *Python*:
+
+{/* Source: /examples/python/security/sqlgpt_context_sec.py (lines 80-85) */}
+```python
+kinetica.revoke_permission(
+    principal = 'auser',
+    object = 'nyctaxi_ctx',
+    object_type = 'context',
+    permission = 'admin'
+)
+```
+
+
+<a id="sec-usage-perm-gpt"></a>
+
+
+### Managing Table Monitor Permissions
+
+
+[Table monitor permissions](/content/security/sec_concepts#security-concepts-permissions-credential)
+can be granted to and revoked from a user or role using the API.
+
+
+#### Granting Table Monitor Permissions
+
+
+To grant the table monitor permission, `monitor_admin`, on a table monitor,
+to the **auser** user, in *Python*:
+
+{/* Source: /examples/python/security/table_monitor_sec.py (lines 101-106) */}
+```python
+kinetica.grant_permission(
+    principal = TEST_USER_NAME,
+    object = TEST_STREAM_NAME,
+    object_type = 'table_monitor',
+    permission = 'admin'
+)
+```
+
+
+#### Revoking Table Monitor Permissions
+
+
+To revoke the table monitor permission, `monitor_admin`, on a table monitor,
+from the **auser** user, in *Python*:
+
+{/* Source: /examples/python/security/table_monitor_sec.py (lines 113-118) */}
+```python
+kinetica.revoke_permission(
+    principal = TEST_USER_NAME,
+    object = TEST_STREAM_NAME,
+    object_type = 'table_monitor',
+    permission = 'admin'
+)
+```
+
+
+## Security Information Retrieval
+
+
+Complete security information for a user or role can be extracted via API calls.
+
+
+<Tip>
+A limited set of user/role information can be extracted via function
+calls.  See [User/Security Functions](/content/concepts/expressions#expression-functions-security) for details.
+</Tip>
+
+
+### Basic Security Information
+
+
+The permission & role grants,
+[resource groups](/content/rm/concepts#rm-concepts-resource-groups), and
+[default schema](/content/concepts/schemas#schema-default) can be retrieved for a given user; while
+the permission & role grants and *resource groups* can be retrieved for a given
+role; all via the *Python* API.  That information can be displayed within a
+table produced by *tabulate*, as show below.
+
+The key API usage points to note below are:
+
+1. The call to `show_security` with the user or role name for which security
+   information will be retrieved
+2. The extraction of the key security fields from the returned structure:
+
+   * `types` - type of security entity (internal user, external user, or role)
+   * `default_schema` - for users, the *default schema* assigned
+   * `resource_groups` - *resource groups* assigned to the entity
+   * `permissions` - permissions granted directly to the entity
+   * `roles` - roles granted to the entity
+
+{/* Source: /examples/python/security/security_grant_revoke.py (lines 209-238) */}
+```python
+security_info = kinetica.show_security([user_role_name])
+
+urtype = security_info["types"].get(user_role_name)
+schema = None
+rgroup = security_info["resource_groups"].get(user_role_name)
+perms = security_info["permissions"].get(user_role_name)
+roles = security_info["roles"].get(user_role_name)
+
+data = []
+if perms:
+    for perm in perms:
+        if "permission" in perm:
+            data.append(["Permission", perm["object"] if "object" in perm else "", perm["permission"]])
+        elif "default_schema" in perm:
+            schema = perm["default_schema"]
+if roles:
+    for role in roles:
+        data.append(["Role", role, None])
+if data:
+    data = sorted(data, key=itemgetter(0,1,2))
+
+data = (
+    [["Type", urtype, None]] +
+    ([["Default Schema", schema, None]] if schema else []) +
+    ([["Assigned Resource Group", rgroup, None]] if rgroup else []) +
+    data)
+
+print(f"Permissions for {urtype} <{user_role_name}>:")
+
+print( tabulate( data , headers = ["Type", "Object", "Permission"], tablefmt = "grid") )
+```
+
+The information from a security request may contain the following:
+
+{/* Source: /examples/python/security/security_grant_revoke.out (lines 158-174) */}
+```
++-------------------------+---------------------------------+-----------------+
+| Type                    | Object                          | Permission      |
++=========================+=================================+=================+
+| Type                    | internal_user                   |                 |
++-------------------------+---------------------------------+-----------------+
+| Default Schema          | ki_home                         |                 |
++-------------------------+---------------------------------+-----------------+
+| Assigned Resource Group | kinetica_default_resource_group |                 |
++-------------------------+---------------------------------+-----------------+
+| Permission              | example.rx_order                | table_read      |
++-------------------------+---------------------------------+-----------------+
+| Permission              | ~zanalyst                       | directory_write |
++-------------------------+---------------------------------+-----------------+
+| Role                    | authenticated                   |                 |
++-------------------------+---------------------------------+-----------------+
+| Role                    | public                          |                 |
++-------------------------+---------------------------------+-----------------+
+```
+
+
+### Table-Level Security Information
+
+
+[Table-level](/content/security/sec_concepts#security-concepts-permissions-table) permission *(including*
+[row-level](/content/security/sec_concepts#sec-concepts-perm-table-row) *&*
+[column-level](/content/security/sec_concepts#sec-concepts-perm-table-row) *security)* can be retrieved,
+via *Python* API, by examining the `permissions` component of the
+`show_security` response structure.
+
+The key API usage points to note below are:
+
+1. The call to `show_security` with the user or role name for which
+   table-level security information will be retrieved
+2. The extraction of the `permissions` security field from the returned
+   structure, where the array of per-table security information is kept
+3. The extraction of the key security fields for each table:
+
+   * `object` - fully-qualified name of the table to which access has been
+     granted
+   * `permission` - type of access granted for the table; in the case of
+     row-level and column-level security, this will always be `table_read`
+   * `columns` - a list of the columns and optional per-column *row-level*
+     filters to which *column-level* access has been granted
+   * `filter_expression` - the expression used to define the *row-level*
+     access granted to the table as a whole
+
+{/* Source: /examples/python/security/security_row_column.py (lines 224-228 231-241) */}
+```python
+security_info = kinetica.show_security([user_role_name])
+
+perms = security_info['permissions'].get(user_role_name)
+
+if perms:
+    table_perms = [
+            OrderedDict([
+                    ('Table Name', perm['object']),
+                    ('Permission', perm['permission']),
+                    ('Column List', "\n".join(str([str(perm_item) for perm_item in col_perm]) for col_perm in json.loads(perm.get('columns', '[]')))),
+                    ('Filter Expression', perm['filter_expression'])
+            ]) for perm in perms if 'object' in perm and perm['permission'].startswith("table_")
+    ]
+
+    if table_perms:
+        print( tabulate( table_perms , headers = 'keys', tablefmt = 'grid') )
+```
+
+The output from a request for table-level security information may look like the
+following:
+
+{/* Source: /examples/python/security/security_row_column.out (lines 198-204) */}
+```
++------------------+--------------+---------------------------------------------------------------------+--------------------------+
+| Table Name       | Permission   | Column List                                                         | Filter Expression        |
++==================+==============+=====================================================================+==========================+
+| example.rx_order | table_read   | ['HASH(ssn)', "order_ts < '2002-01-01'", "order_ts < '2002-01-01'"] | order_ts >= '2002-01-01' |
+|                  |              | ['rx_name', "order_ts < '2002-01-01'", "order_ts < '2002-01-01'"]   |                          |
+|                  |              | ['order_ts', "order_ts < '2002-01-01'", "order_ts < '2002-01-01'"]  |                          |
++------------------+--------------+---------------------------------------------------------------------+--------------------------+
+```
+
+
+## External (LDAP) Users
+
+
+Differences between using an
+[external user instead of an internal user](/content/security/sec_concepts):
+
+* Rather than connect to *Kinetica* through its port (normally 9191), you will
+  connect to the [HTTPD proxy's](/content/security/sec_configuration) port (8082 by
+  default). When creating this connection, you will pass the LDAP user's
+  username and password.
+* For each LDAP user that needs to use *Kinetica*, a corresponding *Kinetica*
+  user must be created either manually or
+  [automatically, via config](/content/security/sec_configuration#ex-auth-config). The username in  *Kinetica*
+  must be the `@` symbol followed by the LDAP username.
+* If an external user is granted system administration permissions, the system
+  can be operated & managed exclusively by externally-authenticated users.
+
+
+<Info>
+Kinetica LDAP integration passes the username & password to LDAP for
+authentication, and can also map LDAP groups to *Kinetica* roles.
+However, the permissions those roles have must be managed within
+*Kinetica*.
+</Info>
+
+Below is an example of creating and using an external system administrator
+account, `jdoe`.
+
+```java
+try
+{
+      //Create a system admin role
+      gpudb.createRole("sample_system_admin_role",null);
+
+      //Assign permissions to role
+      GrantPermissionSystemRequest grantSystemRequest = new GrantPermissionSystemRequest();
+      grantSystemRequest.setName("sample_system_admin_role");
+      grantSystemRequest.setPermission(GrantPermissionSystemRequest.Permission.SYSTEM_ADMIN);
+      gpudb.grantPermissionSystem(grantSystemRequest);
+
+      //Create a new external user and give it the new sample_system_admin_role
+      gpudb.createUserExternal("@jdoe",null);
+      gpudb.grantRole("sample_system_admin_role", "@jdoe",null);
+
+      //Connect as the external user and create a table
+      GPUdb testGPUdb = new GPUdb(PROXY_URL,new GPUdbBase.Options().setUsername("jdoe").setPassword("jdoe"));
+      try
+      {
+         System.out.printf("Creating table as @jdoe\n");
+         String typeId = RecordObject.createType(WeatherRecord.class, testGPUdb);
+         testGPUdb.addKnownType(typeId, WeatherRecord.class);
+         testGPUdb.createTable(TABLE_NAME, typeId, null);
+         System.out.printf("created table\n");
+      }
+      catch(GPUdbException ex)
+      {
+         System.out.printf("failed to create table:%s\n", ex.getMessage());
+      }
+      System.out.println("Was the table created? " + tableExists(gpudb,TABLE_NAME));
+
+}
+catch (GPUdbException ex)
+{
+      Logger.getLogger(SecuritySamples.class.getName()).log(Level.SEVERE, null, ex);
+}
+```
+
+
+## Global Session Timeout Configuration
+
+
+Administrators can control the global idle session timeout for several
+*Apache Tomcat* web applications included with all *Kinetica* installations
+(the applications can be found in `/opt/gpudb/tomcat/webapps`). To update
+the timeout:
+
+1. Open the <Badge color="gray">/opt/gpudb/tomcat/conf/web.xml</Badge> file in a text editor.
+2. Update the following setting for desired timeout value in minutes (the
+   default is `30`):
+
+   ```
+   <session-config>
+     <session-timeout>30</session-timeout>
+   </session-config>
+   ```
+
+   <Tip>
+   Provide a value of `0` or `-1` to remove session expiration.
+   </Tip>
+
+3. Save the file, and [restart the database](/content/admin/services).

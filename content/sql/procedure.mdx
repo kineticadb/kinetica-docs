@@ -1,0 +1,518 @@
+---
+title: SQL Procedures
+sidebarTitle: SQL Procedures
+---
+
+<a id="sql-procedures"></a>
+
+
+*Kinetica* provides support for basic *SQL procedures*, as an executable batch
+of SQL statements.  A *SQL procedure* can be executed by two means:
+
+* *on-demand* - called directly by a user
+* *scheduled execution* - configured, upon creation, to execute at a
+  user-specified interval
+
+
+<Info>
+Even if a *SQL procedure* is configured for *scheduled execution*, it
+can still be executed directly by a user in *on-demand* fashion.
+</Info>
+
+After the first run, the execution plan for all statements in the
+*SQL procedure* will be created and cached to improve performance on future
+executions.
+
+If there is an error executing any statement, the *SQL procedure* will stop
+immediately and report the error.  If it is invoked via *scheduled execution*,
+an alert will be sent to the [alert monitor](/content/admin/alerting), as
+there is no interactive session through which the error could be reported to a
+user.  Any database modifications prior to the error will not be rolled back.
+
+
+<Info>
+If any of the database objects referenced in the *SQL procedure* are
+dropped or modified, the *SQL procedure* will be dropped as well.  This does
+not include any objects created by the *SQL procedure* that are later
+referenced by it.
+</Info>
+
+The ability to manage & execute *SQL procedures* is available through SQL, using
+the following commands:
+
+* [CREATE PROCEDURE](#create-procedure)
+* [ALTER PROCEDURE](#alter-procedure)
+* [EXECUTE PROCEDURE](#execute-procedure)
+* [DROP PROCEDURE](#drop-procedure)
+* [SHOW PROCEDURE](#show-procedure)
+
+For execute permission management, see:
+
+* [GRANT Procedure Permission](/content/sql/security#sql-security-priv-mgmt-sqlp-grant)
+* [REVOKE Procedure Permission](/content/sql/security#sql-security-priv-mgmt-sqlp-revoke)
+
+
+<a id="sql-procedures-statements"></a>
+
+
+## Supported Statements
+
+
+The following statement types are allowed within a *SQL procedure*:
+
+* `SELECT`
+* `INSERT` *(inserting from data file not supported)*
+* `UPDATE`
+* `DELETE`
+* `CHECK PERMISSION`
+* `<CREATE | DROP | SHOW CREATE> SCHEMA`
+* `<CREATE | TRUNCATE | DROP | SHOW CREATE> TABLE`
+* `CREATE TABLE ... AS`
+* `<CREATE [MATERIALIZED] | REFRESH | DROP | SHOW CREATE> VIEW`
+* `DESCRIBE`
+* `EXECUTE FUNCTION`
+* `EXECUTE PROCEDURE`
+* `REFRESH MATERIALIZED VIEW`
+* `SHOW PROCEDURE`
+* `SHOW SECURITY [FOR <USER | ROLE>]`
+* `SHOW RESOURCE GROUP`
+
+
+<Info>
+Any unqualified table/view references made within the *SQL procedure*
+will be assumed to exist in the creator's default schema at the time of
+creation.  Those references will be set upon creation and never re-evaluated
+afterwards, regardless of the execution type of the *SQL procedure*, who
+executes it, or what `EXECUTE AS` option is specified.
+</Info>
+
+<a id="sql-procedures-create"></a>
+
+
+## CREATE PROCEDURE
+
+
+Creates a new [SQL procedure](/content/sql/procedure#sql-procedures-create).
+
+```sql title="CREATE PROCEDURE Syntax"
+CREATE [OR REPLACE] PROCEDURE [<schema name>.]<procedure name> [()]
+[LANGUAGE SQL]
+BEGIN
+    <sql statements>
+END
+[
+    EXECUTE FOR EVERY <number> <SECOND[S] | MINUTE[S] | HOUR[S] | DAY[S]>
+        [STARTING AT '<YYYY-MM-DD [HH:MM[:SS]]>']
+        [STOP AFTER < '<YYYY-MM-DD [HH:MM[:SS]]>' | <number> <SECOND[S] | MINUTE[S] | HOUR[S] | DAY[S]> >]
+]
+[WITH OPTIONS (<stored procedure property name> = '<stored procedure property value>'[,...])]
+```
+
+When any of the source *tables* referenced by a *SQL procedure* is altered or
+dropped, the *SQL procedure* will also be dropped.
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the schema in which this *SQL procedure* will be created.
+
+</Accordion>
+
+<Accordion title="&lt;procedure name&gt;" id="<procedure-name>" defaultOpen>
+
+Name to give to the created *SQL procedure*; must adhere to the supported
+[naming criteria](/content/sql/naming#sql-naming-criteria) for tables, and cannot be named the
+same as any existing table or view.
+
+</Accordion>
+
+<Accordion title="&lt;sql statements&gt;" id="<sql-statements>" defaultOpen>
+
+Semicolon-separated list of
+[supported SQL statements](/content/sql/procedure#sql-procedures-statements).  If the final statement
+in the *SQL procedure* is an output-generating statement
+*(SQL query, SHOW command, etc.)*, the output of that statement alone will be returned
+to the user; all other statements that generate output will be ignored.
+
+</Accordion>
+
+<Accordion title="OR REPLACE" id="or-replace" defaultOpen>
+
+Drop any existing *SQL procedure* with the same name before creating this one.
+
+</Accordion>
+
+<Accordion title="LANGUAGE" id="language" defaultOpen>
+
+Optional language specification.  Only `SQL` is supported at this time.
+
+</Accordion>
+
+<Accordion title="EXECUTE FOR EVERY" id="execute-for-every" defaultOpen>
+
+Allows specification of an interval in seconds, minutes, hours, or days, at which the
+*SQL procedure* should be executed.  Fractional values for `<number>` are accepted.
+
+By default, the procedure will be run immediately and every specified interval after
+that; this can be modified with the following options:
+
+* `STARTING AT`:  specify a date or timestamp at which the first execution should
+  occur
+* `STOP AFTER`:  specify a date, timestamp, or time interval after which executions
+  should end
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of option/value assignments will follow.
+The following options are available:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>EXECUTE AS</code></td>
+    <td>Executes the *SQL procedure* as the given user with that user's privileges. <Note>If this user doesn't exist at the time of execution, the *SQL procedure* will be executed as the creating user, and and, failing that, the system administration user.</Note></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To create a `sqlp` *SQL procedure*:
+
+{/* Source: /examples/sql/procedure/create_procedure.kisql (lines 68-76) */}
+```sql CREATE PROCEDURE Example
+CREATE PROCEDURE example.sqlp
+BEGIN
+	CREATE OR REPLACE TABLE example.sqlp_table_tmp AS
+	SELECT *
+	FROM example.sqlp_table_ref;
+
+	SELECT *
+	FROM example.sqlp_table_tmp;
+END
+```
+
+To create a `sqlp_weekly` *SQL procedure* that executes once per week:
+
+{/* Source: /examples/sql/procedure/create_procedure.kisql (lines 80-90) */}
+```sql CREATE PROCEDURE (Scheduled) Example
+CREATE PROCEDURE example.sqlp_weekly
+BEGIN
+	CREATE OR REPLACE TABLE example.sqlp_table_tmp AS
+	SELECT *
+	FROM example.sqlp_table_ref;
+
+	SELECT *
+	FROM example.sqlp_table_tmp;
+END
+EXECUTE FOR EVERY 7 DAYS
+STARTING AT '2019-01-01 00:00:00'
+```
+
+
+<a id="sql-procedures-alter"></a>
+
+
+## ALTER PROCEDURE
+
+
+Alters the configuration of an existing
+[SQL procedure](/content/sql/procedure#sql-procedures-create).
+
+The following facets of a *SQL procedure* can be altered:
+
+* [Execution User](/content/sql/procedure#sql-procedures-set-execute-as)
+* [Execution Mode](/content/sql/procedure#sql-procedures-set-execute-mode)
+
+
+<a id="sql-procedures-set-execute-as"></a>
+
+
+### Set Execution User
+
+
+A *SQL procedure* can have its execution user modified.
+
+```sql title="ALTER PROCEDURE SET EXECUTE AS Syntax"
+ALTER PROCEDURE [<schema name>.]<procedure name>
+SET EXECUTE AS '<user name>'
+```
+
+
+#### Examples
+
+
+To set the execution user of the `sqlp_ea` *SQL procedure* to `spuser`:
+
+{/* Source: /examples/sql/procedure/alter_procedure.kisql (lines 43-44) */}
+```sql ALTER PROCEDURE SET EXECUTE AS Example
+ALTER PROCEDURE example.sqlp_ea
+SET EXECUTE AS 'spuser'
+```
+
+
+<a id="sql-procedures-set-execute-mode"></a>
+
+
+### Set Execute Mode
+
+
+The refresh mode of a *SQL procedure* can be modified.
+
+```sql title="ALTER PROCEDURE SET EXECUTE MODE Syntax"
+ALTER PROCEDURE [<schema name>.]<procedure name>
+SET EXECUTE [FOR] EVERY <number> <SECOND[S] | MINUTE[S] | HOUR[S] | DAY[S]>
+    [STARTING AT '<YYYY-MM-DD [HH:MM[:SS]]>']
+    [STOP AFTER < '<YYYY-MM-DD [HH:MM[:SS]]>' | <number> <SECOND[S] | MINUTE[S] | HOUR[S] | DAY[S]> >]
+```
+
+
+#### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="EXECUTE FOR EVERY" id="execute-for-every-2" defaultOpen>
+
+Specify an interval in seconds, minutes, hours, or days at which the *SQL procedure* should be
+executed.
+
+By default, the first execution interval will be one interval's worth of time from the point at
+which the *SQL procedure* alteration was requested.
+
+</Accordion>
+
+<Accordion title="STARTING AT" id="starting-at" defaultOpen>
+
+Specify a date or timestamp at which refresh cycles should begin.
+
+</Accordion>
+
+<Accordion title="STOP AFTER" id="stop-after" defaultOpen>
+
+Specify a date, timestamp, or time interval after which refresh cycles should end.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+#### Examples
+
+
+To alter the `sqlp_em` *SQL procedure* to execute every 6 hours:
+
+{/* Source: /examples/sql/procedure/alter_procedure.kisql (lines 70-71) */}
+```sql ALTER PROCEDURE Set Execution Mode Example
+ALTER PROCEDURE example.sqlp_em
+SET EXECUTE FOR EVERY 6 HOURS;
+```
+
+To alter a *SQL procedure* to execute every minute in *January, 2026*:
+
+{/* Source: /examples/sql/procedure/alter_procedure.kisql (lines 123-126) */}
+```sql ALTER PROCEDURE Set Execution Start/Stop Example
+ALTER PROCEDURE example.sqlp_em
+SET EXECUTE FOR EVERY 1 MINUTE
+    STARTING AT '2026-01-01 00:00:00'
+    STOP AFTER 31 DAYS
+```
+
+
+<a id="sql-procedures-execute"></a>
+
+
+## EXECUTE PROCEDURE
+
+
+*SQL procedures* can be executed on-demand.
+
+```sql title="EXECUTE PROCEDURE Syntax"
+EXEC[UTE] [PROCEDURE] [<schema name>.]<procedure name> [()]
+```
+
+If the final statement in the *SQL procedure* is an output-generating statement
+*(SQL query, SHOW command, etc.)*, the output of that statement alone will be
+returned to the user; all other statements that generate output will be ignored.
+
+If there is an error executing any statement, the *SQL procedure* will stop
+immediately and report the error.  Any database modifications prior to the error
+will not be rolled back.
+
+
+### Examples
+
+
+To execute the `sqlp` *SQL procedure*:
+
+{/* Source: /examples/sql/procedure/create_procedure.kisql (lines 94) */}
+```sql EXECUTE PROCEDURE Example
+EXECUTE PROCEDURE example.sqlp
+```
+
+
+<a id="sql-procedures-drop"></a>
+
+
+## DROP PROCEDURE
+
+
+Removes an existing [SQL procedure](/content/sql/procedure#sql-procedures-create).
+
+```sql title="DROP PROCEDURE Syntax"
+DROP PROCEDURE [IF EXISTS] [<schema name>.]<procedure name>
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="IF EXISTS" id="if-exists" defaultOpen>
+
+Optional error-suppression clause; if specified, no error will be returned if the given
+*procedure* does not exist.
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>-2" defaultOpen>
+
+Name of the *schema* containing the *procedure* to remove.
+
+</Accordion>
+
+<Accordion title="&lt;procedure name&gt;" id="<procedure-name>-2" defaultOpen>
+
+Name of the *procedure* to remove.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To drop the `sqlp` *SQL procedure*:
+
+{/* Source: /examples/sql/procedure/create_procedure.kisql (lines 112) */}
+```sql DROP PROCEDURE Example
+DROP PROCEDURE example.sqlp
+```
+
+
+<a id="sql-procedures-show"></a>
+
+
+## SHOW PROCEDURE
+
+
+Shows the content of one or all existing
+[SQL procedures](/content/sql/procedure#sql-procedures-create).
+
+```sql title="SHOW PROCEDURE Syntax"
+SHOW PROCEDURE < [<schema name>.]<procedure name> | * >
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>-3" defaultOpen>
+
+Name of the *schema* containing the *procedure* to show.
+
+</Accordion>
+
+<Accordion title="&lt;procedure name&gt;" id="<procedure-name>-3" defaultOpen>
+
+Name of the *procedure* whose content will be output; use `*` instead of
+*schema*/*procedure* name to output the DDL of all *procedures*.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To show the contents of the `sqlp_weekly` *SQL procedure*:
+
+{/* Source: /examples/sql/procedure/create_procedure.kisql (lines 100) */}
+```sql SHOW PROCEDURE Example
+SHOW PROCEDURE example.sqlp_weekly
+```
+
+To output the DDL for all *SQL procedures*:
+
+{/* Source: /examples/sql/procedure/create_procedure.kisql (lines 103) */}
+```sql SHOW PROCEDURE (All SQL Procedures) Example
+SHOW PROCEDURE *
+```
+
+
+<a id="sql-procedures-security"></a>
+
+
+## Security
+
+
+Permissions for managing procedures follow those for creating tables; e.g., if a
+user has the ability to create a table in a given schema, that user will also be
+able to create & drop procedures there.
+
+Executing a procedure requires either the implicit execute permission that is
+granted to the creator of a procedure, or explicit execute permission, which can
+be [granted to](/content/sql/security#sql-security-priv-mgmt-sqlp-grant) or
+[revoked from](/content/sql/security#sql-security-priv-mgmt-sqlp-revoke) any
+[user](/content/security/sec_concepts#security-concepts-users) or
+[role](/content/security/sec_concepts#security-concepts-roles), irrespective of whether the
+target *user* or *role* has the appropriate access to the database objects
+referenced within the *SQL procedure*.
+
+When procedures are executed *on-demand*, they are run, by default, with
+*invoker rights* (caller permissions); while those run automatically by
+*scheduled execution* are executed with *definer rights* (creator permissions).
+These defaults can be overridden by creating the stored procedure with the
+`EXECUTE AS` option, which allows a user to be designated for
+permissions-checking when running the procedure.  The `EXECUTE AS` user is
+automatically given `EXECUTE` permission on the corresponding *SQL procedure*.
+
+For *scheduled execution* runs, if the `EXECUTE AS` user loses `EXECUTE`
+permission on the procedure or doesn't have permissions to run the commands
+within the procedure, the execution will fail accordingly.  If the user doesn't
+exist, the procedure will be executed with *definer rights*; and if the creator
+no longer exists, it will be executed as the system administration user.
+
+For *on-demand* runs, if the `EXECUTE AS` user doesn't have permissions to run
+the commands within the procedure, the execution will fail accordingly.  If the
+user doesn't exist, the procedure will be executed with *invoker rights*.
+
+Execute permission on a procedure also allows the grantee to see the contents of
+the procedure.

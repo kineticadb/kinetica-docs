@@ -1,0 +1,153 @@
+---
+title: Dynamic Schemas
+---
+
+<a id="dynamic-schema-concept-label"></a>
+
+
+For some endpoints (e.g. [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest#aggregate-groupby-rest),
+[/aggregate/unique](/content/api/rest/aggregate_unique_rest#aggregate-unique-rest), [/get/records/bycolumn](/content/api/rest/get_records_bycolumn_rest#get-records-bycolumn-rest)), the response
+from *Kinetica* is formatted depending on the request and the data being returned.
+This is known as a *dynamic schema*.  The response will contain an *Avro* schema
+string (in the `response_schema_str` field) and then either an *Avro* binary
+encoded response (in the `binary_encoded_response` field) or an *Avro* JSON
+encoded response (in the `json_encoded_response` field).
+
+For *dynamic schema* responses, the response always consists of a series of
+arrays of various types, corresponding to the columns being returned. These
+arrays are labeled `column_1`, `column_2`, etc. In addition there is a
+string array column named `column_headers` containing the names or aliases of
+the returned columns.  The first name in `column_headers` corresponds to
+`column_1`, the second to `column_2` and so on.  Lastly, there is a string
+array column named `column_datatypes` containing the data types of the
+returned columns.  These correspond to the returned data columns in the same way
+`column_headers` do.
+
+
+## Dynamic Schemas in Python
+
+
+As an example, using *Python*, consider doing an
+[aggregate_groupby](../api/python/?source/gpudb.html#gpudb.GPUdb.aggregate_group_by)
+on a string column named `dept_name`, computing the max of a integer column
+named `sal`:
+
+```python title="Python API Request"
+retobj = gpudb.aggregate_group_by(
+             table_name = 'emp',
+             column_names = ['dept_name','max(sal)'],
+             offset = 0,
+             limit = 10,
+             encoding = 'json',
+             options = {'sort_by':'key'}
+         )
+```
+
+In this case, `retobj['response_schema_str']` will look like:
+
+```json title="Dynamic Schema Response Structure"
+{
+    "fields": [
+        {
+            "name": "column_1",
+            "type": {
+                "items": "string",
+                "type": "array"
+            }
+        },
+        {
+            "name": "column_2",
+            "type": {
+                "items": [
+                    "int",
+                    "null"
+                ],
+                "type": "array"
+            }
+        },
+        {
+            "name": "column_headers",
+            "type": {
+                "items": "string",
+                "type": "array"
+            }
+        },
+        {
+            "name": "column_datatypes",
+            "type": {
+                "items": "string",
+                "type": "array"
+            }
+        }
+    ],
+    "name": "generic_response",
+    "type": "record"
+}
+```
+
+And the actual data response, `retobj['json_encoded_response']`, will look
+like:
+
+```json title="Dynamic Schema Response Data"
+{
+    "column_1": [
+        "DEPT1",
+        "DEPT2",
+        "DEPT3",
+        "DEPT4"
+    ],
+    "column_2": [
+        200000,
+        150000,
+        110000,
+        12345
+    ],
+    "column_datatypes": [
+        "char64",
+        "int"
+    ],
+    "column_headers": [
+        "dept_name",
+        "max(sal)"
+    ]
+}
+```
+
+The enumerated columns can be translated into their textual names using the
+`gpudb.parse_dynamic_response(retobj)['response']` function, resulting in
+this:
+
+```python title="Dynamic Schema Response Data Translated"
+OrderedDict
+(
+    [
+        (u'dept_name', [u'DEPT1', u'DEPT2', u'DEPT3', u'DEPT4']),
+        (u'max(sal)', [200000, 150000, 110000, 12345])
+    ]
+)
+```
+
+
+## Dynamic Schemas in Java
+
+
+Dynamic schemas are simpler to handle in Java.  The `Record`, `Type`, and
+`Column` classes take care of the lower level details and provide a simple way
+to access the data.  Once the records are returned by your query, you can get
+the type of the record and all the column details from the type.  Below is an
+example of a query, iterating through the records, and iterating through each
+column in each record.
+
+```java title="Java API Request"
+AggregateGroupByResponse resp1 = gpudb.aggregateGroupBy(aggGroupByRequest);
+List<Record> records = resp1.getData();
+for(Record rec : records){
+    Type type = rec.getType();
+
+    List<Type.Column> columns = type.getColumns();
+    for(int i=0;i<columns.size();i++){
+        System.out.printf("%s:%s, ", columns.get(i).getName() ,rec.get(i));
+    }
+    System.out.println();
+}
+```

@@ -1,0 +1,135 @@
+---
+title: Enhanced Performance Scalar Functions
+---
+
+The functions below all compare `x` and `y` coordinates to geometry objects
+(or vice versa), thus increasing their performance in queries. Each of these
+functions have a geometry-to-geometry version listed in the next section.
+
+<AccordionGroup>
+
+<Accordion title="STXY_CONTAINS(geom, x, y)" id="stxy_contains-geom-x-y" defaultOpen>
+
+Returns `1` (true) if `geom` contains the `x` and `y` coordinate, e.g. lies in the interior
+of `geom`. The coordinate cannot be on the boundary and also be contained because `geom` does not
+contain its boundary
+
+</Accordion>
+
+<Accordion title="STXY_CONTAINSPROPERLY(geom, x, y)" id="stxy_containsproperly-geom-x-y" defaultOpen>
+
+Returns `1` (true) if the `x` and `y` coordinate intersects the interior of `geom` but not
+the boundary (or exterior) because `geom` does not contain its boundary but does contain itself
+
+</Accordion>
+
+<Accordion title="STXY_COVEREDBY(x, y, geom)" id="stxy_coveredby-x-y-geom" defaultOpen>
+
+Returns `1` (true) if the `x` and `y` coordinate is covered by `geom`
+
+</Accordion>
+
+<Accordion title="STXY_COVERS(geom, x, y)" id="stxy_covers-geom-x-y" defaultOpen>
+
+Returns `1` (true) if `geom` covers the `x` and `y` coordinate
+
+</Accordion>
+
+<Accordion title="STXY_DISJOINT(x, y, geom)" id="stxy_disjoint-x-y-geom" defaultOpen>
+
+Returns `1` (true) if the given `x` and `y` coordinate and the geometry `geom` do not
+spatially intersect.
+
+</Accordion>
+
+<Accordion title="STXY_DISTANCE (x, y, geom[, solution])" id="stxy_distance-x-y-geom-solution" defaultOpen>
+
+Calculates the minimum distance between the given `x` and `y` coordinate and `geom` using the
+specified solution type. Solution types available:
+
+* `0` (default) - Euclidean; returns 2-D Euclidean distance
+* `1` - Haversine; returns minimum sphere distance in meters
+* `2` - Vincenty; returns minimum spheroid distance in meters, more accurate than Haversine but
+  slower performance
+
+
+<Info>
+If the `x` and `y` coordinate and `geom` intersect (verify using `ST_INTERSECTS`),
+the distance will always be `0`.
+</Info>
+
+</Accordion>
+
+<Accordion title="STXY_DWITHIN (x, y, geom, distance[, solution])" id="stxy_dwithin-x-y-geom-distance-solution" defaultOpen>
+
+Returns `1` (true) if the `x` and `y` coordinate is within the specified `distance` from
+`geom` using the specified solution type. Solution types available:
+
+* `0` (default) - Euclidean; uses degrees to calculate distance
+* `1` - Sphere; uses meters to calculate sphere distance
+* `2` - Spheroid; uses meters to calculate spheroid distance
+
+</Accordion>
+
+<Accordion title="STXY_ENVDWITHIN (x, y, geom, distance[, solution])" id="stxy_envdwithin-x-y-geom-distance-solution" defaultOpen>
+
+Returns `1` (true) if the `x` and `y` coordinate is within the specified `distance` from the
+bounding box of `geom` using the specified solution type. Solution types available:
+
+* `0` (default) - Euclidean; uses degrees to calculate distance
+* `1` - Sphere; uses meters to calculate distance
+
+</Accordion>
+
+<Accordion title="STXY_ENVINTERSECTS(x, y, geom)" id="stxy_envintersects-x-y-geom" defaultOpen>
+
+Returns `1` (true) if the bounding box of the given geometry `geom` intersects the `x` and
+`y` coordinate.
+
+</Accordion>
+
+<Accordion title="STXY_GEOHASH(x, y[, precision])" id="stxy_geohash-x-y-precision" defaultOpen>
+
+Returns a hash string representation of the given `x` and `y` coordinates with specified
+`precision` (the length of the resulting geohash string). The longer the `precision`, the more
+precise the hash is. By default, `precision` is set to `20`; the max for `precision` is `32`.
+
+See [Geohash](/content/snippets/geohash) for an example.
+
+</Accordion>
+
+<Accordion title="STXY_H3(x, y, resolution)" id="stxy_h3-x-y-resolution" defaultOpen>
+
+Alias for `H3_XYTOCELL`; see [H3 Functions](/content/location_intelligence/geo_functions#geo-functions-h3).
+
+</Accordion>
+
+<Accordion title="STXY_INTERSECTION(x, y, geom)" id="stxy_intersection-x-y-geom" defaultOpen>
+
+Returns the shared portion between the `x` and `y` coordinate and the given geometry `geom`,
+i.e. the point itself.
+
+</Accordion>
+
+<Accordion title="STXY_INTERSECTS(x, y, geom)" id="stxy_intersects-x-y-geom" defaultOpen>
+
+Returns `1` (true) if the `x` and `y` coordinate and `geom` intersect in 2-D.
+
+</Accordion>
+
+<Accordion title="STXY_TOUCHES(x, y, geom)" id="stxy_touches-x-y-geom" defaultOpen>
+
+Returns `1` (true) if the `x` and `y` coordinate and geometry `geom` have at least one point
+in common but their interiors do not intersect. If `geom` is a GEOMETRYCOLLECTION, a `0` is
+returned regardless if the point and geometry touch
+
+</Accordion>
+
+<Accordion title="STXY_WITHIN(x, y, geom)" id="stxy_within-x-y-geom" defaultOpen>
+
+Returns `1` (true) if the `x` and `y` coordinate is completely inside the `geom` geometry
+i.e., not on the boundary
+
+</Accordion>
+
+</AccordionGroup>

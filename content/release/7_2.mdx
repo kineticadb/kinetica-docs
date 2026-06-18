@@ -1,0 +1,267 @@
+---
+title: 7.2 Release Notes
+slug: 7.2
+---
+
+*Publish Date: 2024.02.11*
+
+
+## Features
+
+
+* **Unlimited String Support** removes the limitations with unlimited-width
+  strings that were present in prior versions; now, full support for:
+
+  * Scalar column functions
+  * Aggregate column functions
+  * Subqueries requiring a temporary view to be created
+  * SQL operations:
+
+    * `JOIN`
+    * `WHERE`
+    * `GROUP BY`
+    * `ORDER BY`
+    * `EXCEPT`
+    * `INTERSECT`
+    * `UNION`
+    * `CREATE TABLE ... AS`
+
+* [Array Type](/content/concepts/array)
+
+  * [Scalar functions](/content/concepts/array#array-func)
+
+    * `ARRAY_ITEM`
+    * `ARRAY_LENGTH`
+    * `ARRAY_LOWER`
+    * `ARRAY_NDIMS`
+    * `ARRAY_TO_STRING`
+    * `ARRAY_UPPER`
+    * `STRING_TO_ARRAY`
+
+  * [Aggregate functions](/content/concepts/array#array-func-agg)
+
+    * `ARRAY_AGG`
+
+  * [Table functions](/content/concepts/array#array-func-unnest)
+
+    * `UNNEST_JSON_ARRAY`
+
+* [JSON Type](/content/concepts/json)
+
+  * [Scalar functions](/content/concepts/json#json-func)
+
+    * `JSON_ARRAY`
+    * `JSON_ARRAY_APPEND`
+    * `JSON_ARRAY_CONTAINS`
+    * `JSON_CARDINALITY`
+    * `JSON_EXISTS`
+    * `JSON_KEYS`
+    * `JSON_LENGTH`
+    * `JSON_MAKE_ARRAY`
+    * `JSON_OBJECT`
+    * `JSON_PRETTY`
+    * `JSON_QUERY`
+    * `JSON_REPLACE`
+    * `JSON_TYPE`
+    * `JSON_VALUE`
+
+  * [Aggregate functions](/content/concepts/json#json-func-agg)
+
+    * `JSON_ARRAYAGG`
+
+  * [Table functions](/content/concepts/json#json-func-unnest-array)
+
+    * `UNNEST_JSON_ARRAY`
+
+* [Vector Type](/content/vector_search#vector-type)
+
+  * [Column functions](/content/vector_search#vector-func-column)
+
+    * `L1_NORM`
+    * `L2_NORM`
+    * `LINF_NORM`
+    * `LP_NORM`
+    * `NTH`
+    * `SIZE`
+
+  * [Search functions](/content/vector_search#vector-func-search)
+
+    * `COSINE_DISTANCE`
+    * `DOT_PRODUCT`
+    * `EUCLIDEAN_DISTANCE`
+    * `L1_DISTANCE`
+    * `L2_DISTANCE`
+    * `L2_SQUAREDISTANCE`
+    * `L2_DISTSQ`
+    * `LINF_DISTANCE`
+    * `LP_DISTANCE`
+
+* **Storage Optimization** reduces size of data on disk by 50%
+* **Improved Performance** in TPC-DS benchmarks versus previous versions
+* *Store-only* column type is no longer supported, as it is no longer needed;
+  `VARCHAR` columns marked as *store-only* in 7.1 instances will be
+  automatically supported as unrestricted-width strings after upgrade to 7.2.
+
+
+## Version 7.2.3
+
+
+*Build Date: 2025.08.28*
+
+
+### Overview
+
+
+Kinetica 7.2.3 delivers a major step forward in performance, resilience, and
+developer productivity. This release introduces on-disk column compression,
+enterprise-grade backup orchestration, expanded support for graph querying
+through PGQ/GQL, and native Kafka integration for high availability.
+
+
+### On-Disk Column Compression
+
+
+* Improved storage efficiency with
+  [column compression](/content/concepts/column_compression) algorithms.
+* Reduces on-disk footprint and accelerates query performance, especially for
+  large analytic workloads.
+* Transparent to applications--no schema or query changes required.
+
+
+### SQL-Orchestrated Full & Incremental Hot Backup
+
+
+* New [SQL-orchestrated commands](/content/sql/backup_restore) to manage
+  both full and incremental backups.
+* Supports hot backups, allowing users to back up active systems without
+  downtime.
+* Enables fine-grained scheduling and recovery workflows directly from SQL,
+  simplifying administration.
+
+
+### PGQ/GQL Graph Query Language Support
+
+
+* Added [Kinetica SQL/PGQ](/content/sql/graph#sql-pgq).
+* Support for Property Graph Queries (PGQ) and Cypher-compatible Graph
+  Query Language (GQL).
+* Unlocks advanced graph analytics directly within Kinetica’s GPU-accelerated
+  engine.
+* Supports use cases such as fraud detection, network analysis, supply chain
+  optimization, and entity resolution.
+
+
+### Native Kafka Support for HA Data Replication
+
+
+* Built-in integration with Apache Kafka to replicate data streams across clusters for high availability (HA).
+* Enables continuous, fault-tolerant replication between primary and standby sites.
+* Improves recovery objectives (RPO/RTO) for mission-critical workloads.
+
+
+## Version 7.2.2
+
+
+*Build Date: 2024.09.21*
+
+
+### SQL/OLAP
+
+
+* [HNSW index](/content/sql/ddl#sql-create-table-index) support for vector
+  similarity search
+
+
+### Infrastructure
+
+
+* Parallelized group-by output handling
+* Added support for `DICT` property on unrestricted-length string columns to
+  enable [dictionary encoding](/content/sql/ddl#sql-column-properties) on them
+
+
+### UI
+
+
+* Single sign-on (SSO) for Reveal, Workbench, and GAdmin with OAuth/OIDC
+
+
+  <Info>
+  Requires KAgent 7.2.2.0+ for configuration
+  </Info>
+
+
+## Version 7.2.1
+
+
+*Build Date: 2024.08.27*
+
+
+### SQL/OLAP
+
+
+* Added support for remote models and table functions to generate embeddings
+  using those models
+
+* New UDF is included to automatically perform RAG across multiple SQL-GPT
+  contexts to choose the relevant contexts and tables when generating SQL
+
+* Added `KI_HINT_RECURSIVE_EXPLAIN` to show operations on materialized view
+  base tables and recursively do the same for base tables that themselves are
+  materialized views in any explain plan.  This supports getting an explain plan
+  for a materialized view by executing:
+
+  ```
+  EXPLAIN /* KI_HINT_RECURSIVE_EXPLAIN */ SELECT * FROM my_mview
+  ```
+* Added new
+  [system-wide, directory, and UDF](/content/sql/security#sql-security-priv-mgmt-sys)
+  `CREATE` permission, as well as `CREATE` permission for
+  [all object types within schemas](/content/sql/security#sql-security-priv-mgmt-schema)
+
+* Added `KI_HINT_NO_SHADOW_CUBE` to disable use of the Shadow Cube for
+  caching queries within worker processes
+
+* Added support for the following scoped hints:
+
+  * `KI_HINT_MATERIALIZE`
+  * `KI_HINT_GROUPBY_PK`
+  * `KI_HINT_NO_VIRTUAL_UNION`
+
+  Examples:
+
+  ```
+  SELECT /*+ KI_HINT_MATERIALIZE */ *
+  FROM iter t1 , iter t2
+  WHERE t1.i < 100 AND t2.i < 100
+
+  SELECT /*+ KI_HINT_GROUP_BY_PK / i, COUNT()
+  FROM iter
+  GROUP BY 1
+
+  SELECT /*+ KI_HINT_NO_VIRTUAL_UNION */ *
+  FROM
+  (
+      SELECT i FROM iter WHERE i < 100
+      UNION ALL
+      SELECT i FROM iter WHERE i > 1000 AND i < 2000
+  )
+  ```
+* Added support for `KI_HINT_JOB_USER_DATA(user_text)` hint for user to
+  provide the query tag that will appear in the *Jobs* list
+
+
+### Infrastructure
+
+
+* Reduced memory usage in head rank for unsharded group-by operations
+* Optimized processing for very high cardinality group-by operations
+* Improved tiered storage flexibility by allowing foreign key indexes to evict
+  from RAM
+
+
+### UI
+
+
+* Added support in Workbench for viewing query status and metrics after a query
+  is executed in a SQL block.

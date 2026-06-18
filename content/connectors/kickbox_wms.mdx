@@ -1,0 +1,278 @@
+---
+title: WMS Layers
+---
+
+## Examples
+
+
+Examples of the following layer types are available below:
+
+* [Raster](https://github.com/kineticadb/kinetica-kickbox-mapbox-gl/blob/master/examples/wms-raster.html)
+* [Heatmap](https://github.com/kineticadb/kinetica-kickbox-mapbox-gl/blob/master/examples/wms-heatmap.html)
+* [Class Break Raster](https://github.com/kineticadb/kinetica-kickbox-mapbox-gl/blob/master/examples/wms-cb-raster.html)
+* [Contour](https://github.com/kineticadb/kinetica-kickbox-mapbox-gl/blob/master/examples/wms-contour.html)
+* [Labels](https://github.com/kineticadb/kinetica-kickbox-mapbox-gl/blob/master/examples/wms-labels.html)
+
+
+<Info>
+You will need a current Mapbox API key and some minor modifications
+will be required in order to run each example. At a minimum, you will need a
+*Kinetica* table with latitude/longitude values, or WKTs.
+</Info>
+
+
+## Initializing the Map
+
+
+First, ensure *Kinetica* <Badge color="gray">Kickbox.js</Badge> and its stylesheet are included in
+the HTML page. If you're using <Badge color="blue-destructive">npm</Badge> to install *Kickbox*, add this
+*JavaScript* include between the final DOM element and the closing `</body>`
+tag:
+
+```html
+<script src="/node_modules/kinetica-kickbox-mapbox-gl/dist/kinetica-kickbox-mapbox-gl.min.js"></script>
+```
+
+The style sheet should be included in the `<head>` of the HTML:
+
+```html
+<link rel="stylesheet" href="/node_modules/kinetica-kickbox-mapbox-gl/dist/kinetica-kickbox-mapbox-gl.min.css" />
+```
+
+The map will have to be initialized before a *Kinetica* WMS layer can be added
+to it. Map initialization via [API Documentation](/content/connectors/kickbox_api#initmap) is promisified, so that
+initialization is guaranteed to complete before any layers are added, avoiding
+startup errors. Since this initialization function sets up basic authentication
+for *Kinetica* and connects to the *Mapbox* API all at once, it is intended to
+replace the existing map initialization function provided by *Mapbox*.
+
+```js
+kickbox.initMap({
+    mapboxgl: <mapboxgl_object>,
+    kineticaUrl: 'http://<db.host>:9191',
+    wmsUrl: 'http://<db.host>:9191/wms',
+    mapboxKey: '<MapboxKey>',
+    mapDiv: '<map_html_tag_name>',
+    username: '<kinetica_username>',
+    password: '<kinetica_password>'
+}).then(function(map){...}
+```
+
+The code above initializes the *Mapbox* map, sets the parameters for basic
+authentication inside of *Mapbox*, and also sets the basic authentication
+parameters for any `XmlHttpRequests` made to *Kinetica* itself. The function
+returns the standard *Mapbox* map.
+
+For an example call, see [API Documentation](/content/connectors/kickbox_api#initmap).
+
+
+## Adding a Raster/Heatmap/Contour Layer
+
+
+After initialization, a layer can be added to the map. Performing this manually
+would require creating & adding a source and layer, then piecing together the
+WMS URL with all of the configuration & rendering parameters, and finally,
+binding every `zoomend` and `moveend` event to reconstruct the WMS URL
+during interaction with the map.
+
+Fortunately, this process can be simplified with the [API Documentation](/content/connectors/kickbox_api#addwmslayer)
+function:
+
+```python
+kickbox.addWmsLayer(
+    map,
+    {
+        layerId: '<layer_id>',
+        layerType: 'raster', // can also be 'heatmap', or 'contour'
+        wmsUrl: 'http://<db.host>:9191/wms',
+        tableName: '<table_name>',
+        xAttr: '<x_column_name>',
+        yAttr: '<y_column_name>',
+        renderingOptions:
+        {
+            // Customize output here
+        }
+    }
+);
+```
+
+That is all the code required to visualize data in *Kinetica* on a *Mapbox* map!
+By customizing the `renderingOptions` parameters, the way the points are
+rendered can be altered, including size, color, and shape.  See the
+[WMS endpoint documentation](/content/api/rest/wms_rest#wms-rest) for the full set of
+rendering options to customize output.
+
+
+<Info>
+If using a WKT column instead of x/y or lat/long, replace the
+`xAttr` and `yAttr` properties with a `geoAttr` property with the name
+of the WKT column.
+</Info>
+
+For an example call, see [API Documentation](/content/connectors/kickbox_api#addwmslayer).
+
+
+## Adding a Labels Layer
+
+
+Adding a labels layer is equally easy with the same [API Documentation](/content/connectors/kickbox_api#addwmslayer) function:
+
+```js
+kickbox.addWmsLayer(
+    map,
+    {
+        layerId: '<layer_id>',
+        layerType: 'labels',
+        wmsUrl: 'http://<db.host>:9191/wms',
+        tableName: '<table_name>',
+        xAttr: '<x_column_name>',
+        yAttr: '<y_column_name>',
+        renderingOptions: {
+            LABEL_TEXT_STRING: '<label_column_name>'
+            // Customize output here
+        }
+    }
+);
+```
+
+See the [WMS endpoint documentation](/content/api/rest/wms_rest#wms-rest) for the full
+set of label rendering options.
+
+
+## Adding a Class Break Raster Layer
+
+
+The output of a raster layer can be thematically colored based on the value of a
+chosen column using a *Class Break Raster Layer*. In other words, each dot can
+be colored based on its exact value or its falling within a range of values.
+
+```js
+kickbox.addWmsLayer(
+    map,
+    {
+        layerId: '<layer_id>',
+        layerType: 'cb_raster',
+        wmsUrl: 'http://<db.host>:9191/wms',
+        tableName: '<table_name>',
+        xAttr: '<x_column_name>',
+        yAttr: '<y_column_name>',
+        renderingOptions:
+        {
+            CB_ATTR: '<class_column_name>',
+            CB_VALS: '<class value1,class value2,class range1,class range2>',
+            POINTCOLORS: '<class value1 color,class value2 color,class range1 color,class range2 color>',
+            // Customize output here
+        }
+    }
+);
+```
+
+See the [WMS endpoint documentation](/content/api/rest/wms_rest#wms-rest) for the full
+set of class break rendering options.
+
+
+## Resizing the Browser
+
+
+Currently, there is a limitation in *Mapbox* that does not allow the update of
+the image source itself with a new image. Because of this, there is a glitch
+that occurs when resizing the browser window that distorts the currently
+displayed WMS layers. To correct this problem, the `addRasterLayer` and
+`addHeatmapLayer` functions will register a listener with the window that will
+automatically remove and re-add the layer any time the resize event is fired.
+This corrects the visual distortion, but may introduce a lag while the layer is
+re-initialized.
+
+GitHub issue:  https://github.com/mapbox/mapbox-gl-js/issues/4050
+
+
+## Full Code Example
+
+
+The `kbConfig` object should be updated with the settings for the target
+*Kinetica* environment for this example to run.  Note that the *Kickbox* files,
+<Badge color="gray">kickbox.min.js</Badge> & <Badge color="gray">kickbox.css</Badge> are assumed to be local to this
+HTML file.
+
+```html
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset='utf-8' />
+        <title>Kinetica Kickbox: WMS Raster Example</title>
+        <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+
+        <!-- Include Mapbox stylesheet -->
+        <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.css' rel='stylesheet' />
+
+        <!-- Include Kickbox CSS -->
+        <link rel="stylesheet" href='kickbox.css' />
+
+        <!-- Generic styles for Mapbox map -->
+        <style>
+            body { margin:0; padding:0;}
+            #map { position:absolute; top:0; bottom:0; width:100%; transition: all 0.3s; }
+        </style>
+    </head>
+    <body>
+        <!-- Include a map div -->
+        <div id='map'></div>
+
+        <!-- Include mapbox and kickbox library -->
+        <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.js"></script>
+        <script src="kickbox.min.js"></script>
+        <script>
+            (function(mapboxgl) {
+
+                // Initialize the map
+                var kbConfig = {
+                    mapboxKey: 'your_mapbox_api_key',
+                    kineticaUrl: 'http://<db.host>:9191',
+                    wmsUrl: 'http://<db.host>:9191/wms',
+                    // If using basic authentication
+                    // username: '',
+                    // password: '',
+                    tableName: 'your_table_name',
+                    xColumnName: 'your_x_column_name',
+                    yColumnName: 'your_y_column_name',
+                    geohashColumnName: 'your_geohash_column_name',
+                    center: [-74.2598555, 40.6971494],
+                    zoom: 8
+                };
+
+                var layerId = tableName + '-raster';
+
+                kickbox.initMap({
+                    mapDiv: 'map',
+                    mapboxgl: window.mapboxgl,
+                    mapboxKey: kbConfig.mapboxKey,
+                    kineticaUrl: kbConfig.kineticaUrl,
+                    wmsUrl: kbConfig.wmsUrl,
+                    // If using basic authentication
+                    // username: kbConfig.username,
+                    // password: kbConfig.password,
+                    zoom: kbConfig.zoom
+                }).then(function(map) {
+
+                    // Add a raster layer to the map
+                    kickbox.addWmsLayer(map, {
+                        layerId: layerId,
+                        layerType: 'raster',
+                        wmsUrl: kbConfig.wmsUrl,
+                        tableName: kbConfig.tableName,
+                        xAttr: kbConfig.xColumnName,
+                        yAttr: kbConfig.yColumnName,
+                        // or if using WKT
+                        // geoAttr: kbConfig.wktColumnName,
+                        renderingOptions: {
+                            POINTCOLORS: '00FF00',
+                            POINTSIZES: 3
+                        },
+                    });
+                });
+
+            })(window.mapboxgl);
+        </script>
+    </body>
+</html>
+```

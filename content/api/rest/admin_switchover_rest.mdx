@@ -1,0 +1,43 @@
+---
+title: /admin/switchover
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="admin-switchover-rest"></a>
+
+
+```
+URL: http://<db.host>:<hm.port>/admin/switchover
+```
+Manually switch over one or more processes to another host. Individual ranks or
+entire hosts may be moved to another host.
+
+**NOTE:** This endpoint is serviced by the host manager, not the database cluster itself, so the port specified needs to be the host manager port instead. The default host manager port can be found under [Default Ports](../../../install/shared/ports). For more information on the host manager, see [Host Manager](../../../admin/host_manager/).
+
+**NOTE:** This endpoint should be used for on-premise deployments only.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| processes | array of strings | Indicates the process identifier to switch over to another host. Options are 'hostN' and 'rankN' where 'N' corresponds to the number associated with a host or rank in the [Network](../../../config/#config-main-network) section of the gpudb.conf file; e.g., 'host[N].address' or 'rank[N].host'. If 'hostN' is provided, all processes on that host will be moved to another host. Each entry in this array will be switched over to the corresponding host entry at the same index in input parameter *destinations*. |
+| destinations | array of strings | Indicates to which host to switch over each corresponding process given in input parameter *processes*. Each index must be specified as 'hostN' where 'N' corresponds to the number associated with a host or rank in the [Network](../../../config/#config-main-network) section of the gpudb.conf file; e.g., 'host[N].address'. Each entry in this array will receive the corresponding process entry at the same index in input parameter *processes*. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> dry_run: If set to *true*, only validation checks will be performed. Nothing is switched over. The default value is `false`. The supported values are: * true * false |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'admin_switchover_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /admin/switchover endpoint: <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

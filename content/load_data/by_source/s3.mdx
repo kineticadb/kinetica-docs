@@ -1,0 +1,304 @@
+---
+title: Load Data from S3
+description: Copy and paste tutorial for loading data from Amazon S3
+sidebarTitle: S3
+---
+
+<a id="load-data-by-source-s3"></a>
+
+
+Loading data from Amazon S3 can be done in three easy steps:
+
+1. [Create a credential](/content/load_data/by_source/s3#load-from-s3-credential) - holds S3
+   account authentication information
+2. [Create a data source](/content/load_data/by_source/s3#load-from-s3-data-source) - holds
+   S3 connection information; uses the *credential* for authentication
+3. [Ingest the data](/content/load_data/by_source/s3#load-from-s3-ingest) - Load data from
+   S3; uses the *data source* to identify the S3 source
+
+
+<a id="load-from-s3-credential"></a>
+
+
+## Create Credential
+
+
+To store the access details for your *data source*, first create a *credential*
+with the [CREATE CREDENTIAL](/content/sql/ddl#sql-create-credential) command, and
+reference it in your `CREATE DATA SOURCE` statement.  This will allow you to
+store the authentication details of your connection separately.
+
+If connecting to a public S3 bucket that allows anonymous access,
+or if using managed credentials,
+this step can be skipped.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/credential/credentials_format_s3.kisql (lines 14-17) */}
+```sql S3 Access Key
+CREATE CREDENTIAL s3_cred
+TYPE = 'aws_access_key',
+IDENTITY = 'AKIAIOSFODNN7EXAMPLE',
+SECRET = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+```
+
+{/* Source: /examples/sql/credential/credentials_format_s3.kisql (lines 24-31) */}
+```sql IAM Role
+CREATE CREDENTIAL s3_cred
+TYPE = 'aws_iam_role',
+IDENTITY = 'AKIAIOSFODNN7EXAMPLE',
+SECRET = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+WITH OPTIONS
+(
+    S3_AWS_ROLE_ARN = 'arn:aws:iam::123456789012:user/JohnDoe'
+)
+```
+
+</CodeGroup>
+
+
+<a id="load-from-s3-data-source"></a>
+
+
+## Create Data Source
+
+
+Next, create a *data source* using the
+[CREATE DATA SOURCE](/content/sql/ddl#sql-create-data-source) command in Kinetica.
+The *data source* defines how Kinetica connects to Amazon S3.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_source/data_source_format_s3.kisql (lines 83-86 88-91) */}
+```sql Credential
+CREATE DATA SOURCE s3_ds
+LOCATION = 'S3'
+WITH OPTIONS
+(
+    CREDENTIAL = 's3_cred',
+    BUCKET NAME = 'samplebucket',
+    REGION = 'us-east-2'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_s3.kisql (lines 28-31 33-36) */}
+```sql Managed Credentials
+CREATE OR REPLACE DATA SOURCE s3_ds
+LOCATION = 'S3'
+WITH OPTIONS
+(
+    USE_MANAGED_CREDENTIALS = true,
+    BUCKET NAME = 'samplebucket',
+    REGION = 'us-east-1'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_s3.kisql (lines 44-49 51-53) */}
+```sql Access Key
+CREATE DATA SOURCE s3_ds
+LOCATION = 'S3'
+USER = 'AKIAIOSFODNN7EXAMPLE'
+PASSWORD = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+WITH OPTIONS
+(
+    BUCKET NAME = 'samplebucket',
+    REGION = 'us-east-2'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_s3.kisql (lines 61-66 68-71) */}
+```sql IAM Role
+CREATE DATA SOURCE s3_ds
+LOCATION = 'S3'
+USER = 'AKIAIOSFODNN7EXAMPLE'
+PASSWORD = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+WITH OPTIONS
+(
+    BUCKET NAME = 'samplebucket',
+    REGION = 'us-east-2',
+    S3_AWS_ROLE_ARN = 'arn:aws:iam::123456789012:user/JohnDoe'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_s3.kisql (lines 14-20) */}
+```sql Public (No Auth)
+CREATE OR REPLACE DATA SOURCE s3_ds
+LOCATION = 'S3'
+WITH OPTIONS
+(
+    BUCKET NAME = 'quickstartpublic',
+    REGION = 'us-west-1'
+)
+```
+
+</CodeGroup>
+
+
+<a id="load-from-s3-ingest"></a>
+
+
+## Ingest Data
+
+
+To initiate the ingest of data into a Kinetica table, use the
+[LOAD INTO](/content/sql/load#sql-load-into) command. You can initiate a one-time
+batch load, or a continuous load using change-data-capture by using the option
+`SUBSCRIBE = TRUE`.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_into_format_s3.sql (lines 3-6) */}
+```sql Batch Load
+LOAD DATA INTO example.orders
+FROM FILE PATHS 'example_orders.csv'
+FORMAT TEXT
+WITH OPTIONS (DATA SOURCE = 's3_ds')
+```
+
+{/* Source: /examples/sql/load/load_into_format_s3.sql (lines 11-17) */}
+```sql Streaming Load
+LOAD DATA INTO example.orders
+FROM FILE PATHS 'example_orders.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    DATA SOURCE = 's3_ds',
+    SUBSCRIBE = TRUE
+)
+```
+
+</CodeGroup>
+
+
+## Considerations
+
+
+The following are some common options used when loading.  For the full list of
+options, see [LOAD INTO](/content/sql/load#sql-load-into).  For copy/paste examples of many of
+the options, see [Loading Data](/content/snippets/load-data).
+
+
+### Error Handling
+
+
+Kinetica has two different
+[error handling modes](/content/sql/load#sql-load-file-server-load-opt) for dealing
+with erroneous data. To halt ingestion after a bad record is found, use the
+`ABORT` mode. To skip erroneous records and continue the ingest, use the
+`SKIP` mode.
+
+To inspect erroneous records, you may use the
+[BAD RECORD TABLE NAME](/content/sql/load#sql-load-file-server-load-opt) option.
+All bad records encountered will be stored there for review. The bad records
+table is limited to 10,000 records by default and may be overridden using the
+[BAD RECORD TABLE LIMIT](/content/sql/load#sql-load-file-server-load-opt) option.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_into_s3_snippets.sql (lines 56-62) */}
+```sql Abort
+LOAD INTO ki_home.error_example
+FROM FILE PATHS 'error_example.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    DATA SOURCE = 's3_ds',
+    ON ERROR = ABORT
+)
+```
+
+{/* Source: /examples/sql/load/load_into_s3_snippets.sql (lines 66-73) */}
+```sql Log Bad Records
+LOAD INTO ki_home.error_example
+FROM FILE PATHS 'error_example.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    DATA SOURCE = 's3_ds',
+    BAD RECORD TABLE NAME = 'error_example_invalid',
+    ON ERROR = SKIP
+)
+```
+
+</CodeGroup>
+
+
+### Load Specific Columns
+
+
+In some cases, you may only want to store certain columns from your source data.
+Use the [FIELDS MAPPED BY NAME(...)](/content/sql/load#sql-load-file-server-load-opt)
+option, which allows you to specify the desired fields to store in Kinetica.
+
+```sql title="Load Specific Columns Example"
+LOAD DATA INTO example.orders
+FROM FILE PATHS 'example_orders.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    DATA SOURCE = 's3_ds',
+    FIELDS MAPPED BY NAME(ID, Name, Product_ID, Quantity)
+)
+```
+
+
+### DateTime Formatting
+
+
+Use the  [COLUMN FORMATS](/content/sql/load#sql-load-file-server-load-opt) option
+to format date and time fields into Kinetica Date, Time, and DateTime columns.
+Time formats are specified using a JSON formatted string. Non-placeholder characters
+must be wrapped in quotes, which must also be escaped (e.g.
+`'{"dt": {"date": "\"(\"YYYY\")\" Mon, DD"}}'`). Alternatively, you can use
+the `?` character as a wildcard character. Note that
+Kinetica does not handle or store timezones and they will be discarded.
+See the full list of supported
+[date and time format codes](/content/sql/query#sql-datetime-conversion-codes).
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_into_s3_snippets.sql (lines 7-20) */}
+```sql ISO 8601 Timestamps
+-- Example Data:
+-- dt
+-- 2022-01-19T15:50:42Z+05:00
+
+LOAD INTO ki_home.timestamp_example
+FROM FILE PATHS 'timestamp_example.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    DATA SOURCE = 's3_ds',
+    COLUMN FORMATS = '
+    {
+        "dt": {"datetime": "YYYY-MM-DD?HH:MI:SS"}
+    }'
+)
+```
+
+{/* Source: /examples/sql/load/load_into_s3_snippets.sql (lines 24-34) */}
+```sql Custom Date
+-- Example Data:
+-- d
+-- (2022) Feb, 22
+
+LOAD INTO ki_home.date_example
+FROM FILE PATHS 'date_example.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    DATA SOURCE = 's3_ds',
+    COLUMN FORMATS = '{"d": {"date": "\"(\"YYYY\")\" Mon, DD"}}'
+)
+```
+
+{/* Source: /examples/sql/load/load_into_s3_snippets.sql (lines 38-48) */}
+```sql Custom Time
+-- Example Data:
+-- t
+-- 18-27-59.5536
+
+LOAD INTO ki_home.time_example
+FROM FILE PATHS 'time_example.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    DATA SOURCE = 's3_ds',
+    COLUMN FORMATS = '{"t": {"time": "HH-MI-SS.MS"}}'
+)
+```
+
+</CodeGroup>

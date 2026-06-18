@@ -1,0 +1,495 @@
+---
+title: Managing Kinetica Services
+sidebarTitle: Managing Services
+---
+
+Typical maintenance of the system may require starting & stopping of Kinetica
+services.
+
+* [Managing Database Services](/content/admin/services#manage-db)
+* [Managing System Processes](/content/admin/services#manage-sys)
+* [Managing All Services](/content/admin/services#manage-all)
+
+A variety of [service status checks](/content/admin/services#status-check) are available for
+assessing the health of the system and troubleshooting.
+
+
+<a id="manage-db"></a>
+
+
+## Managing Database Services
+
+
+* [Start Database Services](/content/admin/services#start-db)
+* [Stop Database Services](/content/admin/services#stop-db)
+
+
+<a id="start-db"></a>
+
+
+### Start Database Services
+
+
+The following database services can be started via *GAdmin* or command-line:
+
+* Database
+
+  * *httpd*
+  * *Query Service*
+  * *Text Search*
+
+* *Reveal*
+* *Graph Service*
+
+
+<Tip>
+All services can be started via *KAgent*. Consult [Admin](/content/admin/kagent/manage#kagent-ui-admin) for
+details.
+</Tip>
+
+
+#### Database Services Startup
+
+
+There are two methods of starting database services:
+
+* [GUI Startup](#gui-startup)
+* [Command-Line Startup](#command-line-startup)
+
+
+<p><strong>GUI Startup</strong></p>
+
+
+If *GAdmin* is not running,
+[start system management processes](/content/admin/services#start-sys) first.
+
+1. Log in to [GAdmin](/content/admin/gadmin)
+2. Click **Admin** on the left menu
+3. Click **Start**
+4. On the **Start Service?** pop-up, click **Start**
+5. Click **Continue** when the database has started
+
+
+<p><strong>Command-Line Startup</strong></p>
+
+
+This method will automatically start system management processes, if they are
+not already running.
+
+Run the following as the <Badge color="gray">root</Badge> user:
+
+```
+systemctl start gpudb
+```
+Verify that Kinetica is running by browsing to
+`http://<yourhostname>:8080/gadmin`
+
+
+<a id="stop-db"></a>
+
+
+### Stop Database Services
+
+
+The following database services can be stopped via *GAdmin* or command-line:
+
+* *Reveal*
+* *Graph Service*
+* Database
+
+  * *httpd*
+  * *Query Service*
+  * *Text Search*
+
+
+<Tip>
+All services can be stopped via *KAgent*. Consult [Admin](/content/admin/kagent/manage#kagent-ui-admin) for
+details.
+</Tip>
+
+
+#### GUI Stop
+
+
+1. Log in to [GAdmin](/content/admin/gadmin)
+2. Click **Admin** on the left menu
+3. Click **Stop**
+4. On the **Stop Service?** pop-up, click **Stop**
+5. Click **Continue** when the database has stopped
+
+
+#### Command-Line Stop
+
+
+Run the following as the <Badge color="gray">root</Badge> user:
+
+```
+systemctl stop gpudb
+```
+
+
+<a id="manage-sys"></a>
+
+
+## Managing System Processes
+
+
+* [Start System Management Processes](/content/admin/services#start-sys)
+* [Stop System Management Processes](/content/admin/services#stop-sys)
+
+
+<a id="start-sys"></a>
+
+
+### Start System Management Processes
+
+
+If the cluster was installed via *KAgent*, the statistics/metrics process and
+optional high-availability queues need to be started first.
+
+Run the following as the <Badge color="gray">root</Badge> user.
+
+1. Start the statistics/metrics manager on the *KAgent* node (usually head
+   node):
+
+   ```
+   systemctl start kinetica_stats
+   ```
+2. If this is a cluster in a High-Availability ring, start *RabbitMQ* on every
+   node running it:
+
+   ```
+   systemctl start gpudb-mq
+   ```
+3. Start all system management processes (*Host Manager*, *GAdmin*) on every
+   node:
+
+   ```
+   systemctl start gpudb_host_manager
+   ```
+
+
+<a id="stop-sys"></a>
+
+
+### Stop System Management Processes
+
+
+If the cluster was installed via *KAgent*, the statistics/metrics process and
+optional high-availability queues need to be stopped last.
+
+Run the following as the <Badge color="gray">root</Badge> user.
+
+1. Stop all system management processes (*Host Manager*, *GAdmin*) on every
+   node:
+
+   ```
+   systemctl stop gpudb_host_manager
+   ```
+
+   <Info>
+   This will, in turn,
+   [stop database services](/content/admin/services#stop-db), as well
+   </Info>
+
+2. If this is a cluster in a High-Availability ring, stop *RabbitMQ* on every node
+   running it:
+
+   ```
+   systemctl stop gpudb-mq
+   ```
+3. Stop the statistics/metrics manager on the *KAgent* node (usually head node):
+
+   ```
+   systemctl stop kinetica_stats
+   ```
+
+
+<a id="manage-all"></a>
+
+
+## Managing All Services
+
+
+For [KAgent](/content/admin/kagent/kagent) installations, the following
+sections detail how to manage system processes via CLI.
+
+* [Start All Processes](/content/admin/services#start-all)
+* [Stop All Processes](/content/admin/services#stop-all)
+
+
+<a id="start-all"></a>
+
+
+### Start All Processes
+
+
+Run the following commands as the <Badge color="gray">root</Badge> user.
+
+Start the statistics/metrics manager on the *KAgent* node (usually head node):
+
+```
+systemctl start kinetica_stats
+```
+If this is a cluster in a High-Availability ring, start *RabbitMQ* on every node
+running it:
+
+```
+systemctl start gpudb-mq
+```
+Start the *Host Manager* on every node:
+
+```
+systemctl start gpudb_host_manager
+```
+Start the database services on the head node:
+
+```
+systemctl start gpudb
+```
+
+
+<a id="stop-all"></a>
+
+
+### Stop All Processes
+
+
+Run the following commands as the <Badge color="gray">root</Badge> user.
+
+Stop the database services on the head node:
+
+```
+systemctl stop gpudb
+```
+Stop the *Host Manager* on every node:
+
+```
+systemctl stop gpudb_host_manager
+```
+If this is a cluster in a High-Availability ring, stop *RabbitMQ* on every node
+running it:
+
+```
+systemctl stop gpudb-mq
+```
+Stop the statistics/metrics manager on the *KAgent* node (usually head node):
+
+```
+systemctl stop kinetica_stats
+```
+
+
+<a id="manage-ind"></a>
+
+
+## Managing Individual Components
+
+
+The `/opt/gpudb/core/bin/gpudb` script has several directives available to
+assist in managing the individual *Kinetica* components.
+
+
+<Note>
+The `/opt/gpudb/core/bin/gpudb` script should always be run
+as the `gpudb` user
+</Note>
+
+
+### Directives
+
+
+| Directive | Description |
+| --- | --- |
+| `<component>-start` | Starts the given component if it's not currently running |
+| `<component>-stop` | Stop the given component if it's not stopped |
+| `<component>-restart` | Stop the given component if it's not stopped then start it |
+| `<component>-status` | Prints status information, including the process IDs it is using |
+| `<component>-pids` | Prints the process IDs the component is using |
+| `<component>-enabled` | Returns `1` is the component is enabled and `0` otherwise. Used internally by the `gpudb` script |
+| `<component>-installed` | Returns `1` is the component is enabled and `0` otherwise. Used internally by the `gpudb` script |
+
+
+### Components
+
+
+| Component | Description |
+| --- | --- |
+| `host-manager` | [Host Management Services](/content/admin/host_manager) |
+| `gpudb` | Database Service |
+| `graph` | [Graph Service](/content/graph_solver/network_graph_solver) |
+| `httpd` | Web Server |
+| `query-planner` | SQL Service |
+| `reveal` | [Reveal Analytic Desktop](/content/bi/reveal) |
+| `stats` | Statistics Services, available via [GAdmin](/content/admin/gadmin/stats) |
+| `text-search` | [Full Text Search](/content/concepts/full_text_search) Services |
+| `tomcat` | [GAdmin](/content/admin/gadmin) Web Application |
+
+
+### Examples
+
+
+To restart the stats server:
+
+```
+/opt/gpudb/core/bin/gpudb stats-restart
+```
+
+<Info>
+* If `external_text_search = true` in the `/opt/gpudb/core/etc/gpudb.conf`
+  file, then the text search server can be managed using the directives
+  above. If `external_text_search = false`, then the text search server
+  will not be able to be managed individually.
+
+* The *Host Manager* service manages the *HTTPD* and *ODBC* components. It's
+  possible to stop these components, but *Host Manager* will restart them
+  immediately. Stopping *Host Manager* and attempting to start these components
+  individually will not work.
+</Info>
+
+<a id="status-check"></a>
+
+
+## System Status Checks
+
+
+There are several means to check the status of system components:
+
+* [Processes](#processes)
+* [GAdmin](#gadmin)
+* [API](#api)
+
+
+### Processes
+
+
+To check the status of the database processes:
+
+* *Host Manager*
+* *GAdmin*
+* Stats Services
+* Database
+
+  * *httpd*
+  * *Query Service*
+  * *Text Search*
+
+* *Reveal*
+* *Graph Service*
+
+Run the following as the <Badge color="gray">root</Badge> or <Badge color="gray">gpudb</Badge> user:
+
+```
+service gpudb status
+```
+
+### GAdmin
+
+
+The [Kinetica Administration Application (GAdmin)](/content/admin/gadmin) provides a GUI for monitoring various aspects of
+the system:
+
+* [Cluster Health ](/content/admin/gadmin/cluster)
+* [Running Jobs ](/content/admin/job_manager)
+* [Information & Diagnostics](/content/admin/gadmin/info)
+
+
+### API
+
+
+To determine whether the *REST* endpoint services are operating, the *Python*
+API can be invoked, as follows:
+
+```
+$ /opt/gpudb/bin/gpudb_python /opt/gpudb/kitools/gadmin_sim.py -u <username> -p <password> --table --summary
++-----------------+--------------------------------+----------------------+----------------------+-------+
+|     Schema      |           Table/View           |       Records        |       Type ID        |  TTL  |
++=================+================================+======================+======================+=======+
+| SYSTEM          | <ALL TABLES/VIEWS>             |                    1 |                      |       |
+| SYSTEM          | ITER                           |                    1 |        UNSET_TYPE_ID |    -1 |
++-----------------+--------------------------------+----------------------+----------------------+-------+
+
++---------------------------+----------------------+
+|        Object Type        |        Count         |
++===========================+======================+
+| Schemas                   |                    1 |
+| Tables & Views            |                    1 |
+| Records                   |                    1 |
+| Records + Track Elements  |                    1 |
++---------------------------+----------------------+
+```
+<a id="statuses"></a>
+
+
+## Statuses
+
+
+The tables below list the various statuses you could experience in GAdmin or in
+logs for the system itself, the nodes and ranks employed by the system, or all
+three.
+
+
+<Note>
+It's likely you won't see many of the node and rank statuses in
+GAdmin as they are transient and only last for a few seconds
+during start up or shut down.
+</Note>
+
+
+### System
+
+
+| Status | Description |
+| --- | --- |
+| `init` | The `INIT` signal has been received and the system is initializing |
+| `rebalancing` | The system is rebalancing data due to the addition/subtraction of ranks |
+| `running` | The system is up and available for requests |
+| `shutdown` | The system has shut down and is not available |
+| `starting` | The system is in the process of starting up |
+| `stopped` | The system has stopped all requests and is preparing for shutdown |
+| `system_limited` | Something is interfering with the systems's ability to communicate between all ranks |
+
+
+### Node
+
+
+| Status | Description |
+| --- | --- |
+| `enum_hardware` | The node is processing the hardware being used and checking the license |
+| `establishing_cluster` | The node is ensuring its connection to the system and the other hosts in the cluster |
+| `fatal_init_error` | An error occurred while validating the `gpudb.conf` configuration file |
+| `init` | The `INIT` signal has been received and the node is initializing |
+| `parsed_conf` | The node has parsed configuration files for any changes |
+| `post` | The node has started and informed the system |
+| `ready` | The node has successfully shutdown and is ready to be started |
+| `running` | The node is up and available for requests |
+| `shutdown` | The node has shut down and is not available |
+| `shutting_down` | The node is in the process of shutting down and will not take requests |
+| `started` | The node has been started and is nearly ready for requests |
+| `starting` | The node is in the process of starting up |
+| `stopping` | The node is stopping all requests and preparing for shutdown |
+| `validating_cluster` | The node and any other nodes in the cluster are being validated by the system |
+
+
+### Rank
+
+
+| Status | Description |
+| --- | --- |
+| `enum_hardware` | The rank is processing the hardware being used and checking the license |
+| `fatal_init_error` | An error occurred while validating the `gpudb.conf` configuration file |
+| `init` | The `INIT` signal has been received and the rank is initializing |
+| `initialized` | The rank has been primed for start-up |
+| `loaded_data` | The rank has successfully loaded data from the persist directory(ies) |
+| `loading_data` | The rank is in the process of loading data from the persist directory(ies) |
+| `not_responding` | The rank is currently not responding to requests |
+| `parsed_conf` | The rank has parsed configuration files for any changes |
+| `post` | The rank has started and informed the system |
+| `running` | The rank is up and available for requests |
+| `shutdown` | The rank has shut down and is not available |
+| `shutting_down` | The rank is in the process of shutting down and will not take requests |
+| `start` | The rank has received a start signal |
+| `started` | The rank has been started and is nearly ready for requests |
+| `starting` | The rank is in the process of starting up |
+| `syncing` | The rank is in the process of syncing types, tables, records, etc. |
+| `terminated` | The rank has encountered an error and was terminated; the rank will often restart if possible |

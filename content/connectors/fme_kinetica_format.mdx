@@ -1,0 +1,142 @@
+---
+title: Kinetica Reader/Writer for FME
+---
+
+## Overview
+
+
+This *Kinetica* reader and writer plug-in enables FME to read attribute data
+from *Kinetica* and write attribute data to *Kinetica*. General geometric data
+can be stored as [WKT](/content/location_intelligence/geo_objects#geometry-types) in a standard string field and
+geometric points can be stored as a pair of float fields. While there are no
+specific geometric field types, *Kinetica* can render *WKT* and coordinates as
+[WMS](/content/feature_overview/wms_feature_overview#wms-feature-overview) maps and have functions which operate on them.
+
+The connector API, source code, and install/config instructions can be found at:
+
+* https://github.com/kineticadb/kinetica-connector-fme
+
+
+## Kinetica Quick Facts
+
+
+|  |  |
+| --- | --- |
+| Format Type Identifier | KINETICA |
+| Reader/Writer | Both |
+| Licensing Level | FME Professional Edition & up |
+| Typical File Extensions | N/A |
+| Generic Color Support | N/A |
+| Schema Required | Yes |
+| Transaction Support | No |
+| Geometry Type Attribute | WKT |
+
+
+## Kinetica Geometry Support
+
+
+*Kinetica* supports any geometry which can be expressed in *WKT* format.
+Additionally, point data can be stored in longitude and latitude fields.
+
+
+## Kinetica Reader Parameters
+
+
+<img src="/content/connectors/FMEReaderParams.jpg" alt="reader_params" width="424" height="249" style={{display: "inline", margin: 0, verticalAlign: "middle"}} />
+
+* **URL**:  The URL of the *Kinetica* server (ex. http://&lt;db.host&gt;:9191).
+
+* **Table**: The name of the table to read from.
+
+* **Expression**:  An optional *Kinetica* filter expression. This
+  parameter is only needed if you wish to filter data from the source table,
+  rather than read the whole table. See [Expressions](/content/concepts/expressions) for details.
+
+* **Username**: The username to use in authenticating to *Kinetica*.
+
+* **Password**: The password to use in authenticating to *Kinetica*.
+
+
+<img src="/content/connectors/FMEReader.jpg" alt="reader_add" width="418" height="241" style={{display: "inline", margin: 0, verticalAlign: "middle"}} />
+
+* **Dataset**: Each reader must be given a unique *Dataset* name.
+
+
+## Kinetica Writer Parameters
+
+
+<img src="/content/connectors/FMEWriterParams.jpg" alt="writer_params" width="344" height="345" style={{display: "inline", margin: 0, verticalAlign: "middle"}} />
+
+* **URL**:  The URL of the *Kinetica* server (ex.
+  http://localhost:9191;CombinePrepareAndExecute=1;RowsPerFetch=20000).
+
+* **Table**: The name of the table to write to.
+
+* **Collection**: The name of the schema containing the target
+  table. This is an optional parameter. It is only needed if you would like to
+  create the table in a specific schema; otherwise, the *default schema* will be
+  used.
+
+* **Geometry Field Name**: The name of the field to insert the *WKT*
+  representation of the geometry into. If you will be using the *Kinetica WMS*
+  service, this field should be named `WKT`. Available when
+  **Write Geometry** is checked.
+
+* **X Field Name**: The name of the field to insert longitude data into.
+  The *Kinetica WMS* service assumes longitude is stored in the field `x`, but
+  another field name can be specified.  Available when **Write Points**
+  is checked.
+
+* **Y Field Name**: The name of the field to insert latitude data into.
+  The *Kinetica WMS* service assumes latitude is stored in the field `y`, but
+  another field name can be specified.  Available when **Write Points**
+  is checked.
+
+* **Username**: The username to use in authenticating to *Kinetica*.
+
+* **Password**: The password to use in authenticating to *Kinetica*.
+
+<img src="/content/connectors/FMEWriter.jpg" alt="writer_add" width="355" height="247" style={{display: "inline", margin: 0, verticalAlign: "middle"}} />
+
+* **Dataset**: Each writer must be given a unique *Dataset* name.
+
+
+## Kinetica Reader and/or Writer Feature Type: User Attributes
+
+
+To access User Attributes, open the **Feature Type** dialog by clicking
+the gear <img src="/content/connectors/FMEgear.png" alt="gear" width="20" height="20" style={{display: "inline", margin: 0, verticalAlign: "middle"}} /> button on a feature type in the workspace. These parameters
+are applicable only to the selected feature type.
+
+The *User Attributes* of the *Feature Type* are listed on the
+**User Attributes** tab.
+
+<img src="/content/connectors/FMEFeatureTypeProperties.jpg" alt="feature_type_props" width="807" height="682" style={{display: "inline", margin: 0, verticalAlign: "middle"}} />
+
+The Kinetica writer supports the following types:
+
+* int8
+* int16
+* int32
+* int64
+* real32
+* real64
+* string
+* date
+* time
+* datetime
+* IPv4
+* decimal
+* timestamp
+* WKT
+
+Additionally, you can specify fields as [primary_key](/content/concepts/tables#primary-key),
+and give them [data handling properties](/content/concepts/types#types-data-handling) like
+**text_search** and **dict**.
+
+
+## Testing
+
+
+Data in *Kinetica* can be viewed and edited through
+[GAdmin](/content/admin/gadmin).

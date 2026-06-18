@@ -1,0 +1,660 @@
+---
+title: Indexes
+---
+
+An *index* is used to improve the performance of data access within the system.
+
+There are several types of indexes:
+
+* [Primary Key Index](/content/concepts/indexes#primary-key-index)
+* [Relational Index](/content/concepts/indexes#relational-index)
+* [Column Index](/content/concepts/indexes#column-index)
+* [Low-Cardinality Index](/content/concepts/indexes#low-cardinality-index)
+* [Chunk Skip Index](/content/concepts/indexes#chunk-skip-index)
+* [Geospatial Index](/content/concepts/indexes#geospatial-index)
+* [CAGRA Index](/content/concepts/indexes#cagra-index)
+* [HNSW Index](/content/concepts/indexes#hnsw-index)
+
+
+<a id="primary-key-index"></a>
+
+
+## Primary Key Index
+
+
+A *primary key index* is created by default when a [table](/content/concepts/tables#table) is
+created with a [primary key](/content/concepts/tables#primary-key) specified.  It will match the
+*primary key* in nature, in that it will be a single-column *index* if the
+*primary key* is on a single column and a multi-column *composite index* if the
+*primary key* is a *composite primary key*.
+
+
+<Tip>
+For *primary key* SQL syntax, see [CREATE TABLE](/content/sql/ddl#sql-create-table).
+</Tip>
+
+The *primary key index* is hash-based and optimizes the performance of
+equality-based filter expressions (e.g. `(x = 0)`).  Note that if the *index*
+is a *composite index*, the filter expressions employed must reference **all**
+of the *primary key* columns to take advantage of the performance gains of the
+*index*.
+
+Operations which make use of a *primary key index* include:
+
+* [/get/records](/content/api/rest/get_records_rest#get-records-rest)
+* [/get/records/bycolumn](/content/api/rest/get_records_bycolumn_rest#get-records-bycolumn-rest)
+* [/filter](/content/api/rest/filter_rest#filter-rest)
+* [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest#aggregate-groupby-rest)
+* [/aggregate/unique](/content/api/rest/aggregate_unique_rest#aggregate-unique-rest)
+* [/create/jointable](/content/api/rest/create_jointable_rest#create-jointable-rest)
+* [/update/records](/content/api/rest/update_records_rest#update-records-rest)
+* [/delete/records](/content/api/rest/delete_records_rest#delete-records-rest)
+
+
+### On-Disk Primary Key Index
+
+
+The entire *primary key index* for a table is loaded into memory when that table
+is accessed, and depending on the size of the key columns and record count, this
+could have a large impact on available RAM.  The *primary key index* can instead
+be stored solely on disk, saving RAM, but reducing some performance, by setting
+the `primary_key_type` to `disk` when creating the table.
+
+
+<a id="relational-index"></a>
+
+
+## Relational Index
+
+
+A *relational index* is created as the result of applying a
+[foreign key](/content/concepts/tables#foreign-key) to a column.  A description of the index and
+its requirements can be found under [Foreign Keys](/content/concepts/tables#foreign-key).
+
+
+<Tip>
+In SQL, *foreign keys* can be applied during table creation, via
+[CREATE TABLE](/content/sql/ddl#sql-create-table), as well as afterwards, via
+[ALTER TABLE](/content/sql/ddl#sql-alter-table-foreign-key-add).
+</Tip>
+
+<a id="column-index"></a>
+
+
+## Column Index
+
+
+A *column index* (also known as an *attribute index*) can be applied to a column
+in a *table* to improve the performance of operations applied to that
+column in an expression.
+
+
+<Tip>
+In SQL, *column indexes* can be applied during table creation, via the
+[CREATE TABLE index clause](/content/sql/ddl#sql-create-table-index), as well as
+afterwards, via
+[ALTER TABLE](/content/sql/ddl#sql-alter-table-column-index-add).
+</Tip>
+
+The *column index* is implemented as a b-tree, which provides performance
+improvements for both equality-based (e.g. `(x = 0)`) and range-based (e.g.
+`(x > 0)`) filter criteria on individual columns.  Multi-column and
+function-based *indexes* are not supported at this time.
+
+If the *column index* will be indexing a column with low cardinality data
+(e.g., number of unique values * 2 &lt; total number of records) then using a
+[low cardinality](/content/concepts/indexes#low-cardinality-index) index should use less
+memory and still give the same performance improvements.
+
+As *primary key indexes* only optimize the performance of equality-based filter
+criteria, a *column index* can be applied to a *primary key* column (or each of
+the columns in a *composite primary key*) for a performance boost on range-based
+filter criteria--the two *index* types are not mutually exclusive.
+
+*Column indexes* optimize the performance of the following operations, when
+those operations are given equality-based or range-based filter expressions:
+
+* [/get/records](/content/api/rest/get_records_rest#get-records-rest)
+* [/get/records/bycolumn](/content/api/rest/get_records_bycolumn_rest#get-records-bycolumn-rest)
+* [/filter](/content/api/rest/filter_rest#filter-rest)
+* [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest#aggregate-groupby-rest)
+* [/aggregate/unique](/content/api/rest/aggregate_unique_rest#aggregate-unique-rest)
+* [/create/jointable](/content/api/rest/create_jointable_rest#create-jointable-rest)
+* [/update/records](/content/api/rest/update_records_rest#update-records-rest)
+* [/delete/records](/content/api/rest/delete_records_rest#delete-records-rest)
+
+A *column index* will additionally improve the performance of the following
+operations:
+
+* [/filter/bylist](/content/api/rest/filter_bylist_rest#filter-bylist-rest)
+* [/filter/byrange](/content/api/rest/filter_byrange_rest#filter-byrange-rest)
+* [/filter/byvalue](/content/api/rest/filter_byvalue_rest#filter-byvalue-rest)
+
+To apply a *column index* to a column, the [/alter/table](/content/api/rest/alter_table_rest#alter-table-rest) endpoint
+should be called with the `create_index` action.  The default index type is
+the *column index*, so no `index_type` option is necessary to specify.
+
+For example, to create the index:
+
+<CodeGroup>
+
+{/* Source: /examples/python/indexes.py (lines 56-60) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "create_index",
+    value = "last_name"
+)
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 107-108) */}
+```sql SQL
+ALTER TABLE example.employee
+ADD INDEX (last_name)
+```
+
+</CodeGroup>
+
+
+To drop the index:
+
+<CodeGroup>
+
+{/* Source: /examples/python/indexes.py (lines 65-69) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "delete_index",
+    value = "last_name"
+)
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 113-114) */}
+```sql SQL
+ALTER TABLE example.employee
+DROP INDEX (last_name)
+```
+
+</CodeGroup>
+
+
+<a id="column-index-limitations"></a>
+
+
+### Limitations
+
+
+* A *column index* can be applied to any *table* column
+  [specific type](/content/concepts/types#types-chart) **except**:
+
+  * *wkt*
+  * *json*
+  * array of any type
+
+* A *column index* can be applied to [tables](/content/concepts/tables) as well as to
+  [materialized views](/content/concepts/materialized_views) that do not have a *filter* or
+  *join* as the last operation in their creation.
+
+
+<a id="low-cardinality-index"></a>
+
+
+## Low-Cardinality Index
+
+
+A *low-cardinality index* is a [column index](/content/concepts/indexes#column-index)
+intended for columns with low cardinality--those with many duplicate values.
+The less distinct values in a column are, the less memory this index will use.
+
+It is recommended to use a *low-cardinality index* when the number of distinct
+values in a column is less than half the total number of values in the column.
+
+To apply a *low-cardinality index* to a column, the
+[/alter/table](/content/api/rest/alter_table_rest#alter-table-rest) endpoint should be called with the
+`create_index` action and the `low_cardinality` index type.
+
+For example, to create the index:
+
+<CodeGroup>
+
+{/* Source: /examples/python/indexes.py (lines 211-216) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "create_index",
+    value = "dept_id",
+    options = {"index_type": "low_cardinality"}
+)
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 185-186) */}
+```sql SQL
+ALTER TABLE example.employee
+ADD LOW CARDINALITY INDEX (dept_id)
+```
+
+</CodeGroup>
+
+
+To drop the index:
+
+<CodeGroup>
+
+{/* Source: /examples/python/indexes.py (lines 221-226) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "delete_index",
+    value = "dept_id",
+    options = {"index_type": "low_cardinality"}
+)
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 191-192) */}
+```sql SQL
+ALTER TABLE example.employee
+DROP LOW CARDINALITY INDEX (dept_id)
+```
+
+</CodeGroup>
+
+
+<a id="chunk-skip-index"></a>
+
+
+## Chunk Skip Index
+
+
+A *chunk skip index* can be applied to a column in a *table* to improve the
+performance of equality-based filtering expressions applied to that column.  The
+primary use for this index is with [partitioned tables](/content/concepts/tables#partitioning),
+where the filter is applied to one or more of the partition key columns.  The
+larger the data set and the greater the number of partitions generated, the more
+performant filters on the table will be when the index is applied.
+
+
+<Tip>
+In SQL, *chunk skip indexes* can be applied during table creation, via
+the [CREATE TABLE index clause](/content/sql/ddl#sql-create-table-index), as
+well as afterwards, via
+[ALTER TABLE](/content/sql/ddl#sql-alter-table-chunk-skip-index-add).
+</Tip>
+
+To apply a *chunk skip index* to a column, the [/alter/table](/content/api/rest/alter_table_rest#alter-table-rest) endpoint
+should be called with the `create_index` action and the `chunk_skip` index
+type.
+
+For example, to create the index:
+
+<CodeGroup>
+
+{/* Source: /examples/python/indexes.py (lines 79-84) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "create_index",
+    value = "id",
+    options = {"index_type": "chunk_skip"}
+)
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 119-120) */}
+```sql SQL
+ALTER TABLE example.employee
+ADD CHUNK SKIP INDEX (id)
+```
+
+</CodeGroup>
+
+
+To drop the index:
+
+<CodeGroup>
+
+{/* Source: /examples/python/indexes.py (lines 89-94) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "delete_index",
+    value = "id",
+    options = {"index_type": "chunk_skip"}
+)
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 125-126) */}
+```sql SQL
+ALTER TABLE example.employee
+DROP CHUNK SKIP INDEX (id)
+```
+
+</CodeGroup>
+
+
+<a id="chunk-skip-index-limitations"></a>
+
+
+### Limitations
+
+
+* A *chunk skip index* can be applied to any *table* column with a
+  [specific type](/content/concepts/types#types-chart) matching any of the following:
+
+    * *int*
+    * *long*
+    * *ulong*
+    * *charN*
+    * *date*
+    * *time*
+    * *datetime*
+    * *timestamp*
+
+* A *chunk skip index* can be applied to [tables](/content/concepts/tables) as well as to
+  [materialized views](/content/concepts/materialized_views) that do not have a *filter* or
+  *join* as the last operation in their creation.
+
+
+<a id="geospatial-index"></a>
+
+
+## Geospatial Index
+
+
+A *geospatial index* can be applied to one or more columns in a *table* to
+improve the performance of geospatial functions applied to them.
+
+
+<Tip>
+In SQL, *geospatial indexes* can be applied during table creation, via
+the [CREATE TABLE index clause](/content/sql/ddl#sql-create-table-index), as
+well as afterwards, via
+[ALTER TABLE](/content/sql/ddl#sql-alter-table-geospatial-index-add).
+</Tip>
+
+*Geospatial indexes* can be applied to either of the following:
+
+* a WKT column
+* two *float* or *double* columns that constitute a coordinate pair
+
+The performance of the following functions can be improved with the use of a
+*geospatial index*:
+
+
+| Scalar Function | Enhanced Performance Scalar Function |
+| --- | --- |
+| `ST_CONTAINS` | `STXY_CONTAINS` |
+| `ST_CONTAINS_PROPERLY` | `STXY_CONTAINS_PROPERLY` |
+| `ST_COVERED_BY` | `STXY_COVERED_BY` |
+| `ST_COVERS` | `STXY_COVERS` |
+| `ST_CROSSES` |  |
+| `ST_DWITHIN` | `STXY_DWITHIN` |
+| `ST_ENV_DWITHIN` | `STXY_ENV_DWITHIN` |
+| `ST_ENV_INTERSECTS` | `STXY_ENV_INTERSECTS` |
+| `ST_INTERSECTS` | `STXY_INTERSECTS` |
+| `ST_OVERLAPS` |  |
+| `ST_TOUCHES` | `STXY_TOUCHES` |
+| `ST_WITHIN` | `STXY_WITHIN` |
+
+
+To apply a *geospatial index* to a column, the [/alter/table](/content/api/rest/alter_table_rest#alter-table-rest)
+endpoint should be called with the `create_index` action and the
+`geospatial` index type.
+
+For example, to apply a *geospatial index* to a WKT column:
+
+<CodeGroup>
+
+{/* Source: /examples/python/indexes.py (lines 112-117) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "create_index",
+    value = "work_district",
+    options = {"index_type": "geospatial"}
+)
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 131-132) */}
+```sql SQL
+ALTER TABLE example.employee
+ADD GEOSPATIAL INDEX (work_district)
+```
+
+</CodeGroup>
+
+
+To drop the index:
+
+<CodeGroup>
+
+{/* Source: /examples/python/indexes.py (lines 130-135) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "delete_index",
+    value = "work_district",
+    options = {"index_type": "geospatial"}
+)
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 137-138) */}
+```sql SQL
+ALTER TABLE example.employee
+DROP GEOSPATIAL INDEX (work_district)
+```
+
+</CodeGroup>
+
+
+To apply a *geospatial index* to a coordinate pair of columns:
+
+<CodeGroup>
+
+{/* Source: /examples/python/indexes.py (lines 104-109) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "create_index",
+    value = "office_longitude,office_latitude",
+    options = {"index_type": "geospatial"}
+)
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 143-144) */}
+```sql SQL
+ALTER TABLE example.employee
+ADD GEOSPATIAL INDEX (office_longitude, office_latitude)
+```
+
+</CodeGroup>
+
+
+To drop the index:
+
+<CodeGroup>
+
+{/* Source: /examples/python/indexes.py (lines 122-127) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "delete_index",
+    value = "office_longitude,office_latitude",
+    options = {"index_type": "geospatial"}
+)
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 149-150) */}
+```sql SQL
+ALTER TABLE example.employee
+DROP GEOSPATIAL INDEX (office_longitude, office_latitude)
+```
+
+</CodeGroup>
+
+
+<a id="cagra-index"></a>
+
+
+## CAGRA Index
+
+
+A *CAGRA (Cuda Anns GRAph-based) index* can be applied to a
+[vector](/content/vector_search#vector-type) column in a *table* to improve the
+performance of [vector searches](/content/vector_search) applied to that
+column.
+
+A *CAGRA index* is not automatically maintained and must be refreshed manually
+to reflect the latest set of records in the associated table.
+
+
+<Tip>
+In SQL, *CAGRA indexes* can be applied during table creation, via the
+[CREATE TABLE index clause](/content/sql/ddl#sql-create-table-index), as well as
+afterwards, via
+[ALTER TABLE](/content/sql/ddl#sql-alter-table-cagra-index-add).
+</Tip>
+
+To apply a *CAGRA index* to a column, the [/alter/table](/content/api/rest/alter_table_rest#alter-table-rest) endpoint
+should be called with the `create_index` action and the `cagra` index type.
+
+For example, to create the index:
+
+<CodeGroup>
+
+{/* Source: /examples/python/indexes.py (lines 145-150 152-153) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "create_index",
+    value = "profile",
+    options = {
+            "index_type": "cagra"
+    }
+)
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 155-156) */}
+```sql SQL
+ALTER TABLE example.employee
+ADD CAGRA INDEX (profile)
+```
+
+</CodeGroup>
+
+
+To refresh the index:
+
+<CodeGroup>
+
+{/* Source: /examples/python/indexes.py (lines 158-163) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "refresh_index",
+    value = "profile",
+    options = {"index_type": "cagra"}
+)
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 161-162) */}
+```sql SQL
+ALTER TABLE example.employee
+REFRESH CAGRA INDEX ON (profile)
+```
+
+</CodeGroup>
+
+
+To drop the index:
+
+<CodeGroup>
+
+{/* Source: /examples/python/indexes.py (lines 168-173) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "delete_index",
+    value = "profile",
+    options = {"index_type": "cagra"}
+)
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 167-168) */}
+```sql SQL
+ALTER TABLE example.employee
+DROP CAGRA INDEX (profile)
+```
+
+</CodeGroup>
+
+
+<a id="hnsw-index"></a>
+
+
+## HNSW Index
+
+
+An *HNSW (Hierarchical Navigable Small Worlds) index* can be applied to a
+[vector](/content/vector_search#vector-type) column in a *table* to improve the
+performance of [vector searches](/content/vector_search) applied to that
+column.
+
+An *HNSW index* is automatically maintained and doesn't need to be refreshed
+manually to reflect the latest set of records in the associated table.
+
+
+<Tip>
+In SQL, *HNSW indexes* can be applied during table creation, via the
+[CREATE TABLE index clause](/content/sql/ddl#sql-create-table-index), as well as
+afterwards, via
+[ALTER TABLE](/content/sql/ddl#sql-alter-table-hnsw-index-add).
+</Tip>
+
+To apply an *HNSW index* to a column, the [/alter/table](/content/api/rest/alter_table_rest#alter-table-rest) endpoint
+should be called with the `create_index` action and the `hnsw` index type.
+
+For example, to create the index:
+
+<CodeGroup>
+
+{/* Source: /examples/python/indexes.py (lines 183-188 190-191) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "create_index",
+    value = "profile",
+    options = {
+            "index_type": "hnsw"
+    }
+)
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 173-174) */}
+```sql SQL
+ALTER TABLE example.employee
+ADD HNSW INDEX (profile)
+```
+
+</CodeGroup>
+
+
+To drop the index:
+
+<CodeGroup>
+
+{/* Source: /examples/python/indexes.py (lines 196-201) */}
+```python Python
+retobj = kinetica.alter_table(
+    table_name = "example.employee",
+    action = "delete_index",
+    value = "profile",
+    options = {"index_type": "hnsw"}
+)
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 179-180) */}
+```sql SQL
+ALTER TABLE example.employee
+DROP HNSW INDEX (profile)
+```
+
+</CodeGroup>

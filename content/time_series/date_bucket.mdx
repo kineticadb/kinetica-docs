@@ -1,0 +1,84 @@
+---
+title: Date Bucketing
+sidebarTitle: Date Bucketing
+---
+
+*Date bucketing* is the segmenting of a given data set into "buckets", based on
+some date-based column value or expression within the set.
+
+
+## DATE_BUCKET
+
+
+*Date bucketing* is accomplished through the use of the `DATE_BUCKET`
+function, which calculates the date range in which a given timestamp falls,
+based on a set of fixed-width "buckets", start-aligned to a date/time, and
+offset from that start date/time.
+
+The basic form of the `DATE_BUCKET` function is:
+
+```sql
+DATE_BUCKET(width, timestamp[, offset[, base]])
+```
+
+<AccordionGroup>
+
+<Accordion title="width" id="width" defaultOpen>
+
+The number of days each bucket should span.  An `INTERVAL` can also be used to specify
+the `width`.
+
+</Accordion>
+
+<Accordion title="timestamp" id="timestamp" defaultOpen>
+
+A date/time column or expression, the date portion of which will be used in placing the
+corresponding record within the correct date bucket.
+
+</Accordion>
+
+<Accordion title="offset" id="offset" defaultOpen>
+
+The number of days after (for a positive `offset`) or number of days before
+(for a negative `offset`) the `base` date/time to which the buckets should be aligned.  An
+`INTERVAL` can also be used to specify the `offset`.  The default is no offset.
+
+</Accordion>
+
+<Accordion title="base" id="base" defaultOpen>
+
+The starting date/time to which buckets will be aligned.  The default is
+`2000-01-03`.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Example
+
+
+Typically, `DATE_BUCKET` is used in the following type of query:
+
+{/* Source: /examples/sql/functions/date_bucket.kisql (lines 86-91) */}
+```sql DATE_BUCKET Example
+SELECT
+	DATE_BUCKET(7, ds, -3, '2023-02-21') + INTERVAL 3 DAYS AS week_midpoint,
+	AVG(cpu) AS avg_cpu
+FROM example.host_metrics_summary
+GROUP BY week_midpoint
+ORDER BY week_midpoint
+```
+
+The result will be as follows:
+
+* Dates in the `ds` column of the `example.host_metrics_summary` table will be grouped into buckets
+* Each bucket will span a range of `7` days
+* The baseline bucket will start at `2023-02-18` (`2023-02-21` offset by `-3` days) and continue
+  through `2023-02-24` (`7` days, including `2023-02-18`)
+* Buckets will extend before & after the baseline bucket in contiguous, non-overlapping fashion
+* Each result record will show the date in the middle of the bucket's date range (`+ INTERVAL 3 DAYS`
+  from the start of each `7` day span) and the average CPU usage across the records contained within
+  that date range
+* Gaps in the data will not be filled in with empty buckets--only buckets containing the dates found in
+  the `ds` column of `example.host_metrics_summary` will be returned in the result set

@@ -1,0 +1,45 @@
+---
+title: /create/materializedview
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="create-materializedview-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/create/materializedview
+```
+Initiates the process of creating a materialized view, reserving the view's
+name to prevent other views or tables from being created with that name.
+
+For materialized view details and examples, see
+[Materialized Views](../../../concepts/materialized_views/).
+
+The response contains output parameter *view_id*, which is used to tag each
+subsequent operation (projection, union, aggregation, filter, or join) that
+will compose the view.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of the table to be created that is the top-level table of the materialized view, in [schema_name.]table_name format, using standard [name resolution rules](../../../concepts/tables/#table-name-resolution) and meeting [table naming criteria](../../../concepts/tables/#table-naming-criteria). |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> collection_name: [DEPRECATED--please specify the containing schema for the materialized view as part of input parameter *table_name* and use [/create/schema](/content/api/rest/create_schema_rest#create-schema-rest) to create the schema if non-existent] Name of a schema which is to contain the newly created view. If the schema provided is non-existent, it will be automatically created. <br/> <br/> execute_as: User name to use to run the refresh job. <br/> <br/> build_materialized_view_policy: Sets startup materialized view rebuild scheme. The default value is `system`. +---------+--------------------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+==================================================+ \|always \|Rebuild as many materialized views as possible \| \| \|before accepting requests. \| \| \| \| +---------+--------------------------------------------------+ \|lazy \|Rebuild the necessary materialized views at start,\| \| \|and load the remainder lazily. \| \| \| \| +---------+--------------------------------------------------+ \|on_demand\|Rebuild materialized views as requests use them. \| \| \| \| +---------+--------------------------------------------------+ \|system \|Rebuild materialized views using the \| \| \|system-configured default. \| \| \| \| +---------+--------------------------------------------------+ <br/> <br/> persist: If *true*, then the materialized view specified in input parameter *table_name* will be persisted and will not expire unless a *ttl* is specified. If *false*, then the materialized view will be an in-memory table and will expire unless a *ttl* is specified otherwise. The default value is `false`. The supported values are: * true * false <br/> <br/> refresh_span: Sets the future time-offset(in seconds) at which periodic refresh stops. <br/> <br/> refresh_stop_time: When *refresh_method* is *periodic*, specifies the time at which a periodic refresh is stopped. Value is a datetime string with format 'YYYY-MM-DD HH:MM:SS'. <br/> <br/> refresh_method: Method by which the join can be refreshed when the data in underlying member tables have changed. The default value is `manual`. +---------+-------------------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+=================================================+ \|manual \|Refresh only occurs when manually requested by \| \| \|calling \| \| \| [/alter/table](/content/api/rest/alter_table_rest#alter-table-rest) \| \| \|with an 'action' of 'refresh'. \| \| \| \| +---------+-------------------------------------------------+ \|on_query \|Refresh any time the view is queried. \| \| \| \| +---------+-------------------------------------------------+ \|on_change\|If possible, incrementally refresh (refresh just \| \| \|those records added) whenever an insert, update, \| \| \|delete or refresh of input table is done. A full\| \| \|refresh is done if an incremental refresh is not \| \| \|possible. \| \| \| \| +---------+-------------------------------------------------+ \|periodic \|Refresh table periodically at rate specified by \| \| \|*refresh_period*. \| \| \| \| +---------+-------------------------------------------------+ <br/> <br/> refresh_period: When *refresh_method* is *periodic*, specifies the period in seconds at which refresh occurs. <br/> <br/> refresh_start_time: When *refresh_method* is *periodic*, specifies the first time at which a refresh is to be done. Value is a datetime string with format 'YYYY-MM-DD HH:MM:SS'. <br/> <br/> ttl: Sets the [TTL](../../../concepts/ttl/) of the table specified in input parameter *table_name*. |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'create_materialized_view_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /create/materializedview endpoint: <br/> <br/> table_name: [string] Value of input parameter *table_name*. <br/> <br/> view_id: [string] Value of view_id. <br/> <br/> info: [map of string to strings] Additional information. The default value is an empty map ( \{\} ). +--------------------+-------------------------------------------------------------------------+ \|Supported Parameters\|Parameter Description \| \|(keys) \| \| +====================+=========================================================================+ \|qualified_table_name\|The fully qualified name of the result table (i.e. including the schema).\| \| \| \| +--------------------+-------------------------------------------------------------------------+ <br/> <br/> Empty string in case of an error. |

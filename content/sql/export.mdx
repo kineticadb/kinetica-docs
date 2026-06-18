@@ -1,0 +1,423 @@
+---
+title: Exporting Data
+sidebarTitle: Exporting Data
+---
+
+<a id="sql-export"></a>
+
+
+## EXPORT ... INTO
+
+
+*Kinetica* can export data from one or more tables, using an `EXPORT ... INTO`
+statement.  The data can be exported to either of the following:
+
+* [KiFS](/content/tools/kifs)
+* a [data sink](/content/sql/ddl#sql-create-data-sink) configured to allow write
+  access to:
+
+  * remote files on *Azure*, *GCS*, *HDFS*, or *S3*
+  * a writable remote database table via *JDBC*
+
+
+<Info>
+For contextualized examples, see [Examples](/content/sql/export#sql-export-examples).
+For copy/paste examples, see [Exporting Data](/content/snippets/export-data).
+</Info>
+
+```sql title="EXPORT ... INTO Syntax"
+EXPORT
+<
+   TABLE [<schema name>.]<table name>
+   |
+   QUERY (<data query>)
+>
+INTO
+<
+   FILE PATH '<file path>'
+      [FORMAT <[DELIMITED] TEXT [(<delimited text options>)] | PARQUET>]
+   |
+   REMOTE TABLE '[<schema name>.]<table name>'
+   |
+   REMOTE QUERY '<insert statement>'
+>
+[WITH OPTIONS (<export option name> = '<export option value>'[,...])]
+```
+
+
+<Info>
+No automatic data type transformations are done between the local data
+and remote column types.  If any transformations are necessary, the
+`QUERY` clause should be used and the transformation done within it.
+</Info>
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="TABLE" id="table" defaultOpen>
+
+Source data specification clause, where `[<schema name>.]<table name>` is the name of the table (and, optionally,
+its schema) to export into the remote database.
+
+
+<Info>
+This clause is mutually exclusive with the `QUERY` clause.
+</Info>
+
+</Accordion>
+
+<Accordion title="QUERY" id="query" defaultOpen>
+
+Source data specification clause, where `<data query>` is a SQL `SELECT` statement to
+run locally to generate a result set to export into the remote database.
+
+
+<Info>
+This clause is mutually exclusive with the `TABLE` clause.
+</Info>
+
+</Accordion>
+
+<Accordion title="FILE PATH" id="file-path" defaultOpen>
+
+Target file specification clause, where `<file path>` is a single-quoted file path to
+which data will be written.
+
+
+<Info>
+This clause is mutually exclusive with the `REMOTE TABLE` & `REMOTE QUERY`
+clauses, and is only applicable when exporting to an *Azure*, *GCS*, *HDFS*, or
+*S3* *data sink*, or to *KiFS*.
+</Info>
+
+The form of a file path is dependent on the target referenced:
+
+* *Data Sink*:  If a *data sink* is specified in the
+  [export options](/content/sql/export#sql-export-opt) this file path must resolve to a writable
+  file/directory at that *data sink* location.  A "path prefix" can be specified, which
+  will cause all files written to begin with that prefix, and an appropriate extension will
+  be appended, based on file format.
+
+  For example, a "path prefix" of `/data/emp` for `<file path>` might result in the
+  following files being written when exporting the `employee` table multiple times:
+
+  * `/data/emp/employee_123450000.csv`
+  * `/data/emp/employee_123460000.csv`
+  * `/data/emp/employee_123480000.csv`
+
+  If using an HDFS *data sink*, the "path prefix" must be the name of an HDFS directory.
+
+* [KiFS](/content/tools/kifs):  The path must resolve to a writable file path within
+  *KiFS*.  A "path prefix" can be specified, which will cause all files written to begin
+  with that prefix, and an appropriate extension will be appended, based on file format.
+
+  For example, a "path prefix" of `/data/emp` for `<file path>` might result in the
+  following files being written when exporting the `employee` table multiple times:
+
+  * `kifs://data/emp/employee_123450000.csv`
+  * `kifs://data/emp/employee_123460000.csv`
+  * `kifs://data/emp/employee_123480000.csv`
+
+The `SINGLE_FILE` option can be used to create one file with no suffix appended to the
+base file name, or to create multiple smaller files to increase the export performance.
+
+</Accordion>
+
+<Accordion title="FORMAT" id="format" defaultOpen>
+
+Optional indicator of target file type; default is `DELIMITED TEXT`.
+
+Supported formats include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Keyword</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>[DELIMITED] TEXT</code></td>
+    <td>A text-based, delimited field data file (CSV, PSV, TSV, etc.); a comma-delimited list of options can be given to specify the way in which the data file(s) should be written, including the delimiter used, whether headers are present, etc.  Records spanning multiple lines are not supported. <Note>Non-numeric fields will be double-quoted, and double quotes in the data will be escaped with two double quotes. See [Delimited Text Options](/content/sql/export#sql-export-delim-opt) for the complete list of `<delimited text options>`.</Note></td>
+  </tr>
+  <tr>
+    <td><code>PARQUET</code></td>
+    <td>*Apache Parquet* data file</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="REMOTE TABLE" id="remote-table" defaultOpen>
+
+Target table specification clause, where `[<schema name>.]<table name>` is the name of the table (and, optionally,
+its schema) in the remote database into which data will be exported.
+
+Data will be exported using an `INSERT` statement of the form:
+
+```
+INSERT INTO [<schema name>.]<table name> VALUES ($1, ..., $N)
+```
+This default form can be modified to use the `?` parameter form via the
+`USE_INDEXED_PARAMETERS` option.
+
+
+<Info>
+This clause is mutually exclusive with the `FILE PATH` & `REMOTE QUERY`
+clauses.
+</Info>
+
+</Accordion>
+
+<Accordion title="REMOTE QUERY" id="remote-query" defaultOpen>
+
+Target insert specification clause, where `<insert statement>` is a SQL `INSERT`
+statement defining the way in which data will be loaded into the remote database.  The
+target table named in the `INSERT` statement must already exist in the remote database.
+
+
+<Info>
+This clause is mutually exclusive with the `FILE PATH` & `REMOTE TABLE`
+clauses.
+</Info>
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of connection & global option/value
+assignments will follow.
+
+See [Export Options](/content/sql/export#sql-export-opt) for the complete list of options.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-export-delim-opt"></a>
+
+
+### Delimited Text Options
+
+
+The following options can be specified when exporting data into delimited text
+files.
+
+<AccordionGroup>
+
+<Accordion title="DELIMITER = '&lt;char&gt;'" id="delimiter-<char>" defaultOpen>
+
+Use `char` as the target file field delimiter.
+
+The default delimiter is a comma, unless the target file has one of these extensions:
+
+* `.psv` - will cause `|` to be the delimiter
+* `.tsv` - will cause the tab character to be the delimiter
+
+
+<Info>
+Since non-numeric fields are automatically double-quoted when written out, it is
+not recommended to use a double quote character as the delimiter.
+</Info>
+
+See [Delimited Text Option Characters](/content/sql/export#sql-export-delim-opt-char) for allowed characters.
+
+</Accordion>
+
+<Accordion title="HEADER DELIMITER = '&lt;char&gt;'" id="header-delimiter-<char>" defaultOpen>
+
+Use `char` as the target file header field name/property delimiter, when writing the
+header in Kinetica custom format (when `KINETICA_HEADER` is `TRUE`).
+
+The default is the `|` (pipe) character.  See [Delimited Text Option Characters](/content/sql/export#sql-export-delim-opt-char) for
+allowed characters.
+
+
+<Info>
+The `DELIMITER` character will still be used to separate field
+name/property sets from each other in the header row
+</Info>
+
+</Accordion>
+
+<Accordion title="INCLUDES HEADER = &lt;TRUE|FALSE&gt;" id="includes-header-<true|false>" defaultOpen>
+
+Declare that the target file(s) will or will not have a header.
+
+The default is `TRUE`.
+
+</Accordion>
+
+<Accordion title="KINETICA_HEADER = &lt;TRUE|FALSE&gt;" id="kinetica_header-<true|false>" defaultOpen>
+
+Declare that the target file(s) will or will not have a custom Kinetica header.
+
+The default is `FALSE`.
+
+In the custom Kinetica format, each field's header contains the field name and any
+associated column properties delimited by a different character than the one used to
+separate field values.
+
+An example *Kinetica* header in a CSV file:
+
+{/* Source: /examples/data/products.kh.min.csv (lines 1) */}
+```
+id|int|data,category|string|data|char16,name|string|data|char32
+```
+
+</Accordion>
+
+<Accordion title="NULL = '&lt;string&gt;'" id="null-<string>" defaultOpen>
+
+Treat `string` as the indicator of a null field value.
+
+The default is the empty string.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-export-delim-opt-char"></a>
+
+
+#### Delimited Text Option Characters
+
+
+For `DELIMITER` & `HEADER DELIMITER`, any single character can be used, or
+any one of the following escaped characters:
+
+| Escaped Char | Corresponding Target File Character |
+| --- | --- |
+| `''` | Single quote |
+| `\a` | ASCII bell |
+| `\b` | ASCII backspace |
+| `\f` | ASCII form feed |
+| `\t` | ASCII horizontal tab |
+| `\v` | ASCII vertical tab |
+
+For instance, specifying `\t` for `DELIMITER` will cause the target files to
+be written with *ASCII horizontal tab* characters as *delimiter* characters.
+
+
+<a id="sql-export-opt"></a>
+
+
+### Export Options
+
+
+The following options can be specified to modify the way data is written to the
+target.  Which options apply to which target types is noted below.
+
+| Option | Target | Description |
+| --- | --- | --- |
+| `BATCH SIZE` | Both | Use an export batch size of the given number of records. <br/> <br/> The default batch size is export target dependent: <br/> <br/> * Local file (*KiFS*):  *1,000,000* <br/> * Remote table:  *200,000* |
+| `COLUMN FORMATS` | File | Use the given type-specific formatting for the given column when writing target data.  This should be a map of column names to format specifications, where each format specification is map of column type to data format, all formatted as a JSON string. <br/> <br/> Supported column types include: <br/> <br/> `date`: Apply the given date format to the given column. Common date format codes follow. For the complete list, see [Date/Time Conversion Codes](/content/sql/query#sql-datetime-conversion-codes) . +----------+----------------------------------------------------------+ \| Code \| Description \| +==========+==========================================================+ \| `YYYY` \| 4-digit year \| +----------+----------------------------------------------------------+ \| `MM` \| 2-digit month, where *January* is `01` \| +----------+----------------------------------------------------------+ \| `DD` \| 2-digit day of the month, where the *1st* \| \| \| of each month is `01` \| +----------+----------------------------------------------------------+ <br/> <br/> `time`: Apply the given time format to the given column. Common time format codes follow. For the complete list, see [Date/Time Conversion Codes](/content/sql/query#sql-datetime-conversion-codes) . +----------+----------------------------------------------------------+ \| Code \| Description \| +==========+==========================================================+ \| `HH24` \| 24-based hour, where *12:00 AM* is `00` and *7:00 PM* \| \| \| is `19` \| +----------+----------------------------------------------------------+ \| `MI` \| 2-digit minute of the hour \| +----------+----------------------------------------------------------+ \| `SS` \| 2-digit second of the minute \| +----------+----------------------------------------------------------+ \| `MS` \| milliseconds \| +----------+----------------------------------------------------------+ <br/> <br/> `datetime`: Apply the given date/time format to the given column. <br/> <br/> For example, to write dates from column *d* of the format `2010.10.30` and times from column *t* of the 24-hour format `18:36:54.789`: <br/> <br/> `{ "d": {"date": "YYYY.MM.DD"}, "t": {"time": "HH24:MI:SS.MS"} }` <br/> |
+| `COMPRESSION_TYPE` | File | Compress the data with the given type. <br/> <br/> `uncompressed`: Don't compress the data.  Default for text files. <br/> <br/> `gzip`: Use *GZip* compression on the data. <br/> <br/> `snappy`: Use *Snappy* compression on the data. Default for *Parquet* files, and only applicable to *Parquet* files. |
+| `DATA SINK` | Table | Export data through the given [data sink](/content/sql/ddl#sql-create-data-sink).  [Data sink connect privilege](/content/sql/security#sql-security-priv-mgmt-dsink-grant) is required when exporting through a *data sink*. <br/> <Info> Local table *data sinks* are not supported. </Info> |
+| `DEFAULT COLUMN FORMATS` | File | Use the given formats for data being written to target file fields with the corresponding column types.   This should be a map of source column type to target format for that type, formatted as a JSON string. <br/> <br/> Supported column properties and source data formats are the same as those listed in the description of the `COLUMN FORMATS` option. <br/> <br/> For example, to make the default format for writing target data dates like `2010.10.30` and 24-hour times like `18:36:54.789`: <br/> <br/> `{ "date": "YYYY.MM.DD", "time": "HH24:MI:SS.MS", "datetime": "YYYY.MM.DD HH24:MI:SS.MS" }` <br/> |
+| `EXPORT_DDL` | File | Export the source table/query DDL as a separate file, in addition to the data file. <br/> <br/> The DDL file will be co-located with the data file(s) and have a `.ddl` extension. <br/> <br/> Default is `FALSE`. |
+| `FIELDS IGNORED BY` | File | Choose a comma-separated list of columns from the source table/query to ignore, exporting only those columns that are not in the identified list in the order they appear in the table/query.  Columns can be identified by either `POSITION` or `NAME`.  If ignoring by `NAME`, the specified names must match the source column names exactly. <br/> <br/> * Identifying by Name: <br/> <br/> `FIELDS IGNORED BY NAME(Category, Description)` <br/> <br/> * Identifying by Position: <br/> <br/> `FIELDS IGNORED BY POSITION(3, 4)` <br/> |
+| `FIELDS MAPPED BY` | File | Choose a comma-separated list of columns from the source table/query to export, in the specified order, identifying fields by either `POSITION` or `NAME`.  If mapping by `NAME`, the specified names must match the source column names exactly. <br/> <br/> * Identifying by Name: <br/> <br/> `FIELDS MAPPED BY NAME(ID, Name, Stock)` <br/> <br/> * Identifying by Position: <br/> <br/> `FIELDS MAPPED BY POSITION(1, 2, 5)` <br/> |
+| `FILE_EXTENSION` | File | Extension to give the exported file.  Usually used when `FILE PATH` specifies a directory name or a "path prefix".  Default is `.csv`. |
+| `JDBC_CONNECTION_INIT_STATEMENT` | Table | Run the single given statement before the export command is performed.  This runs after the statement in `JDBC_SESSION_INIT_STATEMENT`, if specified, and runs before any distributed data transfer sessions are initiated. <br/> <br/> For example, to create a target table in the remote database before exporting data: <br/> <br/> `JDBC_CONNECTION_INIT_STATEMENT = 'CREATE TABLE g (wkt WKT)'` <br/> <Info> This option is only available for *data sources* configured for *JDBC*. </Info> |
+| `JDBC_SESSION_INIT_STATEMENT` | Table | Run the single given statement before transferring data in each of the distributed JDBC sessions supporting the export.  This statement will also be run before any `JDBC_CONNECTION_INIT_STATEMENT`, if specified. <br/> <br/> For example, to set the time zone to *UTC* before transferring the data, use: <br/> <br/> `JDBC_SESSION_INIT_STATEMENT = 'SET TIME ZONE ''UTC'''` <br/> <Info> This option is only available for *data sources* configured for *JDBC*. </Info> |
+| `SINGLE_FILE` | File | Directs the file name format and number of files into which data will be exported. <br/> <br/> Default is `true`.  An error will be returned if the option is `true` and the file size exceeds the configured limit. <br/> <br/> `true`: Write records to a single file, appending a numeric code to the end of the file name base, in order to avoid collisions with subsequent exports to the same file name. <br/> <br/> `false`: Write records to multiple files, one for each worker node in the cluster, appending a numeric code to the end of the file names generated, in order to avoid collisions with subsequent exports to the same file name. <br/> <br/> `overwrite`: Write records to a single file, with the exact file name used in the command. Subsequent exports to the same file name will result in the file being overwritten each time. <br/> <br/> For example, exporting to `/export/data.csv` might result in the following file names: <br/> <br/> `true`: `/export/data_123450000.csv` <br/> <br/> `false`: `/export/data_123451000.csv` `/export/data_123452000.csv` <br/> <br/> `overwrite`: `/export/data.csv` |
+| `SINGLE_FILE_MAX_SIZE` | File | Max file size (in MB) to allow when saving a single file.  May be overridden by target limitations. <br/> <br/> Default is configured by the system `egress_single_file_max_size` parameter.  See [External Files](/content/config#config-main-external-files). |
+| `USE_INDEXED_PARAMETERS` | Table | Use `$N` parameter styling when generating insert statements instead of using `?`. Most databases support the former; for those that only support the latter, set this to `FALSE`. <br/> <br/> Default is `TRUE`. |
+| `USE_ST_GEOMFROM_CASTS` | Table | Cast geometry data stored in string format (WKTs) or byte format (WKBs) to a geometry type during export.  Some databases take neither string nor byte formatted geometry objects; the cast will align outgoing geometries to an acceptable type for those databases. <br/> <br/> Default is `FALSE`. |
+
+
+<a id="sql-export-examples"></a>
+
+
+### Examples
+
+
+#### Export Table to File (KiFS)
+
+
+To export a table of employees to a file in *KiFS*:
+
+{/* Source: /examples/sql/export/export.kisql (lines 84-85) */}
+```sql EXPORT ... INTO (File from Table) Example
+EXPORT TABLE employee
+INTO FILE PATH '/export/employee.csv'
+```
+
+
+#### Export Query to File (KiFS)
+
+
+To export a query of employees in department *2* to a Parquet file in *KiFS*:
+
+{/* Source: /examples/sql/export/export.kisql (lines 91-98) */}
+```sql EXPORT ... INTO (File from Query) Example
+EXPORT QUERY
+(
+    SELECT id, manager_id, first_name, last_name, salary, hire_date
+    FROM employee
+    WHERE dept_id = 2
+)
+INTO FILE PATH '/export/employee.parquet'
+FORMAT PARQUET
+```
+
+
+#### Export Table via Data Sink
+
+
+To export a table of employees through the JDBC *data sink*
+`jdbc_dsink`, into a remote database table named
+`example.remote_employee`:
+
+{/* Source: /examples/sql/export/export.kisql (lines 104-106) */}
+```sql EXPORT ... INTO (Data Sink Table from Table) Example
+EXPORT TABLE employee
+INTO REMOTE TABLE 'example.remote_employee'
+WITH OPTIONS (DATASINK_NAME = 'example.jdbc_dsink')
+```
+
+
+#### Export Table via Data Sink DML
+
+
+To export a table of employees through the JDBC *data sink*
+`jdbc_dsink`, into a remote database table named
+`example.remote_employee`, using a custom `INSERT` statement:
+
+{/* Source: /examples/sql/export/export.kisql (lines 133-135) */}
+```sql EXPORT ... INTO (Data Sink DML from Table) Example
+EXPORT TABLE employee
+INTO REMOTE QUERY 'INSERT INTO example.remote_employee VALUES (?, ?, ?, ?, ?, ?, ?)'
+WITH OPTIONS (DATASINK_NAME = 'example.jdbc_dsink')
+```
+
+
+#### Export Query via Data Sink DML
+
+
+To export a query of employees in department *2* through the JDBC *data sink*
+`jdbc_dsink`, into a remote database table named
+`example.remote_employee_dept2`, using a custom `INSERT` statement:
+
+{/* Source: /examples/sql/export/export.kisql (lines 160-167) */}
+```sql EXPORT ... INTO (Data Sink DML from Query) Example
+EXPORT QUERY
+(
+    SELECT id, manager_id, first_name, last_name, salary, hire_date
+    FROM employee
+    WHERE dept_id = 2
+)
+INTO REMOTE QUERY 'INSERT INTO example.remote_employee_dept2 VALUES (?, ?, ?, ?, ?, ?)'
+WITH OPTIONS (DATASINK_NAME = 'example.jdbc_dsink')
+```

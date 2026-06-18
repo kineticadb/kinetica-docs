@@ -1,0 +1,64 @@
+---
+title: /get/records/bycolumn
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="get-records-bycolumn-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/get/records/bycolumn
+```
+For a given table, retrieves the values from the requested column(s). Maps of
+column name to the array of values as well as the column data type are
+returned. This endpoint supports pagination with the input parameter *offset*
+and input parameter *limit* parameters.
+
+[Window functions](../../../concepts/window/), which can perform operations
+like moving averages, are available through this endpoint as well as
+[/create/projection](/content/api/rest/create_projection_rest#create-projection-rest).
+
+When using pagination, if the table (or the underlying table in the case of a
+view) is modified (records are inserted, updated, or deleted) during a call to
+the endpoint, the records or values retrieved may differ between calls based on
+the type of the update, e.g., the contiguity across pages cannot be relied
+upon.
+
+If input parameter *table_name* is empty, selection is performed against a
+single-row virtual table.  This can be useful in executing temporal
+([NOW()](../../../concepts/expressions/#date-time-functions)), identity
+([USER()](../../../concepts/expressions/#user-security-functions)), or
+constant-based functions
+([GEODIST(-77.11, 38.88, -71.06, 42.36)](../../../concepts/expressions/#scalar-functions)).
+
+The response is returned as a dynamic schema. For details see:
+[dynamic schemas documentation](../../../api/concepts/#dynamic-schemas).
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of the table or view on which this operation will be performed, in [schema_name.]table_name format, using standard [name resolution rules](../../../concepts/tables/#table-name-resolution). An empty table name retrieves one record from a single-row virtual table, where columns specified should be constants or constant expressions. |
+| column_names | array of strings | The list of column values to retrieve. |
+| offset | long | A positive integer indicating the number of initial results to skip (this can be useful for paging through the results). <br/> <br/> The default value is 0. The minimum allowed value is 0. The maximum allowed value is MAX_INT. |
+| limit | long | A positive integer indicating the maximum number of results to be returned, or END_OF_SET (-9999) to indicate that the maximum number of results allowed by the server should be returned.  The number of records returned will never exceed the server's own limit, defined by the [max_get_records_size](../../../config/#config-main-general) parameter in the server configuration. Use output parameter *has_more_records* to see if more records exist in the result to be fetched, and input parameter *offset* and input parameter *limit* to request subsequent pages of results. <br/> <br/> The default value is -9999. |
+| encoding | string | Specifies the encoding for returned records; either *binary* or *json*. <br/> <br/> The default value is `binary`. <br/> <br/> The supported values are: <br/> <br/> * binary <br/> * json |
+| options | map of string to strings | The default value is an empty map ( \{\} ). <br/> <br/> expression: Filter expression to apply to the table. <br/> <br/> sort_by: Column that the data should be sorted by. Used in conjunction with *sort_order*. The *order_by* option can be used in lieu of *sort_by* / *sort_order*. The default value is ''. <br/> <br/> sort_order: String indicating how the returned values should be sorted <br/> - *ascending* or *descending*. If *sort_order* is provided, *sort_by* has to be provided. The default value is `ascending`. The supported values are: * ascending * descending <br/> <br/> order_by: Comma-separated list of the columns to be sorted by as well as the sort direction, e.g., 'timestamp asc, x desc'. The default value is ''. <br/> <br/> convert_wkts_to_wkbs: If *true*, then WKT string columns will be returned as WKB bytes. The default value is `false`. The supported values are: * true * false <br/> <br/> route_to_tom: For multihead record retrieval without shard key expression - specifies from which tom to retrieve data. |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'get_records_by_column_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /get/records/bycolumn endpoint: <br/> <br/> table_name: [string] The same table name as was passed in the parameter list. <br/> <br/> response_schema_str: [string] Avro schema of output parameter *binary_encoded_response* or output parameter *json_encoded_response*. <br/> <br/> binary_encoded_response: [bytes] Avro binary encoded response. <br/> <br/> json_encoded_response: [string] Avro JSON encoded response. <br/> <br/> total_number_of_records: [long] Total/Filtered number of records. <br/> <br/> has_more_records: [boolean] Too many records. Returned a partial set. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

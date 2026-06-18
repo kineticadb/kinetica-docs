@@ -1,0 +1,862 @@
+---
+title: Arrays
+---
+
+<a id="array-type"></a>
+
+
+## Array Type
+
+
+The *array* [data type](/content/concepts/types#types-chart) provides the capability to
+store a list of primitive *data type* values in a single column.
+
+All arrays in *Kinetica* are one-dimensional and 1-based.  They are also
+unbounded, though the number of items in the array can be specified upon
+table/column creation for compatibility with other databases.
+
+Arrays can be lists of any of the following *data types*:
+
+* `boolean`
+* `int`
+* `long`
+* `ulong`
+* `float`
+* `double`
+* `string`
+
+
+### Create Table
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/array.kisql (lines 19-23) */}
+```sql SQL
+CREATE OR REPLACE TABLE example.arr
+(
+	ai INTEGER[] NOT NULL,
+	av3 VARCHAR[3] NOT NULL
+)
+```
+
+{/* Source: /examples/python/arrays.py (lines 19-25) */}
+```python Python
+table_name = 'example.arr'
+columns = [
+    ['ai', 'string', 'array(int)'],
+    ['as3', 'string', 'array(string,3)']
+]
+
+gpudb.GPUdbTable(columns, table_name, db = kinetica)
+```
+
+</CodeGroup>
+
+
+### Insert Data
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/array.kisql (lines 26-27) */}
+```sql SQL
+INSERT INTO example.arr
+VALUES ('[123456789, -987654321, 0, 0]','["ABCDEFG", "HIJKLMNOPQRSTUVWXYZ", ""]')
+```
+
+{/* Source: /examples/python/arrays.py (lines 39-46) */}
+```python Python (as strings)
+data = [[
+        '[123456789, -987654321, 0, 0]',
+        '["ABCDEFG", "HIJKLMNOPQRSTUVWXYZ", ""]'
+]]
+
+t = gpudb.GPUdbTable(name = 'example.arr', db = kinetica)
+
+t.insert_records(data)
+```
+
+{/* Source: /examples/python/arrays.py (lines 602-608 611) */}
+```python Python (as native types)
+data = [[
+        [123456789, -987654321, 0, 0],
+        ['ABCDEFG', 'HIJKLMNOPQRSTUVWXYZ', '']
+]]
+
+t = gpudb.GPUdbTable(name = 'example.arr', db = kinetica)
+
+t.insert_records(data)
+```
+
+</CodeGroup>
+
+
+### Retrieve Data
+
+
+To retrieve the 2nd item of an integer array and the entirety of a string array:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/array.kisql (lines 33-34) */}
+```sql SQL
+SELECT ai[2] AS ai_item_2, av3
+FROM example.arr
+```
+
+{/* Source: /examples/python/arrays.py (lines 53-59) */}
+```python Python
+t = gpudb.GPUdbTable(name = 'example.arr', db = kinetica)
+
+records = t.get_records_by_column(["ARRAY_ITEM(ai, 2) AS ai_item_2", "as3"])
+
+print('%-10s %s' % ('ai_item_2', 'as3'))
+for record in zip(records['ai_item_2'], records['as3']):
+    print('%-10d %s' % (record[0], record[1]))
+```
+
+{/* Source: /examples/python/arrays.py (lines 618-624) */}
+```python Python (w/ native type conversions)
+t = gpudb.GPUdbTable(name = 'example.arr', db = kinetica, convert_special_types_on_retrieval = True)
+
+records = t.get_records_by_column(["ARRAY_ITEM(ai, 2) AS ai_item_2", "as3"], encoding = 'json')
+
+print('%-10s %s' % ('ai_item_2', 'as3'))
+for record in zip(records['ai_item_2'], records['as3']):
+    print('%-10d %s' % (record[0], record[1]))
+```
+
+</CodeGroup>
+
+
+<a id="array-func"></a>
+
+
+## Array Functions
+
+
+### Scalar Functions
+
+
+These functions can be applied to individual *array* column values.
+
+<AccordionGroup>
+
+<Accordion title="ARRAY_APPEND(array, value)" id="array_append-array-value" defaultOpen>
+
+Returns an array consisting of `array` with `value` appended to the end.
+
+</Accordion>
+
+<Accordion title="ARRAY_CONCAT(arr1, arr2)" id="array_concat-arr1-arr2" defaultOpen>
+
+Returns an array consisting of all the elements of array `arr1` followed by all of
+the elements of array `arr2`.
+
+</Accordion>
+
+<Accordion title="ARRAY_CONTAINS(array, value)" id="array_contains-array-value" defaultOpen>
+
+Returns true if `value` is present in `array`.
+
+</Accordion>
+
+<Accordion title="ARRAY_CONTAINS_ALL(arr1, arr2)" id="array_contains_all-arr1-arr2" defaultOpen>
+
+Returns true if every value in array `arr2` is present in array `arr1`; otherwise
+returns false.
+
+</Accordion>
+
+<Accordion title="ARRAY_CONTAINS_ANY(arr1, arr2)" id="array_contains_any-arr1-arr2" defaultOpen>
+
+Returns true if any value in array `arr2` is present in array `arr`; otherwise
+returns false.
+
+</Accordion>
+
+<Accordion title="ARRAY_DISTINCT(array)" id="array_distinct-array" defaultOpen>
+
+Returns an array consisting of `array` values with duplicates removed.
+
+</Accordion>
+
+<Accordion title="ARRAY_EMPTY(array)" id="array_empty-array" defaultOpen>
+
+Returns true if `array` is empty; otherwise returns false.
+
+</Accordion>
+
+<Accordion title="ARRAY_EXCEPT(arr1, arr2)" id="array_except-arr1-arr2" defaultOpen>
+
+Returns an array consisting of all of the elements of array `arr1` with the ones that
+also appear in array `arr2` removed.
+
+</Accordion>
+
+<Accordion title="ARRAY_INTERSECT(arr1, arr2)" id="array_intersect-arr1-arr2" defaultOpen>
+
+Returns an array consisting of all of the elements of array `arr1` that also appear
+in array `arr2`.
+
+</Accordion>
+
+<Accordion title="ARRAY_ITEM(array, pos)" id="array_item-array-pos" defaultOpen>
+
+Returns the item in `array` at the given 1-based `pos` position.
+
+See [examples](/content/concepts/array#array-func-ex-item).
+
+</Accordion>
+
+<Accordion title="ARRAY_LENGTH(array)" id="array_length-array" defaultOpen>
+
+Returns the number of items in the given `array` at the 1st dimension.
+
+See [examples](/content/concepts/array#array-func-ex-len).
+
+</Accordion>
+
+<Accordion title="ARRAY_LOWER(array, dim)" id="array_lower-array-dim" defaultOpen>
+
+Returns the lowest index of `array` in the given `dim` dimension; since all arrays
+are 1-dimensional, only specifying a dimension of `1` will return a value, and since
+array indices are 1-based, that value will always be `1`.
+
+</Accordion>
+
+<Accordion title="ARRAY_NDIMS(array)" id="array_ndims-array" defaultOpen>
+
+Returns the number of dimensions in the given `array`; since all arrays are
+1-dimensional, that number will always be `1`.
+
+</Accordion>
+
+<Accordion title="ARRAY_NOT_EMPTY(array)" id="array_not_empty-array" defaultOpen>
+
+Returns true if `array` is not empty; otherwise returns false.
+
+</Accordion>
+
+<Accordion title="ARRAY_SLICE(array, from, to)" id="array_slice-array-from-to" defaultOpen>
+
+Returns an array consisting of the values from `array` between the `from` index
+(inclusive) up to the `to` index (exclusive) using 0-based indexing. Negative indexes
+are treated as offsets from the end of the array.
+
+</Accordion>
+
+<Accordion title="ARRAY_TO_STRING(array, delim)" id="array_to_string-array-delim" defaultOpen>
+
+Converts the items of `array` into a string delimited by `delim`.
+
+See [examples](/content/concepts/array#array-func-ex-atos).
+
+</Accordion>
+
+<Accordion title="ARRAY_UPPER(array, dim)" id="array_upper-array-dim" defaultOpen>
+
+Returns the highest index of `array` in the given `dim` dimension; since all arrays
+are 1-dimensional, only specifying a dimension of `1` will return a value, and since
+array indices are 1-based, that value will always be equivalent to `ARRAY_LENGTH`.
+
+</Accordion>
+
+<Accordion title="MAKE_ARRAY(value)" id="make_array-value" defaultOpen>
+
+Returns an array consisting of the single `value` element.
+
+</Accordion>
+
+<Accordion title="STRING_TO_ARRAY(str, delim)" id="string_to_array-str-delim" defaultOpen>
+
+Converts the values in `str`, delimited by `delim`, into an array.
+
+See [examples](/content/concepts/array#array-func-ex-stoa).
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="array-func-ex"></a>
+
+
+#### Examples
+
+
+<a id="array-func-ex-item"></a>
+
+
+<p><strong>ARRAY_ITEM</strong></p>
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/array.kisql (lines 139-140) */}
+```sql SQL
+SELECT ARRAY_ITEM(ai, 2) AS ai_item_2, ARRAY_ITEM(av3, 2) AS av3_item_2
+FROM example.arr
+```
+
+{/* Source: /examples/python/arrays.py (lines 53-55) */}
+```python Python
+t = gpudb.GPUdbTable(name = 'example.arr', db = kinetica)
+
+records = t.get_records_by_column(["ARRAY_ITEM(ai, 2) AS ai_item_2", "as3"])
+```
+
+</CodeGroup>
+
+
+{/* Source: /examples/sql/array.out (lines 181-185) */}
+```
++--------------+-----------------------+
+|    ai_item_2 | av3_item_2            |
++--------------+-----------------------+
+|   -987654321 | HIJKLMNOPQRSTUVWXYZ   |
++--------------+-----------------------+
+```
+
+
+<a id="array-func-ex-len"></a>
+
+
+<p><strong>ARRAY_LENGTH</strong></p>
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/array.kisql (lines 172-173) */}
+```sql SQL
+SELECT ARRAY_LENGTH(ai) AS ai_len, ARRAY_LENGTH(av3) AS av3_len
+FROM example.arr
+```
+
+{/* Source: /examples/python/arrays.py (lines 163-165) */}
+```python Python
+t = gpudb.GPUdbTable(name = 'example.arr', db = kinetica)
+
+records = t.get_records_by_column(["ARRAY_LENGTH(ai) AS ai_len", "ARRAY_LENGTH(as3) AS as3_len"])
+```
+
+</CodeGroup>
+
+
+{/* Source: /examples/sql/array.out (lines 228-232) */}
+```
++----------+-----------+
+|   ai_len |   av3_len |
++----------+-----------+
+|        4 |         3 |
++----------+-----------+
+```
+
+
+<a id="array-func-ex-atos"></a>
+
+
+<p><strong>ARRAY_TO_STRING</strong></p>
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/array.kisql (lines 343-344) */}
+```sql SQL
+SELECT ARRAY_TO_STRING(ai, ',') AS ai_str, ARRAY_TO_STRING(av3, '~') AS av3_str
+FROM example.arr
+```
+
+{/* Source: /examples/python/arrays.py (lines 331-333) */}
+```python Python
+t = gpudb.GPUdbTable(name = 'example.arr', db = kinetica)
+
+records = t.get_records_by_column(["ARRAY_TO_STRING(ai, ',') AS ai_str", "ARRAY_TO_STRING(as3, '~') AS as3_str"])
+```
+
+</CodeGroup>
+
+
+{/* Source: /examples/sql/array.out (lines 471-475) */}
+```
++----------------------------+--------------------------------+
+| ai_str                     | av3_str                        |
++----------------------------+--------------------------------+
+| 123456789,-987654321,0,0   | ABCDEFG~HIJKLMNOPQRSTUVWXYZ~   |
++----------------------------+--------------------------------+
+```
+
+
+<a id="array-func-ex-stoa"></a>
+
+
+<p><strong>STRING_TO_ARRAY</strong></p>
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/array.kisql (lines 405-407) */}
+```sql SQL
+SELECT
+	STRING_TO_ARRAY('123456789,-987654321,0,0', ',') AS ai_str,
+	STRING_TO_ARRAY('ABCDEFG~HIJKLMNOPQRSTUVWXYZ~', '~') AS av3_str
+```
+
+{/* Source: /examples/python/arrays.py (lines 373-378) */}
+```python Python
+t = gpudb.GPUdbTable(name = 'SYSTEM.ITER', db = kinetica)
+
+records = t.get_records_by_column([
+    "STRING_TO_ARRAY('123456789,-987654321,0,0', ',') AS stri_as",
+    "STRING_TO_ARRAY('ABCDEFG~HIJKLMNOPQRSTUVWXYZ~', '~') AS strs_as"
+])
+```
+
+</CodeGroup>
+
+
+{/* Source: /examples/sql/array.out (lines 563-567) */}
+```
++--------------------------------------+------------------------------------------+
+| ai_str                               | av3_str                                  |
++--------------------------------------+------------------------------------------+
+| ["123456789","-987654321","0","0"]   | ["ABCDEFG","HIJKLMNOPQRSTUVWXYZ",null]   |
++--------------------------------------+------------------------------------------+
+```
+
+
+<a id="array-func-agg"></a>
+
+
+### Aggregation/Transposition Functions
+
+
+These functions can be used to convert primitive column values into arrays of
+those values (aggregation) or to convert array columns into columns of primitive
+values (unnest).
+
+<AccordionGroup>
+
+<Accordion title="ARRAY_AGG(expr)" id="array_agg-expr" defaultOpen>
+
+Combines column values within a group into a single *array* of those values.
+
+See [examples](/content/concepts/array#array-func-agg-ex-agg).
+
+</Accordion>
+
+<Accordion title="ARRAY_AGG_DISTINCT(expr)" id="array_agg_distinct-expr" defaultOpen>
+
+Combines column values within a group into a single *array* of those values, removing
+any duplicates.
+
+See [examples](/content/concepts/array#array-func-agg-ex-agg-dist).
+
+</Accordion>
+
+<Accordion title="UNNEST_JSON_ARRAY" id="unnest_json_array" defaultOpen>
+
+Transposes array values into columnar data.
+
+See [UNNEST_JSON_ARRAY](/content/concepts/array#array-func-unnest).
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="array-func-agg-ex"></a>
+
+
+#### Examples
+
+
+<a id="array-func-agg-ex-agg"></a>
+
+
+<p><strong>ARRAY_AGG</strong></p>
+
+
+{/* Source: /examples/sql/array.out (lines 732-739) */}
+``` Input
++------+---------+
+|   id | name    |
++------+---------+
+|    1 | Joe     |
+|    2 | Jane    |
+|    3 | Jeff    |
+|    4 | Joyce   |
++------+---------+
+```
+
+<CodeGroup>
+
+{/* Source: /examples/sql/array.kisql (lines 479-480) */}
+```sql SQL
+SELECT ARRAY_AGG(id) AS id_list, ARRAY_AGG(name) AS name_list
+FROM example.arr_agg
+```
+
+{/* Source: /examples/python/arrays.py (lines 445-450) */}
+```python Python
+t = gpudb.GPUdbTable(name = 'example.arr_agg', db = kinetica)
+
+records = t.aggregate_group_by([
+    "ARRAY_AGG(id) AS id_list",
+    "ARRAY_AGG(name) AS name_list"
+])['records']
+```
+
+</CodeGroup>
+
+
+{/* Source: /examples/sql/array.out (lines 746-750) */}
+```
++-------------+---------------------------------+
+| id_list     | name_list                       |
++-------------+---------------------------------+
+| [1,2,3,4]   | ["Joe","Jane","Jeff","Joyce"]   |
++-------------+---------------------------------+
+```
+
+
+<a id="array-func-agg-ex-agg-dist"></a>
+
+
+<p><strong>ARRAY_AGG_DISTINCT</strong></p>
+
+
+{/* Source: /examples/sql/array.out (lines 783-794) */}
+``` Input
++------+---------+
+|   id | name    |
++------+---------+
+|    1 | Joe     |
+|    1 | Joyce   |
+|    2 | Jane    |
+|    2 | Jeff    |
+|    3 | Jane    |
+|    3 | Jeff    |
+|    4 | Joe     |
+|    4 | Joyce   |
++------+---------+
+```
+
+<CodeGroup>
+
+{/* Source: /examples/sql/array.kisql (lines 510-511) */}
+```sql SQL
+SELECT ARRAY_AGG_DISTINCT(id) AS id_list, ARRAY_AGG_DISTINCT(name) AS name_list
+FROM example.arr_agg
+```
+
+{/* Source: /examples/python/arrays.py (lines 468-469 472-475) */}
+```python Python
+t = gpudb.GPUdbTable(name = 'example.arr_agg', db = kinetica)
+
+records = t.aggregate_group_by([
+    "ARRAY_AGG_DISTINCT(id) AS id_list",
+    "ARRAY_AGG_DISTINCT(name) AS name_list"
+])['records']
+```
+
+</CodeGroup>
+
+
+{/* Source: /examples/sql/array.out (lines 801-805) */}
+```
++-------------+---------------------------------+
+| id_list     | name_list                       |
++-------------+---------------------------------+
+| [1,2,3,4]   | ["Jane","Jeff","Joe","Joyce"]   |
++-------------+---------------------------------+
+```
+
+
+<a id="array-func-unnest"></a>
+
+
+### UNNEST_JSON_ARRAY
+
+
+The `UNNEST_JSON_ARRAY` function transposes array values into columnar data.
+
+The two forms of the `UNNEST_JSON_ARRAY` function follow, one for cases where
+only one column needs to be unnested and one for cases where more than one
+column needs to be unnested.  See
+[examples](/content/concepts/array#array-func-unnest-ex).
+
+```sql title="UNNEST_JSON_ARRAY for 1 Column Syntax"
+SELECT <column alias> [, ordinality]
+FROM UNNEST_JSON_ARRAY(SELECT <column name> FROM <table name>) [WITH ORDINALITY] [<column alias>]
+```
+
+<AccordionGroup>
+
+<Accordion title="&lt;column alias&gt;" id="<column-alias>" defaultOpen>
+
+Column alias to use for the resulting unnested data column; if no alias specified, use
+`*` to select the column.
+
+</Accordion>
+
+<Accordion title="&lt;table name&gt;" id="<table-name>" defaultOpen>
+
+Name of the table containing the array column.
+
+</Accordion>
+
+<Accordion title="&lt;column name&gt;" id="<column-name>" defaultOpen>
+
+Name of the array column to unnest.
+
+</Accordion>
+
+<Accordion title="WITH ORDINALITY" id="with-ordinality" defaultOpen>
+
+Also return the 0-based index in the source arrays for each transposed array value; the
+index value will be returned as the column alias `ordinality`.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+```sql title="UNNEST_JSON_ARRAY for Multiple Columns Syntax"
+SELECT <column alias list> [, <ordinality alias>]
+FROM <table name> <table alias>, UNNEST_JSON_ARRAY(<column list>) [WITH ORDINALITY] <table/columns aliases>
+```
+
+<AccordionGroup>
+
+<Accordion title="&lt;column alias list&gt;" id="<column-alias-list>" defaultOpen>
+
+Column aliases given to the resulting unnested data columns, specified in
+`<table/columns aliases>`.
+
+</Accordion>
+
+<Accordion title="&lt;ordinality alias&gt;" id="<ordinality-alias>" defaultOpen>
+
+Column alias given to the resulting ordinality column in `<table/columns aliases>`,
+if `WITH ORDINALITY` is specified.
+
+</Accordion>
+
+<Accordion title="&lt;table name&gt;" id="<table-name>-2" defaultOpen>
+
+Name of the table containing the array column(s).
+
+</Accordion>
+
+<Accordion title="&lt;table alias&gt;" id="<table-alias>" defaultOpen>
+
+Alias to use for the table containing the array column(s).
+
+</Accordion>
+
+<Accordion title="&lt;column list&gt;" id="<column-list>" defaultOpen>
+
+Comma-separated list of array columns to unnest.
+
+</Accordion>
+
+<Accordion title="&lt;table/columns aliases&gt;" id="<table/columns-aliases>" defaultOpen>
+
+Alias to use for the virtual table and columns being used to return the unnested data
+(including any ordinality alias, if specified), using the form:
+
+```
+<table alias>(<column alias list> [,<ordinality alias>])
+```
+For example, to return two columns of unnested array data as `uai` & `uav`,
+respectively, and the corresponding ordinality index as `index`, all within the
+virtual table `unn` use:
+
+```
+unn(uai, uav, index)
+```
+</Accordion>
+
+<Accordion title="WITH ORDINALITY" id="with-ordinality-2" defaultOpen>
+
+Also return the 0-based index in the source arrays for each transposed array value; the
+index value will be returned in an alias specified in `<table/columns aliases>`.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="array-func-unnest-ex"></a>
+
+
+#### Examples
+
+
+The following examples use this data set as a baseline:
+
+{/* Source: /examples/sql/array.out (lines 844-851) */}
+```
++-----------+-----------------+
+| ai        | av              |
++-----------+-----------------+
+| [1,2,3]   | ["A","B","C"]   |
+| [4,5,6]   | ["D","E","F"]   |
+| [7,8,9]   | ["D","E","F"]   |
+| [1,2,3]   | ["G","H","I"]   |
++-----------+-----------------+
+```
+
+
+To turn the strings in the `av` array in the `example.arr_unn` table into a
+column of values aliased as `uav`:
+
+{/* Source: /examples/sql/array.kisql (lines 550-551) */}
+```sql
+SELECT uav
+FROM UNNEST_JSON_ARRAY(SELECT av FROM example.arr_unn) uav
+```
+
+{/* Source: /examples/sql/array.out (lines 882-897) */}
+```
++-------+
+| uav   |
++-------+
+| A     |
+| B     |
+| C     |
+| D     |
+| D     |
+| E     |
+| E     |
+| F     |
+| F     |
+| G     |
+| H     |
+| I     |
++-------+
+```
+
+
+To turn the integers in the `ai` array in the `example.arr_unn` table into a
+column of values aliased as `uai` and the corresponding index in the original
+array for each as a column of indices named `ordinality`:
+
+{/* Source: /examples/sql/array.kisql (lines 555-556) */}
+```sql
+SELECT uai, ordinality
+FROM UNNEST_JSON_ARRAY(SELECT ai FROM example.arr_unn) WITH ORDINALITY uai
+```
+
+{/* Source: /examples/sql/array.out (lines 905-920) */}
+```
++-------+--------------+
+|   uai |   ordinality |
++-------+--------------+
+|     1 |            0 |
+|     1 |            0 |
+|     2 |            1 |
+|     2 |            1 |
+|     3 |            2 |
+|     3 |            2 |
+|     4 |            0 |
+|     5 |            1 |
+|     6 |            2 |
+|     7 |            0 |
+|     8 |            1 |
+|     9 |            2 |
++-------+--------------+
+```
+
+
+To turn the integers & strings in the `ai` & `av` arrays in the
+`example.arr_unn` table into two columns of values aliased as `uai` &
+`uav` in a virtual table with alias `t`, respectively:
+
+{/* Source: /examples/sql/array.kisql (lines 560-561) */}
+```sql
+SELECT uai, uav
+FROM example.arr_unn eau, UNNEST_JSON_ARRAY(eau.ai, eau.av) t(uai, uav)
+```
+
+{/* Source: /examples/sql/array.out (lines 928-943) */}
+```
++-------+-------+
+|   uai | uav   |
++-------+-------+
+|     1 | A     |
+|     1 | G     |
+|     2 | B     |
+|     2 | H     |
+|     3 | C     |
+|     3 | I     |
+|     4 | D     |
+|     5 | E     |
+|     6 | F     |
+|     7 | D     |
+|     8 | E     |
+|     9 | F     |
++-------+-------+
+```
+
+
+To turn the integers & strings in the `ai` & `av` arrays in the
+`example.arr_unn` table into two columns of values aliased as `uai` &
+`uav` in a virtual table with alias `t`, respectively, and adding the
+corresponding index in the original array for each as a column of indices
+aliased as `index`:
+
+{/* Source: /examples/sql/array.kisql (lines 565-566) */}
+```sql
+SELECT uai, uav, index
+FROM example.arr_unn eau, UNNEST_JSON_ARRAY(eau.ai, eau.av) WITH ORDINALITY t(uai, uav, index)
+```
+
+{/* Source: /examples/sql/array.out (lines 951-966) */}
+```
++-------+-------+---------+
+|   uai | uav   |   index |
++-------+-------+---------+
+|     1 | A     |       0 |
+|     1 | G     |       0 |
+|     2 | B     |       1 |
+|     2 | H     |       1 |
+|     3 | C     |       2 |
+|     3 | I     |       2 |
+|     4 | D     |       0 |
+|     5 | E     |       1 |
+|     6 | F     |       2 |
+|     7 | D     |       0 |
+|     8 | E     |       1 |
+|     9 | F     |       2 |
++-------+-------+---------+
+```
+
+
+To turn the integers in the `ai` array in the `example.arr_unn` table into a
+column of values aliased as `uai`, removing any duplicates across all arrays:
+
+{/* Source: /examples/sql/array.kisql (lines 575-576) */}
+```sql
+SELECT DISTINCT uai
+FROM UNNEST_JSON_ARRAY(SELECT ai FROM example.arr_unn) uai
+```
+
+{/* Source: /examples/sql/array.out (lines 994-1006) */}
+```
++-------+
+|   uai |
++-------+
+|     1 |
+|     2 |
+|     3 |
+|     4 |
+|     5 |
+|     6 |
+|     7 |
+|     8 |
+|     9 |
++-------+
+```

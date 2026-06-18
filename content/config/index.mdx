@@ -1,0 +1,774 @@
+---
+title: Configuration Reference
+---
+
+<a id="cr-label"></a>
+
+
+*Kinetica* configuration consists of several user-modifiable system parameters present in
+<Badge color="gray">/opt/gpudb/core/etc/gpudb.conf</Badge> that are used to set up and tune the system.
+
+
+<br/>
+
+<a id="config-main-version"></a>
+
+
+## Version
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**file_version**</td><td>The current version of this configuration. This param is automatically updated by Kinetica and should not be edited manually.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-identification"></a>
+
+
+## Identification
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**ring_name**</td><td>Name of the ring containing the high availability clusters.</td></tr><tr><td>**cluster_name**</td><td>Name of the cluster containing all the nodes of the database.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-hosts"></a>
+
+
+## Hosts
+
+
+Specify each unique host in the cluster. Each host runs a local instance
+of HostManager, which manages database services and components that are
+part of the Kinetica install.
+
+Host settings are defined as follows:
+
+
+```
+host<#>.<parameter>
+```
+Any number of hosts may be configured, starting with **host0**, and must
+be specified in consecutive order (e.g., **host0**, **host1**, **host2**).
+
+
+<Info>
+For **public_address** & **host_manager_public_url**, if either parameter is
+to be specified, that parameter must be specified for all hosts.
+</Info>
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**host0.address**</td><td rowspan="7">Host *parameters* include the following:<br/><br/><ul><li>**address**                : The unique address for this host. Single host clusters may use `127.0.0.1`. This field is required.</li><li>**public_address**         : An optional public address that clients should use when performing multi-head operations.</li><li>**ha_address**             : An optional address to allow inter-cluster communication with HA when **address** is not routable between clusters.</li><li>**host_manager_public_url**: An optional public URL that can be used to access HostManager endpoints. See **host_manager_http_port**.</li><li>**ram_limit**              : An optional upper limit for RAM (in bytes) on this host, capping the amount of memory that all Kinetica processes are allowed to consume. Use `-1` for no limit.</li><li>**gpus**                   : An optional comma-separated list of GPUs (as reported by NVML) that may be reserved by Kinetica services (e.g., ranks, graph server, ML, etc.). Leave empty to make all GPUs available for use. The same failover caveat with the RAM limit also applies.</li><li>**accepts_failover**       : Whether or not this host should accept failed processes that need to be migrated off degraded hosts.  Default is to not accept failed processes.</li></ul></td></tr><tr><td>**host0.public_address**</td></tr><tr><td>**host0.ha_address**</td></tr><tr><td>**host0.host_manager_public_url**</td></tr><tr><td>**host0.ram_limit**</td></tr><tr><td>**host0.gpus**</td></tr><tr><td>**host0.accepts_failover**</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-ranks"></a>
+
+
+## Ranks
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**rank0.host**</td><td rowspan="3">Specify the host on which to run each rank worker process in the cluster. Multiple ranks may run on the same host. If a rank is specified with an empty host entry, it is effectively disabled (i.e., removed from the cluster) and no persisted data for this rank will be loaded even if present on any host. (e.g. 'rank2.host = host1' to run rank2 on host1)</td></tr><tr><td>**rank1.host**</td></tr><tr><td>**rank2.host**</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-network"></a>
+
+
+## Network
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**head_ip_address**</td><td>Head HTTP server IP address. Set to the publicly accessible IP address of the first process, **rank0**.</td></tr><tr><td>**head_port**</td><td>Head HTTP server port to use for **head_ip_address**.</td></tr><tr><td>**use_https**</td><td>Set to `true` to use HTTPS; if `true` then **https_key_file** and **https_cert_file** must be provided</td></tr><tr><td>**https_key_file**</td><td rowspan="2">Files containing the SSL private key and the SSL certificate. If required, a self signed certificate (expires after 10 years) can be generated via the command:<br/><br/><pre><code>openssl req -newkey rsa:2048 -new -nodes -x509 \\
+  -days 3650 -keyout key.pem -out cert.pem</code></pre><br/></td></tr><tr><td>**https_cert_file**</td></tr><tr><td>**http_allow_origin**</td><td>Value to return via Access-Control-Allow-Origin HTTP header (for Cross-Origin Resource Sharing). Set to empty to not return the header and disallow CORS.</td></tr><tr><td>**enable_httpd_proxy**</td><td>Start an HTTP server as a proxy to handle LDAP and/or Kerberos authentication. Each host will run an HTTP server and access to each rank is available through http://host:8082/gpudb-1, where port `8082` is defined by **httpd_proxy_port**.<br/> <Info> HTTP external endpoints are not affected by the **use_https** parameter above. If you wish to enable HTTPS, you must edit the `/opt/gpudb/httpd/conf/httpd.conf` and setup HTTPS as per the Apache httpd documentation at https://httpd.apache.org/docs/2.2/ </Info></td></tr><tr><td>**httpd_proxy_port**</td><td>TCP port that the httpd auth proxy server will listen on if **enable_httpd_proxy** is `true`.</td></tr><tr><td>**httpd_proxy_use_https**</td><td>Set to `true` if the httpd auth proxy server is configured to use HTTPS.</td></tr><tr><td>**trigger_port**</td><td>Trigger ZMQ publisher server port (`-1` to disable), uses the **head_ip_address** interface.</td></tr><tr><td>**set_monitor_port**</td><td>Set monitor ZMQ publisher server port (`-1` to disable), uses the **head_ip_address** interface.</td></tr><tr><td>**set_monitor_proxy_port**</td><td>Set monitor ZMQ publisher internal proxy server port (`-1` to disable), uses the **head_ip_address** interface.<br/> <Note> Disabling this port effectively prevents worker nodes from publishing set monitor notifications when multi-head ingest is enabled (see **enable_worker_http_servers** ). </Note></td></tr><tr><td>**set_monitor_queue_size**</td><td>Set monitor queue size</td></tr><tr><td>**enable_reveal**</td><td>Enable Reveal runtime</td></tr><tr><td>**global_manager_port_one**</td><td>Internal communication ports</td></tr><tr><td>**global_manager_pub_port**</td><td>Host manager synchronization port</td></tr><tr><td>**global_manager_local_pub_port**</td><td>Local host manager port</td></tr><tr><td>**host_manager_http_port**</td><td>HTTP port for web portal of the host manager</td></tr><tr><td>**enable_worker_http_servers**</td><td>Enable worker HTTP servers; each process runs its own server for multi-head ingest.</td></tr><tr><td>**rank1.worker_http_server_port**</td><td rowspan="2">Optionally, specify the worker HTTP server ports. The default is to use (**head_port** + *rank #*) for each worker process where rank number is from `1` to number of ranks in **rank&lt;#&gt;.host** below.</td></tr><tr><td>**rank2.worker_http_server_port**</td></tr><tr><td>**rank0.public_url**</td><td rowspan="3">Optionally, specify a public URL for each worker HTTP server that clients should use to connect for multi-head operations.<br/> <Info> If specified for any ranks, a public URL must be specified for all ranks. </Info></td></tr><tr><td>**rank1.public_url**</td></tr><tr><td>**rank2.public_url**</td></tr><tr><td>**rank0.communicator_port**</td><td rowspan="3">Specify the TCP ports each rank will use to communicate with the others. If the port for any **rank&lt;#&gt;** is not specified the port will be assigned to **rank0.communicator_port** + *rank #*.</td></tr><tr><td>**rank1.communicator_port**</td></tr><tr><td>**rank2.communicator_port**</td></tr><tr><td>**compress_network_data**</td><td>Enables compression of inter-node network data transfers.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-security"></a>
+
+
+## Security
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**require_authentication**</td><td>Require authentication.</td></tr><tr><td>**enable_authorization**</td><td>Enable authorization checks.</td></tr><tr><td>**min_password_length**</td><td>Minimum password length.</td></tr><tr><td>**enable_external_authentication**</td><td>Enable external (LDAP, Kerberos, etc.) authentication. User IDs of externally-authenticated users must be passed in via the `REMOTE_USER` HTTP header from the authentication proxy. May be used in conjuntion with the **enable_httpd_proxy** setting above for an integrated external authentication solution.<br/> <Note> DO NOT ENABLE unless external access to Kinetica ports has been blocked via firewall AND the authentication proxy is configured to block `REMOTE_USER` HTTP headers passed in from clients. </Note></td></tr><tr><td>**external_authentication_handshake_key**</td><td>Encrypted key that, if specified, must be passed in unencrypted via the `KINETICA_HANDSHAKE_KEY` HTTP header from the authentication proxy if a `REMOTE_USER` HTTP header is also passed in. A missing or incorrect handshake key will result in rejection of the request.</td></tr><tr><td>**unified_security_namespace**</td><td>Use a single namespace for internal and external user IDs and role names. If `false`, external user IDs must be prefixed with `@` to differentiate them from internal user IDs and role names (except in the `REMOTE_USER` HTTP header, where the `@` is omitted).</td></tr><tr><td>**auto_create_external_users**</td><td>Automatically create accounts for externally-authenticated users. If **enable_external_authentication** is `false`, this setting has no effect. Note that accounts are not automatically deleted if users are removed from the external authentication provider and will be orphaned.</td></tr><tr><td>**auto_grant_external_roles**</td><td>Automatically add roles passed in via the `KINETICA_ROLES` HTTP header to externally-authenticated users. Specified roles that do not exist are ignored. If **enable_external_authentication** is `false`, this setting has no effect.<br/> <Note> DO NOT ENABLE unless the authentication proxy is configured to block `KINETICA_ROLES` HTTP headers passed in from clients. </Note></td></tr><tr><td>**auto_revoke_external_roles**</td><td>Comma-separated list of roles to revoke from externally-authenticated users prior to granting roles passed in via the `KINETICA_ROLES` HTTP header, or `*` to revoke all roles. Preceding a role name with an `!` overrides the revocation (e.g. `*,!foo` revokes all roles except `foo`). Leave blank to disable. If either **enable_external_authentication** or **auto_grant_external_roles** is `false`, this setting has no effect.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-external-security"></a>
+
+
+## External Security
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**security.external.ranger.url**</td><td>URL of Ranger REST API.  E.g., https://localhost:6080/ Leave blank for no Ranger Server</td></tr><tr><td>**security.external.ranger.service_name**</td><td>Name of the service created on the Ranger Server to manage this Kinetica instance</td></tr><tr><td>**security.external.ranger.cache_minutes**</td><td>Maximum minutes to hold on to data from Ranger</td></tr><tr><td>**security.external.ranger_authorizer.address**</td><td>The network URI for the Ranger Authorizer to start. The URI can be either TCP or IPC. TCP address is used to indicate the remote Ranger Authorizer which may run at other hosts. The IPC address is for a local Ranger Authorizer.<br/><br/>Example addresses for remote or TCP servers:<br/><br/><pre><code>tcp://127.0.0.1:9293
+tcp://HOST_IP:9293</code></pre><br/>Example address for local IPC servers:<br/><br/><pre><code>ipc:///tmp/gpudb-ranger-0</code></pre><br/></td></tr><tr><td>**security.external.ranger_authorizer.timeout**</td><td>Ranger Authorizer timeout in seconds</td></tr><tr><td>**security.external.ranger_authorizer.remote_debug_port**</td><td>Remote debugger port used for the Ranger Authorizer. Setting the port to `0` disables remote debugging.<br/> <Info> Recommended port to use is `5005` </Info></td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-mcp-oauth-server"></a>
+
+
+## MCP OAuth Server
+
+
+Kinetica provides a small OAuth server that needs to be enabled for MCP
+clients to authenticate to Kinetica.  It should be enabled if the MCP server
+is enabled by **mcp.enable_server**.
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**mcp_oauth.enable_server**</td><td>Enable the OAuth server to start and stop with the database.</td></tr><tr><td>**mcp_oauth.server_port**</td><td>Network port the OAuth server listens on. See other configuration options in `/opt/gpudb/auth/bin/conf_template.sh`.</td></tr><tr><td>**mcp_oauth.httpd_proxy_port**</td><td>Network port the HTTPd proxy to the OAuth server listens on; see **enable_httpd_proxy**.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-mcp-(model-context-protocol)-server"></a>
+
+
+## MCP (Model Context Protocol) Server
+
+
+Server for interfacing with LLMs to generate text to SQL.
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**mcp.enable_server**</td><td>Enable the MCP server to start and stop with the database.</td></tr><tr><td>**mcp.server_port**</td><td>Network port the MCP server listens on. See other configuration options in `/opt/gpudb/mcp/bin/conf_template.sh`.</td></tr><tr><td>**mcp.httpd_proxy_port**</td><td>Network port the HTTPd proxy to the MCP server listens on; see **enable_httpd_proxy**.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-auditing"></a>
+
+
+## Auditing
+
+
+This section controls the request auditor, which will audit all requests
+received by the server in full or in part based on the settings below.
+The output location of the audited requests is controlled via settings in
+the Auditing section of `gpudb_logger.conf`.
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**enable_audit**</td><td>Controls whether request auditing is enabled. If set to `true`, the following information is audited for every request: Job ID, URI, User, and Client Address. The settings below control whether additional information about each request is also audited. If set to `false`, all auditing is disabled.</td></tr><tr><td>**audit_headers**</td><td>Controls whether HTTP headers are audited for each request. If **enable_audit** is `false` this setting has no effect.</td></tr><tr><td>**audit_body**</td><td>Controls whether the body of each request is audited (in JSON format). If **enable_audit** is `false` this setting has no effect.<br/> <Info> For requests that insert data records, this setting does not control the auditing of the records being inserted, only the rest of the request body; see **audit_data** below to control this. </Info></td></tr><tr><td>**audit_data**</td><td>Controls whether records being inserted are audited (in JSON format) for requests that insert data records. If either **enable_audit** or **audit_body** is `false`, this setting has no effect.<br/> <Info> Enabling this setting during bulk ingestion of data will rapidly produce very large audit logs and may cause disk space exhaustion; use with caution. </Info></td></tr><tr><td>**audit_response**</td><td>Controls whether response information is audited for each request. If **enable_audit** is `false` this setting has no effect.</td></tr><tr><td>**lock_audit**</td><td>Controls whether the above audit settings can be altered at runtime via the [/alter/system/properties](/content/api/rest/alter_system_properties_rest#alter-system-properties-rest) endpoint. In a secure environment where auditing is required at all times, this should be set to `true` to lock the settings to what is set in this file.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-licensing"></a>
+
+
+## Licensing
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**license_key**</td><td>The license key to authorize running.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-processes-and-threads"></a>
+
+
+## Processes and Threads
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**async_io_threads**</td><td>Set number of threads to spawn for http request handling, or `-1` for auto. (default: `-1`)</td></tr><tr><td>**host_manager_endpoint_threads**</td><td>Set number of endpoint threads to spawn for host manager, or `-1` for auto. (default: `-1`)</td></tr><tr><td>**rank0_endpoint_threads**</td><td>Set number of endpoint threads to spawn for rank 0, or `-1` for auto. (default: `-1`)</td></tr><tr><td>**worker_endpoint_threads**</td><td>Set number of endpoint threads to spawn for worker ranks, or `-1` for auto. (default: `-1`)</td></tr><tr><td>**init_tables_num_threads_per_tom**</td><td>Set the maximum number of threads per tom for table initialization on gpudb startup</td></tr><tr><td>**max_tbb_threads_per_rank**</td><td>Set the maximum number of threads (both workers and masters) to be passed to TBB on initialization.  Generally speaking, **max_tbb_threads_per_rank** - `1` TBB workers will be created.  Use `-1` for no limit.</td></tr><tr><td>**toms_per_rank**</td><td>Set the number of TOMs (data container shards) per rank</td></tr><tr><td>**tps_per_tom**</td><td>Size of the worker rank data processing thread pool. This includes operations such as inserts, updates, and deletes on table data. NB multi-head inserts are not affected by this limit.</td></tr><tr><td>**tcs_per_tom**</td><td>Size of the worker rank data calculation thread pool. This is primarily used for computation-based operations such as aggregates and record retrieval.</td></tr><tr><td>**background_worker_threads**</td><td>Size of the worker rank background thread pool. This is used for background operations such as tier watermark evictions and catalog table updates.</td></tr><tr><td>**subtask_concurrency_limit**</td><td>Controls the query-level concurrency of the scheduler<br/><br/>The scheduler maintains two lists: 1. Active list (size = **subtask_concurrency_limit**) 2. Pending list (unbounded)<br/><br/>When a thread needs work, it round-robins through the active list first. Only if no work is available in the active list does it check the pending list.<br/><br/>Queries are promoted to active based on job priority (highest first), then job id (lowest first) as slots become available (when active queries complete).<br/><br/>Lower values favor depth-first execution: threads concentrate on fewer queries, completing them quickly. Higher values favor breadth-first: threads distribute work across more queries for better concurrency and fairness.<br/><br/>Example: With **subtask_concurrency_limit** of `4` and 16 threads, up to 4 queries receive active scheduling. Pending queries can still execute if there are available threads and all active queries are blocked, or saturated, or otherwise idle.</td></tr><tr><td>**enable_thread_hang_logging**</td><td>Log a stack trace for any thread that runs longer than a defined threshold. Used to diagnose stuck or long-running tasks.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-hardware"></a>
+
+
+## Hardware
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**rank0.gpu**</td><td>Specify the GPU to use for all calculations on the HTTP server node, **rank0**.<br/> <Info> The **rank0** GPU may be shared with another rank. </Info></td></tr><tr><td>**rank1.taskcalc_gpu**</td><td rowspan="2">Set the GPU device for each worker rank to use. If no GPUs are specified, each rank will round-robin the available GPUs per host system. Add **rank&lt;#&gt;.taskcalc_gpu** as needed for the worker ranks, where *#* ranges from `1` to the highest *rank #* among the **rank&lt;#&gt;.host** parameters<br/><br/>Example setting the GPUs to use for ranks 1 and 2:<br/><br/><pre><code>rank1.taskcalc_gpu = 0
+rank2.taskcalc_gpu = 1</code></pre><br/></td></tr><tr><td>**rank2.taskcalc_gpu**</td></tr><tr><td>**rank0.numa_node**</td><td>Set the head HTTP **rank0** numa node(s). If left empty, there will be no thread affinity or preferred memory node. The node list may be either a single node number or a range; e.g., `1-5,7,10`.<br/><br/>If there will be many simultaneous users, specify as many nodes as possible that won't overlap the **rank1** to **rankN** worker numa nodes that the GPUs are on.<br/><br/>If there will be few simultaneous users and WMS speed is important, choose the numa node the **rank0.gpu** is on.</td></tr><tr><td>**rank1.base_numa_node**</td><td rowspan="2">Set each worker rank's preferred base numa node for CPU affinity and memory allocation. The **rank&lt;#&gt;.base_numa_node** is the node or nodes that non-data intensive threads will run in. These nodes do not have to be the same numa nodes that the GPU specified by the corresponding **rank&lt;#&gt;.taskcalc_gpu** is on for best performance, though they should be relatively near to their **rank&lt;#&gt;.data_numa_node**.<br/><br/>There will be no CPU thread affinity or preferred node for memory allocation if not specified or left empty.<br/><br/>The node list may be a single node number or a range; e.g., `1-5,7,10`.</td></tr><tr><td>**rank2.base_numa_node**</td></tr><tr><td>**rank1.data_numa_node**</td><td rowspan="2">Set each worker rank's preferred data numa node for CPU affinity and memory allocation. The **rank&lt;#&gt;.data_numa_node** is the node or nodes that data intensive threads will run in and should be set to the same numa node that the GPU specified by the corresponding **rank&lt;#&gt;.taskcalc_gpu** is on for best performance.<br/><br/>If the **rank&lt;#&gt;.taskcalc_gpu** is specified the **rank&lt;#&gt;.data_numa_node** will be automatically set to the node the GPU is attached to, otherwise there will be no CPU thread affinity or preferred node for memory allocation if not specified or left empty.<br/><br/>The node list may be a single node number or a range; e.g., `1-5,7,10`.</td></tr><tr><td>**rank2.data_numa_node**</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-general"></a>
+
+
+## General
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**default_ttl**</td><td>Time-to-live in minutes of non-protected tables before they are automatically deleted from the database.</td></tr><tr><td>**disable_clear_all**</td><td>Disallow the [/clear/table](/content/api/rest/clear_table_rest#clear-table-rest) request to clear all tables.</td></tr><tr><td>**pinned_memory_pool_size**</td><td>Size in bytes of the pinned memory pool per-rank process to speed up copying data to the GPU.  Set to `0` to disable.</td></tr><tr><td>**concurrent_kernel_execution**</td><td>Enable (if `true`) multiple kernels to run concurrently on the same GPU.</td></tr><tr><td>**max_concurrent_kernels**</td><td>Maximum number of kernels that can be running at the same time on a given GPU. Set to `0` for no limit. Only takes effect if **concurrent_kernel_execution** is `true`.</td></tr><tr><td>**force_host_filter_execution**</td><td>If `true` then all filter execution will be host-only (i.e. CPU). This can be useful for high-concurrency situations and when PCIe bandwidth is a limiting factor.</td></tr><tr><td>**max_get_records_size**</td><td>Maximum number of records that data retrieval requests such as [/get/records](/content/api/rest/get_records_rest#get-records-rest) and [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest#aggregate-groupby-rest) will return per request.</td></tr><tr><td>**request_timeout**</td><td>Timeout (in minutes) for filter-type requests</td></tr><tr><td>**on_startup_script**</td><td>Set an optional executable command that will be run once when Kinetica is ready for client requests. This can be used to perform any initialization logic that needs to be run before clients connect. It will be run as the `gpudb` user, so you must ensure that any required permissions are set on the file to allow it to be executed.  If the command cannot be executed or returns a non-zero error code, then Kinetica will be stopped.  Output from the startup script will be logged to `/opt/gpudb/core/logs/gpudb-on-start.log` (and its dated relatives).  The `gpudb_env.sh` script is run directly before the command, so the path will be set to include the supplied Python runtime.<br/><br/>Example:<br/><br/><pre><code>on_startup_script = /bin/ks arg1 arg2 ...</code></pre><br/></td></tr><tr><td>**enable_pk_equi_join**</td><td>Enable pk-equi-join filters.</td></tr><tr><td>**enable_predicate_equi_join**</td><td>Enable predicate-equi-join filter plan type.</td></tr><tr><td>**enable_overlapped_equi_join**</td><td>Enable overlapped-equi-join filters.</td></tr><tr><td>**timeout_startup_subsystem**</td><td>Timeout (in seconds) to wait for each database subsystem to start up. Subsystems include the Query Planner, Graph, Stats, & HTTP servers, as well as external text-search ranks.</td></tr><tr><td>**timeout_shutdown_subsystem**</td><td>Timeout (in seconds) to wait for each database subsystem to exit gracefully before it is force-killed.</td></tr><tr><td>**cluster_event_timeout_startup_rank**</td><td>Timeout (in seconds) to wait for a rank to start during a cluster event (ex: failover) event is considered failed.</td></tr><tr><td>**timeout_shutdown_rank**</td><td>Timeout (in seconds) to wait for a rank to exit gracefully before it is force-killed. Machines with slow disk drives may require longer times and data may be lost if a drive is not responsive.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-visualization"></a>
+
+
+## Visualization
+
+
+Several of these options interact when determining the system resources
+required for visualization.  Worker ranks use `F(N+1)` bytes of GPU memory
+(VRAM) and `F` bytes of main memory (RAM) where:
+
+
+```
+F = max_heatmap_size * max_heatmap_size * 6 bytes
+N = opengl_antialiasing_level
+```
+For example, when **max_heatmap_size** is `3072`, and **opengl_antialasing_level**
+is `0`, 56.6 MB of VRAM are required.  When **opengl_antialasing_level** is `4`,
+283 MB are required.
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**point_render_threshold**</td><td>Threshold number of points (per-TOM) at which point rendering switches to fast mode.</td></tr><tr><td>**symbology_render_threshold**</td><td>Threshold for the number of points (per-TOM) after which symbology rendering falls back to regular rendering.</td></tr><tr><td>**max_heatmap_size**</td><td>Maximum heatmap size (in pixels) that can be generated. This reserves **max_heatmap_size** <sup>2</sup> * 8 bytes of GPU memory at **rank0**.</td></tr><tr><td>**symbol_resolution**</td><td>The image width/height (in pixels) of SVG symbols cached in the OpenGL symbol cache.</td></tr><tr><td>**symbol_texture_size**</td><td>The width/height (in pixels) of an OpenGL texture which caches symbol images for OpenGL rendering.</td></tr><tr><td>**enable_opengl_renderer**</td><td>If `true`, enable hardware-accelerated OpenGL renderer; if `false`, use the software-based Cairo renderer.</td></tr><tr><td>**opengl_antialiasing_level**</td><td>The number of samples to use for antialiasing. Higher numbers will improve image quality but require more GPU memory to store the samples on worker ranks.  This affects only the OpenGL renderer.<br/><br/>Value may be `0`, `4`, `8` or `16`.  When `0` antialiasing is disabled. The default value is `0`.</td></tr><tr><td>**rendering_precision_threshold**</td><td>Single-precision coordinates are used for usual rendering processes, but depending on the precision of geometry data and use case, double precision processing may be required at a high zoom level. Double precision rendering processes are used from the zoom level specified by this parameter, which is corresponding to a zoom level of TMS or Google map service.</td></tr><tr><td>**enable_lod_rendering**</td><td>Enable levels-of-detail rendering for fast interaction with large WKT polygon data.  Only available for the OpenGL renderer (when **enable_opengl_renderer** is `true`).</td></tr><tr><td>**enable_vectortile_service**</td><td>If `true`, enable Vector Tile Service (VTS) to support client-side visualization of geospatial data. Enabling this option increases memory usage on ingestion.</td></tr><tr><td>**min_vectortile_zoomlevel**</td><td>Input geometries are pre-processed upon ingestion for faster vector tile generation. This parameter determines the zoom level from which the vector tile pre-processing starts. A vector tile request for a lower zoom level than this parameter takes additional time because the vector tile needs to be generated on the fly.</td></tr><tr><td>**max_vectortile_zoomlevel**</td><td>Input geometries are pre-processed upon ingestion for faster vector tile generation. This parameter determines the zoom level at which the vector tile pre-processing stops. A vector tile request for a higher zoom level than this parameter takes additional time because the vector tile needs to be generated on the fly.</td></tr><tr><td>**vectortile_map_tiler**</td><td>The name of map tiler used for Vector Tile Service. `google` and `tms` map tilers are supported currently. This parameter should be matched with the map tiler of clients' vector tile renderer.</td></tr><tr><td>**lod_data_extent**</td><td>Longitude and latitude ranges of geospatial data for which levels-of-detail representations are being generated. The parameter order is:<br/><br/><pre><code>&lt;min_lon&gt; &lt;min_lat&gt; &lt;max_lon&gt; &lt;max_lat&gt;</code></pre><br/>The default values span over the world, but the levels-of-detail rendering becomes more efficient when the precise extent of geospatial data is specified.</td></tr><tr><td>**lod_subregion_num**</td><td>The number of subregions in horizontal and vertical geospatial data extent. The default values of `12 6` divide the world into subregions of 30 degree (lon) x 30 degree (lat).</td></tr><tr><td>**lod_subregion_resolution**</td><td>A base image resolution (width and height in pixels) at which a subregion would be rendered in a global view spanning over the whole dataset. Based on this resolution, levels-of-detail representations are generated for the polygons located in the subregion.</td></tr><tr><td>**max_lod_level**</td><td>The maximum number of levels in the levels-of-detail rendering. As the number increases, levels-of-detail rendering becomes effective at higher zoom levels, but it may increase memory usage for storing levels-of-detail representations.</td></tr><tr><td>**lod_preprocessing_level**</td><td>The extent to which shape data are pre-processed for levels-of-detail rendering during data insert/load or processed on-the-fly in rendering time. This is a trade off between speed and memory. The higher the value, the faster levels-of-detail rendering is, but the more memory is used for storing processed shape data.<br/><br/>The maximum level is `10` (most shape data are pre-processed) and the minimum level is `0`.</td></tr><tr><td>**vts.max_vertices_per_chunk**</td><td>The maximum number of vertices within a chunk when rendering VTS tiles. If a chunk has more vertices than this limit the VTS request will return an error.</td></tr><tr><td>**vts.max_features_per_tile**</td><td>The maximum number of features that will be returned in a VTS tile. This limit is applied at the chunk level so the actual returned VTS tile may have more features. If thera are more features within the given tile within a chunk the additional features will not be returned within the tile.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-video"></a>
+
+
+## Video
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**video_default_ttl**</td><td>System default TTL for videos. Time-to-live (TTL) is the number of minutes before a video will expire and be removed, or `-1` to disable.</td></tr><tr><td>**video_max_count**</td><td>The maximum number of videos to allow on the system. Set to `0` to disable video rendering.  Set to `-1` to allow an unlimited number of videos.</td></tr><tr><td>**video_temp_directory**</td><td>Directory where video files should be temporarily stored while rendering. Only accessed by rank 0.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-gadmin"></a>
+
+
+## GAdmin
+
+
+GAdmin is a web-based UI for administering the Kinetica DB and system.
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**enable_tomcat**</td><td>Enable Tomcat web-server for the GAdmin UI</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-workbench"></a>
+
+
+## Workbench
+
+
+Workbench is a web-based UI for managing database objects and writing rich SQL
+Workbooks in Kinetica.
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**enable_workbench**</td><td>Start the Workbench app on the head host when host manager is started.</td></tr><tr><td>**workbench_port**</td><td>HTTP server port for Workbench if enabled.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-text-search"></a>
+
+
+## Text Search
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**enable_text_search**</td><td>Enable text search capability within the database.</td></tr><tr><td>**use_external_text_server**</td><td>Use the production capable external text server instead of a lightweight internal server which should only be used for light testing.<br/> <Info> The internal text server is deprecated and may be removed in future versions. </Info></td></tr><tr><td>**text_indices_per_tom**</td><td>Number of text indices to start for each rank</td></tr><tr><td>**text_searcher_refresh_interval**</td><td>Searcher refresh intervals - specifies the maximum delay (in seconds) between writing to the text search index and being able to search for the value just written.  A value of `0` insures that writes to the index are immediately available to be searched.  A more nominal value of `100` should improve ingest speed at the cost of some delay in being able to text search newly added values.</td></tr><tr><td>**rank1.text_index_address**</td><td rowspan="2">External text server addresses to use if **use_external_text_server** is `true`.<br/><br/>Specify one for each worker **rank&lt;#&gt;**, where *#* ranges from `1` to highest index in **rank&lt;#&gt;.host**. Add the appropriate number of **rank&lt;#&gt;.text_index_address** for each worker rank as needed. The addresses can be a fully qualified TCP *address:port* for remote servers or an IPC address for local text index servers.<br/><br/>If no addresses are specified, the text index servers will use IPC and be started on the machine where the rank is running as shown in the IPC example below. You should either specify all addresses or none to get the defaults.<br/><br/>Example for remote or TCP servers:<br/><br/><pre><code>rank1.text_index_address  = tcp://127.0.0.1:4000
+rank2.text_index_address  = tcp://127.0.0.1:4001
+... up to rank&lt;N&gt;.text_index_address = ...</code></pre><br/>Example for local IPC servers:<br/><br/><pre><code>rank1.text_index_address  = ipc:///tmp/gpudb-text-index-1
+rank2.text_index_address  = ipc:///tmp/gpudb-text-index-2
+... up to rank&lt;N&gt;.text_index_address = ...</code></pre><br/>Where `/tmp/gpudb-text-index-1` is the name of the socket file to create.</td></tr><tr><td>**rank2.text_index_address**</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-persistence"></a>
+
+
+## Persistence
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**persist_directory**</td><td>Specify a base directory to store persistence data files.</td></tr><tr><td>**sms_directory**</td><td>Base directory to store hashed strings.</td></tr><tr><td>**text_index_directory**</td><td>Base directory to store the text search index.</td></tr><tr><td>**temp_directory**</td><td>Directory for Kinetica to use to store temporary files. Must be a fully qualified path, have at least 100Mb of free space, and execute permission.</td></tr><tr><td>**fsync_inodes_immediate**</td><td>Fsync directories in persist after every update to ensure filesystem TOC is up to date.</td></tr><tr><td>**metadata_store_pool_size**</td><td>Maximum number of open metadata stores per rank.</td></tr><tr><td>**metadata_store_sync_mode**</td><td>Sync mode to use when persisting metadata stores to disk:<br/><br/><ul><li>`off`       : Turn off synchronous writes by default</li><li>`normal`    : Use normal synchronous writes by default</li><li>`full`      : Use full synchronous writes by default</li></ul></td></tr><tr><td>**wal.max_segment_size**</td><td>Maximum size of each write-ahead log (WAL) segment file. Larger sizes generally require more objects to be flushed before a given segment can be freed, thus increasing the WAL disk usage; whereas smaller sizes increase the number of disk open/close operations.</td></tr><tr><td>**wal.segment_count**</td><td>Approximate number of segment files to split the WAL across. A minimum of two is required. The size of the WAL is limited by **segment_count** * **max_segment_size** (per rank and per tom). Set to `0` to remove a size limit on the WAL itself, but still be bounded by rank tier limits. Set to `-1` to have the database decide automatically per table.</td></tr><tr><td>**wal.sync_policy**</td><td>Sync mode to use when persisting WAL entries to disk:<br/><br/><ul><li>`none`       : Disable the WAL.</li><li>`background` : WAL entries are periodically flushed instead of immediately after each operation.</li><li>`flush`      : Protect entries in the event of a database crash.</li><li>`fsync`      : Protect entries in the event of an OS crash.</li></ul></td></tr><tr><td>**wal.flush_frequency**</td><td>Given a **sync_policy** of `background`, specifies how frequently WAL entries are flushed to disk.</td></tr><tr><td>**wal.checksum**</td><td>Enable checksum protection on the WAL entries.</td></tr><tr><td>**wal.truncate_corrupt_tables_on_start**</td><td>If `true`, any table that is found to be corrupt after replaying its WAL at startup will automatically be truncated so that the table becomes operable. If `false`, the user will be responsible for resolving the issue via SQL `REPAIR TABLE` or similar.</td></tr><tr><td>**wal.auto_truncate_corrupt_tables**</td><td>If `true`, any table chunks identified as corrupt will automatically be truncated in the background. If `false`, the user will be responsible for resolving the issue via SQL `REPAIR TABLE` or similar.</td></tr><tr><td>**wal.clear_entries_immediately**</td><td>If `true`, WAL entries are removed immediately after flushing to disk. If `false`, flushed entries are retained in the WAL until the next write cycle. Retaining entries gives slower filesystems additional time to commit writes without requiring an fsync.</td></tr><tr><td>**compression_codec**</td><td>Compression algorithm applied to any column without a column-level or table-level default compression specified at the time it was created:<br/><br/><ul><li>`none`        : No default column compression</li><li>`lz4`         : LZ4 compression with optional compression level; e.g. `lz4(<level>)`</li><li>`snappy`      : Snappy compression</li><li>`zstd`        : zstd compression with optional compression level; e.g. `zstd(<level>)`</li></ul></td></tr><tr><td>**disk_auto_optimize_timeout**</td><td>Time interval in seconds after which the database will apply optimizations/transformations of persisted data, such as compression, for data which has not been persisted as such already.</td></tr><tr><td>**persist_sync_time**</td><td>The maximum time in seconds a secondary column store persist data file can be out of sync with memory. Set to a very high number to disable forced syncing.</td></tr><tr><td>**load_vectors_on_start**</td><td rowspan="3">Startup data-loading scheme:<br/><br/><ul><li>`always`    : Load as much of the stored data as possible into memory before accepting requests.</li><li>`lazy`      : Load the necessary data to start, and load as much of the remainder of the stored data as possible into memory lazily.</li><li>`on_demand` : Only load data as requests use it.</li></ul></td></tr><tr><td>**build_pk_index_on_start**</td></tr><tr><td>**build_materialized_views_on_start**</td></tr><tr><td>**max_auto_view_updators**</td><td>Maximum number of active automatic view updators.</td></tr><tr><td>**sms_max_open_files**</td><td>Maximum number of open files (per-TOM) for the SMS (string) store.</td></tr><tr><td>**chunk_size**</td><td>Number of records per chunk (`0` disables chunking).</td></tr><tr><td>**chunk_column_max_memory**</td><td>Maximum data size for any one column in a chunk to be stored in memory in bytes; 512 MB is the default.  Set to `0` to disable.</td></tr><tr><td>**chunk_max_memory**</td><td>Maximum total chunk data size for all columns in a table in bytes. The default is size based on **tier.ram** limits or host memory per rank, up to 8 GB. Set to `0` to disable.</td></tr><tr><td>**execution_mode**</td><td>Determines whether to execute kernels on host (CPU) or device (GPU). Possible values are:<br/><br/><ul><li>`default`   : Engine decides.</li><li>`host`      : Execute only on the host.</li><li>`device`    : Execute only on the device.</li><li>*&lt;rows&gt;*    : Execute on the host if chunked column contains the given number of *rows* or fewer; otherwise, execute on the device.</li></ul></td></tr><tr><td>**shadow_cube_enabled**</td><td>Whether or not to enable chunk caching.</td></tr><tr><td>**shadow_agg_size**</td><td>The maximum number of bytes in the shadow aggregate cache.</td></tr><tr><td>**shadow_filter_size**</td><td>The maximum number of bytes in the shadow filter cache.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-monitoring-/-statistics"></a>
+
+
+## Monitoring / Statistics
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**enable_stats_server**</td><td>Run a statistics server to collect information about Kinetica and the machines it runs on.</td></tr><tr><td>**event_server_internal**</td><td>Use the internal event and metric server on the head host server if `true`, otherwise use the Kagent services. Note that Kagent installs will automatically set this value to `false`.</td></tr><tr><td>**event_server_address**</td><td rowspan="2">Event collector server address and port.</td></tr><tr><td>**event_server_port**</td></tr><tr><td>**enable_promtail**</td><td>Enable running Promtail to parse and send logs to the **event_server_address**.</td></tr><tr><td>**alertmanager_address**</td><td rowspan="2">Alertmanager server address and port.</td></tr><tr><td>**alertmanager_port**</td></tr><tr><td>**fluentbit_address**</td><td rowspan="2">Fluentbit TCP server address and port with a JSON format parser.</td></tr><tr><td>**fluentbit_port**</td></tr><tr><td>**telm.persist_query_metrics**</td><td>Store query metrics in a persistent table. If disabled, metrics will still be available for point-in-time export.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-procs"></a>
+
+
+## Procs
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**enable_procs**</td><td>Enable procs (UDFs)</td></tr><tr><td>**proc_directory**</td><td>Directory where proc files are stored at runtime. Must be a fully qualified path with execute permission. Python virtual environment installations are also persisted in this directory and can be referenced by executing procs.</td></tr><tr><td>**proc_data_directory**</td><td>Directory where data transferred to and from procs is written. Must be a fully qualified path with sufficient free space for required volume of data.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-graph-servers"></a>
+
+
+## Graph Servers
+
+
+One or more graph servers can be created across available hosts.
+
+
+<br/>
+
+<a id="config-main-global-parameters"></a>
+
+
+### Global Parameters
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**enable_graph_server**</td><td>Enable/Disable all graph operations.</td></tr><tr><td>**graph.head_port**</td><td>Port used for responses from the graph server to the database server.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-server-specific-parameters"></a>
+
+
+### Server-Specific Parameters
+
+
+Any number of graph servers may be configured, starting with **server0**, and
+must be specified in consecutive order (e.g., **server0**, **server1**, **server2**).
+
+Server settings are defined as follows:
+
+
+```
+graph.server<#>.<parameter>
+```
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**graph.server0.host**</td><td rowspan="2">Valid *parameter* names include:<br/><br/><ul><li>**host**      : Host on which the graph server process will be run.</li><li>**port**      : Ports used for requests from the database server to the graph server(s). Either all ports (one per graph server) should be specified or a single starting value that will be incremented for each subsequent graph.  Default starting value begins after the **graph.head_port**.</li><li>**ram_limit** : Maximum RAM memory (bytes) a server can use at any given time Default is `0`, which uses rank RAM tier limits to limit memory See the Tiered Storage section for tier limit details.</li></ul><br/><br/>Example of two graph servers, with the following configuration:<br/><br/><ul><li>Database listens on port 8099 for graph server responses</li><li>Graph **server0** runs on **host2**, listens on port **8100**, and uses default RAM tier limits</li><li>Graph **server1** runs on **host4**, listens on port **8101**, and uses a RAM limit of 500MB</li></ul><br/><br/><pre><code>graph.head_port = 8099
+graph.server0.host = host2
+graph.server1.host = host4
+graph.server0.ram_limit = 0
+graph.server1.ram_limit = 500000000</code></pre><br/></td></tr><tr><td>**graph.server0.ram_limit**</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-etcd"></a>
+
+
+## Etcd
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**etcd_urls**</td><td>List of accessible etcd server URLs.</td></tr><tr><td>**etcd_auth_user**</td><td>Encrypted login credential for etcd at given URLs.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-ha"></a>
+
+
+## HA
+
+
+Enable/Disable HA from here. All other parameters will be in etcd at the
+address specified in the relevant section above.
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**enable_ha**</td><td>Enable HA.</td></tr><tr><td>**enable_ha_replay**</td><td>Enable HA replay. When enabled, all HA requests are recorded in a distributed log, allowing them to be replayed during recovery.</td></tr><tr><td>**ha_consumer_replay_offset**</td><td>If a non-negative value is provided, begins HA replay at the given timestamp (as milliseconds since Unix epoch). Only available if **enable_ha_replay** was previously enabled.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-machine-learning-(ml)"></a>
+
+
+## Machine Learning (ML)
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**enable_ml**</td><td>Enable the ML server.</td></tr><tr><td>**ml_api_port**</td><td>Default ML API service port number.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-alerts"></a>
+
+
+## Alerts
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**enable_alerts**</td><td>Enable the alerting system.</td></tr><tr><td>**alert_exe**</td><td>Executable to run when an alert condition occurs. This executable will only be run on **rank0** and does not need to be present on other nodes.</td></tr><tr><td>**alert_host_status**</td><td>Trigger an alert whenever the status of a host or rank changes.</td></tr><tr><td>**alert_host_status_filter**</td><td>Optionally, filter host alerts for a comma-delimited list of statuses. If a filter is empty, every host status change will trigger an alert.</td></tr><tr><td>**alert_rank_status**</td><td>Trigger an alert whenever the status of a rank changes.</td></tr><tr><td>**alert_rank_status_filter**</td><td>Optionally, filter rank alerts for a comma-delimited list of statuses. If a filter is empty, every rank status change will trigger an alert.</td></tr><tr><td>**alert_rank_cuda_error**</td><td>Trigger an alert if a CUDA error occurs on a rank.</td></tr><tr><td>**alert_rank_fallback_allocator**</td><td>Trigger alerts when the fallback allocator is employed; e.g., host memory is allocated because GPU allocation fails.<br/> <Info> To prevent a flooding of alerts, if a fallback allocator is triggered in bursts, not every use will generate an alert. </Info></td></tr><tr><td>**alert_error_messages**</td><td>Trigger generic error message alerts, in cases of various significant runtime errors.</td></tr><tr><td>**alert_memory_percentage**</td><td rowspan="2">Trigger an alert if available memory on any given node falls to or below a certain threshold, either absolute (number of bytes) or percentage of total memory. For multiple thresholds, use a comma-delimited list of values.</td></tr><tr><td>**alert_memory_absolute**</td></tr><tr><td>**alert_disk_percentage**</td><td rowspan="2">Trigger an alert if available disk space on any given node falls to or below a certain threshold, either absolute (number of bytes) or percentage of total disk space. For multiple thresholds, use a comma-delimited list of values.</td></tr><tr><td>**alert_disk_absolute**</td></tr><tr><td>**alert_max_stored_alerts**</td><td>The maximum number of triggered alerts guaranteed to be stored at any given time. When this number of alerts is exceeded, older alerts may be discarded to stay within the limit.</td></tr><tr><td>**trace_directory**</td><td>Directory where the trace event and summary files are stored.  Must be a fully qualified path with sufficient free space for required volume of data.</td></tr><tr><td>**trace_event_buffer_size**</td><td>The maximum number of trace events to be collected.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-postgresql-proxy-server"></a>
+
+
+## PostgreSQL Proxy Server
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**enable_postgres_proxy**</td><td>Start a PostgreSQL(TCP) server as a proxy to handle PostgreSQL Wire Protocol messages.</td></tr><tr><td>**postgres_proxy.port**</td><td>TCP port that the PostgreSQL proxy server will listen on if **enable_postgres_proxy** is `true`.</td></tr><tr><td>**postgres_proxy.min_threads**</td><td>Set min number of server threads to spawn (default: `2`).</td></tr><tr><td>**postgres_proxy.max_threads**</td><td>Set max number of server threads to spawn (default: `64`).</td></tr><tr><td>**postgres_proxy.max_queued_connections**</td><td>Set max number of queued server connections (default: `1`).</td></tr><tr><td>**postgres_proxy.idle_connection_timeout**</td><td>Set idle connection timeout in seconds (default: `300`).</td></tr><tr><td>**postgres_proxy.keep_alive**</td><td>Keep connections alive between requests.</td></tr><tr><td>**postgres_proxy.ssl**</td><td>Set to `true` to use SSL; if `true` then **ssl_key_file** and **ssl_cert_file** must be provided.</td></tr><tr><td>**postgres_proxy.ssl_key_file**</td><td rowspan="3">Files containing the SSL private key and the SSL certificate. If required, a self signed certificate (expires after 10 years) can be generated via the command:<br/><br/><pre><code>openssl req -newkey rsa:2048 -new -nodes -x509 \\
+  -days 3650 -keyout key.pem -out cert.pem</code></pre><br/></td></tr><tr><td>**postgres_proxy.ssl_cert_file**</td></tr><tr><td>**postgres_proxy.ssl_ciphers**</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-sql-engine"></a>
+
+
+## SQL Engine
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**sql.enable_planner**</td><td>Enable Query Planner</td></tr><tr><td>**sql.planner.address**</td><td>The network URI for the query planner to start. The URI can be either TCP or IPC. TCP address is used to indicate the remote query planner which may run at other hosts. The IPC address is for a local query planner.<br/><br/>Example for remote or TCP servers:<br/><br/><pre><code>sql.planner.address  = tcp://127.0.0.1:9293
+sql.planner.address  = tcp://HOST_IP:9293</code></pre><br/>Example for local IPC servers:<br/><br/><pre><code>sql.planner.address  = ipc:///tmp/gpudb-query-engine-0</code></pre><br/></td></tr><tr><td>**sql.planner.remote_debug_port**</td><td>Remote debugger port used for the query planner. Setting the port to `0` disables remote debugging.<br/> <Info> Recommended port to use is `5005` </Info></td></tr><tr><td>**sql.planner.max_memory**</td><td>The maximum memory for the query planner to use in megabytes.</td></tr><tr><td>**sql.planner.max_stack**</td><td>The maximum stack size for the query planner threads to use in megabytes.</td></tr><tr><td>**sql.planner.timeout**</td><td>Query planner timeout in seconds.</td></tr><tr><td>**sql.planner.workers**</td><td>Max query planner threads.</td></tr><tr><td>**sql.results.caching**</td><td>Enable query results caching.</td></tr><tr><td>**sql.results.cache_ttl**</td><td>TTL of the query cache results table.</td></tr><tr><td>**sql.force_binary_joins**</td><td>Perform joins between only 2 tables at a time; default is all tables involved in the operation at once.</td></tr><tr><td>**sql.force_binary_set_ops**</td><td>Perform unions/intersections/exceptions between only 2 tables at a time; default is all tables involved in the operation at once.</td></tr><tr><td>**sql.plan_cache_size**</td><td>The maximum number of entries in the SQL plan cache.  The default is `4000` entries, but the configurable range is `1` - `1000000`.  Plan caching will be disabled if the value is set outside of that range.</td></tr><tr><td>**sql.result_cache_size**</td><td>Maximum number of entries in the SQL result cache.  The default is `4000`.</td></tr><tr><td>**sql.rule_based_optimization**</td><td>Enable rule-based query rewrites.</td></tr><tr><td>**sql.cost_based_optimization**</td><td>Enable the cost-based optimizer.</td></tr><tr><td>**sql.distributed_joins**</td><td>Enable distributed joins.</td></tr><tr><td>**sql.distributed_operations**</td><td>Enable distributed operations.</td></tr><tr><td>**sql.native_semi_joins**</td><td>Enable SQL native semi-joins.</td></tr><tr><td>**sql.parallel_execution**</td><td>Enable parallel query evaluation.</td></tr><tr><td>**sql.materialize_cte**</td><td>Enable materialize CTE.</td></tr><tr><td>**sql.cte_filter_pushdown**</td><td>Enable filter push down into CTE.</td></tr><tr><td>**sql.materialize_view_rewrite**</td><td>Enable materialize view rewrites.</td></tr><tr><td>**sql.max_parallel_steps**</td><td>Max parallel steps.</td></tr><tr><td>**sql.paging_table_ttl**</td><td>TTL of the paging results table.</td></tr><tr><td>**sql.max_view_nesting_levels**</td><td>Max allowed view nesting levels. Valid range is (`1` - `64`).</td></tr><tr><td>**sql.metadata_workers**</td><td>Max query metadata helper threads.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-ai"></a>
+
+
+## AI
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**ai.enable_rag**</td><td>Enable RAG.</td></tr><tr><td>**ai.api.provider**</td><td>AI API provider type.</td></tr><tr><td>**ai.api.url**</td><td>AI API URL. The default is `https://sqlgpt.io/api/sql/suggest`.</td></tr><tr><td>**ai.api.key**</td><td>AI API key.</td></tr><tr><td>**ai.api.embeddings_model**</td><td>AI embedding model name.</td></tr><tr><td>**ai.api.connection_timeout**</td><td>AI API connection timeout in seconds.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-external-files"></a>
+
+
+## External Files
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**external_files_directory**</td><td>Defines the directory from which external files can be loaded.</td></tr><tr><td>**external_file_reader_num_tasks**</td><td>Maximum number of simultaneous threads allocated to a given external file read request, on each rank. Note that thread allocation may also be limited by resource group limits, or system load.</td></tr><tr><td>**egress_single_file_max_size**</td><td>Max file size (in MB) to allow saving to a single file. May be overridden by target limitations.</td></tr><tr><td>**egress_parquet_compression**</td><td>Parquet files compression type.</td></tr><tr><td>**kafka.batch_size**</td><td>Maximum number of records to be ingested in a single batch.</td></tr><tr><td>**kafka.wait_time**</td><td>Maximum wait time (seconds) to buffer records received from Kafka before ingestion.</td></tr><tr><td>**kafka.poll_timeout**</td><td>Maximum time (milliseconds) for each poll to get records from Kafka.</td></tr><tr><td>**kafka.stats_interval**</td><td>Interval (seconds) at which consumer statistics are published (`0` to disable).</td></tr><tr><td>**system_metadata.stats_retention_days**</td><td rowspan="3">System metadata catalog settings.</td></tr><tr><td>**system_metadata.stats_aggr_rowcount**</td></tr><tr><td>**system_metadata.stats_aggr_time**</td></tr><tr><td>**system_metadata.retention_period**</td><td>For persistent metadata tables, time in seconds to retain rows prior to deletion. NB records are deleted periodically so the **retention_period** is the minimum lifetime of a given record.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-tiered-storage"></a>
+
+
+## Tiered Storage
+
+
+Defines system resources using a set of containers (tiers) in which data can
+be stored, either on a temporary (memory) or permanent (disk) basis. Tiers
+are defined in terms of their maximum capacity and water mark thresholds.
+The general format for defining tiers is:
+
+
+```
+tier.<tier_type>.<config_level>.<parameter>
+```
+where *tier_type* is one of the five basic types of tiers:
+
+* **vram**    : GPU memory
+* **ram**     : Main memory
+* **disk**    : Disk cache
+* **persist** : Permanent storage
+* **cold**    : Extended long-term storage
+
+Each tier can be configured on a global or per-rank basis, indicated by the
+*config_level*:
+
+* **default** : global, applies to all ranks, must be accessible by all hosts
+* **rank&lt;#&gt;** : local, applies only to the specified rank, overriding any global
+  default
+
+If a field is not specified at the **rank&lt;#&gt;** level, the specified **default**
+value applies. If neither is specified, the global system defaults will take
+effect, which vary by tier.
+
+The parameters are also tier-specific and will be listed in their respective
+sections, though every tier, except Cold Storage, will have the following:
+
+* **limit**          : [ `-1`, `1` .. `N` ] (bytes)
+* **high_watermark** : [ `1` .. `100` ] (percent)
+* **low_watermark**  : [ `1` .. `100` ] (percent)
+
+
+<Info>
+To disable watermark-based eviction, set the **low_watermark** and
+**high_watermark** values to `100`. Watermark-based eviction is also ignored
+if the tier limit is set to -1 (no limit).
+</Info>
+
+<br/>
+
+<a id="config-main-global-tier-parameters"></a>
+
+
+### Global Tier Parameters
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**tier.global.concurrent_wait_timeout**</td><td>Timeout in seconds for subsequent requests to wait on a locked resource.</td></tr><tr><td>**tier.global.defer_cache_object_evictions_to_disk**</td><td>If `true`, the tier manager will prioritize the eviction of persistent objects within a given tier priority.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-vram-tier"></a>
+
+
+### VRAM Tier
+
+
+The VRAM Tier is composed of the memory available in one or multiple GPUs per
+host machine.
+
+A default memory limit and eviction thresholds can be set for CUDA-enabled
+devices across all ranks, while one or more ranks may be configured to
+override those defaults.
+
+The general format for VRAM settings:
+
+
+```
+tier.vram.[default|rank<#>].all_gpus.<parameter>
+```
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**tier.vram.default.all_gpus.limit**</td><td rowspan="3">Valid *parameter* names include:<br/><br/><ul><li>**limit**          : The maximum VRAM (bytes) per rank per GPU that can be allocated on GPU(s) across all resource groups.  Default is `-1`, signifying to reserve 95% of the available GPU memory at startup.</li><li>**high_watermark** : VRAM percentage used eviction threshold.  Once memory usage exceeds this value, evictions from this tier will be scheduled in the background and continue until the **low_watermark** percentage usage is reached.  Default is `90`, signifying a 90% memory usage threshold.</li><li>**low_watermark**  : VRAM percentage used recovery threshold.  Once memory usage exceeds the **high_watermark**, evictions will continue until memory usage falls below this recovery threshold. Default is `80`, signifying an 80% memory usage threshold.</li></ul></td></tr><tr><td>**tier.vram.default.all_gpus.high_watermark**</td></tr><tr><td>**tier.vram.default.all_gpus.low_watermark**</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-ram-tier"></a>
+
+
+### RAM Tier
+
+
+The RAM Tier represents the RAM available for data storage per rank.
+
+The RAM Tier is NOT used for small, non-data objects or variables that are
+allocated and deallocated for program flow control or used to store metadata or
+other similar information; these continue to use either the stack or the regular
+runtime memory allocator. This tier should be sized on each machine such that
+there is sufficient RAM left over to handle this overhead, as well as the needs
+of other processes running on the same machine.
+
+A default memory limit and eviction thresholds can be set across all ranks,
+while one or more ranks may be configured to override those defaults.
+
+If any ranks on a host has the default memory limit (`-1`), their maximum
+allocation will be calculated as follows:
+
+* Head Node
+  Rank0: 10% of system memory
+  Other ranks: 70% of system memory / # worker ranks
+* Worker Node
+  Worker ranks: 80% of system memory / # worker ranks
+
+The general format for RAM settings:
+
+
+```
+tier.ram.[default|rank<#>].<parameter>
+```
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**tier.ram.default.limit**</td><td rowspan="3">Valid *parameter* names include:<br/><br/><ul><li>**limit**          : The maximum RAM (bytes) per rank that can be allocated across all resource groups.  Default is `-1`, signifying to automatically set the maximum capacity as a portion of total system memory or the host limit.</li><li>**high_watermark** : RAM percentage used eviction threshold.  Once memory usage exceeds this value, evictions from this tier will be scheduled in the background and continue until the **low_watermark** percentage usage is reached.  Default is `90`, signifying a 90% memory usage threshold.</li><li>**low_watermark**  : RAM percentage used recovery threshold.  Once memory usage exceeds the **high_watermark**, evictions will continue until memory usage falls below this recovery threshold. Default is `80`, signifying an 80% memory usage threshold.</li></ul></td></tr><tr><td>**tier.ram.default.high_watermark**</td></tr><tr><td>**tier.ram.default.low_watermark**</td></tr><tr><td>**tier.ram.rank0.limit**</td><td>The maximum RAM (bytes) for processing data at rank 0. Overrides the overall default RAM tier limit.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-disk-tier"></a>
+
+
+### Disk Tier
+
+
+Disk Tiers are used as temporary swap space for data that doesn't fit in RAM
+or VRAM. The disk should be as fast or faster than the Persist Tier storage
+since this tier is used as an intermediary cache between the RAM and Persist
+Tiers. Multiple Disk Tiers can be defined on different disks with different
+capacities and performance parameters. No Disk Tiers are required, but they
+can improve performance when the RAM Tier is at capacity.
+
+A default storage limit and eviction thresholds can be set across all ranks
+for a given Disk Tier, while one or more ranks within a Disk Tier may be
+configured to override those defaults.
+
+The general format for Disk settings:
+
+
+```
+tier.disk<#>.[default|rank<#>].<parameter>
+```
+Multiple Disk Tiers may be defined such as **disk**, **disk0**, **disk1**, ... etc.
+to support different tiering strategies that use any one of the Disk Tiers.  A
+tier strategy can have, at most, one Disk Tier.  Create multiple tier
+strategies to use more than one Disk Tier, one per strategy.  See
+**tier_strategy** parameter for usage.
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**tier.disk0.default.path**</td><td rowspan="5">Valid *parameter* names include:<br/><br/><ul><li>**path**           : A base directory to use as a swap space for this tier.</li><li>**limit**          : The maximum disk usage (bytes) per rank for this tier across all resource groups.  Default is `-1`, signifying no limit and ignore watermark settings.</li><li>**high_watermark** : Disk percentage used eviction threshold.  Once disk usage exceeds this value, evictions from this tier will be scheduled in the background and continue until the **low_watermark** percentage usage is reached.  Default is `90`, signifying a 90% disk usage threshold.</li><li>**low_watermark**  : Disk percentage used recovery threshold.  Once disk usage exceeds the **high_watermark**, evictions will continue until disk usage falls below this recovery threshold. Default is `80`, signifying a 80% disk usage threshold.</li><li>**store_persistent_objects** : If `true`, allow the disk cache to store copies of data even if they are already stored in a persistent tier (persist/cold).</li></ul><br/><br/>Example **default** disk cache configuration using **disk0**:<br/><br/><pre><code>tier.disk0.default.path = /opt/gpudb/diskcache_0
+tier.disk0.default.limit = -1
+tier.disk0.default.high_watermark = 90
+tier.disk0.default.low_watermark = 80
+tier.disk0.default.store_persistent_objects = false</code></pre><br/></td></tr><tr><td>**tier.disk0.default.limit**</td></tr><tr><td>**tier.disk0.default.high_watermark**</td></tr><tr><td>**tier.disk0.default.low_watermark**</td></tr><tr><td>**tier.disk0.default.store_persistent_objects**</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-persist-tier"></a>
+
+
+### Persist Tier
+
+
+The Persist Tier is a single pseudo-tier that contains data in persistent form
+that survives between restarts. Although it also is a disk-based tier, its
+behavior is different from Disk Tiers:  data for persistent objects is always
+present in the Persist Tier (or Cold Storage Tier, if configured), but may not
+be up-to-date at any given time.
+
+A default storage limit and eviction thresholds can be set across all ranks,
+while one or more ranks may be configured to override those defaults.  The
+Graph Solver engine may be given its own storage settings; however, it is not
+tiered, and therefore cannot have limit/watermark settings applied.
+
+The general format for Persist settings:
+
+
+```
+tier.persist.[default|rank<#>|text<#>|graph<#>].<parameter>
+```
+
+<Warning>
+In general, limits on the Persist Tier should only be set if one or
+more Cold Storage Tiers are configured.  Without a supporting Cold Storage
+Tier to evict objects in the Persist Tier to, operations requiring space in
+the Persist Tier will fail when the limit is reached.
+</Warning>
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**tier.persist.default.path**</td><td rowspan="4">Valid *parameter* names include:<br/><br/><ul><li>**path**           : Base directory to store column and object vectors.</li><li>**storage**        : The storage volume corresponding to the persist tier, for managed storage volumes. Must be the **vol&lt;#&gt;** for a configured storage volume. Do not specify a **default** as each rank and graph server should have their own storage volumes (unlisted, as there is no default value).</li><li>**limit**          : The maximum disk usage (bytes) per rank for this tier across all resource groups.  Default is `-1`, signifying no limit and ignore watermark settings.</li><li>**high_watermark** : Disk percentage used eviction threshold.  Once disk usage exceeds this value, evictions from this tier to cold storage (if configured) will be scheduled in the background and continue until the **low_watermark** percentage usage is reached.  Default is `90`, signifying a 90% disk usage threshold.</li><li>**low_watermark**  : Disk percentage used recovery threshold.  Once disk usage exceeds the **high_watermark**, evictions will continue until disk usage falls below this recovery threshold. Default is `80`, signifying a 80% disk usage threshold.</li></ul><br/> <Info> **path** and **storage** are the only applicable parameters for **text** and **graph** </Info> <br/> Example showing a rank0 configuration:<br/><br/><pre><code>tier.persist.rank0.path = /opt/data_rank0
+tier.persist.rank0.storage = vol0
+tier.persist.rank0.limit = -1
+tier.persist.rank0.high_watermark = 90
+tier.persist.rank0.low_watermark = 80</code></pre><br/></td></tr><tr><td>**tier.persist.default.limit**</td></tr><tr><td>**tier.persist.default.high_watermark**</td></tr><tr><td>**tier.persist.default.low_watermark**</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-cold-storage-tier"></a>
+
+
+### Cold Storage Tier
+
+
+Cold Storage Tiers can be used to extend the storage capacity of the Persist Tier.
+Assign a tier strategy with cold storage to objects that will be infrequently
+accessed since they will be moved as needed from the Persist Tier.
+The Cold Storage Tier is typically a much larger capacity physical disk or
+a cloud-based storage system which may not be as performant as the Persist
+Tier storage.
+
+A default storage limit and eviction thresholds can be set across all ranks
+for a given Cold Storage Tier, while one or more ranks within a Cold Storage
+Tier may be configured to override those defaults.
+
+
+<Info>
+If an object needs to be pulled out of cold storage during a query,
+it may need to use the local persist directory as a temporary swap space.
+This may trigger an eviction of other persisted items to cold storage due to
+low disk space condition defined by the watermark settings for the Persist Tier.
+</Info>
+
+The general format for Cold Storage settings:
+
+
+```
+tier.cold<#>.[default|rank<#>].<parameter>
+```
+Multiple Cold Storage Tiers may be defined such as **cold**, **cold0**, **cold1**,
+... etc. to support different tiering strategies that use any one of the Cold
+Storage Tiers. A tier strategy can have, at most, one Cold Storage Tier.
+Create multiple tier strategies to use more than one Cold Storage Tier, one
+per strategy.  See **tier_strategy** parameter for usage.
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**tier.cold0.default.type**</td><td rowspan="4">Valid *parameter* names include:<br/><br/><ul><li>**type**                   : The storage provider type. Currently supports `disk` (local/network storage), `hdfs` (Hadoop distributed filesystem), `azure` (Azure blob storage), `s3` (Amazon S3 bucket), and `gcs` (Google Cloud Storage bucket).</li><li>**base_path**              : A base path based on the provider type for this tier.</li><li>**wait_timeout**           : Timeout in seconds for reading from or writing to this storage provider. This value should ideally be less than the value for **tier.global.concurrent_wait_timeout** to allow concurrent queries sufficient time to acquire this resource during normal tiering operations with some slack to accomodate the request.</li><li>**connection_timeout**     : Timeout in seconds for connecting to this storage provider.</li><li>**use_managed_credentials**: If `true`, use cloud provider user settings from the environment. If `false`, and no credentials are supplied, use anonymous access. This option applies only to `azure`, `gcs`, and `s3` providers.</li><li>**use_https**              : This optional field can be used to override the default scheme for the storage endpoint where applicable. If `true`, use the *https* scheme (default), otherwise use *http*.</li></ul><br/><br/>HDFS-specific *parameter* names:<br/><br/><ul><li>**hdfs_uri**               : The host IP address & port for the hadoop distributed file system. For example:  hdfs://localhost:8020</li><li>**hdfs_principal**         : The effective principal name to use when connecting to the hadoop cluster.</li><li>**hdfs_use_kerberos**      : Set to `true` to enable Kerberos authentication to an HDFS storage server. The credentials of the principal are in the file specified by the **hdfs_kerberos_keytab** parameter. Note that Kerberos's *kinit* command will be run when the database is started.</li><li>**hdfs_kerberos_keytab**   : The Kerberos keytab file used to authenticate the `gpudb` Kerberos principal.</li></ul><br/><br/>Amazon S3-specific *parameter* names:<br/><br/><ul><li>**s3_bucket_name**</li><li>**s3_region**                  (optional)</li><li>**s3_endpoint**                (optional)</li><li>**s3_aws_access_key_id**       (optional)</li><li>**s3_aws_secret_access_key**   (optional)</li><li>**s3_aws_role_arn**            (optional)</li><li>**s3_encryption_type**     :   This is optional and valid values are `sse-s3` (Encryption key is managed by Amazon S3) and `sse-kms` (Encryption key is managed by AWS Key Management Service (kms)). Populate **s3_encryption_customer_key** and **s3_encryption_customer_algorithm** instead to use customer-provided key encryption.</li><li>**s3_kms_key_id**          :   This is optional and must be specified when encryption type is `sse-kms`.</li><li>**s3_encryption_customer_algorithm** :   This is optional and must be specified when using customer-provided key encryption.</li><li>**s3_encryption_customer_key** :   This is optional and must be specified when using customer-provided key encryption.</li><li>**s3_use_virtual_addressing**  :   If `true` (default), S3 endpoints will be constructed using the *virtual* style, which includes the bucket name as part of the hostname. Set to `false` to use the *path* style, which treats the bucket name as if it is a path in the URI.</li><li>**s3_verify_ssl**              :   Set to `false` for testing purposes or when it's necessary to get past TLS errors (e.g. self-signed certificates). This value is `true` by default.</li></ul><br/> <Info> If **s3_aws_access_key_id** and/or **s3_aws_secret_access_key** values are not specified, they may instead be provided by the AWS CLI or via the respective `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables. </Info> <br/> Microsoft Azure-specific *parameter* names:<br/><br/><ul><li>**azure_container_name**</li><li>**azure_storage_account_name**</li><li>**azure_storage_account_key**    : (optional) An Azure Access key linked to a Storage account.</li><li>**azure_endpoint**               : (optional) Specifies access to an Azure Private Link service.</li><li>**azure_sas_token**              : (optional) A Shared Access Signature token.</li><li>**azure_use_virtual_addressing** : If `true` (default), endpoints will be constructed using the *virtual* style, which includes the bucket name as part of the hostname. Set to `false` to use the *path* style, which treats the bucket name as if it is a path in the URI.</li></ul><br/><br/>Google Cloud Storage-specific *parameter* names:<br/><br/><ul><li>**gcs_bucket_name**</li><li>**gcs_project_id**                    (optional)</li><li>**gcs_service_account_id**            (optional)</li><li>**gcs_service_account_private_key**   (optional)</li><li>**gcs_service_account_keys**          (optional)</li><li>**gcs_endpoint**                      (optional) Override the default rest endpoint.</li></ul><br/> <Info> If the **gcs_service_account_id** , **gcs_service_account_private_key** and/or **gcs_service_account_keys** values are not specified, the Google Clould Client Libraries will attempt to find and use service account credentials from the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. </Info></td></tr><tr><td>**tier.cold0.default.base_path**</td></tr><tr><td>**tier.cold0.default.wait_timeout**</td></tr><tr><td>**tier.cold0.default.connection_timeout**</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-tier-strategy"></a>
+
+
+### Tier Strategy
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**tier_strategy.default**</td><td>Default strategy to apply to tables or columns when one was not provided during table creation. This strategy is also applied to a resource group that does not specify one at time of creation.<br/><br/>The strategy is formed by chaining together the tier types and their respective eviction priorities. Any given tier may appear no more than once in the chain and the priority must be in range `1` - `10`, where `1` is the lowest priority (first to be evicted) and `9` is the highest priority (last to be evicted).  A priority of `10` indicates that an object is unevictable.<br/><br/>Each tier's priority is in relation to the priority of other objects in the same tier; e.g., `RAM 9, DISK2 1` indicates that an object will be the highest evictable priority among objects in the RAM Tier (last evicted), but that it will be the lowest priority among objects in the Disk Tier named **disk2** (first evicted).  Note that since an object can only have one Disk Tier instance in its strategy, the corresponding priority will only apply in relation to other objects in Disk Tier instance **disk2**.<br/><br/>See the Tiered Storage section for more information about tier type names.<br/><br/>Format:<br/><br/><pre><code>&lt;tier1&gt; &lt;priority&gt;, &lt;tier2&gt; &lt;priority&gt;, ...</code></pre><br/>Examples using a Disk Tier named **disk2** and a Cold Storage Tier **cold0**:<br/><br/><pre><code>vram 3, ram 5, disk2 3, persist 10
+vram 3, ram 5, disk2 3, persist 6, cold0 10</code></pre><br/></td></tr><tr><td>**tier_strategy.predicate_evaluation_interval**</td><td>Predicate evaluation interval (in minutes) -  indicates the interval at which the tier strategy predicates are evaluated.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-default-resource-group"></a>
+
+
+### Default Resource Group
+
+
+Resource groups are used to enforce simultaneous memory, disk, and thread usage
+limits for all users within a given group. Users not assigned to a specific
+resource group will be placed within this default group. Tier-based limits are
+applied on top of existing rank tier limits.
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**resource_group.default.schedule_priority**</td><td>The scheduling priority for this group's operations, `1` - `100`, where `1` is the lowest priority and `100` is the highest.</td></tr><tr><td>**resource_group.default.max_tier_priority**</td><td>The maximum eviction priority for tiered objects, `1` - `10`. This supercedes any priorities that are set by any user-provided tiering strategies.</td></tr><tr><td>**resource_group.default.max_cpu_concurrency**</td><td>Maximum number of concurrent data operations; minimum is `4`; `-1` for no limit.</td></tr><tr><td>**resource_group.default.vram_limit**</td><td>The maximum memory (bytes) this group can use per rank per GPU at any given time in the VRAM tier; `-1` for no limit.</td></tr><tr><td>**resource_group.default.ram_limit**</td><td>The maximum memory (bytes) this group can use per rank at any given time in the RAM tier; `-1` for no limit.</td></tr><tr><td>**resource_group.default.data_limit**</td><td>The maximum memory (bytes) this group can cumulatively use in the RAM tier; `-1` for no limit.</td></tr></tbody></table>
+
+<br/>
+
+<a id="config-main-storage-volumes"></a>
+
+
+## Storage Volumes
+
+
+When persisted rank data is stored on attached external storage volumes, the
+following config entries are used to automatically attach and mount the volume
+upon migration of a rank to another host. Attaching and mounting is performed
+by the script specified by **np1.storage_api_script**.
+
+The general format for storage volumes:
+
+
+```
+storage.volumes.vol<#>.<parameter>
+```
+Volumes are numbered starting at zero and match the number of ranks plus
+additional volumes to match graph servers.
+
+Valid *parameter* names include:
+
+* **fs_uuid**               : The UUID identifier for the volume on the cloud
+  provider.
+* **id**                    : The cloud identifier of the volume.
+* **mount_point**           : The local path to mount the cloud volume.
+  The folder must exist and be owned by **gpudb**.
+
+Example:
+
+
+```
+storage.volumes.vol0.fs_uuid = my_vol_uuid
+storage.volumes.vol0.id = /subscriptions/my_az_subscription_uuid/resourceGroups/my_az_rg/providers/Microsoft.Compute/
+storage.volumes.vol0.mount_point = /opt/data_rank0
+```
+<br/>
+
+<a id="config-main-kifs"></a>
+
+
+## KiFS
+
+
+Settings for KiFS, Kinetica's global file storage.
+There are two ways to configure KiFS:
+
+1. (Default) Leave the settings empty. This runs KiFS in the Persist Tier.
+2. Configure cold storage to host KiFS.
+
+For option 2, the settings are identical to those of a cold tier as previously
+described in the Cold Storage Tier section, except prefixed by `kifs` instead
+of **tier.cold&lt;#&gt;.rank&lt;#&gt;**. All cold tier types are supported.
+If the **disk** type is used, the base path must be mounted on all hosts.
+
+Example configuration for disk:
+
+
+```
+kifs.type = disk
+kifs.base_path = /opt/gpudb/kifs
+kifs.wait_timeout = 10
+kifs.connection_timeout = 30
+```
+Example configuration for AWS S3:
+
+
+```
+kifs.type = s3
+kifs.base_path = gpudb/
+kifs.wait_timeout = 10
+kifs.connection_timeout = 30
+kifs.s3_bucket_name = my-kinetica-bucket-name
+kifs.s3_aws_access_key_id = my-aws-access-key
+kifs.s3_aws_secret_access_key = my-aws-secret-key
+kifs.s3_aws_role_arn = my-aws-role-arn
+kifs.s3_encryption_type = my-s3-encryption-type
+kifs.s3_kms_key_id = my-kms-key-id
+kifs.use_managed_credentials = false
+```
+See Cold Storage Tier section for examples of Azure, Google Cloud Storage and HDFS settings
+
+
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left"><thead><tr><th>Configuration Parameter</th><th>Description</th></tr></thead><tbody><tr><td>**kifs.options.directory_data_limit**</td><td>The default maximum capacity to apply when creating a KiFS directory (bytes); `-1` for no limit. Changing this limit is not retroactive, thus will not apply to existing KiFS directories.</td></tr></tbody></table>

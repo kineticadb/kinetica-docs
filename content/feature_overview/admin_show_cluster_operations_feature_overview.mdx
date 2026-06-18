@@ -1,0 +1,63 @@
+---
+title: "Administration: Show Cluster Operations"
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="admin-show-cluster-operations-feature-overview"></a>
+
+
+Requests the detailed status of the current operation (by default) or a prior
+cluster operation specified by input parameter *history_index*. Returns details
+on the requested cluster operation.
+
+The response will also indicate how many cluster operations are stored in the
+history.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| history_index | int | Indicates which cluster operation to retrieve. Use 0 for the most recent. <br/> <br/> The default value is 0. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). |
+
+
+## Output Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| history_index | int | The index of this cluster operation in the reverse-chronologically sorted list of operations, where 0 is the most recent operation. |
+| history_size | int | Number of cluster operations executed to date. |
+| in_progress | boolean | Whether this cluster operation is currently in progress or not. <br/> <br/> The supported values are: <br/> <br/> * true <br/> * false |
+| start_time | string | The start time of the cluster operation. |
+| end_time | string | The end time of the cluster operation, if completed. |
+| endpoint | string | The endpoint that initiated the cluster operation. |
+| endpoint_schema | string | The schema for the original request. |
+| overall_status | string | Overall success status of the operation. <br/> <br/> OK: The operation was successful, or, if still in progress, the operation is successful so far. <br/> <br/> ERROR: An error occurred executing the operation. |
+| user_stopped | boolean | Whether a user stopped this operation at any point while in progress. <br/> <br/> The supported values are: <br/> <br/> * true <br/> * false |
+| percent_complete | int | Percent complete of this entire operation. |
+| dry_run | boolean | Whether this operation was a dry run. <br/> <br/> The supported values are: <br/> <br/> * true <br/> * false |
+| messages | array of strings | Updates and error messages if any. |
+| add_ranks | boolean | Whether adding ranks is (or was) part of this operation. <br/> <br/> The supported values are: <br/> <br/> * true <br/> * false |
+| add_ranks_status | string | If this was a rank-adding operation, the add-specific status of the operation. <br/> <br/> The supported values are: <br/> <br/> * NOT_STARTED <br/> * IN_PROGRESS <br/> * INTERRUPTED <br/> * COMPLETED_OK <br/> * ERROR |
+| ranks_being_added | array of ints | The rank numbers of the ranks currently being added, or the rank numbers that were added if the operation is complete. |
+| rank_hosts | array of strings | The host IP addresses of the ranks being added, in the same order as the output parameter *ranks_being_added* list. |
+| add_ranks_percent_complete | int | Current percent complete of the add ranks operation. |
+| remove_ranks | boolean | Whether removing ranks is (or was) part of this operation. <br/> <br/> The supported values are: <br/> <br/> * true <br/> * false |
+| remove_ranks_status | string | If this was a rank-removing operation, the removal-specific status of the operation. <br/> <br/> The supported values are: <br/> <br/> * NOT_STARTED <br/> * IN_PROGRESS <br/> * INTERRUPTED <br/> * COMPLETED_OK <br/> * ERROR |
+| ranks_being_removed | array of ints | The ranks being removed, or that have been removed if the operation is completed. |
+| remove_ranks_percent_complete | int | Current percent complete of the remove ranks operation. |
+| rebalance | boolean | Whether data and/or shard rebalancing is (or was) part of this operation. <br/> <br/> The supported values are: <br/> <br/> * true <br/> * false |
+| rebalance_unsharded_data | boolean | Whether rebalancing of unsharded data is (or was) part of this operation. <br/> <br/> The supported values are: <br/> <br/> * true <br/> * false |
+| rebalance_unsharded_data_status | string | If this was an operation that included rebalancing unsharded data, the rebalancing-specific status of the operation. <br/> <br/> The supported values are: <br/> <br/> * NOT_STARTED <br/> * IN_PROGRESS <br/> * INTERRUPTED <br/> * COMPLETED_OK <br/> * ERROR |
+| unsharded_rebalance_percent_complete | int | Percentage of unsharded tables that completed rebalancing, out of all unsharded tables to rebalance. |
+| rebalance_sharded_data | boolean | Whether rebalancing of sharded data is (or was) part of this operation. <br/> <br/> The supported values are: <br/> <br/> * true <br/> * false |
+| shard_array_version | long | Version of the shard array that is (or was) being rebalanced to. Each change to the shard array results in the version number incrementing. |
+| rebalance_sharded_data_status | string | If this was an operation that included rebalancing sharded data, the rebalancing-specific status of the operation. <br/> <br/> The supported values are: <br/> <br/> * NOT_STARTED <br/> * IN_PROGRESS <br/> * INTERRUPTED <br/> * COMPLETED_OK <br/> * ERROR |
+| num_shards_changing | int | Number of shards that will change as part of rebalance. |
+| sharded_rebalance_percent_complete | int | Percentage of shard keys, and their associated data if applicable, that have completed rebalancing. |
+| info | map of string to strings | Additional information. |

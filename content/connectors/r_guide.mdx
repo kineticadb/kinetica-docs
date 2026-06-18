@@ -1,0 +1,380 @@
+---
+title: RKinetica Connector Guide
+---
+
+The following guide provides step by step instructions to get started using
+*R* with *Kinetica*. The *RKinetica* connector provides access to the *Kinetica*
+database through a REST interface. The *RKinetica* package can be built locally
+from source or a prebuilt package release can be downloaded from the
+[release page](https://github.com/kineticadb/RKinetica/releases). *Kinetica*
+strongly recommends that release builds be used instead of building the package
+locally.
+
+*RKinetica* interfaces with *Kinetica* similarly to other *R*-database
+interactions: using the *DBI* and *dplyr* packages. Interacting with
+*RKinetica* is easiest using the *RStudio* interface. *RStudio* and *RKinetica*
+require that *R* be installed locally.
+
+Source code for the connector can be found at:
+
+* https://github.com/kineticadb/RKinetica
+
+
+## Installation & Configuration
+
+
+### Prerequisites
+
+
+*RKinetica* depends on the system libraries `methods` and `stats` & several
+other *R* packages from the comprehensive *R* archive network (*CRAN*):
+
+* [DBI](https://cran.r-project.org/web/packages/DBI/index.html)
+* [RJSONIO](https://cran.r-project.org/web/packages/RJSONIO/index.html)
+* [httr](https://cran.r-project.org/web/packages/httr/index.html)
+* [bit64](https://cran.r-project.org/web/packages/bit64/index.html)
+* [hms](https://cran.r-project.org/web/packages/hms/index.html)
+* [purrr](https://cran.r-project.org/web/packages/purrr/index.html)
+* [dplyr](https://cran.r-project.org/web/packages/dplyr/index.html)
+
+All dependencies should be installed prior to installing *RKinetica*. To
+install the dependencies in *RStudio* or the *R Console*:
+
+```
+install.packages(c("DBI", "RJSONIO", "httr", "bit64", "hms", "methods", "purrr", "stats", "dplyr"))
+```
+
+### Prebuilt Package Installation
+
+
+1. Download the latest package `tar.gz` file from the
+   [release page](https://github.com/kineticadb/RKinetica/releases).
+2. Install the *RKinetica* package in *RStudio* or *R* console:
+
+   ```
+   install.packages("/path/to/RKinetica_<version>.tar.gz", repos = NULL, type = "source")
+   ```
+
+### Manually Built Package Installation
+
+
+It is strongly recommended that a release build be used instead of building the
+package locally, but the *RKinetica* package can be built as follows:
+
+1. Clone the latest *RKinetica* repository version:
+
+   ```
+   git clone https://github.com/kineticadb/RKinetica.git -b release/v7.1 --single-branch
+   ```
+2. In the same directory, use the *R* CLI to build the package:
+
+   ```
+   R CMD build RKinetica
+   ```
+   This sequence produces a `tar.gz` file, which, once installed, is made
+   available to *R*. The `tar.gz` file is created in the same directory the
+   `build` command was issued.
+3. Verify the `tar.gz` file was created before installing the *RKinetica*
+   package:
+
+   ```
+   ls RKinetica*
+   ```
+4. Install the *RKinetica* package via the *R* CLI:
+
+   ```
+   R CMD install RKinetica_<version>.tar.gz
+   ```
+
+## Usage
+
+
+Before using *RKinetica*, the package must be loaded:
+
+```
+library(RKinetica)
+```
+Create a *Kinetica* connection object using the `dbConnect()` method,
+passing in *Kinetica* URL, user, and password parameters:
+
+```
+con <- dbConnect(RKinetica::Kinetica(),
+                 url = "http://<db.host>:9191",
+                 username = "<user>",
+                 password = "<password>")
+```
+If using *RStudio*, you can use the *rstudioapi* package to instead prompt
+for username and password:
+
+```
+con <- dbConnect(RKinetica::Kinetica(),
+                 url = "http://<kinetica-host>:9191",
+                 username = rstudioapi::askForPassword("Database username?"),
+                 password = rstudioapi::askForPassword("Database password?"))
+```
+
+### Strings vs. Factors
+
+
+When *RKinetica* reads a character list into an *R* dataframe, it can be
+converted into a *factor*. This option is controlled by the `stringsAsFactors`
+environment property that's read into the `as.data.frame()` parameter:
+
+```
+stringsAsFactors = default.stringsAsFactors()
+```
+To set this environment property to `TRUE` or `FALSE` explicitly, use the
+following syntax at the beginning of your *R* script or once per session:
+
+```
+options(stringsAsFactors = FALSE)
+```
+
+### Schema Support
+
+
+*Kinetica* [schemas](/content/concepts/schemas),
+[tables](/content/concepts/tables), and
+[views](/content/concepts/views) must meet
+[standard naming criteria](/content/concepts/tables#table-naming-criteria) and follow rules
+for [name resolution](/content/concepts/tables#table-name-resolution), when referenced.
+The *KineticaConnection* object has a read-only attribute `default_schema`
+that stores the [user's default schema name](/content/concepts/schemas#schema-default):
+
+```
+con@default_schema
+[1] "<default schema name>"
+```
+
+<Note>
+The user's default schema *cannot* be set or managed by the user.
+</Note>
+
+All table management functions available to *KineticaConnection*
+(`dbCreateTable()`, `dbAppendTable()`, `dbReadTable()`, `dbWriteTable()`,
+`dbExistsTable()`, and `dbRemoveTable()`) have a `name` argument that
+supports passing a character value, such as `<schema name>.<table name>` (or
+simply `<table name>` if utilizing the user's default schema), or a
+`KineticaId` object modeled after the `DBI::Id` class that encapsulates a
+named vector with `schema` and `table` parameter values defined separately:
+
+```
+id <- KineticaId(schema = "<schema name>", table = "<table name>")
+show(id)
+[1] <KineticaId> schema = <schema name>, table = <table name>
+```
+A `KineticaId` object can be created by submitting a named character
+value that will be parsed into a schema/table pair:
+
+```
+id <- KineticaId("<schema name>.<table name>")
+show(id)
+[1] <KineticaId> schema = <schema name>, table = <table name>
+```
+
+### Additional Connection Configuration
+
+
+#### Row Limits
+
+
+If you expect a result set from your queries to exceed 10,000 rows, set the
+`row_limit` parameter value accordingly:
+
+```
+con <- dbConnect(RKinetica::Kinetica(),
+                 url = "http://<db.host>:9191",
+                 username = "<user>",
+                 password = "<password>",
+                 row_limit=1000000L)
+```
+
+<Note>
+A parameter cannot be added to an existing *KineticaConnection* object.
+Instead, a new *KineticaConnection* object must be created to properly
+initialize any functionality enabled by additional parameters.
+</Note>
+
+
+#### High Availability (HA)
+
+
+<p><strong>Automatic Discovery</strong></p>
+
+
+When two or more Kinetica clusters have been configured for an HA ring via
+KAgent, RKinetica will automatically discover the additional Kinetica
+instance URLs available in the ring. If the connection to the URL of the primary
+cluster fails, each additional URL will be tried until a successful connection
+is established; every failed connection will result in a warning message. If
+all connection attempts fail, an error message will be thrown. Only the URL of
+the primary cluster to connect to needs to be specified (via the `url`
+parameter in the `dbConnect` method); the URLs for the failover clusters will
+be retrieved from the primary cluster upon first connecting to it. The
+*KineticaConnection* object has additional parameters to store these failover
+URLs (via the `ha_ring` parameter) as well as other connection information:
+
+```
+con <- dbConnect(RKinetica::Kinetica(), url = "http://172.123.45.61:9191")
+dbGetInfo(con)
+
+$url
+[1] "http://172.123.45.61:9191"
+
+$host
+[1] "172.123.45.61"
+
+$port
+[1] 9191
+
+$ha_enabled
+[1] TRUE
+
+$ha_ring
+[1] "http://172.123.45.63:9191" "http://172.123.45.61:9191" "http://172.123.45.62:9191"
+```
+URLs in `ha_ring` list are randomly selected to balance load on secondary URL
+instances when the primary URL fails. You can use a `show()` command on a
+*KineticaConnection* object at any time to check which URL is being used in the
+current connection:
+
+```
+show(con)
+
+<KineticaConnection>
+HA enabled
+Current url: http://172.123.45.62:9191
+```
+
+<p><strong>Manual Configuration</strong></p>
+
+
+If you want to provide URLs for failover clusters manually, you can do so by
+adding the `ha_ring` parameter to the `dbConnect()` method with a
+comma-separated list of URIs for the secondary cluster(s):
+
+```
+con <- dbConnect(RKinetica::Kinetica(), url = "http://172.123.45.61:9191",
+       ha_ring = "http://172.123.45.62:9191,http://172.123.45.63:9191")
+show(con)
+
+<KineticaConnection>
+Self-provided HA enabled
+Current url: http://172.123.45.61:9191
+```
+
+### Examples
+
+
+The following examples assume that this *KineticaConnection* object has already
+been established, which you can then use as a regular DBI connection:
+
+```
+con <- dbConnect(RKinetica::Kinetica(),
+                 url = "http://<db.host>:9191",
+                 username = "<user>",
+                 password = "<password>")
+```
+Some of the most common commands:
+
+* Print connection info:
+
+  ```
+  dbGetInfo(con)
+  ```
+* Get the current user's [default schema](/content/concepts/schemas#schema-default):
+
+  ```
+  con@default_schema
+  ```
+* List top-level schemas the user has access to, the tables contained within
+  those schemas, and basic information about the schemas and tables:
+
+  ```
+  dbListObjects(con)
+  ```
+* Get a list of tables within the `ki_home` schema:
+
+  ```
+  dbListTables(con, "ki_home")
+  ```
+* Write a table to the user's *default schema* with 3 columns:
+
+  ```
+  dbWriteTable(con, "tableA", data.frame(a = 1L, b = 2L, c = 3.0), row.names = NULL)
+  ```
+* Check if the table exists in the user's *default schema*:
+
+  ```
+  dbExistsTable(con, "tableA")
+  ```
+* Check if the table exists in the `example` schema using the *KineticaId*
+  object:
+
+  ```
+  id <- KineticaId("example.tableA")
+  dbExistsTable(con, id)
+  ```
+* List `tableA` (located in the user's *default schema*) fields:
+
+  ```
+  dbListFields(con, "tableA")
+  ```
+* Add records to `tableA` (located in the user's *default schema*):
+
+  ```
+  dbAppendTable(con, "tableA", data.frame(a = 2L:3L, b = 3L:4L, c = 4.0:5.0), row.names = NULL)
+  ```
+* Read `tableA` (located in the user's *default schema*) into variable:
+
+  ```
+  rows <- dbReadTable(con, "tableA")
+  print(rows)
+  ```
+* Drop a table in the user's *default schema* if it
+  exists:
+
+  ```
+  dbRemoveTable(con, "tableA")
+  ```
+* Disconnect:
+
+  ```
+  dbDisconnect(con)
+  ```
+Large tables, views, or query results can have pagination parameters passed into
+the `dbSendQuery` or `dbSendStatement` methods. Assuming that the
+connection was established with a row limit of 1,000,000, i.e.
+`row_limit = 1000000L`, the following example query extracts all records
+from the `acquisition` table in the `example` schema sorted by `l_id`.
+The data is retrieved in batches of one million records and the `offset` is
+increased by 1 million each batch. This loop continues until the
+`dbSendQuery()` resultset is returned empty:
+
+```
+sql_query <- "SELECT l_id, product_type, term, score FROM example.acquisition ORDER BY l_id"
+offset <- 0L
+repeat {
+  result <- dbSendQuery(con, sql_query, limit = 1000000L, offset = offset)
+
+  # work with current data.frame provided in result@data
+
+  if (nrow(result@data) > 0) {
+    # increase offset to get next page of data
+    offset <- offset + 1000000L
+  } else {
+    # exit pagination loop when data.frame is empty
+    break
+  }
+}
+```
+Additional code examples are available in the `examples` subdirectory of the
+[RKinetica](https://github.com/kineticadb/RKinetica) repository.
+
+
+## Documentation
+
+
+Detailed *RKinetica* information including method and function descriptions,
+usage examples, and arguments can be found in the
+[RKinetica PDF](https://github.com/kineticadb/RKinetica/blob/master/RKinetica-manual.pdf).

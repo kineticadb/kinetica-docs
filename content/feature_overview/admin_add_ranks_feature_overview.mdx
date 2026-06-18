@@ -1,0 +1,56 @@
+---
+title: "Administration: Add Ranks"
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="admin-add-ranks-feature-overview"></a>
+
+
+Add one or more ranks to an existing Kinetica cluster. The new ranks will not
+contain any data initially (other than replicated tables) and will not be
+assigned any shards. To rebalance data and shards across the cluster, use
+[Administration: Rebalance](/content/feature_overview/admin_rebalance_feature_overview#admin-rebalance-feature-overview).
+
+The database must be offline for this operation, see
+[Administration: System Offline](/content/feature_overview/admin_offline_feature_overview#admin-offline-feature-overview)
+
+For example, if attempting to add three new ranks (two ranks on host
+172.123.45.67 and one rank on host 172.123.45.68) to a Kinetica cluster with
+additional configuration parameters:
+
+* input parameter *hosts* would be an array including 172.123.45.67 in the
+  first two indices (signifying two ranks being added to host 172.123.45.67)
+  and 172.123.45.68 in the last index (signifying one rank being added to host
+  172.123.45.67)
+* input parameter *config_params* would be an array of maps, with each map
+  corresponding to the ranks being added in input parameter *hosts*. The key of
+  each map would be the configuration parameter name and the value would be the
+  parameter's value, e.g. '\{"rank.gpu":"1"\}'
+
+This endpoint's processing includes copying all replicated table data to the
+new rank(s) and therefore could take a long time. The API call may time out if
+run directly.  It is recommended to run this endpoint asynchronously via
+[Create Asynchronous Job](/content/feature_overview/create_job_feature_overview#create-job-feature-overview).
+
+**NOTE:** This endpoint should be used for on-premise deployments only.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| hosts | array of strings | Array of host IP addresses (matching a hostN.address from the gpudb.conf file), or host identifiers (e.g. 'host0' from the gpudb.conf file), on which to add ranks to the cluster. The hosts must already be in the cluster. If needed beforehand, to add a new host to the cluster use [Administration: Add Host](/content/feature_overview/admin_add_host_feature_overview#admin-add-host-feature-overview). Include the same entry as many times as there are ranks to add to the cluster, e.g., if two ranks on host 172.123.45.67 should be added, input parameter *hosts* could look like '["172.123.45.67", "172.123.45.67"]'. All ranks will be added simultaneously, i.e. they're not added in the order of this array. Each entry in this array corresponds to the entry at the same index in the input parameter *config_params*. |
+| config_params | array of maps of string to strings | Array of maps containing configuration parameters to apply to the new ranks found in input parameter *hosts*. For example, '\{"rank.gpu":"2", "tier.ram.rank.limit":"10000000000"\}'. Currently, the available parameters are rank-specific parameters in the [Network](../../config/#config-main-network), [Hardware](../../config/#config-main-hardware), [Text Search](../../config/#config-main-text-search), and [RAM Tiered Storage](../../config/#config-main-ram-tier) sections in the gpudb.conf file, with the key exception of the 'rankN.host' settings in the Network section that will be determined by input parameter *hosts* instead. Though many of these configuration parameters typically are affixed with 'rankN' in the gpudb.conf file (where N is the rank number), the 'N' should be omitted in input parameter *config_params* as the new rank number(s) are not allocated until the ranks have been added to the cluster. Each entry in this array corresponds to the entry at the same index in the input parameter *hosts*. This array must either be completely empty or have the same number of elements as the input parameter *hosts*.  An empty input parameter *config_params* array will result in the new ranks being set with default parameters. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> dry_run: If *true*, only validation checks will be performed. No ranks are added. The default value is `false`. The supported values are: * true * false |
+
+
+## Output Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| added_ranks | array of strings | The number assigned to each added rank, formatted as 'rankN', in the same order as the ranks in input parameter *hosts* and input parameter *config_params*. |
+| info | map of string to strings | Additional information. |

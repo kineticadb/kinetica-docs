@@ -1,0 +1,1111 @@
+---
+title: Security Concepts
+sidebarTitle: "Users & Roles"
+---
+
+## Overview
+
+
+*Kinetica* provides secured access to data and data services by means of
+role-based access control *(RBAC)*.  Permissions are assigned at the table
+level, schema level, or globally, and can be assigned either directly or
+grouped into roles for assignment.
+
+
+<Info>
+Kinetica users, permissions, and roles can be managed through
+[GAdmin's](/content/admin/gadmin) [Security](/content/admin/gadmin/security)
+interface or through one of the [APIs](/content/api).  See
+[Security Usage](/content/security/sec_usage) for details.
+</Info>
+
+<a id="security-concepts-users"></a>
+
+
+## Users
+
+
+Kinetica supports authentication and authorization of both *internal users*,
+whose credentials are maintained within the database, and *external users*,
+whose credentials are maintained by another directory service (LDAP, AD, etc.).
+
+A user can be assigned any of the following:
+
+* [permissions](/content/security/sec_concepts#security-concepts-permissions)
+* [roles](/content/security/sec_concepts#security-concepts-roles)
+* [resource group](/content/rm/concepts#rm-concepts-resource-groups)
+* [default schema](/content/concepts/schemas#schema-default)
+
+[Roles](/content/security/sec_concepts#security-concepts-roles) are maintained within the database for
+both types of users, though group memberships held by external users can be
+mapped to roles to automatically authorize those users to the appropriate level
+of access.  See [HTTPD + External Authentication](/content/security/sec_configuration#ex-auth-config) for instructions on how to configure this
+mapping of external groups to roles.
+
+
+<a id="security-concepts-users-internal"></a>
+
+
+### Internal Users
+
+
+Internal users have a username and password (encrypted), which are both stored
+within *Kinetica*.
+
+An internal username must meet the following criteria:
+
+* alphanumeric, including underscore; not starting with a number:
+  `[a-z_][a-z_0-9]*`
+* unique among internal usernames and role names
+* up to 64 characters long
+
+Password must meet the following criteria:
+
+* up to 1024 characters long, by default; governed by the
+  `min_password_length` parameter configured in the <Badge color="gray">gpudb.conf</Badge> file
+
+
+<a id="security-concepts-users-external"></a>
+
+
+### External Users
+
+
+External users have a username and password or user certificate stored in an
+external directory service and a corresponding user name stored within Kinetica.
+A proxy server is used to authenticate users to the external directory service
+and pass the authenticated request on to the database.
+
+An external username must meet the following criteria:
+
+* identical to the external username, but with an `@` prepended:
+  `@external_username`
+* unique among external usernames
+
+
+<Info>
+Once authenticated, user authorization does not distinguish between
+internal and external users
+</Info>
+
+<a id="security-concepts-users-default"></a>
+
+
+### Default Users
+
+
+Kinetica comes with up to four default users:
+
+* `admin`
+
+  * full permissions to do anything in *Kinetica*
+  * `system_admin` permission by default; unable to modify
+  * password is `admin` by default but
+    [must be updated after the first login](/content/install/package#visual-initialization)
+  * password can be changed; change will be stored securely in *Kinetica*
+
+* `anonymous`
+
+  * no password
+  * no permissions by default
+
+* `graph`
+
+  * System role reserved for use by the
+    [Graphs & Solvers](/content/graph_solver) engine *(if installed)*
+
+* `planner`
+
+  * System role reserved for use by the SQL query planner engine
+
+
+### User Endpoints
+
+
+Calling user endpoints generally requires `system_admin` or
+`system_user_admin` permission.
+
+* [/create/user/internal](/content/api/rest/create_user_internal_rest)
+* [/create/user/external](/content/api/rest/create_user_external_rest)
+* [/alter/user](/content/api/rest/alter_user_rest) *(can be called by users without*
+  *admin-level permission to change their own passwords)*
+* [/delete/user](/content/api/rest/delete_user_rest)
+* [/show/security](/content/api/rest/show_security_rest) *(can be called by users without*
+  *admin-level permission to view their type,*
+  [roles](/content/security/sec_concepts#security-concepts-roles) *&*
+  [permissions](/content/security/sec_concepts#security-concepts-permissions) *granted, and*
+  [resource group](/content/rm/concepts#rm-concepts-resource-groups) *assigned)*
+
+
+<a id="security-concepts-roles"></a>
+
+
+## Roles
+
+
+Roles are configurable sets of permissions, which enable easier maintenance of
+user authorizations within the database.  A role can have any number of
+permissions assigned to it, and the role can be assigned to any number of users,
+giving those users all of the permissions associated with the role.  A role can
+also be assigned to another role, creating a hierarchy of permissions.  In this
+way, roles eliminate the need to manage each user's permissions individually.
+
+An individual user's permissions are the set of all directly-granted permissions
+and permissions granted via roles.
+
+One or more roles can automatically be granted to any
+[external user](/content/security/sec_concepts#security-concepts-users), based on that user's group
+memberships within the external directory service used.
+See [HTTPD + External Authentication](/content/security/sec_configuration#ex-auth-config) for instructions on how to map external group
+memberships to roles.
+
+A role can be assigned any of the following:
+
+* [permissions](/content/security/sec_concepts#security-concepts-permissions)
+* *roles*
+* [resource group](/content/rm/concepts#rm-concepts-resource-groups)
+
+A role name must meet the following criteria:
+
+* alphanumeric, including underscore; not starting with a number:
+  `[a-z_][a-z_0-9]*`
+* unique among internal usernames and other role names
+* up to 64 characters long
+
+A role may optionally be assigned a
+[resource group](/content/rm/concepts#rm-concepts-resource-groups), which will be imparted to
+any user assigned the role.
+
+
+<Note>
+A role cannot be assigned, as a member, to any role that is
+one of its member roles, whether that member role is assigned directly to it
+or via another role; e.g., if role *A* has role *B* as a member, role *B*
+cannot be assigned role *A* as a member directly, nor can role *B* be
+assigned role *C*, if role *C* has role *A* as a member.
+</Note>
+
+<a id="security-concepts-roles-default"></a>
+
+
+### Default Roles
+
+
+There are two default roles within Kinetica:
+
+* `authenticated`
+
+  * All users except `anonymous` are members of `authenticated` by
+    default.
+
+* `public`
+
+  * All users are members of `public` by default.
+  * The `public` role will grant permissions to users who have not
+    authenticated.
+
+
+### Role Endpoints
+
+
+Calling role endpoints generally requires `system_admin` or
+`system_user_admin` permission.
+
+* [/create/role](/content/api/rest/create_role_rest)
+* [/alter/role](/content/api/rest/alter_role_rest)
+* [/delete/role](/content/api/rest/delete_role_rest)
+* [/grant/role](/content/api/rest/grant_role_rest)
+* [/has/role](/content/api/rest/has_role_rest)
+* [/revoke/role](/content/api/rest/revoke_role_rest)
+* [/show/security](/content/api/rest/show_security_rest) *(can be called by users without*
+  *admin-level permission to view the*
+  [roles](/content/security/sec_concepts#security-concepts-roles) *granted to them)*
+
+
+<a id="security-concepts-permissions"></a>
+
+
+## Permissions
+
+
+Permissions allow users various levels of access to the database's data and
+management services.  Permissions can be granted directly to
+[users](/content/security/sec_concepts#security-concepts-users) and also grouped within
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+There are several categories of permissions within Kinetica:
+
+* [System](/content/security/sec_concepts#security-concepts-permissions-system)
+* [Schema](/content/security/sec_concepts#security-concepts-permissions-schema)
+* [Table](/content/security/sec_concepts#security-concepts-permissions-table)
+* [Credential](/content/security/sec_concepts#security-concepts-permissions-credential)
+* [Data Sink](/content/security/sec_concepts#security-concepts-permissions-datasink)
+* [Data Source](/content/security/sec_concepts#security-concepts-permissions-datasource)
+* [Function](/content/security/sec_concepts#security-concepts-permissions-function)
+* [Graph](/content/security/sec_concepts#security-concepts-permissions-graph)
+* [KiFS](/content/security/sec_concepts#security-concepts-permissions-kifs)
+* [Procedure](/content/security/sec_concepts#security-concepts-permissions-procedure)
+* [SQL-GPT Context](/content/security/sec_concepts#security-concepts-permissions-gpt)
+* [Table Monitor (SQL Stream)](/content/security/sec_concepts#security-concepts-permissions-monitor)
+
+
+<a id="security-concepts-permissions-grant-option"></a>
+
+
+### Grant Option
+
+
+All permissions (except [system_admin](#system-admin) & [system_user_admin](#system-user-admin)) may be granted
+with the option for the grantee to grant that permission to others--that is,
+with a *grant option*.  The *grant option* allows a user to both grant and
+revoke the permission it applies to.  The grantee with the *grant option* may
+also grant a subset of that permission to others.  Both [system_admin](#system-admin) &
+[system_user_admin](#system-user-admin) permissions have the ability to grant permissions
+implicitly, making the *grant option* redundant for these two in particular.
+
+When users create objects, they will automatically be granted administrative
+permission on them with this *grant option*.  This will not be done explicitly
+if the user already has a higher level permission that gives them administrative
+permission with the *grant option* on this object.
+
+For example, when a user creates a table and is granted administrative
+permission with the *grant option* on it, they can then grant read access on
+that table's data to other users.
+
+
+<a id="security-concepts-permissions-user"></a>
+
+<a id="security-concepts-permissions-system"></a>
+
+
+### System Permissions
+
+
+*System permissions* govern access to both database objects and management
+services.
+
+
+The available permissions are:
+
+* [system_admin](#system-admin)
+* [system_user_admin](#system-user-admin)
+* [system_create](#system-create)
+* [system_write](#system-write)
+* [system_read](#system-read)
+* [system_monitor](#system-monitor)
+* [directory_create](#directory-create)
+* [proc_create](#proc-create)
+
+
+<a id="system-admin"></a>
+
+
+#### system_admin
+
+
+A user with `system_admin` permission:
+
+* has [system_write](#system-write)
+* has [system_user_admin](#system-user-admin)
+* can manage all object-types in any schema
+* can grant/revoke all permissions & roles
+* can manage *UDFs*
+
+
+<a id="system-user-admin"></a>
+
+<a id="user-admin"></a>
+
+
+#### system_user_admin
+
+
+A user with `system_user_admin` permission can:
+
+* manage users & roles
+* grant/revoke permissions & roles *(except the* [system_admin](#system-admin)
+  *permission or a role containing it)*
+
+
+<a id="system-create"></a>
+
+
+#### system_create
+
+
+A user with `system_create` permission:
+
+* has [directory_create](#directory-create)
+* has [proc_create](#proc-create)
+* can create all object-types in any *schema* visible to the user
+
+
+<a id="system-write"></a>
+
+
+#### system_write
+
+
+A user with `system_write` permission:
+
+* has [system_create](#system-create)
+* has [system_read](#system-read)
+* has `table_admin` permission on all *tables*, *views*, and *schemas*
+* has `graph_admin` permission on all *schemas*
+* has `monitor_admin` permission on all *schemas*
+* has `directory_write` permission on all *directories* in *KIFS*
+* can manage *schemas*
+* can upload symbols via [/insert/symbol](/content/api/rest/insert_symbol_rest)
+
+
+<a id="system-read"></a>
+
+
+#### system_read
+
+
+A user with `system_read` permission has:
+
+* `table_read` permission on all *tables* & *views* in all *schemas*
+* `context_read` permission on all *SQL-GPT context* objects
+* `credential_read` permission on all *credential* objects
+* `directory_read` permission on all *directories* in *KIFS*
+* `graph_read` permission on all *graph* objects
+
+
+<a id="system-monitor"></a>
+
+
+#### system_monitor
+
+
+A user with `system_monitor` permission can see a read-only view of logs and system metrics.
+
+
+<a id="directory-create"></a>
+
+
+#### directory_create
+
+
+A user with `directory_create` permission can:
+
+* create new *directories* in *KIFS*
+
+
+<a id="proc-create"></a>
+
+
+#### proc_create
+
+
+A user with `proc_create` permission can:
+
+* create new *UDFs* and *UDTFs*
+
+
+<a id="security-concepts-permissions-schema"></a>
+
+
+### Schema Permissions
+
+
+*Schema* permissions govern access to [schemas](/content/concepts/schemas)
+and the database objects within them.  Access granted on a *schema* directly
+gives permissions to all present and future *tables* & *views* within that
+*schema*.
+
+*Schema* permissions granted are cumulative with other permissions.  If a user
+is granted read permissions on a *schema* and update permission on a *table*
+contained within that *schema*, the effective permissions on that *table* for
+that user will be both read and update.
+
+Permissions granted on *schemas* are maintained separately from permissions
+granted on *tables* & *views*.  If a user is granted admin access on a *schema*
+and read access on a *table* within that *schema*, revoking the user's *schema*
+admin access will not affect the user's *table* read access on the contained
+*table*.
+
+In general, there are no negative permissions.  For instance, if read access on
+a *schema* is granted, read access on a *table* within that *schema* cannot be
+revoked.  Instead, the *schema* read permission would have to be revoked and
+then the access to the appropriate *tables* within the *schema* granted.
+
+
+The two sets of permissions available at the *schema* level are:
+
+* [Table Management Permissions](#table-management-permissions)
+* [Object Creation Permissions](#object-creation-permissions)
+
+
+<a id="security-concepts-permissions-schema-table"></a>
+
+
+#### Table Management Permissions
+
+
+Table management permissions at the *schema* level control access to *tables*,
+*views*, and their contained data.
+
+The available permissions are:
+
+* `table_admin`
+
+  * has all schema-level table management permissions listed below
+  * can create, alter, or drop any *table*, *view*, or other object-type under
+    that *schema*
+
+* `table_insert`
+
+  * can insert records into *tables* within the specified *schema(s)*
+    *(upserting, via* [/insert/records](/content/api/rest/insert_records_rest)
+    *using the* `update_on_existing_pk` *parameter, requires the*
+    `table_update` *permission, as well)*
+
+* `table_update`
+
+  * can update records in *tables* within the specified *schema(s)*
+    *(upserting, via* [/insert/records](/content/api/rest/insert_records_rest)
+    *using the* `update_on_existing_pk` *parameter, requires the*
+    `table_insert` *permission, as well)*
+
+* `table_delete`
+
+  * can delete records from *tables* within the specified *schema(s)*
+
+* `table_read`
+
+  * can read (select) records from *tables* & *views* within the specified
+    *schema(s)*
+
+
+<a id="security-concepts-permissions-schema-object"></a>
+
+
+#### Object Creation Permissions
+
+
+Object creation permissions at the *schema* level control the ability to create
+objects of a given type within a given schema.
+
+The available permissions are:
+
+* `context_create`
+
+  * can create new *SQL-GPT context* objects within the specified *schema(s)*
+
+* `credential_create`
+
+  * can create new *credential* objects within the specified *schema(s)*
+
+* `datasink_create`
+
+  * can create new *data sink* objects within the specified *schema(s)*
+
+* `datasource_create`
+
+  * can create new *data source* objects within the specified *schema(s)*
+
+* `graph_create`
+
+  * can create new *graph* objects within the specified *schema(s)*
+
+* `monitor_create`
+
+  * can create new *table monitor* objects within the specified *schema(s)*
+
+* `sql_proc_create`
+
+  * can create new *SQL Procedures* within the specified *schema(s)*
+
+* `table_create`
+
+  * can create new *tables* & *views* within the specified *schema(s)*
+
+
+<a id="security-concepts-permissions-table"></a>
+
+
+### Table Permissions
+
+
+*Table* permissions govern access to database objects and the data contained
+within them.  These apply to [tables](/content/concepts/tables) and both
+[native](/content/concepts/views) & [SQL](/content/sql/ddl#sql-create-view)
+*views*.
+
+*Table* permissions granted are cumulative.  If a user is granted read permission
+on a *table* through one role and update permission on that same *table* through
+another role, the effective permissions on the *table* for that user will be both
+read and update.
+
+In general, there are no negative permissions.  For instance, if read access on
+a *table* is granted, read access on a subset of rows or columns within that *table*
+cannot be revoked.  Instead, the *table* read permission would have to be revoked
+and then the access to the appropriate rows or columns within the *table* granted.
+
+Both [row-level security](/content/security/sec_concepts#sec-concepts-perm-table-row) and
+[column-level security](/content/security/sec_concepts#sec-concepts-perm-table-col) are available to be
+applied to a *table*, either separately or together.
+
+
+<Note>
+For granting the ability to create *tables*, see
+[Table Management Permissions](/content/security/sec_concepts#security-concepts-permissions-schema-table).
+</Note>
+
+The available permissions are:
+
+* `table_admin`
+
+  * has all four *table* permissions below
+  * can alter & drop the granted *table*
+
+* `table_insert`
+
+  * can insert records *(upserting, via* [/insert/records](/content/api/rest/insert_records_rest)
+    *using the* `update_on_existing_pk` *parameter, requires the*
+    `table_update` *permission, as well)*
+
+* `table_update`
+
+  * can update records *(upserting, via* [/insert/records](/content/api/rest/insert_records_rest)
+    *using the* `update_on_existing_pk` *parameter, requires the*
+    `table_insert` *permission, as well)*
+
+* `table_delete`
+
+  * can delete records
+
+* `table_read`
+
+  * can read (select) records *(both*
+    [row-level security](/content/security/sec_concepts#sec-concepts-perm-table-row) *&*
+    [column-level security](/content/security/sec_concepts#sec-concepts-perm-table-col) *can apply to*
+    *this access type)*
+
+
+<Info>
+The creator of a
+[materialized view](/content/concepts/materialized_views) will
+automatically be given `table_admin` with
+[grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option)
+permission on it, allowing the user to grant other users access to it.
+</Info>
+
+<a id="sec-concepts-perm-table-row"></a>
+
+
+#### Row-Level Security
+
+
+Read access can be granted for a subset of the rows in a given table by
+employing *row-level security*.  An [expression](/content/concepts/expressions#expressions) is
+used to filter the records that should be accessible.
+
+
+<Info>
+Row-level access must be revoked by revoking access to all rows for
+that table *(or column)*.  To effectively revoke a partial subset, revoke
+access to the column and then regrant the appropriate access.
+</Info>
+
+*Row-level security* could be useful in restricting users' access to their own
+employee records, department managers' access to the data relevant to their
+departments, or analysts' access to the cases assigned to them.
+
+
+*Row-level permissions* may be assigned on a table via
+[GAdmin](/content/admin/gadmin/data#gadmin-row-col-security).
+
+See [GRANT Row-Level Security Examples](/content/sql/security#sql-security-priv-mgmt-row-grant)
+& [REVOKE Row-Level Security Examples](/content/sql/security#sql-security-priv-mgmt-row-revoke)
+for examples and granting & revoking row-level read access in SQL, respectively.
+
+
+<a id="sec-concepts-perm-table-col"></a>
+
+
+#### Column-Level Security
+
+
+Read access can be granted for a subset of the columns in a given table by
+employing *column-level security*.
+[Column-level security functions](/content/security/sec_concepts#sec-concepts-perm-table-col-func) can be
+applied to those columns to either obfuscate or mask the values the user sees.
+
+
+<Info>
+Column-level access is revoked by specifying the column name(s) to
+revoke, regardless of what security functions may have been applied to the
+column when granted.
+</Info>
+
+*Column-level security*, in general, is useful for preventing users from
+accessing restricted columns within a table that they can access, or for
+preventing users from accessing restricted characters within a string column
+they can otherwise access.
+
+
+<Note>
+[Primary keys](/content/concepts/tables#primary-key) and
+[shard keys](/content/concepts/tables#shard-key) are only visible to (and usable by) a
+user if the user has unrestricted access to all columns comprising the key.
+Applying any column-level security functions to key columns will restrict
+this access.  Without full access to these keys, operations that require
+them, such as table joins, may fail.
+</Note>
+
+Obfuscating a column's values will result in a unique non-negative number being
+returned for each unique original column value; rows with the same column value
+will return the same obfuscated number for that value.  This can be useful in
+performing analysis on patient data, where records need to be attributable to
+unique individuals, but the identities of those individuals need to be kept
+private.
+
+Masking a column's values allows certain characters of a string to not be
+displayed--instead, replacing them with `*` (or other) characters.  This can
+be useful in displaying the last four digits of a user's social security number
+for verification purposes without disclosing the entire SSN.
+
+When a user is granted multiple levels of access to a given column, the values
+shown to a user will be determined based on the least restrictive access the
+user has been granted.  Access restrictiveness is determined in the following
+order, from least restrictive to most restrictive:
+
+* Full access
+* Masked access
+* Obfuscated access
+* No access
+
+*Column-level permissions* may be assigned on a table via
+[Workbench](/content/admin/workbench/ui/explorer/data#wb-explorer-data-tv-config).
+
+See [GRANT Column-Level Security Examples](/content/sql/security#sql-security-priv-mgmt-col-grant)
+& [REVOKE Column-Level Security Examples](/content/sql/security#sql-security-priv-mgmt-col-revoke)
+for examples and granting & revoking column-level read access in SQL, respectively.
+
+
+<a id="sec-concepts-perm-table-col-func"></a>
+
+
+<p><strong>Column-Level Security Functions</strong></p>
+
+
+The following security functions can be used when employing
+[column-level security](/content/security/sec_concepts#sec-concepts-perm-table-col) on the following
+[specific types](/content/concepts/types#types-chart) with string *base types*:
+
+* *char[N]* strings
+* *ipv4*
+* *decimal*
+* *ulong*
+* *date*
+* *time*
+* *datetime*
+
+<AccordionGroup>
+
+<Accordion title="HASH(column)" id="hash-column" defaultOpen>
+
+Returns a non-negative integer representing an obfuscated version of `column`
+
+</Accordion>
+
+<Accordion title="MASK(column, start, length[, char])" id="mask-column-start-length-char" defaultOpen>
+
+Masks `length` characters of `column`, beginning at the position identified
+by `start`, with `*` characters (or the character specified in `char`):
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Function Call</th>
+    <th>Result</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>MASK('Characters', 5, 5)</code></td>
+    <td><code>Char*****s</code></td>
+  </tr>
+  <tr>
+    <td><code>MASK('Characters', 5, 2, '#')</code></td>
+    <td><code>Char##ters</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="OBFUSCATE(column)" id="obfuscate-column" defaultOpen>
+
+Alias for `HASH`
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="security-concepts-permissions-credential"></a>
+
+
+### Credential Permissions
+
+
+*Credential* permissions govern access to external system
+[credentials](/content/concepts/credentials).  Any user can create and use
+a *credential*.
+
+
+<Note>
+For granting the ability to create *credentials*, see
+[Object Creation Permissions](/content/security/sec_concepts#security-concepts-permissions-schema-object).
+</Note>
+
+The available permissions are:
+
+* `credential_read`
+
+  * allows a user to see the given *credential's* configuration and use it
+
+* `credential_admin`
+
+  * allows a user to modify or drop the given *credential*, as well as use it
+    and display its configuration.
+
+
+<Info>
+The creator of a *credential* will automatically be given
+`credential_admin` with
+[grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option)
+permission on it, allowing the user to grant other users access to it.
+</Info>
+
+
+<a id="security-concepts-permissions-datasink"></a>
+
+
+### Data Sink Permissions
+
+
+*Data sink* permissions govern access to external
+[data sinks](/content/concepts/data_sinks).
+
+
+<Note>
+For granting the ability to create *data sinks*, see
+[Object Creation Permissions](/content/security/sec_concepts#security-concepts-permissions-schema-object).
+</Note>
+
+The available permissions are:
+
+* `connect`
+
+  * allows a user to connect to an external data consumer through the given
+    *data sink*, and view the configuration of the *data sink*
+
+* `datasink_admin`
+
+  * allows a user to modify or drop the given *data sink*
+
+
+<Info>
+The creator of a *data sink* will automatically be given
+`datasink_admin` with
+[grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option)
+permission on it, allowing the user to grant other users access to it.
+</Info>
+
+
+<a id="security-concepts-permissions-datasource"></a>
+
+
+### Data Source Permissions
+
+
+*Data source* permissions govern access to external
+[data sources](/content/concepts/data_sources).
+
+
+<Note>
+For granting the ability to create *data sources*, see
+[Object Creation Permissions](/content/security/sec_concepts#security-concepts-permissions-schema-object).
+</Note>
+
+The available permissions are:
+
+* `connect`
+
+  * allows a user to connect to an external data set through the given
+    *data source*, and view the configuration of the *data source*
+
+* `datasource_admin`
+
+  * allows a user to modify or drop the given *data source*
+
+
+<Info>
+The creator of a *data source* will automatically be given
+`datasource_admin` with
+[grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option)
+permission on it, allowing the user to grant other users access to it.
+</Info>
+
+
+<a id="security-concepts-permissions-function"></a>
+
+
+### Function Permissions
+
+
+*Function permissions* govern access to
+[User-Defined Functions (UDFs)](/content/udf_overview) and
+[Python UDF function environments](/content/udf/python/writing#udf-python-func-env).
+
+Permission can be granted on:
+
+* specific *UDFs*
+* all present and future *UDFs*
+
+These two scopes of grants exist independently of each other and are managed
+separately, as well.
+
+
+<Note>
+Revoking a user's permission on all *UDFs* will not revoke any
+specific UDF permission that user has been granted.  To revoke any permission
+on specific UDFs that a user has, each specific UDF permission needs to be
+revoked individually from the user.
+</Note>
+
+Administrative access to all present and future *UDFs* also allows management
+access to *function environments*.
+
+Permissions on *UDFs* & *function environments* can also be managed via
+[SQL](/content/sql/security#sql-security-priv-mgmt-udf-grant).
+
+
+<Note>
+For granting the ability to create *UDFs*, see [proc_create](#proc-create).
+</Note>
+
+The available permissions are:
+
+* `proc_execute`
+
+  * allows a user to execute the given *UDF*; or all *UDFs*, if granted without
+    a *UDF* specified
+
+* `proc_admin`
+
+  * allows a user to manage the given *UDF*; or all *UDFs* and
+    *function environments*, if granted without a *UDF* specified
+
+
+<Info>
+The creator of a *UDF* will automatically be given
+`proc_admin` with
+[grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option)
+permission on it, allowing the user to grant other users access to it.
+</Info>
+
+
+<a id="security-concepts-permissions-graph"></a>
+
+
+### Graph Permissions
+
+
+*Graph* permissions govern access to
+[graphs](/content/graph_solver/network_graph_solver).
+
+
+<Note>
+For granting the ability to create *graphs*, see
+[Object Creation Permissions](/content/security/sec_concepts#security-concepts-permissions-schema-object).
+</Note>
+
+The available permissions are:
+
+* `graph_admin`
+
+  * includes `graph_write` permission
+  * allows a user to drop the given *graph*
+
+* `graph_write`
+
+  * includes `graph_read` permission
+  * allows a user to modify the given *graph*
+
+* `graph_read`
+
+  * allows a user to query, match, solve, & show the given *graph*
+
+
+<Info>
+The creator of a *graph* will automatically be given
+`graph_admin` with
+[grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option)
+permission on it, allowing the user to grant other users access to it.
+</Info>
+
+
+<a id="security-concepts-permissions-kifs"></a>
+
+
+### KiFS Permissions
+
+
+[KiFS](/content/tools/kifs) permissions govern access to
+[directories](/content/tools/kifs_api#kifs-directory) and the
+[files](/content/tools/kifs_api#kifs-file) they contain.
+
+
+<Note>
+For granting the ability to create *directories*, see
+[directory_create](#directory-create).
+</Note>
+
+The available permissions are:
+
+* `directory_write`
+
+  * allows a user to upload and delete *files* within the given *directory*
+  * includes `directory_read` permission
+
+* `directory_read`
+
+  * allows a user to list, download, and use *files* within the given
+    *directory*, in *Kinetica* features that make use of *KiFS*
+
+
+<Info>
+Unlike most objects, the creator of a *directory* will not be given an
+administrative permission on it, allowing the user to delete the *directory*
+or grant other users access to it; those permissions are reserved for users
+with the [system_admin](#system-admin) permission.
+</Info>
+
+
+<a id="security-concepts-permissions-procedure"></a>
+
+
+### Procedure Permissions
+
+
+*Procedure permissions* govern access to
+[SQL Procedures](/content/sql/procedure#sql-procedures).
+
+For managing permission on *SQL Procedures*, see the
+[SQL Procedure Security](/content/sql/procedure#sql-procedures-security) section.
+
+
+<Note>
+For granting the ability to create *SQL Procedures*, see
+[Object Creation Permissions](/content/security/sec_concepts#security-concepts-permissions-schema-object).
+</Note>
+
+The available permission is:
+
+* `sql_proc_execute`
+
+  * allows a user to execute the given
+    [SQL Procedure](/content/sql/procedure#sql-procedures); managed via
+    [SQL](/content/sql/procedure#sql-procedures-security)
+
+
+<a id="security-concepts-permissions-gpt"></a>
+
+
+### SQL-GPT Context Permissions
+
+
+*SQL-GPT context* permissions govern access to
+[SQL-GPT contexts](/content/sql-gpt/concepts#sql-gpt-overview-context).
+
+
+<Note>
+For granting the ability to create *SQL-GPT contexts*, see
+[Object Creation Permissions](/content/security/sec_concepts#security-concepts-permissions-schema-object).
+</Note>
+
+The available permissions are:
+
+* `context_admin`
+
+  * includes `context_read` permission
+  * allows a user to modify or drop the given *SQL-GPT context*
+
+* `context_read`
+
+  * allows a user to use the given *SQL-GPT context* to generate SQL using a
+    SQL-GPT query
+
+
+<Info>
+The creator of a *context* will automatically be given
+`context_admin` with
+[grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option)
+permission on it, allowing the user to grant other users access to it.
+</Info>
+
+
+<a id="security-concepts-permissions-monitor"></a>
+
+
+### Table Monitor (SQL Stream) Permissions
+
+
+*Table monitor* permissions govern access to
+[table monitors](/content/concepts/table_monitors)
+(SQL [Streams](/content/sql/ddl#sql-create-stream)).
+
+
+<Note>
+For granting the ability to create *table monitors*, see
+[Object Creation Permissions](/content/security/sec_concepts#security-concepts-permissions-schema-object).
+</Note>
+
+The available permission is:
+
+* `monitor_admin`
+
+  * allows a user to drop the given *table monitor*
+
+
+<Info>
+The creator of a *table monitor* will automatically be given
+`monitor_admin` with
+[grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option)
+permission on it, allowing the user to grant other users access to it.
+</Info>
+
+
+### Permission Endpoints
+
+
+Calling permission endpoints generally requires [system_admin](#system-admin) or
+[system_user_admin](#system-user-admin) permission.
+
+* [/grant/permission](/content/api/rest/grant_permission_rest)
+* [/grant/permission/credential](/content/api/rest/grant_permission_credential_rest)
+* [/grant/permission/datasource](/content/api/rest/grant_permission_datasource_rest)
+* [/grant/permission/directory](/content/api/rest/grant_permission_directory_rest)
+* [/grant/permission/proc](/content/api/rest/grant_permission_proc_rest)
+* [/grant/permission/system](/content/api/rest/grant_permission_system_rest)
+* [/grant/permission/table](/content/api/rest/grant_permission_table_rest)
+* [/has/permission](/content/api/rest/has_permission_rest)
+* [/revoke/permission](/content/api/rest/revoke_permission_rest)
+* [/revoke/permission/credential](/content/api/rest/revoke_permission_credential_rest)
+* [/revoke/permission/datasource](/content/api/rest/revoke_permission_datasource_rest)
+* [/revoke/permission/directory](/content/api/rest/revoke_permission_directory_rest)
+* [/revoke/permission/proc](/content/api/rest/revoke_permission_proc_rest)
+* [/revoke/permission/system](/content/api/rest/revoke_permission_system_rest)
+* [/revoke/permission/table](/content/api/rest/revoke_permission_table_rest)
+* [/show/security](/content/api/rest/show_security_rest) *(can be called by users without*
+  [system_admin](#system-admin) or [system_user_admin](#system-user-admin) *permission to view the*
+  [permissions](/content/security/sec_concepts#security-concepts-permissions) *granted to them)*

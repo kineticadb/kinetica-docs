@@ -1,0 +1,770 @@
+---
+title: "Files & Directories (KiFS)"
+sidebarTitle: "Files & Directories"
+---
+
+<a id="sql-kifs"></a>
+
+
+*Kinetica*, via [KiFS](/content/tools/kifs), provides support for staging
+files within the database for subsequent ingestion.  The file structure consists
+of a single layer of top-level [directories](/content/tools/kifs_api#kifs-directory), with
+each [file](/content/tools/kifs_api#kifs-file) contained within one of those
+*directories*.  *File* names can contain `/` characters to give the appearance
+of existing under a hierarchy of one or more sub-directories.
+
+*Directory* features accessible via SQL include:
+
+* [CREATE DIRECTORY](/content/sql/kifs#sql-kifs-create-dir)
+* [ALTER DIRECTORY](/content/sql/kifs#sql-kifs-alter-dir)
+* [LIST DIRECTORY](/content/sql/kifs#sql-kifs-list-dir)
+* [DOWNLOAD DIRECTORY](/content/sql/kifs#sql-kifs-download-dir)
+* [DROP DIRECTORY](/content/sql/kifs#sql-kifs-drop-dir)
+
+*File* features accessible via SQL include:
+
+* [UPLOAD FILE](/content/sql/kifs#sql-kifs-upload-file)
+* [UPLOAD URL](/content/sql/kifs#sql-kifs-upload-url)
+* [LIST FILE](/content/sql/kifs#sql-kifs-list-file)
+* [DOWNLOAD FILE](/content/sql/kifs#sql-kifs-download-file)
+* [DROP FILE](/content/sql/kifs#sql-kifs-drop-file)
+
+For *directory* permission management, see:
+
+* [GRANT Directory Permission](/content/sql/security#sql-security-priv-mgmt-dir-grant)
+* [REVOKE Directory Permission](/content/sql/security#sql-security-priv-mgmt-dir-revoke)
+
+
+<a id="sql-kifs-create-dir"></a>
+
+
+## CREATE DIRECTORY
+
+
+Creates a new [KiFS directory](/content/tools/kifs_api#kifs-directory) under which
+[files](/content/tools/kifs_api#kifs-file) can be uploaded and used for data loading.
+
+```sql title="CREATE DIRECTORY Syntax"
+CREATE DIRECTORY '<directory name>'
+[WITH OPTIONS (data_limit = <data limit value>)]
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;directory name&gt;" id="<directory-name>" defaultOpen>
+
+Name of the *directory* to create.
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of option/value assignments will follow.
+The following options are available:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>data_limit</code></td>
+    <td>Total capacity the given *directory* should not exceed, in bytes; use <code>-1</code> for no limit</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To create a *directory*, `kdata`, with no size limit:
+
+{/* Source: /examples/sql/kifs.kisql (lines 28) */}
+```sql CREATE DIRECTORY Example
+CREATE DIRECTORY 'kdata'
+```
+
+To create a *directory*, `fs_limited`, with a 1,000,000 byte maximum capacity:
+
+{/* Source: /examples/sql/kifs.kisql (lines 218-219) */}
+```sql CREATE DIRECTORY with Limit Example
+CREATE DIRECTORY 'fs_limited'
+WITH OPTIONS (data_limit = 1000000)
+```
+
+
+<a id="sql-kifs-alter-dir"></a>
+
+
+## ALTER DIRECTORY
+
+
+Alters the configuration of an existing
+[KiFS directory](/content/tools/kifs_api#kifs-directory).
+
+The following facet of a *directory* can be altered:
+
+* [Data Limit](/content/sql/kifs#sql-kifs-alter-dir-limit)
+
+
+<a id="sql-kifs-alter-dir-limit"></a>
+
+
+### Set Data Limit
+
+
+A *directory* can have its data limit modified.
+
+```sql title="Set Directory Data Limit Syntax"
+ALTER DIRECTORY '<directory name>'
+SET data_limit = <data limit value>
+```
+
+
+#### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;directory name&gt;" id="<directory-name>-2" defaultOpen>
+
+Name of the *directory* to alter
+
+</Accordion>
+
+<Accordion title="&lt;data limit value&gt;" id="<data-limit-value>" defaultOpen>
+
+Total capacity the given *directory* should not exceed, in bytes; use `-1` for no limit
+
+</Accordion>
+
+</AccordionGroup>
+
+
+#### Examples
+
+
+To set the maximum capacity of a *directory*, `fs_limited`, to
+10,000,000 bytes:
+
+{/* Source: /examples/sql/kifs.kisql (lines 225-226) */}
+```sql ALTER DIRECTORY SET Data Limit Example
+ALTER DIRECTORY 'fs_limited'
+SET data_limit = 10000000
+```
+
+
+<a id="sql-kifs-list-dir"></a>
+
+<a id="sql-kifs-show-dir"></a>
+
+
+## LIST DIRECTORY
+
+
+Outputs detail about one or all
+[KiFS directories](/content/tools/kifs_api#kifs-directory).
+
+```sql title="LIST DIRECTORY Syntax"
+<LIST|SHOW|DESC[RIBE]> DIRECTOR[Y|IES] < '<directory name>' | * >
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;directory name&gt;" id="<directory-name>-3" defaultOpen>
+
+Name of the existing *directory* for which detail will be output.
+Use `*` instead to output detail of all *directories*.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Response
+
+
+The response to `LIST DIRECTORY` is a six-column result set:
+
+| Output Column | Description |
+| --- | --- |
+| `DIRECTORY_NAME` | Name of the *directory* |
+| `CREATED_BY` | User ID of the user who created the *directory* |
+| `CREATION_TIME` | Date/time at which the *directory* was created |
+| `DATA_USAGE` | Amount of used file storage within the directory, in bytes |
+| `DATA_LIMIT` | Total amount of file storage within the directory, in bytes |
+| `PERMISSION` | Highest level of access to the *directory* the command issuer has |
+
+
+### Examples
+
+
+To output the detail about a *directory*, `kdata`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 51) */}
+```sql LIST DIRECTORY Example
+LIST DIRECTORY 'kdata'
+```
+
+To output the detail for all *directories*:
+
+{/* Source: /examples/sql/kifs.kisql (lines 40) */}
+```sql LIST DIRECTORIES (All Directories) Example
+LIST DIRECTORIES *
+```
+
+
+<a id="sql-kifs-download-dir"></a>
+
+
+## DOWNLOAD DIRECTORY
+
+
+Downloads all *files* under a [directory](/content/tools/kifs_api#kifs-directory) in
+[KiFS](/content/tools/kifs) into a local directory.
+
+
+<Info>
+This command is only available through
+[KiSQL](/content/tools/kisql) or database clients configured with
+the [Kinetica JDBC driver](/content/connectors/sql_guide#odbc-jdbc).
+</Info>
+
+```sql title="DOWNLOAD DIRECTORY Syntax"
+DOWNLOAD [DIRECTORY] <kifs directory>
+INTO '<local directory>'
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="DIRECTORY" id="directory" defaultOpen>
+
+Optional keyword for clarity.
+
+</Accordion>
+
+<Accordion title="&lt;kifs directory&gt;" id="<kifs-directory>" defaultOpen>
+
+*KiFS directory* whose contained *files* will be downloaded to the local file system.
+
+</Accordion>
+
+<Accordion title="&lt;local directory&gt;" id="<local-directory>" defaultOpen>
+
+Local directory path into which files will be downloaded.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To download all *files* in a *KiFS directory* to a local directory,
+`/tmp`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 112-113) */}
+```sql DOWNLOAD DIRECTORY Example
+DOWNLOAD DIRECTORY 'kdata'
+INTO '/tmp'
+```
+
+
+<a id="sql-kifs-drop-dir"></a>
+
+
+## DROP DIRECTORY
+
+
+Removes an existing [KiFS directory](/content/tools/kifs_api#kifs-directory).
+
+```sql title="DROP DIRECTORY Syntax"
+DROP DIRECTORY [IF EXISTS] '<directory name>'
+[WITH OPTIONS ('<option name>' = '<option value>'[,...])]
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;directory name&gt;" id="<directory-name>-4" defaultOpen>
+
+Name of the *directory* to remove.
+
+</Accordion>
+
+<Accordion title="IF EXISTS" id="if-exists" defaultOpen>
+
+Optional error-suppression clause; if specified, no error will be returned if the given
+*directory* does not exist.
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options-2" defaultOpen>
+
+Optional indicator that a comma-delimited list of option/value assignments will follow.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>recursive</code></td>
+    <td>Whether to delete all files contained within the *directory*: <ul><li><code>false</code> *(default)* - only drop the *directory* if empty; return an error if the *directory* contains *files*</li><li><code>true</code> - drop the *directory* and all *files* in it</li></ul></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To delete a *directory*, `kbackup`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 196) */}
+```sql DROP DIRECTORY Example
+DROP DIRECTORY 'kbackup'
+```
+
+To delete a *directory*, `kdata`, and all files in it, suppressing the error
+if it doesn't exist:
+
+{/* Source: /examples/sql/kifs.kisql (lines 201-202) */}
+```sql DROP DIRECTORY with Files Example
+DROP DIRECTORY IF EXISTS 'kdata'
+WITH OPTIONS ('recursive' = 'true')
+```
+
+
+<a id="sql-kifs-upload-file"></a>
+
+
+## UPLOAD FILE
+
+
+Uploads file(s) local to the database client into
+[KiFS](/content/tools/kifs), within the given
+[directory](/content/tools/kifs_api#kifs-directory).
+
+
+<Info>
+This command is only available through
+[KiSQL](/content/tools/kisql) or database clients configured with
+the [Kinetica JDBC driver](/content/connectors/sql_guide#odbc-jdbc).
+</Info>
+
+```sql title="UPLOAD FILE Syntax"
+UPLOAD FILE[S] <file path(s)>
+INTO '<kifs path>'
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;file path(s)&gt;" id="<file-path-s->" defaultOpen>
+
+Local path(s) of the file(s) to upload to *KiFS*, as a comma-separated list of single-quoted
+file paths; wildcards (`*`) can be used to specify a group of files.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>File Path</th>
+    <th>Outcome</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>'archive/*.csv'</code></td>
+    <td>Upload all files under the <Badge color="gray">archive</Badge> directory with a <Badge color="gray">csv</Badge> extension</td>
+  </tr>
+  <tr>
+    <td><code>'data/q1.csv','data/q2.csv'</code></td>
+    <td>Upload <Badge color="gray">q1.csv</Badge> &amp; <Badge color="gray">q2.csv</Badge> that reside under the <Badge color="gray">data</Badge> directory</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;kifs path&gt;" id="<kifs-path>" defaultOpen>
+
+Path in *KiFS*; this can be either the name of a *directory* or a *directory* followed by
+virtual subdirectories separated by `/` characters.
+
+For example, uploading a file named `2021.q1.csv` to:
+
+* `'data'` - will upload it to the `data` *directory* and make it available as
+  `data/2021.q1.csv`
+* `'data/sales/Q1'` - will upload it to the `data` *directory* and make it available as
+  `data/sales/Q1/2021.q1.csv`
+
+
+<Info>
+Only the *directory* specified within this path must exist for the upload to succeed.
+Any virtual subdirectories added to this path do not need to exist before uploading.
+</Info>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To upload a file to a *directory*, `kdata`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 62-63) */}
+```sql UPLOAD FILE Example
+UPLOAD FILE '../data/products.csv'
+INTO 'kdata'
+```
+
+To upload several files to a *directory*, `kdata`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 69-70) */}
+```sql UPLOAD FILES Example
+UPLOAD FILES '../data/p*.ssv', '../data/employee.*'
+INTO 'kdata'
+```
+
+
+<a id="sql-kifs-upload-url"></a>
+
+
+## UPLOAD URL
+
+
+Uploads file(s) from one or more URLs into [KiFS](/content/tools/kifs),
+in one or more [directories](/content/tools/kifs_api#kifs-directory).  There should be a
+corresponding *KiFS* full file path specified for each URL specified--the *KiFS*
+file name will not be derived from any part of the given URL.
+
+```sql title="UPLOAD URL Syntax"
+UPLOAD URL <url(s)>
+INTO <kifs path(s)>
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;url(s)&gt;" id="<url-s->" defaultOpen>
+
+URL(s) of the file(s) to upload to *KiFS*, as a comma-separated list of single-quoted URL(s).
+
+</Accordion>
+
+<Accordion title="&lt;kifs path(s)&gt;" id="<kifs-path-s->" defaultOpen>
+
+File path(s) in *KiFS* to upload the file(s) at the URL(s) to, as a comma-separated list of
+single-quoted *KiFS* full file paths.
+
+
+<Info>
+Only the *directory* specified within this path must exist for the upload to succeed.
+Any virtual subdirectories within this path do not need to exist before uploading.
+</Info>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To upload the *Kinetica JDBC Driver* in GitHub to *file*
+`kinetica-jdbc-fullshaded.jar` under *directory* `drivers`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 232-233) */}
+```sql UPLOAD URL Example
+UPLOAD URL 'https://github.com/kineticadb/kinetica-client-jdbc/raw/master/kinetica-jdbc-7.2.3.14-fullshaded.jar'
+INTO 'drivers/kinetica-jdbc-fullshaded.jar';
+```
+
+To upload the *Kinetica JDBC Driver* and the corresponding change log in GitHub
+to *files* `kjdbc-7.2.jar` & `kjdbc-CHANGELOG.md`, respectively, under
+*directory* `drivers`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 238-243) */}
+```sql UPLOAD URLs Example
+UPLOAD URL
+	'https://github.com/kineticadb/kinetica-client-jdbc/raw/master/kinetica-jdbc-7.2.3.14-fullshaded.jar',
+	'https://github.com/kineticadb/kinetica-client-jdbc/raw/master/CHANGELOG.md'
+INTO
+	'drivers/kjdbc-7.2.jar',
+	'drivers/kjdbc-CHANGELOG.md';
+```
+
+
+<a id="sql-kifs-list-file"></a>
+
+<a id="sql-kifs-show-file"></a>
+
+
+## LIST FILE
+
+
+Outputs detail about one or all
+[KiFS files](/content/tools/kifs_api#kifs-file).
+
+```sql title="SHOW FILE Syntax"
+<LIST|SHOW|DESC[RIBE]> FILE[S] <kifs path(s)>
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;kifs path(s)&gt;" id="<kifs-path-s->-2" defaultOpen>
+
+Name(s) of existing *directories* and/or *files* for which detail will be output, as a
+comma-separated list of single-quoted paths.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Path</th>
+    <th>Outcome</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>'archive'</code></td>
+    <td>Output detail of all *files* under the *KiFS directory* <Badge color="gray">archive</Badge>.</td>
+  </tr>
+  <tr>
+    <td><code>'data/q1.csv','data/q2.csv'</code></td>
+    <td>Output detail of <Badge color="gray">q1.csv</Badge> &amp; <Badge color="gray">q2.csv</Badge> that reside under the <Badge color="gray">data</Badge> directory.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Response
+
+
+The response to `LIST FILE` is a four-column result set:
+
+| Output Column | Description |
+| --- | --- |
+| `FILE_NAME` | Name of the *file* |
+| `SIZE` | Size of the file in bytes |
+| `CREATED_BY` | User ID of the user who created the *file* |
+| `CREATION_TIME` | Date/time at which the *file* was created |
+
+
+### Examples
+
+
+To output a listing of all *files* under the *KiFS directory*, `kdata`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 76) */}
+```sql LIST FILES (Directory) Example
+LIST FILES 'kdata'
+```
+
+To output a listing of specific *files* under the *KiFS directory*, `kdata`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 87) */}
+```sql LIST FILES (Specific Files) Example
+LIST FILES 'kdata/products.csv', 'kdata/employee.parquet'
+```
+
+
+<a id="sql-kifs-download-file"></a>
+
+
+## DOWNLOAD FILE
+
+
+Downloads file(s) from [KiFS](/content/tools/kifs) into a local directory.
+
+
+<Info>
+This command is only available through
+[KiSQL](/content/tools/kisql) or database clients configured with
+the [Kinetica JDBC driver](/content/connectors/sql_guide#odbc-jdbc).
+</Info>
+
+```sql title="DOWNLOAD FILE Syntax"
+DOWNLOAD [FILE[S]] <kifs file path(s)>
+INTO '<local directory>'
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="FILE[S]" id="files" defaultOpen>
+
+Optional keyword for clarity.
+
+</Accordion>
+
+<Accordion title="&lt;kifs file path(s)&gt;" id="<kifs-file-path-s->" defaultOpen>
+
+*KiFS file(s)* to download to the local file system, as a comma-separated list of single-quoted
+file paths.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>File Path</th>
+    <th>Outcome</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>'archive/products.csv'</code></td>
+    <td>Download <Badge color="gray">archive/products.csv</Badge></td>
+  </tr>
+  <tr>
+    <td><code>'data/q1.csv','data/q2.csv'</code></td>
+    <td>Download <Badge color="gray">q1.csv</Badge> &amp; <Badge color="gray">q2.csv</Badge> that reside under the <Badge color="gray">data</Badge> directory</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;local directory&gt;" id="<local-directory>-2" defaultOpen>
+
+Local directory path into which files will be downloaded.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To download a *KiFS file* to a local directory, `/tmp`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 98-99) */}
+```sql DOWNLOAD FILE Example
+DOWNLOAD FILE 'kdata/products.csv'
+INTO '/tmp'
+```
+
+To download several *KiFS files* to a local directory, `/tmp`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 105-106) */}
+```sql DOWNLOAD FILES Example
+DOWNLOAD FILES 'kdata/products.ssv', 'kdata/employee.parquet'
+INTO '/tmp'
+```
+
+
+<a id="sql-kifs-drop-file"></a>
+
+
+## DROP FILE
+
+
+Deletes an existing [KiFS file](/content/tools/kifs_api#kifs-file).
+
+```sql title="DROP FILE Syntax"
+DROP FILE[S] [IF EXIST[S]] <kifs file path(s)>
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;kifs file path(s)&gt;" id="<kifs-file-path-s->-2" defaultOpen>
+
+*KiFS file(s)* to delete, as a comma-separated list of single-quoted file paths.
+
+</Accordion>
+
+<Accordion title="IF EXIST[S]" id="if-exists-2" defaultOpen>
+
+Optional error-suppression clause; if specified, no error will be returned if the given
+*file(s)* do not exist.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To delete a *KiFS file*:
+
+{/* Source: /examples/sql/kifs.kisql (lines 140) */}
+```sql DROP FILE Example
+DROP FILE 'kdata/products.csv'
+```
+
+To delete several *KiFS files*, suppressing the error if any don't exist:
+
+{/* Source: /examples/sql/kifs.kisql (lines 146) */}
+```sql DROP FILES Example
+DROP FILES IF EXIST 'kdata/products.csv', 'kdata/employee.parquet'
+```

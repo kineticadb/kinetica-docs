@@ -1,0 +1,44 @@
+---
+title: Job Manager
+---
+
+The *Job Manager* maintains request ordering across the nodes in your *Kinetica*
+cluster at the cost of some performance. All read requests (`/show/table`,
+`/get/records`, etc.) are processed simultaneously. When a write request
+(`/insert/records`, `/delete/records`, etc.) is made, all subsequent read
+and write requests are blocked until the current write request is finished.
+
+If *Job Manager* is disabled, all inbound requests are broadcasted to all
+worker nodes and can be executed in any order.
+
+While enabled by default, *Job Manager* can be disabled by setting the
+**enable_job_manager** configuration parameter to `false` in the
+<Badge color="gray">gpudb.conf</Badge> file.
+
+The *Job Manager* interface is available through
+[GAdmin](/content/admin/gadmin/jobs), which allows jobs to be monitored and
+cancelled, if needed.
+
+Because read requests are processed simultaneously, read jobs can only be
+cancelled while a preceding write request is being processed, which is also
+referred to as a checkpoint.
+
+
+<Note>
+Insert, update, and delete requests **cannot** be cancelled.
+Otherwise, most user-facing non-admin jobs are cancellable.
+</Note>
+
+When using any endpoint, you can specify a name, number, or other tag to help
+identify a particular job using the `job_user_data` options parameter; e.g.,
+(in Python):
+
+```python
+h_db.insert_records(
+  table_name = "test_table_all_types",
+  data = encoded_obj_list, list_encoding = 'binary',
+  options = {
+    "job_user_data":"insert_records_large_table"
+  }
+)
+```

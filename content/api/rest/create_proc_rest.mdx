@@ -1,0 +1,43 @@
+---
+title: /create/proc
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="create-proc-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/create/proc
+```
+Creates an instance (proc) of the
+[user-defined functions](../../../concepts/udf/) (UDF) specified by the
+given command, options, and files, and makes it available for execution.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| proc_name | string | Name of the proc to be created. Must not be the name of a currently existing proc. |
+| execution_mode | string | The execution mode of the proc. <br/> <br/> The default value is `distributed`. <br/> <br/> distributed: Input table data will be divided into data segments that are distributed across all nodes in the cluster, and the proc command will be invoked once per data segment in parallel. Output table data from each invocation will be saved to the same node as the corresponding input data. <br/> <br/> nondistributed: The proc command will be invoked only once per execution, and will not have direct access to any tables named as input or output table parameters in the call to [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) . It will, however, be able to access the database using native API calls. |
+| files | map of string to bytes | A map of the files that make up the proc. The keys of the map are file names, and the values are the binary contents of the files. The file names may include subdirectory names (e.g. 'subdir/file') but must not resolve to a directory above the root for the proc. <br/> <br/> Files may be loaded from existing files in KiFS. Those file names should be prefixed with the uri kifs:// and the values in the map should be empty. <br/> <br/> The default value is an empty map ( \{\} ). |
+| command | string | The command (excluding arguments) that will be invoked when the proc is executed. It will be invoked from the directory containing the proc input parameter *files* and may be any command that can be resolved from that directory. It need not refer to a file actually in that directory; for example, it could be 'java' if the proc is a Java application; however, any necessary external programs must be preinstalled on every database node. If the command refers to a file in that directory, it must be preceded with './' as per Linux convention. If not specified, and exactly one file is provided in input parameter *files*, that file will be invoked. <br/> <br/> The default value is ''. |
+| args | array of strings | An array of command-line arguments that will be passed to input parameter *command* when the proc is executed. <br/> <br/> The default value is an empty array ( [] ). |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> max_concurrency_per_node: The maximum number of concurrent instances of the proc that will be executed per node. 0 allows unlimited concurrency. The default value is `0`. <br/> <br/> set_environment: A python environment to use when executing the proc. Must be an existing environment, else an error will be returned. The default value is ''. |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'create_proc_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /create/proc endpoint: <br/> <br/> proc_name: [string] Value of input parameter *proc_name*. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

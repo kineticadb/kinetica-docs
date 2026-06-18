@@ -1,0 +1,41 @@
+---
+title: Restore Backup
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="restore-backup-feature-overview"></a>
+
+
+Restores database objects from a
+[backup](../../admin/backup_restore/#database-backup) accessible via the
+[data source](../../concepts/data_sources/) specified by input parameter
+*datasource_name*.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| backup_name | string | Name of the backup to restore from, which must refer to an existing backup. <br/> <br/> The default value is ''. |
+| restore_objects_map | map of string to strings | Map of database objects to be restored from the backup. <br/> <br/> all: All object types and data contained in the given [schema(s)](../../concepts/schemas/). <br/> <br/> context: [Context(s)](../../sql-gpt/concepts/#sql-gpt-context). <br/> <br/> credential: [Credential(s)](../../concepts/credentials/). <br/> <br/> datasink: [Data sink(s)](../../concepts/data_sinks/). <br/> <br/> datasource: [Data source(s)](../../concepts/data_sources/). <br/> <br/> function_environment: [Python UDF function environment(s)](../../udf/python/writing/#udf-python-func-env). <br/> <br/> graph: [Graph(s)](../../graph_solver/network_graph_solver/) definition. <br/> <br/> monitor: [Table monitor(s)](../../concepts/table_monitors/) / [SQL stream(s)](../../sql/ddl/#create-stream). <br/> <br/> resource_group: [Resource group(s)](../../rm/concepts/#resource-groups). <br/> <br/> role: [Role(s)](../../security/sec_concepts/#roles), role members (roles or users, recursively), and associated permissions. <br/> <br/> stored_procedure: [SQL procedure(s)](../../sql/procedure/). <br/> <br/> table: [Table(s)](../../concepts/tables/) and [SQL view(s)](../../sql/ddl/#create-view). Tables with subscriptions will by default be restored in the state they were in at the time of the snapshot. See *restore_subscriptions* for options to override the default behavior. <br/> <br/> user: [User(s)](../../security/sec_concepts/#security-concepts-users) (internal and external) and associated permissions. <br/> <br/> user_defined_function: [UDF(s)](../../udf_overview). |
+| datasource_name | string | Data source through which the backup will be restored. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> backup_id: ID of the snapshot to restore. Leave empty to restore the most recent snapshot in the backup. The default value is ''. <br/> <br/> checksum: Whether or not to verify checksums for backup files when restoring. The default value is `false`. The supported values are: * true * false <br/> <br/> create_schema_if_not_exist: Behavior to apply when the schema containing any database object to restore does not already exist. The default value is `true`. +---------+---------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+=======================================+ \|true \|If the schema containing any restored \| \| \|object does not exist, create it \| \| \|automatically. \| \| \| \| +---------+---------------------------------------+ \|false \|If the schema containing any restored \| \| \|object does not exist, return an error.\| \| \| \| +---------+---------------------------------------+ <br/> <br/> ddl_only: Behavior to apply when restoring tables. The default value is `false`. +---------+-------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+=====================================+ \|true \|Restore table DDL, but do not restore\| \| \|data. \| \| \| \| +---------+-------------------------------------+ \|false \|Restore tables and their data. \| \| \| \| +---------+-------------------------------------+ <br/> <br/> dry_run: Whether or not to perform a dry run of the restoration operation. The default value is `false`. The supported values are: * true * false <br/> <br/> restore_subscriptions: Behavior to apply when restoring datasource subscriptions on tables. The default value is `resume`. +---------+-----------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+=========================================+ \|resume \|Resume subscriptions that were active \| \| \|when the backup was made. \| \| \| \| +---------+-----------------------------------------+ \|pause \|Pause subscriptions that were active when\| \| \|the backup was made. \| \| \| \| +---------+-----------------------------------------+ \|cancel \|Cancel active subscriptions. \| \| \| \| +---------+-----------------------------------------+ <br/> <br/> reingest: Behavior to apply when restoring table data. The default value is `false`. +---------+-----------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+=========================================+ \|true \|Restore table data by re-ingesting it. \| \| \|This is the default behavior if the \| \| \|cluster topology differs from that of the\| \| \|contained backup. \| \| \| \| +---------+-----------------------------------------+ \|false \|Restore the persisted data files \| \| \|directly. \| \| \| \| +---------+-----------------------------------------+ <br/> <br/> renamed_objects_schema: If the *restore_policy* is *rename*, use this schema for relocated existing objects instead of the default generated one. The default value is ''. <br/> <br/> restore_policy: Behavior to apply when any database object to restore already exists. The default value is `none`. +---------+---------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+=======================================+ \|none \|If an object to be restored already \| \| \|exists with the same name, abort and \| \| \|return error. \| \| \| \| +---------+---------------------------------------+ \|replace \|If an object to be restored already \| \| \|exists with the same name, replace it \| \| \|with the backup version. \| \| \| \| +---------+---------------------------------------+ \|rename \|If an object to be restored already \| \| \|exists with the same name, move that \| \| \|existing one to the schema specified by\| \| \|*renamed_objects_schema*. This policy \| \| \|does not apply to non-schema objects. \| \| \| \| +---------+---------------------------------------+ |
+
+
+## Output Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| backup_name | string | Value of input parameter *backup_name*. |
+| backup_id | long | ID of the snapshot that was restored. |
+| restored_bytes | long | Total size of data restored from backup. |
+| restored_files | long | Total number of files restored from backup. |
+| restored_records | long | Total number of records restored from backup. |
+| restored_objects | map of string to strings | Database objects that were successfully restored and their associated types. |
+| renamed_objects | map of string to strings | Original and new names of database objects that were successfully restored and their associated types. |
+| failed_objects | map of string to strings | Database objects that failed to be restored and their associated types. |
+| info | map of string to strings | Additional information. |

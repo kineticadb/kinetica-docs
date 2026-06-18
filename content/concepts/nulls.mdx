@@ -1,0 +1,445 @@
+---
+title: Nulls
+---
+
+<a id="nulls"></a>
+
+<a id="null"></a>
+
+
+Using *nulls* begins with setting *nullability* of [type](/content/concepts/types)
+fields at creation time.  Each database API has a language-specific means for
+assigning *nullability* when creating a *type*. *Null* values and *nullability*
+are also supported for SQL.
+
+
+## Setting Nullability
+
+
+Setting *nullability* is possible using three different methods:
+
+* [GAdmin](/content/admin/gadmin#gadmin)
+* Native API (using the [/create/type](/content/api/rest/create_type_rest#create-type-rest) endpoint)
+* SQL
+
+The process for specifying *nullability* varies between the different API
+languages and SQL; the process for each language is outlined below.
+
+
+### SQL
+
+
+When creating a table in SQL, columns are *nullable* by default, but can be set
+as *nullable* explicitly with the modifier `NULL`.  *Non-nullable* columns
+need to be defined explicitly with `NOT NULL`.
+
+In the following example, all columns except for `id` are *nullable*:
+
+{/* Source: /examples/sql/null.kisql (lines 16-27) */}
+```sql
+CREATE OR REPLACE TABLE example.employee
+(
+    id INTEGER NOT NULL,
+    dept_id INTEGER,
+    manager_id INTEGER,
+    first_name VARCHAR(30),
+    last_name VARCHAR(30),
+    phone_number VARCHAR(16) NULL,
+    sal DECIMAL NULL,
+    hire_date DATE NULL,
+    PRIMARY KEY(id)
+)
+```
+
+
+### REST
+
+
+When creating a *type schema* via REST, a call to [/create/type](/content/api/rest/create_type_rest#create-type-rest) needs
+to be made, where *nullability* of each column is specified in two places:
+
+1. As a union between the type of the nullable column and the keyword `null`:
+
+   ```
+   {"name":"null_col","type":["int","null"]}
+   ```
+2. In the `properties` list, with each nullable column being assigned the
+   `nullable` property:
+
+   ```
+   "null_col":["nullable"]
+   ```
+In the following example, a *type schema* named `ex_null_rest` is created with
+a nullable column, `null_col`.  To create this *type schema*, call the
+[/create/type](/content/api/rest/create_type_rest#create-type-rest) endpoint with the following payload:
+
+{/* Source: /examples/bash/create_null_type.json */}
+```json
+{
+    "type_definition":
+        "{\"type\":\"record\",\"name\":\"ex_null_rest\",\"fields\":[{\"name\":\"null_col\",\"type\":[\"int\",\"null\"]}]}",
+    "label":"example_null_type_rest",
+    "properties":{
+        "null_col":["nullable"]
+    }
+}
+```
+
+
+<Info>
+The `type_definition` is passed in as a JSON string, so all quotes
+within it must be escaped.
+</Info>
+
+An example call using `curl` might look like this, where the above JSON
+payload is in a file named <Badge color="gray">create_null_type.json</Badge>:
+
+{/* Source: /examples/bash/create_null_type.sh (lines 25 27-28) */}
+```bash
+curl -sS -X POST --header "Content-Type: application/json" \
+--user ${USERNAME}:${PASSWORD} \
+-d @${THIS_SCRIPT_DIR}/create_null_type.json ${URL}/create/type
+```
+
+
+### C++
+
+
+{/* Source: /examples/cpp/create_null_type.cpp (lines 13-25) */}
+```c++
+/* Create the 'columns' vector, and add two columns with types and properties
+   to the vector */
+std::vector<gpudb::Type::Column> columns;
+columns.push_back(gpudb::Type::Column("nullable_column", gpudb::Type::Column::ColumnType::DOUBLE, {gpudb::ColumnProperty::NULLABLE}));
+columns.push_back(gpudb::Type::Column("non_nullable_column", gpudb::Type::Column::ColumnType::DOUBLE));
+
+// Establish a type ('nullType') using a label and the  'columns' vector
+gpudb::Type nullType("null_cpp_type", columns);
+
+/* Set the 'type_id' variable to the response returned from the create type
+   request, then print out the response */
+std::string type_id = nullType.create(h_db);
+std::cout << "GPUdb generated type id for the new type - " << type_id << std::endl;
+```
+
+
+### C#
+
+
+{/* Source: /examples/cs/create_null_cs/create_null_type.cs (lines 14-42) */}
+```c#
+// Create basic columns with a general type
+private class null_type
+{
+    public int nullable_column { get; set; }
+    public int non_nullable_column { get; set; }
+}
+
+static void Main()
+{
+    // Establish connection with a locally-running instance of Kinetica
+    Kinetica h_db = new Kinetica("http://127.0.0.1:9191");
+
+    // Create a map of properties lists ('column_properties')
+    IDictionary<string, IList<string>> column_properties = new Dictionary<string, IList<string>>();
+
+    /* Create a properties list ('null_col_props') for the column with
+       the 'NULLABLE' property added, then map the properties list to
+       the 'nullable_column' in the 'column_properties' map */
+    List<string> null_col_props = new List<string>();
+    null_col_props.Add(ColumnProperty.NULLABLE);
+    column_properties.Add("nullable_column", null_col_props);
+
+    /* Set variable 'null_type' to the 'null_type' class with the
+       additional properties found in 'column_properties', then
+       create the type and print out the type ID */
+    KineticaType null_type = KineticaType.fromClass(typeof(null_type), column_properties);
+    string type_id = null_type.create(h_db);
+    Console.WriteLine("GPUdb generated type id for the new type - " + type_id);
+}
+```
+
+
+### Java
+
+
+{/* Source: /examples/java/create_null_java/src/main/java/CreateNullType.java (lines 9-19 24-25 28-33) */}
+```java
+public static class NullJavaType extends RecordObject
+{
+	@RecordObject.Column(order = 0, properties = {ColumnProperty.NULLABLE})
+	public Integer nullable_column;
+
+	@RecordObject.Column(order = 1)
+	public Integer non_nullable_column;
+}
+
+public static void main(String[] args) throws GPUdbException
+{
+	// Establish connection with a locally-running instance of Kinetica
+	GPUdbBase.Options options = new GPUdbBase.Options();
+	GPUdb db = new GPUdb("http://" + host + ":9191", options);
+
+	// Create a type from the NullJavaType class and print out the type ID
+	String typeId = RecordObject.createType(NullJavaType.class, db);
+	System.out.println("Kinetica generated type id for the new type - " + typeId);
+}
+```
+
+
+### JavaScript
+
+
+{/* Source: /examples/javascript/create_null_type.js (lines 28-43) */}
+```javascript
+// Create a type, assigning the nullable property to nullable_column to
+//   allow it to store null values;
+//   non_nullable_column will not be able to store nulls
+var null_type = new GPUdb.Type(
+		"null_js_type",
+		new GPUdb.Type.Column("nullable_column", "int", "nullable"),
+		new GPUdb.Type.Column("non_nullable_column", "int")
+);
+
+// Call create on the type object, passing a database handle and a callback
+//   function to print out the type ID
+null_type.create(db, build_callback(function(response) {
+		var type_id = response;
+ 		console.log("Kinetica-generated type id for the new type - " + type_id);
+	}
+));
+```
+
+
+### Node.js
+
+
+{/* Source: /examples/nodejs/create_null_type.js (lines 30-45) */}
+```javascript
+// Create a type, assigning the nullable property to nullable_column to
+//   allow it to store null values;
+//   non_nullable_column will not be able to store nulls
+var null_type = new GPUdb.Type(
+		"null_node_type",
+		new GPUdb.Type.Column("nullable_column", "int", "nullable"),
+		new GPUdb.Type.Column("non_nullable_column", "int")
+);
+
+// Call create on the type object, passing a database handle and a callback
+//   function to print out the type ID
+null_type.create(db, build_callback(function(response) {
+		type_id = response;
+		process.stdout.write("Kinetica-generated type id for the new type - " + type_id)
+	}
+));
+```
+
+
+### Python
+
+
+#### Creating a Table with Nullable Columns
+
+
+To create a table with a nullable column:
+
+{/* Source: /examples/python/create_null_type.py (lines 1 4-6) */}
+```python
+import argparse
+import gpudb
+from gpudb import GPUdbRecordColumn as GRC
+from gpudb import GPUdbColumnProperty as GCP
+```
+
+{/* Source: /examples/python/create_null_type.py (lines 122-123) */}
+```python
+# Establish connection with a locally-running instance of Kinetica
+kinetica = gpudb.GPUdb(host = [args.url], username = args.username, password = args.password)
+```
+
+{/* Source: /examples/python/create_null_type.py (lines 39-50) */}
+```python
+# Create a column list
+columns = [
+    [ "nullable_column", GRC._ColumnType.DOUBLE, GCP.NULLABLE ],
+    [ "non_nullable_column", GRC._ColumnType.DOUBLE ]
+]
+
+# Create a simple table using the column list
+gpudb.GPUdbTable(
+    columns,
+    name = "example.table_with_nullable_column",
+    db = kinetica
+)
+```
+
+
+#### Creating a Type with Nullable Fields
+
+
+To create a type, from which multiple tables can be instantiated, either the
+`GPUdbRecordType` object or a JSON string can be used.
+
+
+<p><strong>GPUdbRecordType</strong></p>
+
+
+{/* Source: /examples/python/create_null_type.py (lines 122-123) */}
+```python
+# Establish connection with a locally-running instance of Kinetica
+kinetica = gpudb.GPUdb(host = [args.url], username = args.username, password = args.password)
+```
+
+{/* Source: /examples/python/create_null_type.py (lines 11-19) */}
+```python
+# Creating a type using the GPUdbRecordType Object
+columns = []
+columns.append(gpudb.GPUdbRecordColumn("nullable_column", GRC._ColumnType.DOUBLE, [GCP.NULLABLE]))
+columns.append(gpudb.GPUdbRecordColumn("non_nullable_column", GRC._ColumnType.DOUBLE))
+
+null_type_1 = gpudb.GPUdbRecordType(columns, label = "null_py_type_object")
+null_type_1.create_type(kinetica)
+type_id = null_type_1.type_id
+print(f"GPUdb generated type id for the new type (using the GPUdbRecordType Object) - {type_id}")
+```
+
+
+<p><strong>JSON</strong></p>
+
+
+{/* Source: /examples/python/create_null_type.py (lines 122-123) */}
+```python
+# Establish connection with a locally-running instance of Kinetica
+kinetica = gpudb.GPUdb(host = [args.url], username = args.username, password = args.password)
+```
+
+{/* Source: /examples/python/create_null_type.py (lines 21-32) */}
+```python
+# Creating a type using a JSON string
+null_type_2 ='''{
+                        "type": "record",
+                        "name": "null_py_type_json",
+                        "fields": [
+                            {"name": "nullable_column", "type": ["double", "null"]},
+                            {"name": "non_nullable_column", "type": "double"}
+                        ]
+                }'''
+
+response = kinetica.create_type(type_definition = null_type_2, label = "null_py_type_json", properties = {"nullable_column": ["nullable"]})
+print(f"GPUdb generated type id for the new type (using a JSON string) -  {response['type_id']}")
+```
+
+
+<Info>
+When using a JSON string to create a type, one needs to specify
+*nullability* at the column property level but also at the type
+definition level as a union between the type of the column and
+`null`.
+</Info>
+
+
+## Using Nulls
+
+
+*Null* values can be used in expressions much like any other value. *Null*
+functions can also be used on column names in expressions to test for and
+evaluate *null* column values. The native API *null* functions can be found
+[here](/content/concepts/expressions#null-expression-functions); the SQL *null* functions can be found
+[here](/content/sql/query#sql-null-functions).
+
+
+### Examples
+
+
+Given table `employees`, you can query to see which employees have not input
+their phone number into the employee record database using the *SQL* statement
+
+{/* Source: /examples/sql/null.kisql (lines 42-44) */}
+```sql
+SELECT *
+FROM example.employee
+WHERE phone_number IS null
+```
+
+You can also query for all employees and phone numbers, replacing missing
+numbers with a note:
+
+{/* Source: /examples/sql/null.kisql (lines 50-54) */}
+```sql
+SELECT
+    first_name,
+    last_name,
+    NVL2(phone_number, phone_number, '<not given>') AS phone_number
+FROM example.employee
+```
+
+Given roll-up *view* `budget`, you can create a *projection* to track if a
+department's budget has changed since last year using the `NULLIF()` function.
+For example, in *Python*:
+
+{/* Source: /examples/python/create_null_type.py (lines 79-86) */}
+```python
+budget_changes = budget.create_projection(
+    projection_name="example.budget_changes",
+    column_names=[
+        "dept_id",
+        "budget_prev",
+        "NULLIF(budget_new, budget_prev) as budget_changed"
+    ]
+)
+```
+
+
+## Aggregates and Nulls
+
+
+There are two points of note when attempting to perform aggregation/grouping
+operations on a *table* or *view* that contains *null* values.
+
+* *Null* values are ignored in every aggregation calculation except for certain
+  instances of `COUNT()` usage, e.g., counting the amount of records in a
+  *table* or *view* (`COUNT(*)`) will include records with *null* values even
+  if all the values in a record are null; however, counting the values in a
+  column (`COUNT(column_name)`) will ignore *null* values
+* Aggregating against an empty table results in 0 records for the `count` and
+  *null* values for the other calculations (e.g., `SUM`, `MIN`, `VAR_POP`)
+
+
+### Example
+
+
+Given the following table `survey_response`:
+
+{/* Source: /examples/sql/null.out (lines 113-119) */}
+```sql
++-------------------+--------------+-------------+
+| email             | first_name   | last_name   |
++-------------------+--------------+-------------+
+| jdoe@yahoo.com    | John         | <null>      |
+| mrsmith@aol.com   | <null>       | <null>      |
+| <null>            | <null>       | <null>      |
++-------------------+--------------+-------------+
+```
+
+If queried like so:
+
+{/* Source: /examples/sql/null.kisql (lines 81-86) */}
+```sql
+SELECT
+    COUNT(*) AS count_survey_responses,
+    COUNT(email) AS count_email,
+    COUNT(first_name) AS count_fn,
+    COUNT(last_name) AS count_ln
+FROM example.survey_response
+```
+
+The following response is returned:
+
+{/* Source: /examples/sql/null.out (lines 130-134) */}
+```sql
++--------------------------+---------------+------------+------------+
+|   count_survey_responses |   count_email |   count_fn |   count_ln |
++--------------------------+---------------+------------+------------+
+|                        3 |             2 |          1 |          0 |
++--------------------------+---------------+------------+------------+
+```

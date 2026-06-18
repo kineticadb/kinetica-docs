@@ -1,0 +1,302 @@
+---
+title: Load Data from HDFS
+description: Copy and paste tutorial for loading data from HDFS
+sidebarTitle: HDFS
+---
+
+<a id="load-data-by-source-hdfs"></a>
+
+
+Loading data from HDFS can be done in three easy steps:
+
+1. [Create a credential](/content/load_data/by_source/hdfs#load-from-hdfs-credential) - holds HDFS
+   account authentication information
+2. [Create a data source](/content/load_data/by_source/hdfs#load-from-hdfs-data-source) - holds
+   HDFS connection information; uses the *credential* for authentication
+3. [Ingest the data](/content/load_data/by_source/hdfs#load-from-hdfs-ingest) - Load data from
+   HDFS; uses the *data source* to identify the HDFS source
+
+
+<a id="load-from-hdfs-credential"></a>
+
+
+## Create Credential
+
+
+To store the access details for your *data source*, first create a *credential*
+with the [CREATE CREDENTIAL](/content/sql/ddl#sql-create-credential) command, and
+reference it in your `CREATE DATA SOURCE` statement.  This will allow you to
+store the authentication details of your connection separately.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/credential/credentials_format_hdfs.kisql (lines 14-17) */}
+```sql Password
+CREATE CREDENTIAL hdfs_cred
+TYPE = 'hdfs',
+IDENTITY = 'jdoe',
+SECRET = 'foobaz123'
+```
+
+{/* Source: /examples/sql/credential/credentials_format_hdfs.kisql (lines 37-43) */}
+```sql Kerberos Keytab
+CREATE CREDENTIAL hdfs_cred
+TYPE = 'hdfs',
+IDENTITY = 'jdoe'
+WITH OPTIONS
+(
+    KERBEROS KEYTAB = 'kifs://<keytab file path>'
+)
+```
+
+{/* Source: /examples/sql/credential/credentials_format_hdfs.kisql (lines 24-30) */}
+```sql Kerberos Token
+CREATE CREDENTIAL hdfs_cred
+TYPE = 'hdfs',
+IDENTITY = 'jdoe'
+WITH OPTIONS
+(
+    USE KERBEROS = 'true'
+)
+```
+
+</CodeGroup>
+
+
+<a id="load-from-hdfs-data-source"></a>
+
+
+## Create Data Source
+
+
+Next, create a *data source* using the
+[CREATE DATA SOURCE](/content/sql/ddl#sql-create-data-source) command in Kinetica.
+The *data source* defines how Kinetica connects to HDFS.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_source/data_source_format_hdfs.kisql (lines 56-59 61-62) */}
+```sql Credential
+CREATE DATA SOURCE hdfs_ds
+LOCATION = 'HDFS://example.com:8020'
+WITH OPTIONS
+(
+    CREDENTIAL = 'hdfs_cred'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_hdfs.kisql (lines 14-17) */}
+```sql Password
+CREATE DATA SOURCE hdfs_ds
+LOCATION = 'HDFS://example.com:8020'
+USER = 'jdoe'
+PASSWORD = 'foobaz123'
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_hdfs.kisql (lines 41-45 47-48) */}
+```sql Kerberos Keytab
+CREATE DATA SOURCE hdfs_ds
+LOCATION = 'HDFS://example.com:8020'
+USER = 'jdoe'
+WITH OPTIONS
+(
+    KERBEROS KEYTAB = '/path/to/jdoe.keytab'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_hdfs.kisql (lines 26-30 32-33) */}
+```sql Kerberos Token
+CREATE DATA SOURCE hdfs_ds
+LOCATION = 'HDFS://example.com:8020'
+USER = 'jdoe'
+WITH OPTIONS
+(
+    USE KERBEROS = true
+)
+```
+
+</CodeGroup>
+
+<a id="load-from-hdfs-ingest"></a>
+
+
+## Ingest Data
+
+
+To initiate the ingest of data into a Kinetica table, use the
+[LOAD INTO](/content/sql/load#sql-load-into) command. You can initiate a one-time
+batch load, or a continuous load using change-data-capture by using the option
+`SUBSCRIBE = TRUE`.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_into_format_hdfs.sql (lines 3-6) */}
+```sql Batch Load
+LOAD DATA INTO example.orders
+FROM FILE PATHS 'example_orders.csv'
+FORMAT TEXT
+WITH OPTIONS (DATA SOURCE = 'hdfs_ds')
+```
+
+{/* Source: /examples/sql/load/load_into_format_hdfs.sql (lines 11-17) */}
+```sql Streaming Load
+LOAD DATA INTO example.orders
+FROM FILE PATHS 'example_orders.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    DATA SOURCE = 'hdfs_ds',
+    SUBSCRIBE = TRUE
+)
+```
+
+</CodeGroup>
+
+
+## Considerations
+
+
+The following are some common options used when loading.  For the full list of
+options, see [LOAD INTO](/content/sql/load#sql-load-into).  For copy/paste examples of many of
+the options, see [Loading Data](/content/snippets/load-data).
+
+
+### Wildcard Ingest
+
+
+If you want to ingest multiple files inside of an HDFS directory, a "path prefix"
+can be specified, which will cause all files whose path begins with the given
+prefix to be included. When using an HDFS data source, the "path prefix" must
+be the name of an HDFS directory.
+
+For example, a "path prefix" of `/data/` for `FROM FILE PATHS` would match all of the following:
+
+- `/data/geo_0.csv`
+- `/data/geo_1.csv`
+- `/data/geo_2.csv`
+
+
+### Error Handling
+
+
+Kinetica has two different
+[error handling modes](/content/sql/load#sql-load-file-server-load-opt) for dealing
+with erroneous data. To halt ingestion after a bad record is found, use the
+`ABORT` mode. To skip erroneous records and continue the ingest, use the
+`SKIP` mode.
+
+To inspect erroneous records, you may use the
+[BAD RECORD TABLE NAME](/content/sql/load#sql-load-file-server-load-opt) option.
+All bad records encountered will be stored there for review. The bad records
+table is limited to 10,000 records by default and may be overridden using the
+[BAD RECORD TABLE LIMIT](/content/sql/load#sql-load-file-server-load-opt) option.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_into_hdfs_snippets.sql (lines 56-62) */}
+```sql Abort
+LOAD INTO ki_home.error_example
+FROM FILE PATHS 'error_example.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    DATA SOURCE = 'hdfs_ds',
+    ON ERROR = ABORT
+)
+```
+
+{/* Source: /examples/sql/load/load_into_hdfs_snippets.sql (lines 66-73) */}
+```sql Log Bad Records
+LOAD INTO ki_home.error_example
+FROM FILE PATHS 'error_example.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    DATA SOURCE = 'hdfs_ds',
+    BAD RECORD TABLE NAME = 'error_example_invalid',
+    ON ERROR = SKIP
+)
+```
+
+</CodeGroup>
+
+
+### Load Specific Columns
+
+
+In some cases, you may only want to store certain columns from your source data.
+Use the [FIELDS MAPPED BY NAME(...)](/content/sql/load#sql-load-file-server-load-opt)
+option, which allows you to specify the desired fields to store in Kinetica.
+
+```sql title="Load Specific Columns Example"
+LOAD DATA INTO example.orders
+FROM FILE PATHS 'example_orders.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    DATA SOURCE = 'hdfs_ds',
+    FIELDS MAPPED BY NAME(ID, Name, Product_ID, Quantity)
+)
+```
+
+
+### DateTime Formatting
+
+
+Use the  [COLUMN FORMATS](/content/sql/load#sql-load-file-server-load-opt) option
+to format date and time fields into Kinetica Date, Time, and DateTime columns.
+Time formats are specified using a JSON formatted string. Non-placeholder characters
+must be wrapped in quotes, which must also be escaped (e.g.
+`'{"dt": {"date": "\"(\"YYYY\")\" Mon, DD"}}'`). Alternatively, you can use
+the `?` character as a wildcard character. Note that
+Kinetica does not handle or store timezones and they will be discarded.
+See the full list of supported
+[date and time format codes](/content/sql/query#sql-datetime-conversion-codes).
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_into_hdfs_snippets.sql (lines 7-20) */}
+```sql ISO 8601 Timestamps
+-- Example Data:
+-- dt
+-- 2022-01-19T15:50:42Z+05:00
+
+LOAD INTO ki_home.timestamp_example
+FROM FILE PATHS 'timestamp_example.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    DATA SOURCE = 'hdfs_ds',
+    COLUMN FORMATS = '
+    {
+        "dt": {"datetime": "YYYY-MM-DD?HH:MI:SS"}
+    }'
+)
+```
+
+{/* Source: /examples/sql/load/load_into_hdfs_snippets.sql (lines 24-34) */}
+```sql Custom Date
+-- Example Data:
+-- d
+-- (2022) Feb, 22
+
+LOAD INTO ki_home.date_example
+FROM FILE PATHS 'date_example.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    DATA SOURCE = 'hdfs_ds',
+    COLUMN FORMATS = '{"d": {"date": "\"(\"YYYY\")\" Mon, DD"}}'
+)
+```
+
+{/* Source: /examples/sql/load/load_into_hdfs_snippets.sql (lines 38-48) */}
+```sql Custom Time
+-- Example Data:
+-- t
+-- 18-27-59.5536
+
+LOAD INTO ki_home.time_example
+FROM FILE PATHS 'time_example.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    DATA SOURCE = 'hdfs_ds',
+    COLUMN FORMATS = '{"t": {"time": "HH-MI-SS.MS"}}'
+)
+```
+
+</CodeGroup>

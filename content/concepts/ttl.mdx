@@ -1,0 +1,78 @@
+---
+title: TTL
+---
+
+*Time-to-live (TTL)* is a configurable number of minutes since last access
+before a [table](/content/concepts/tables) or [view](/content/concepts/views) will expire and be removed
+from the database.  A *TTL* of `-1` will direct that an entity not expire.
+
+If a *table* or *view* is assigned a *TTL*, its expiration timer will be reset
+to the value of its configured *TTL* each time it is accessed.  For instance, a
+*view* with a five minute *TTL* will have its life extended by five minutes from
+the time it is accessed every time it is accessed.  If it is not accessed within
+five minutes from the time of last access, it will be removed.
+
+*Tables*, by default, will not expire.  *Views*, by default, will expire in the
+number of minutes configured within the server's
+[default_ttl](../../config/#config-main-general) setting.
+
+A *TTL* can be any of the following:
+
+* `n` - the database entity will live for `n` minutes since last access,
+  where `n` is a positive integer
+* `0` - the database entity will expire immediately
+* `-1` - the database entity will not expire
+
+
+<Info>
+*TTL* only governs an entity's expiration by timeout.  For example, a
+[memory-only table](/content/concepts/tables_memory_only) with a *TTL* set to not expire
+will still be removed from the system upon database restart, as it is a
+non-persisted entity.
+</Info>
+
+
+## Examples
+
+
+To assign a 7-minute *TTL* to a *table*:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 230-231) */}
+```sql SQL
+ALTER TABLE example.employee
+SET TTL 7
+```
+
+{/* Source: /examples/python/ttl.py (lines 36-40) */}
+```python Python
+kinetica.alter_table(
+    table_name = "example.ttl_table",
+    action = "ttl",
+    value = "7"
+)
+```
+
+</CodeGroup>
+
+To set a *table* to not expire:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 236-237) */}
+```sql SQL
+ALTER TABLE example.employee
+SET TTL -1
+```
+
+{/* Source: /examples/python/ttl.py (lines 50-54) */}
+```python Python
+kinetica.alter_table(
+    table_name = "example.ttl_table",
+    action = "ttl",
+    value = "-1"
+)
+```
+
+</CodeGroup>

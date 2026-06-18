@@ -1,0 +1,60 @@
+---
+title: Memory-Only Tables
+---
+
+*Memory-only tables* are not persisted by default like a regular
+[table](/content/concepts/tables). You can add, modify, or delete records in a
+*memory-only table*.
+
+A *memory-only table* name must adhere to the standard
+[naming criteria](/content/concepts/tables#table-naming-criteria). Each *memory-only table*
+exists within a [schema](/content/concepts/schemas) and follows the standard
+[name resolution rules](/content/concepts/tables#table-name-resolution) for persisted
+*tables*.
+
+The following scenarios/endpoints will create a *memory-only table* (unless
+persistence is specified):
+
+* Using the [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest#aggregate-groupby-rest),
+  [/aggregate/unique](/content/api/rest/aggregate_unique_rest#aggregate-unique-rest), or
+  [/aggregate/unpivot](/content/api/rest/aggregate_unpivot_rest#aggregate-unpivot-rest) endpoints with the `result_table`
+  option specified
+* [Projection](/content/concepts/projections) -- created from
+  [/create/projection](/content/api/rest/create_projection_rest#create-projection-rest)
+* [Union](/content/concepts/unions) (also includes [intersect](/content/concepts/intersect) and
+  [except](/content/concepts/except) operations) -- created from
+  [/create/union](/content/api/rest/create_union_rest#create-union-rest)
+* Creating a [table](/content/concepts/tables) using [/create/table](/content/api/rest/create_table_rest#create-table-rest)
+  with the `is_result_table` option set to `true`
+
+
+## Considerations
+
+
+* Ingestion speed is better than persisted tables, as there are no disk writes.
+* There's no reliance on lookups between connected *join* data sets or scanning
+  mask on *filtered* data sets, resulting in faster queries.
+* All *memory-only tables* created by endpoints copy data from their source data
+  sets, thus their memory footprint can be quite large compared to a
+  [join view](/content/concepts/joins) or a
+  [filtered view](/content/concepts/filtered_views).
+
+
+## Limitations and Cautions
+
+
+* [Primary Key](/content/concepts/tables#primary-key) fields contained within *memory-only tables*
+  cannot be [updated](/content/api/rest/update_records_rest#update-records-rest).
+* Object ID cannot be used to [update](/content/api/rest/update_records_rest#update-records-rest)
+  or [delete](/content/api/rest/delete_records_rest#delete-records-rest) records.
+  This means updating or deleting records in a *memory-only table* is not possible through
+  the [GAdmin Data UI](/content/admin/gadmin/data).
+* A *memory-only table* is not persisted, by default, and will not survive a
+  database restart, though each endpoint that creates a *memory-only table* has
+  an option to persist the *table* instead.
+* *Memory-only tables* can be evicted to disk cache if RAM is limited, thus
+  incurring disk writes
+* Individual *memory-only table* types have additional limitations and
+  properties that may differ from the preceding limitations. More information
+  can be found in [Aggregation](/content/concepts/aggregation), [Except](/content/concepts/except), [Intersect](/content/concepts/intersect),
+  [Projections](/content/concepts/projections), and [Union](/content/concepts/unions).

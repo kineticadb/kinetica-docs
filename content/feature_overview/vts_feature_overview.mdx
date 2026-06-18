@@ -1,0 +1,118 @@
+---
+title: Vector Tile Service
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="vts-feature-overview"></a>
+
+
+## Overview
+
+
+*Kinetica* provides a *Vector Tile Service* (*VTS*) to generate Vector Tiles and
+support client-side visualization of the geospatial data contained within the
+tiles. The Vector Tile format generated follows the open standard *Mapbox*
+[Vector Tile specification](https://github.com/mapbox/vector-tile-spec/tree/master/2.1).
+The *Kinetica VTS* feeds a client-side Vector Tile renderer, such as
+*Mapbox GL*, by adding the *VTS* URL to the renderer's style configuration as a
+map layer source. Any *Kinetica* table or view that is defined with at least one
+*WKT*-[type](/content/concepts/types) (geometry) column can be used as the
+data source for the `layer` parameter. The data source, geographical
+position, and zoom level of each Vector Tile are specified in a *VTS* request.
+The requested Vector Tile is then returned in the response.
+
+The VTS offers a couple advantages over server-side WMS calls:
+
+* VTS supports client-side control of styling like image fill
+* When using vector tiles, the browser only requests new information as needed
+  and caches data along the way; WMS output must be re-rendered on every
+  pan/zoom
+
+<a id="fo-vts-config"></a>
+
+
+## Configuration
+
+
+VTS is configured via the <Badge color="gray">gpudb.conf</Badge> configuration file.
+
+Settings:
+
+| Name | Default | Description | Allowable Values |
+| --- | --- | --- | --- |
+| `vts.max_vertices_per_chunk` | `20000000` | The maximum number of vertices within a chunk when rendering VTS tiles. If a chunk has more vertices than this limit, the VTS request will return an error. | Minimum is `0` |
+| `vts.max_features_per_tile` | `200000` | The maximum number of features that will be returned in a VTS tile. This limit is applied at the chunk level, so the actual returned tile may have more features. If there are more features within the given tile within a chunk, the additional features will not be returned within the tile. | Minimum is `0` |
+
+<a id="fo-vts-usage"></a>
+
+
+## Usage
+
+
+Base *VTS* URI:
+
+```
+http://<db.host>:<db.port>/vts/<layer>/<z>/<x>/<y>?attributes=<columns>
+```
+
+<Note>
+The *VTS* URL needs to be specified in the client-side visualizer's
+configuration.
+</Note>
+
+URI parameters:
+
+| Name | Description | Allowable Values |
+| --- | --- | --- |
+| `layer` | Name of data source table or view. | A valid table name, in `[schema_name.]table_name` format, using standard [name resolution rules](/content/concepts/tables#table-name-resolution) |
+| `attributes` | List of column names. | A comma separated list of column names from the `layer` source table / view. Must include a single geometry column and may include additional non-geometry columns. |
+| `z` | Zoom level of the requested tile. | Non-negative integer. The maximum value is 30. Provide the parameter as `{z}` to have the client-side renderer dynamically set the value. |
+| `x` | Horizontal index of the requested tile. | Non-negative integer. Provide the parameter as `{x}` to have the client-side renderer dynamically set the value. |
+| `y` | Vertical index of the requested tile. | Non-negative integer. Provide the parameter as `{y}` to have the client-side renderer dynamically set the value. |
+
+
+<a id="fo-vts-example"></a>
+
+
+## Example
+
+
+Below is a snippet of a Javascript *Mapbox style specification* using Kinetica's
+*VTS* URL as a source:
+
+```
+// Config
+var tableName = "nyc_neighborhood";
+var wktColumn = "geom";
+var kineticaUrl = "http://localhost:9191/vts/";
+
+// Mapbox GL
+map.on('load', function () {
+  map.addLayer({
+    "id": tableName + "_layer",
+    "version": 8,
+    "type" : "fill",
+    "source": {
+      "type": "vector",
+      "tiles": [kineticaUrl + tableName + "/{z}/{x}/{y}?attributes=" + wktColumn], // Note Mapbox uses the params in curly braces as dynamic values. Don't change those.
+      "maxzoom": 20
+    },
+    "source-layer": tableName,
+    "paint": {
+      "fill-color": "#EDF00F",
+      "fill-outline-color": "#000000"
+    }
+  });
+});
+```
+<a id="fo-vts-limitations"></a>
+
+
+## Limitations and Cautions
+
+
+* Since VTS sends feature information for each table row to the browser, the
+  client can get overwhelmed with data; performance is dependent upon client
+  hardware

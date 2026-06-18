@@ -1,0 +1,37 @@
+---
+title: /kill/proc
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="kill-proc-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/kill/proc
+```
+Kills a running proc instance.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| run_id | string | The run ID of a running proc instance. If a proc with a matching run ID is not found or the proc instance has already completed, no procs will be killed. If not specified, all running proc instances will be killed. <br/> <br/> The default value is ''. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> run_tag: If input parameter *run_id* is specified, kill the proc instance that has a matching run ID and a matching run tag that was provided to [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) . If input parameter *run_id* is not specified, kill the proc instance(s) where a matching run tag was provided to [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) . The default value is ''. <br/> <br/> clear_execute_at_startup: If *true*, kill and remove the instance of the proc matching the auto-start run ID that was created to run when the database is started. The auto-start run ID was returned from [/execute/proc](/content/api/rest/execute_proc_rest#execute-proc-rest) and can be retrieved using [/show/proc](/content/api/rest/show_proc_rest#show-proc-rest) . The default value is `false`. The supported values are: * true * false |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'kill_proc_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /kill/proc endpoint: <br/> <br/> run_ids: [array of strings] List of run IDs of proc instances that were killed. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

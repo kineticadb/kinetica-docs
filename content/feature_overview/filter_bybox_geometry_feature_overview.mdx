@@ -1,0 +1,40 @@
+---
+title: Filter Geometry by Box
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="filter-bybox-geometry-feature-overview"></a>
+
+
+Calculates which geospatial geometry objects from a table intersect a
+rectangular box. The operation is synchronous, meaning that a response will not
+be returned until all the objects are fully available. The response payload
+provides the count of the resulting set. A new resultant set which satisfies
+the input NAI restriction specification is also created when a input parameter
+*view_name* is passed in as part of the input payload.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of the table on which the bounding box operation will be performed, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). Must be an existing table. |
+| view_name | string | If provided, then this will be the name of the view containing the results, in [schema_name.]view_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution) and meeting [table naming criteria](../../concepts/tables/#table-naming-criteria). Must not be an already existing table or view. <br/> <br/> The default value is ''. |
+| column_name | string | Name of the geospatial geometry column to be filtered. |
+| min_x | double | Lower bound for the x-coordinate of the rectangular box.  Must be less than or equal to input parameter *max_x*. |
+| max_x | double | Upper bound for the x-coordinate of the rectangular box.  Must be greater than or equal to input parameter *min_x*. |
+| min_y | double | Lower bound for the y-coordinate of the rectangular box. Must be less than or equal to input parameter *max_y*. |
+| max_y | double | Upper bound for the y-coordinate of the rectangular box. Must be greater than or equal to input parameter *min_y*. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> create_temp_table: If *true*, a unique temporary table name will be generated in the sys_temp schema and used in place of input parameter *view_name*. This is always allowed even if the caller does not have permission to create tables. The generated name is returned in *qualified_view_name*. The default value is `false`. The supported values are: * true * false <br/> <br/> collection_name: [DEPRECATED--please specify the containing schema for the view as part of input parameter *view_name* and use [Create Schema](/content/feature_overview/create_schema_feature_overview#create-schema-feature-overview) to create the schema if non-existent] Name of a schema for the newly created view. If the schema provided is non-existent, it will be automatically created. |
+
+
+## Output Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| count | long | The number of records passing the box filter. |
+| info | map of string to strings | Additional information. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> qualified_view_name: The fully qualified name of the view (i.e. including the schema). |

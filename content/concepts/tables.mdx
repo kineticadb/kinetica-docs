@@ -1,0 +1,2319 @@
+---
+title: Tables
+---
+
+<a id="tables"></a>
+
+<a id="table"></a>
+
+
+## Overview
+
+
+The concept of *tables* is at the heart of *Kinetica* interactions.  A *table*
+is a data container associated with a specific [type](/content/concepts/types)
+(set of columns & properties), much like tables in other database platforms.
+When querying a *table*, the result set will also have a single *type*
+associated with it.
+
+Each *table* must exist within a [schema](/content/concepts/schemas).
+
+
+<a id="table-name-resolution"></a>
+
+
+## Name Resolution
+
+
+A *table* can be addressed by *qualified name*, prefixing the *table* name with
+the name of its containing *schema*, separated by a dot; e.g.:
+
+```
+<schema name>.<table name>
+```
+*Tables* referenced without a *schema* will be looked for in the user's
+[default schema](/content/concepts/schemas#schema-default), if assigned; effectively, a reference
+like this:
+
+```
+<table name>
+```
+is resolved like this:
+
+```
+<default schema name>.<table name>
+```
+<a id="table-naming-criteria"></a>
+
+
+## Naming Criteria
+
+
+Each *table* is identified by a name, which must meet the following criteria:
+
+* Between 1 and 200 characters long
+* First character is alphanumeric or an underscore
+* Alphanumeric, including spaces and these symbols:
+  `_` `#` `{` `}` `[` `]` `(` `)` `:` `-`
+* Unique within its containing *schema*--cannot have the same name as another
+  *table* or [view](/content/concepts/views) in the same *schema*, but can have the
+  same name as any *schema*
+
+Column names must meet the following criteria:
+
+* Between 1 and 200 characters long
+* First character is alphanumeric or an underscore
+* Alphanumeric, including these symbols:
+  `_` `{` `}` `[` `]` `:` `.`
+
+
+## Example
+
+
+Using the [/create/table](/content/api/rest/create_table_rest#create-table-rest) endpoint, you can create an empty
+*table* that can later hold records.
+
+For example, to create a simple 2-column *table*:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/concepts.kisql (lines 26-30) */}
+```sql SQL
+CREATE TABLE example.simple_table
+(
+    id    INT,
+    name  VARCHAR(64)
+)
+```
+
+{/* Source: /examples/python/tables.py (lines 4-7 11-22) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "name", GRC._ColumnType.STRING, GCP.CHAR64 ]
+]
+
+# Create a simple table using the column list
+gpudb.GPUdbTable(
+    columns,
+    name = "example.simple_table",
+    db = kinetica
+)
+```
+
+</CodeGroup>
+
+
+<a id="distribution"></a>
+
+
+## Distribution
+
+
+[Table](/content/concepts/tables) data can be distributed across the *Kinetica* cluster
+using one of two schemes:  [sharding](#sharding) & [replication](#replication).  Within the *sharding*
+scheme, data can be distributed either by [key](/content/concepts/tables#sharding) or
+[randomly](/content/concepts/tables#random-sharding) in the absence of a
+[shard key](/content/concepts/tables#shard-key).
+
+
+<a id="sharding"></a>
+
+
+### Sharding
+
+
+*Sharding* is the distribution of [table](/content/concepts/tables) data by hashing a
+particular value for each record, and by that hash, determining on which
+*Kinetica* cluster node the record will reside.
+
+The benefit of *sharding* is that it allows distributed queries to be run
+against a given data set, with each node responsible for managing its portion of
+the overall data set, while only storing each record once across the cluster.
+The parallelism inherent in the distributed queries allows for the query
+performance to scale linearly with the addition of each cluster node.
+
+Another benefit of *sharding* is that it increases the performance of any
+aggregation run against the *table* where the aggregation group includes all of
+the *shard key* columns.
+
+A limitation of *sharding* is that two *sharded* data sets can only be
+[joined](/content/concepts/joins) together if they are *sharded* in the same way, so that
+their corresponding records will all reside on the same nodes.  Given that, in a
+typical database model, each pair of related data sets is associated by a
+different key, a single query may only be able to join together at most two
+*sharded* data sets along their relation.
+
+Since *sharding* maximizes data storage & query efficiency, it is recommended
+that the largest *table* in the system (e.g. the fact table in a data warehouse)
+be *sharded*.  The second largest *table* against which that *table* is joined
+should also be *sharded* along the join relation (e.g. the column on each side
+of the foreign key relationship).
+
+Given that *sharding* allows for greater-performant aggregations, it is also
+recommended that any large tables subject to frequent aggregation queries also
+be *sharded* on the grouping columns.
+
+For example, if the largest joined *tables* in a system were `customer` &
+`order`, and there was a foreign key relationship between the `customer_id`
+column of the `order` *table* & the `id` column of the `customer` *table*,
+the `order` *table* should be *sharded* on `customer_id` and the
+`customer` *table* should be *sharded* on `id`.
+
+If, for example, there were also an `order_history` *table*, which was
+frequently aggregated on `store_id`, it could be *sharded* on `store_id` to
+increase the performance of those queries.
+
+Specifying a *shard key* requires that you create a type with at least one
+column that has the `shard_key` property when calling the
+[/create/type](/content/api/rest/create_type_rest#create-type-rest) endpoint. See [Shard Keys](#shard-keys) for details.
+
+For example:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/concepts.kisql (lines 34-39) */}
+```sql SQL
+CREATE TABLE example.sharded_table
+(
+    id    INT,
+    name  VARCHAR(64),
+    SHARD KEY (id)
+)
+```
+
+{/* Source: /examples/python/tables.py (lines 4-7 28-40) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list, annotating the intended shard key column with
+#   shard_key
+columns = [
+    [ "id", GRC._ColumnType.INT, GCP.SHARD_KEY ],
+    [ "name", GRC._ColumnType.STRING, GCP.CHAR64 ]
+]
+
+# Create a sharded table using the column list
+gpudb.GPUdbTable(
+    columns,
+    name = "example.sharded_table",
+    db = kinetica
+)
+```
+
+</CodeGroup>
+
+
+<a id="random-sharding"></a>
+
+
+### Random Sharding
+
+
+*Random sharding* is the distribution of [table](/content/concepts/tables) data by randomly
+selecting a *shard* for each batch of records during ingestion.  Since all of
+the records from each batch will go to the selected *shard*, it is important to
+configure the batch size appropriately to ensure an even distribution of records
+across the cluster over the entire ingestion process.
+
+*Random sharding* has the same benefit as [sharding](#sharding) with respect to distributed
+query parallelism and storage minimization.  It lacks, however, the benefit of
+greater-performant aggregations over the *shard key*, as the *randomly-sharded*
+data set lacks one.
+
+A limitation of *random sharding* is that a *randomly-sharded* data set can only
+be [joined](/content/concepts/joins) with *replicated* data sets--it cannot be joined with
+other *sharded* or *randomly-sharded* data sets.
+
+Given that *random sharding* maximizes data storage & query efficiency in the
+same way that *sharding* does, it is recommended that large *tables* in the
+system that are not good candidates for [sharding](/content/concepts/tables#sharding) with respect
+to joins & aggregations be *randomly-sharded*.
+
+For example, if a large *table* in a system would only ever be joined with
+*replicated* tables and would never have aggregations run against it, the
+*table* would be a good candidate for *random sharding*.
+
+*Random sharding* is the default distribution technique applied to tables that
+meet the following criteria:
+
+* No primary key specified
+* No shard key specified
+* Not specified as *replicated*
+
+For example:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/concepts.kisql (lines 43-47) */}
+```sql SQL
+CREATE TABLE example.randomly_sharded_table
+(
+    id    INT,
+    name  VARCHAR(64)
+)
+```
+
+{/* Source: /examples/python/tables.py (lines 4-7 46-57) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "name", GRC._ColumnType.STRING, GCP.CHAR64 ]
+]
+
+# Create a randomly sharded table using the column list
+gpudb.GPUdbTable(
+    columns,
+    name = "example.randomly_sharded_table",
+    db = kinetica
+)
+```
+
+</CodeGroup>
+
+
+<a id="replicated"></a>
+
+<a id="replication"></a>
+
+
+### Replication
+
+
+*Replication* is the distribution of [table](/content/concepts/tables) data by locating its
+entire data set on every *Kinetica* cluster node simultaneously, instead of
+being distributed across them.
+
+The benefit of *replication* is that it allows data sets to be
+[joined](/content/concepts/joins) together when those data sets are not
+[sharded](/content/concepts/tables#sharding) on the columns being associated.
+
+Normally, joining two data sets together requires them being joined on their
+[shard keys](/content/concepts/tables#shard-key) so that the joining of the two data sets can
+occur locally on each processor *shard*.  Since *replicated* data sets exist on
+all *shards*, they appear local to any other data set and can be joined on each
+*shard* as if they were local.  The result sets from each *shard* are then
+accumulated into one and returned as the final result set.
+
+Since *replicated* data sets exist in their entirety on all processors, it is
+recommended that they be relatively small.  For example, a *table* containing
+one gigabyte of data, when *replicated* across a 10-node cluster will occupy 10
+gigabytes of cluster memory overall.
+
+A *table* is specified as *replicated* at creation time, by calling the
+[/create/table](/content/api/rest/create_table_rest#create-table-rest) endpoint with the `is_replicated` option set
+to `true`.
+
+For example:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/concepts.kisql (lines 51-55) */}
+```sql SQL
+CREATE REPLICATED TABLE example.replicated_table
+(
+    id    INT,
+    name  VARCHAR(64)
+)
+```
+
+{/* Source: /examples/python/tables.py (lines 4-7 63-75) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "name", GRC._ColumnType.STRING, GCP.CHAR64 ]
+]
+
+# Create a replicated table using the column list and the replication option
+gpudb.GPUdbTable(
+    columns,
+    name = "example.replicated_table",
+    db = kinetica,
+    options = {'is_replicated': 'true'}
+)
+```
+
+</CodeGroup>
+
+
+<a id="partitioning"></a>
+
+
+## Partitioning
+
+
+[Table](/content/concepts/tables) data can also be *partitioned*, yielding benefits in terms
+of performance and data management.
+
+The types of supported *partitioning schemes* are:
+
+<CardGroup cols={3}>
+  <Card title="Range" href="/content/concepts/tables#partitioning-by-range">
+    Partition by defined value ranges to improve filter & join performance
+  </Card>
+  <Card title="Interval" href="/content/concepts/tables#partitioning-by-interval">
+    Partition by numeric or time-based intervals with dynamic partition creation
+  </Card>
+  <Card title="List" href="/content/concepts/tables#partitioning-by-list">
+    Partition by discrete sets of values to improve filter performance
+  </Card>
+  <Card title="Hash" href="/content/concepts/tables#partitioning-by-hash">
+    Partition by hash of key columns to improve equi-join performance
+  </Card>
+  <Card title="Series" href="/content/concepts/tables#partitioning-by-series">
+    Partition into a sequence of dynamically-allocated partitions, filling each to a threshold
+  </Card>
+</CardGroup>
+
+Each *partitioning scheme* requires a *partition key* to be defined, which is a
+column or column expression that will be evaluated for each record in a table to
+determine the appropriate partition for the record.
+
+
+<Note>
+Any record with a *null* value in one or more of its
+*partition key* columns will be placed in the *default partition*, regardless
+of *partitioning scheme*.
+</Note>
+
+[Track tables](/content/location_intelligence/geo_objects#geospatial-tracks) can only be *partitioned* by
+tracks (they can only have their `TRACKID` column used as the *partition key*)
+and can only be *partitioned* using the following schemes:
+
+* *automatic list partitioning*
+* *hash partitioning*
+* *series partitioning*
+
+Data is *partitioned* at a lower level than it is *sharded*.  When distributing
+a record:
+
+1. The *shard key* (if any) is used to determine the appropriate *shard* for the
+   record
+2. The *partition key* is used to determine the appropriate *partition* for the
+   record, within the *shard*.
+
+For SQL syntax, see:
+
+* [Creating a partitioned table](/content/sql/ddl#sql-create-table-partition)
+* [Altering a table's partitions](/content/sql/ddl#sql-alter-table-partition-add)
+
+
+<a id="partitioning-by-range"></a>
+
+
+### Range
+
+
+*Range partitioning* improves the performance of filters and joins on the
+values within the ranges defined.
+
+Each *range partition* is defined as a range of values, and all records having
+a *partition key* value in that range are assigned to that *partition*.  When
+filtering data, only those *partitions* whose ranges are within the filter
+criteria will be accessed, improving query response time.  This performance
+improvement on query comes at the cost of more complexity in setting up &
+managing the *partitions*.
+
+When defining the range, one or more named *partitions* are specified, and each
+is given a minimum (inclusive) and/or maximum (exclusive) value.  A name is
+required so the *partition* can be altered or deleted later.  Ordering is
+important, and the *partitions* must be specified in ascending order so that the
+minimum and maximum of each *partition* can be inferred if it is not explicitly
+given.  There can be no overlap between ranges, meaning one record can not
+qualify for more than one *partition*.  However, there can be gaps between
+ranges, meaning that a record can fail to qualify for any of the defined
+*partitions*.
+
+All records which don't belong to any of the named *partitions* will be placed
+in the *default partition*.  If a new *partition* is added, any records in the
+*default partition* that would qualify for being placed in the new *partition*
+will be moved there.
+
+The following [specific types](/content/concepts/types#types-chart) are supported
+*partition key* data types; other types can be used inside a column expression,
+as long as the type of the final expression is one of these:
+
+* numeric types:  *int*, *long*, *float*, *double*, *decimal*, *ulong*
+* date/time types:  *date*, *time*, *datetime*, *timestamp*
+* *charN*
+
+A *table* is *range-partitioned* at creation time, by calling the
+[/create/table](/content/api/rest/create_table_rest#create-table-rest) endpoint with a `partition_type` option of
+`RANGE` and `partition_keys` & `partition_definitions` options set
+appropriately.
+
+
+For example, to create a *range-partitioned* table with the following criteria:
+
+* partitioned on the date/time of the order
+* partitions for years:
+
+  * *2014* - *2016*
+  * *2017*
+  * *2018*
+  * *2019*
+
+* records not in that range go to the *default partition*
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_range.kisql (lines 15-29) */}
+```sql SQL
+CREATE TABLE example.customer_order_range_partition_by_year
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP NOT NULL
+)
+PARTITION BY RANGE (YEAR(purchase_ts))
+PARTITIONS
+(
+    order_2014_2016 MIN(2014) MAX(2017),
+    order_2017                MAX(2018),
+    order_2018                MAX(2019),
+    order_2019                MAX(2020)
+)
+```
+
+{/* Source: /examples/python/partition.py (lines 4-7 14-37) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "customer_id", GRC._ColumnType.INT, GCP.SHARD_KEY ],
+    [ "total_price", GRC._ColumnType.STRING, GCP.DECIMAL ],
+    [ "purchase_ts", GRC._ColumnType.LONG, GCP.TIMESTAMP ]
+]
+
+# Create a range-partitioned table using the column list and the partition
+# options
+table = gpudb.GPUdbTable(
+    columns,
+    name = "example.customer_order_range_partition_by_year",
+    db = kinetica,
+    options = {
+        "partition_type": "RANGE",
+        "partition_keys": "YEAR(purchase_ts)",
+        "partition_definitions": "" \
+            "order_2014_2016 MIN(2014) MAX(2017)," \
+            "order_2017                MAX(2018)," \
+            "order_2018                MAX(2019)," \
+            "order_2019                MAX(2020)"
+    }
+)
+```
+
+</CodeGroup>
+
+
+To add a *partition* to a *range-partitioned* table:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_range.kisql (lines 55-56) */}
+```sql SQL
+ALTER TABLE example.customer_order_range_partition_by_year
+ADD PARTITION order_2020 MAX(2021)
+```
+
+{/* Source: /examples/python/partition.py (lines 59-62) */}
+```python Python
+table.alter_table(
+    action = "add_partition",
+    value = "order_2020 MAX(2021)"
+)
+```
+
+</CodeGroup>
+
+
+To remove a *partition* from a *range-partitioned* table, moving all contained
+data into the *default partition*:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_range.kisql (lines 70-71) */}
+```sql SQL
+ALTER TABLE example.customer_order_range_partition_by_year
+REMOVE PARTITION order_2017
+```
+
+{/* Source: /examples/python/partition.py (lines 69-72) */}
+```python Python
+table.alter_table(
+    action = "remove_partition",
+    value = "order_2017"
+)
+```
+
+</CodeGroup>
+
+
+To delete a *partition* from a *range-partitioned* table, erasing all contained
+data:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_range.kisql (lines 80-81) */}
+```sql SQL
+ALTER TABLE example.customer_order_range_partition_by_year
+DELETE PARTITION order_2014_2016
+```
+
+{/* Source: /examples/python/partition.py (lines 76-79) */}
+```python Python
+table.alter_table(
+    action = "delete_partition",
+    value = "order_2014_2016"
+)
+```
+
+</CodeGroup>
+
+
+<a id="partitioning-by-interval"></a>
+
+
+### Interval
+
+
+*Interval partitioning* improves the performance of filters and joins on the
+range of values within the intervals defined.
+
+*Interval partitions* are defined as numeric or time-based intervals, and all
+records having *partition key* values that fall within a given partition's
+interval or on its lower boundary are assigned to that *partition*.  When a
+record contains a key value that doesn't fall within the interval of any
+existing *partition*, and the value is after the specified starting point, a
+new *partition* is created with the corresponding interval and the record is
+assigned to it.  *Partitions* are thereby created dynamically to fit the data
+set, rather than being defined at *table* creation time.
+
+
+<Tip>
+This is the preferred method for *partitioning* by date, as it will
+automatically create new *partitions* as time moves forward.
+</Tip>
+
+When defining the interval, a starting point and interval length can be given;
+if not given, the following defaults apply:
+
+| Type | Starting Point | Interval |
+| --- | --- | --- |
+| Numeric | `0` | `1` |
+| Date & Date/Time | *January 1st, 1970* | `1` day |
+| Time | `00:00:00` | *N/A* |
+
+Names are not given to interval *partitions*, so they may not be removed
+directly.  However, deleting all records whose key values fall within a given
+interval *partition* will effectively remove it.
+
+All records that have key values lower than the defined starting point will be
+assigned to the *default partition*.
+
+The following [specific types](/content/concepts/types#types-chart) are supported
+*partition key* data types; other types can be used inside a column expression,
+as long as the type of the final expression is one of these:
+
+* numeric types:  *int*, *long*, *float*, *double*, *decimal*, *ulong*
+* date/time types:  *date*, *datetime*, *timestamp*
+
+A *table* is *interval-partitioned* at creation time, by calling the
+[/create/table](/content/api/rest/create_table_rest#create-table-rest) endpoint with a `partition_type` option of
+`INTERVAL` and `partition_keys` & `partition_definitions` options set
+appropriately.
+
+
+For example, to create an *interval-partitioned* table with the following
+criteria:
+
+* partitioned on the date/time of the order
+* one partition for each year from *2014* on
+* later year partitions are added as necessary
+* records prior to *2014* go to the *default partition*
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_interval.kisql (lines 18-29) */}
+```sql SQL
+CREATE TABLE example.customer_order_interval_partition_by_year
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP
+)
+PARTITION BY INTERVAL (YEAR(purchase_ts))
+PARTITIONS
+(
+    STARTING AT (2014) INTERVAL (1)
+)
+```
+
+{/* Source: /examples/python/partition.py (lines 4-7 107-126) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "customer_id", GRC._ColumnType.INT, GCP.SHARD_KEY ],
+    [ "total_price", GRC._ColumnType.STRING, GCP.DECIMAL ],
+    [ "purchase_ts", GRC._ColumnType.LONG, GCP.TIMESTAMP ]
+]
+
+# Create an interval-partitioned table using the column list and the
+# partition options
+table = gpudb.GPUdbTable(
+    columns,
+    name = "example.customer_order_interval_partition_by_year",
+    db = kinetica,
+    options = {
+        "partition_type": "INTERVAL",
+        "partition_keys": "YEAR(purchase_ts)",
+        "partition_definitions": "STARTING (2014) INTERVAL (1)"
+    }
+)
+```
+
+</CodeGroup>
+
+To create an *interval-partitioned* table with the following criteria:
+
+* partitioned on the date/time of the order
+* one partition for each day from *January 1st, 2014* on
+* later day partitions are added as necessary
+* records prior to *2014* go to the *default partition*
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_interval.kisql (lines 58-69) */}
+```sql SQL
+CREATE TABLE example.customer_order_interval_partition_by_day_timestampdiff
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP
+)
+PARTITION BY INTERVAL (TIMESTAMPDIFF(DAY, '2014-01-01', purchase_ts))
+PARTITIONS
+(
+    STARTING AT (0) INTERVAL (1)
+)
+```
+
+{/* Source: /examples/python/partition.py (lines 4-7 154-173) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "customer_id", GRC._ColumnType.INT, GCP.SHARD_KEY ],
+    [ "total_price", GRC._ColumnType.STRING, GCP.DECIMAL ],
+    [ "purchase_ts", GRC._ColumnType.LONG, GCP.TIMESTAMP ]
+]
+
+# Create an interval-partitioned table using the column list and the
+# partition options
+table = gpudb.GPUdbTable(
+    columns,
+    name = "example.customer_order_interval_partition_by_day_timestampdiff",
+    db = kinetica,
+    options = {
+        "partition_type": "INTERVAL",
+        "partition_keys": "TIMESTAMPDIFF(DAY, '2014-01-01', purchase_ts)",
+        "partition_definitions": "STARTING (0) INTERVAL (1)"
+    }
+)
+```
+
+</CodeGroup>
+
+The same *interval-partitioned* scheme above can be created using the timestamp
+column directly, and date-aware `INTERVAL` syntax
+*(supported date/time units are the same as those listed with the*
+`TIMESTAMPADD` *function under* [Date/Time Base Functions](/content/concepts/expressions#expression-functions-datetime-base) *)*:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_interval.kisql (lines 98-109) */}
+```sql SQL
+CREATE TABLE example.customer_order_interval_partition_by_day_interval
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP
+)
+PARTITION BY INTERVAL (purchase_ts)
+PARTITIONS
+(
+    STARTING AT ('2014-01-01') INTERVAL (INTERVAL '1' DAY)
+)
+```
+
+{/* Source: /examples/python/partition.py (lines 4-7 201-220) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "customer_id", GRC._ColumnType.INT, GCP.SHARD_KEY ],
+    [ "total_price", GRC._ColumnType.STRING, GCP.DECIMAL ],
+    [ "purchase_ts", GRC._ColumnType.LONG, GCP.TIMESTAMP ]
+]
+
+# Create an interval-partitioned table using the column list and the
+# partition options
+table = gpudb.GPUdbTable(
+    columns,
+    name = "example.customer_order_interval_partition_by_day_interval",
+    db = kinetica,
+    options = {
+        "partition_type": "INTERVAL",
+        "partition_keys": "purchase_ts",
+        "partition_definitions": "STARTING ('2014-01-01') INTERVAL (INTERVAL '1' DAY)"
+    }
+)
+```
+
+</CodeGroup>
+
+This scheme can be easily modified to create an hourly partition instead:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_interval.kisql (lines 138-149) */}
+```sql SQL
+CREATE TABLE example.customer_order_interval_partition_by_hour_interval
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP
+)
+PARTITION BY INTERVAL (purchase_ts)
+PARTITIONS
+(
+    STARTING AT ('2014-01-01') INTERVAL (INTERVAL '1' HOUR)
+)
+```
+
+{/* Source: /examples/python/partition.py (lines 4-7 248-267) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "customer_id", GRC._ColumnType.INT, GCP.SHARD_KEY ],
+    [ "total_price", GRC._ColumnType.STRING, GCP.DECIMAL ],
+    [ "purchase_ts", GRC._ColumnType.LONG, GCP.TIMESTAMP ]
+]
+
+# Create an interval-partitioned table using the column list and the
+# partition options
+table = gpudb.GPUdbTable(
+    columns,
+    name = "example.customer_order_interval_partition_by_hour_interval",
+    db = kinetica,
+    options = {
+        "partition_type": "INTERVAL",
+        "partition_keys": "purchase_ts",
+        "partition_definitions": "STARTING ('2014-01-01') INTERVAL (INTERVAL '1' HOUR)"
+    }
+)
+```
+
+</CodeGroup>
+
+
+<a id="partitioning-by-list"></a>
+
+
+### List
+
+
+*List partitioning* improves the performance of filters on the *list partition*
+values.
+
+*List partitions* are defined in one of two schemes:
+
+* [Manual](/content/concepts/tables#partitioning-by-list-manual)
+* [Automatic](/content/concepts/tables#partitioning-by-list-automatic)
+
+The following [specific types](/content/concepts/types#types-chart) are supported
+*partition key* data types; other types can be used inside a column expression,
+as long as the type of the final expression is one of these:
+
+* numeric types:  *int*, *long*, *float*, *double*, *decimal*, *ulong*
+* date/time types:  *date*, *time*, *datetime*, *timestamp*
+* string types:  *string*, *charN*, *uuid*
+
+A *table* is *list-partitioned* at creation time, by calling the
+[/create/table](/content/api/rest/create_table_rest#create-table-rest) endpoint with a `partition_type` option of
+`LIST` and `partition_keys` & `partition_definitions` options set
+appropriately.  Set `is_automatic_partition` option to `true` in order to
+use an *automatic partitioning* scheme.
+
+
+<a id="partitioning-by-list-manual"></a>
+
+
+#### Manual Partitioning
+
+
+*Manual partitions* are defined as a specific list of values, and all records
+having *partition key* values that are in one of those lists are assigned to
+the corresponding *partition*.  A given list entry cannot exist in more than
+one list, meaning one record cannot qualify for more than one *partition*.
+
+All records which don't belong to any of the named *partitions* will be placed
+in the *default partition*.  If a new *partition* is added, any records in the
+*default partition* that would qualify for being placed in the new *partition*
+will be moved there.
+
+<a id="partitioning-by-list-manual-single-column"></a>
+
+
+<p><strong>Single Column Partition Key</strong></p>
+
+
+For example, to create a *manual list-partitioned* table with the following
+criteria:
+
+* partitioned on the date/time of the order
+* partitions for years:
+
+  * *2014* - *2016*
+  * *2017*
+  * *2018*
+  * *2019*
+
+* records not in that list go to the *default partition*
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_list.kisql (lines 17-31) */}
+```sql SQL
+CREATE TABLE example.customer_order_manual_list_partition_by_year
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP NOT NULL
+)
+PARTITION BY LIST (YEAR(purchase_ts))
+PARTITIONS
+(
+    order_2014_2016 VALUES (2014, 2015, 2016),
+    order_2017      VALUES (2017),
+    order_2018      VALUES (2018),
+    order_2019      VALUES (2019)
+)
+```
+
+{/* Source: /examples/python/partition.py (lines 4-7 309-332) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "customer_id", GRC._ColumnType.INT, GCP.SHARD_KEY ],
+    [ "total_price", GRC._ColumnType.STRING, GCP.DECIMAL ],
+    [ "purchase_ts", GRC._ColumnType.LONG, GCP.TIMESTAMP ]
+]
+
+# Create a manual list-partitioned table using the column list and the
+# partition options
+table = gpudb.GPUdbTable(
+    columns,
+    name = "example.customer_order_manual_list_partition_by_year",
+    db = kinetica,
+    options = {
+        "partition_type": "LIST",
+        "partition_keys": "YEAR(purchase_ts)",
+        "partition_definitions": "" \
+            "order_2014_2016 VALUES (2014, 2015, 2016)," \
+            "order_2017      VALUES (2017)," \
+            "order_2018      VALUES (2018)," \
+            "order_2019      VALUES (2019)"
+    }
+)
+```
+
+</CodeGroup>
+
+
+To add a *partition* to a *manual list-partitioned* table:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_list.kisql (lines 56-57) */}
+```sql SQL
+ALTER TABLE example.customer_order_manual_list_partition_by_year
+ADD PARTITION order_2020 VALUES (2020)
+```
+
+{/* Source: /examples/python/partition.py (lines 354-357) */}
+```python Python
+table.alter_table(
+    action = "add_partition",
+    value = "order_2020 VALUES (2020)"
+)
+```
+
+</CodeGroup>
+
+
+To remove a *partition* from a *manual list-partitioned* table, moving all
+contained data into the *default partition*:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_list.kisql (lines 71-72) */}
+```sql SQL
+ALTER TABLE example.customer_order_manual_list_partition_by_year
+REMOVE PARTITION order_2017
+```
+
+{/* Source: /examples/python/partition.py (lines 364-367) */}
+```python Python
+table.alter_table(
+    action = "remove_partition",
+    value = "order_2017"
+)
+```
+
+</CodeGroup>
+
+
+To delete a *partition* from a *manual list-partitioned* table, erasing all
+contained data:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_list.kisql (lines 81-82) */}
+```sql SQL
+ALTER TABLE example.customer_order_manual_list_partition_by_year
+DELETE PARTITION order_2014_2016
+```
+
+{/* Source: /examples/python/partition.py (lines 371-374) */}
+```python Python
+table.alter_table(
+    action = "delete_partition",
+    value = "order_2014_2016"
+)
+```
+
+</CodeGroup>
+
+
+<a id="partitioning-by-list-manual-multi-column"></a>
+
+
+<p><strong>Multi-Column Partition Key</strong></p>
+
+
+To create a *manual list-partitioned* table with the following criteria:
+
+* partitioned on the date/time of the order
+* each partition corresponds to a unique year & month pair
+* partitions for years/months:
+
+  * *February 2016* & *March 2016*
+  * *March 2020*
+
+* records not in that list go to the *default partition*
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_list.kisql (lines 107-119) */}
+```sql SQL
+CREATE TABLE example.customer_order_manual_list_partition_by_year_and_month
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP NOT NULL
+)
+PARTITION BY LIST (YEAR(purchase_ts), MONTH(purchase_ts))
+PARTITIONS
+(
+    order_2016_0203 VALUES ((2016, 2), (2016, 3)),
+    order_2020_03   VALUES ((2020, 3))
+)
+```
+
+{/* Source: /examples/python/partition.py (lines 4-7 401-422) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "customer_id", GRC._ColumnType.INT, GCP.SHARD_KEY ],
+    [ "total_price", GRC._ColumnType.STRING, GCP.DECIMAL ],
+    [ "purchase_ts", GRC._ColumnType.LONG, GCP.TIMESTAMP ]
+]
+
+# Create a manual multi-column list-partitioned table using the column list
+# and the partition options
+table = gpudb.GPUdbTable(
+    columns,
+    name = "example.customer_order_manual_list_partition_by_year_and_month",
+    db = kinetica,
+    options = {
+        "partition_type": "LIST",
+        "partition_keys": "YEAR(purchase_ts), MONTH(purchase_ts)",
+        "partition_definitions": "" \
+            "order_2016_0203 VALUES ((2016, 2), (2016, 3))," \
+            "order_2020_03 VALUES ((2020, 3))"
+    }
+)
+```
+
+</CodeGroup>
+
+
+To add a *partition* to a *manual list-partitioned* table with a multi-column
+key:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_list.kisql (lines 148-149) */}
+```sql SQL
+ALTER TABLE example.customer_order_manual_list_partition_by_year_and_month
+ADD PARTITION order_2020_0204 VALUES ((2020, 2), (2020, 4))
+```
+
+{/* Source: /examples/python/partition.py (lines 448-451) */}
+```python Python
+table.alter_table(
+    action = "add_partition",
+    value = "order_2020_0204 VALUES ((2020, 2), (2020, 4))"
+)
+```
+
+</CodeGroup>
+
+
+To remove a *partition* from a *manual list-partitioned* table with a
+multi-column key, moving all contained data into the *default partition*:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_list.kisql (lines 163-164) */}
+```sql SQL
+ALTER TABLE example.customer_order_manual_list_partition_by_year_and_month
+REMOVE PARTITION order_2020_03
+```
+
+{/* Source: /examples/python/partition.py (lines 458-461) */}
+```python Python
+table.alter_table(
+    action = "remove_partition",
+    value = "order_2020_03"
+)
+```
+
+</CodeGroup>
+
+
+To delete a *partition* from a *manual list-partitioned* table with a
+multi-column key, erasing all contained data:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_list.kisql (lines 173-174) */}
+```sql SQL
+ALTER TABLE example.customer_order_manual_list_partition_by_year_and_month
+DELETE PARTITION order_2016_0203
+```
+
+{/* Source: /examples/python/partition.py (lines 465-468) */}
+```python Python
+table.alter_table(
+    action = "delete_partition",
+    value = "order_2016_0203"
+)
+```
+
+</CodeGroup>
+
+
+<a id="partitioning-by-list-automatic"></a>
+
+
+#### Automatic Partitioning
+
+
+*Automatic partitions* direct the database to automatically create a new
+*partition* for each distinct *partition key* value encountered in the data.
+A table with no data would have no data-based *partitions*, while a table with
+data that contained *N* unique *partition key* values would have *N* of them.
+
+To create an *automatic list-partitioned* table with the following criteria:
+
+* partitioned on the date/time of the order
+* one partition for each unique year & month across all orders
+* partitions are added as necessary
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_list.kisql (lines 188-196) */}
+```sql SQL
+CREATE TABLE example.customer_order_automatic_list_partition_by_year_and_month
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP NOT NULL
+)
+PARTITION BY LIST (YEAR(purchase_ts), MONTH(purchase_ts))
+AUTOMATIC
+```
+
+{/* Source: /examples/python/partition.py (lines 4-7 491-510) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "customer_id", GRC._ColumnType.INT, GCP.SHARD_KEY ],
+    [ "total_price", GRC._ColumnType.STRING, GCP.DECIMAL ],
+    [ "purchase_ts", GRC._ColumnType.LONG, GCP.TIMESTAMP ]
+]
+
+# Create an automatic list-partitioned table using the column list and the
+# partition options
+table = gpudb.GPUdbTable(
+    columns,
+    name = "example.customer_order_automatic_list_partition_by_year_and_month",
+    db = kinetica,
+    options = {
+        "partition_type": "LIST",
+        "partition_keys": "YEAR(purchase_ts), MONTH(purchase_ts)",
+        "is_automatic_partition": "true"
+    }
+)
+```
+
+</CodeGroup>
+
+
+<a id="partitioning-by-hash"></a>
+
+
+### Hash
+
+
+*Hash partitioning* can improve the performance of equi-joins made on the
+*hash partition key* between two sharded tables or between replicated tables
+and any other table type, provided:
+
+1. The two tables have the same number of *hash partitions*.
+2. The two tables are equi-joined on their *hash partition keys*.
+3. Each table's *hash partition key* is composed of the same column types in the
+   same order as the other.
+
+*Hash partitions* are defined as simply a static number of partitions.  Each
+record is assigned to a *partition* based on the hash of its *partition key*.
+
+The following [specific types](/content/concepts/types#types-chart) are supported
+*partition key* data types; other types can be used inside a column expression,
+as long as the type of the final expression is one of these:
+
+* numeric types:  *int*, *long*, *float*, *double*, *decimal*, *ulong*
+* date/time types:  *date*, *time*, *datetime*, *timestamp*
+* string types:  *string*, *charN*, *uuid*
+
+A *table* is *hash-partitioned* at creation time, by calling the
+[/create/table](/content/api/rest/create_table_rest#create-table-rest) endpoint with a `partition_type` option of
+`HASH`, `partition_definitions` set to the number of *partitions* to create,
+and `partition_keys` set to whichever columns should be included in the hash.
+
+For example, to create a *hash-partitioned* table with the following criteria:
+
+* partitioned on the date/time of the order
+* distributed among the fixed set of partitions, based on the hash of the year
+  & month of the order
+* 10 partitions
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_hash.kisql (lines 15-23) */}
+```sql SQL
+CREATE TABLE example.customer_order_hash_partition_by_year_and_month
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP NOT NULL
+)
+PARTITION BY HASH (YEAR(purchase_ts), MONTH(purchase_ts))
+PARTITIONS 10
+```
+
+{/* Source: /examples/python/partition.py (lines 4-7 549-568) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "customer_id", GRC._ColumnType.INT, GCP.SHARD_KEY ],
+    [ "total_price", GRC._ColumnType.STRING, GCP.DECIMAL ],
+    [ "purchase_ts", GRC._ColumnType.LONG, GCP.TIMESTAMP ]
+]
+
+# Create a hash-partitioned table using the column list and the
+# partition options
+table = gpudb.GPUdbTable(
+    columns,
+    name = "example.customer_order_hash_partition_by_year_and_month",
+    db = kinetica,
+    options = {
+        "partition_type": "HASH",
+        "partition_keys": "YEAR(purchase_ts), MONTH(purchase_ts)",
+        "partition_definitions": "10"
+    }
+)
+```
+
+</CodeGroup>
+
+
+<a id="partitioning-by-series"></a>
+
+
+### Series
+
+
+*Series partitioning* segments data into a sequence of dynamically-allocated
+*partitions*, filling each to a given percentage threshold before moving on to
+the next.
+
+The following [specific types](/content/concepts/types#types-chart) are supported
+*partition key* data types; other types can be used inside a column expression,
+as long as the type of the final expression is one of these:
+
+* numeric types:  *int*, *long*, *float*, *double*, *decimal*, *ulong*
+* date/time types:  *date*, *time*, *datetime*, *timestamp*
+* string types:  *string*, *charN*, *uuid*
+
+As records associated with new *partition keys* are encountered, they are added
+to the table's only *partition* with an *open partition key set*.  Once that
+*partition* has exceeded the specified capacity, its *partition key set* is
+*closed*.  All *partition keys* associated with the records in a *partition* at
+the time its key set is *closed* become its fixed set of keys from that point
+onward--any subsequent records encountered with keys matching those in its fixed
+set will be added to it, causing it to grow without bound.  The first record
+encountered after that with a *partition key* that is not part of any
+*closed partition key set* across all *partitions* will trigger the creation of
+a new *partition* with an *open partition key set*.  That record and any
+subsequent records with *partition keys* not matching any *closed* set are added
+to the new *partition*, until that *partition* exceeds its capacity threshold,
+where its *partition key set* is *closed*, and the cycle repeats.
+
+With this distribution scheme, each *partition* will have a variable number of
+*partition keys*, depending on the cardinality of the keys and the order in
+which the records were inserted into the table.  A table with high cardinality
+in its *partition keys* may have mostly distinct keys in its *partitions*, while
+low cardinality keys could result in *partitions* with very few unique keys.
+Conversely, a table with mostly distinct keys that has data loaded in groups by
+key may have fewer keys per *partition*, while a table with few distinct keys
+that has all the unique keys loaded up front may end up with all its keys (and
+its data) in a single partition.
+
+The initial capacity of a *partition*, against which the percentage threshold is
+measured, is equivalent to its *chunk size*--the designated number of records
+per block of allocated memory for this table.  This is either set manually, via
+the `chunk_size` option, when the table is created, or it will default to the
+system default `chunk_size`, which is set in the system configuration.
+See the [Persistence](/content/config#config-main-persistence) section of the
+[Configuration Reference](/content/config#cr-label) for details.
+
+While this scheme was designed for colocating tracks from
+[track tables](/content/location_intelligence/geo_objects#geospatial-tracks) into the same *partition*, it
+can be used with any table type, for suitable use cases.
+
+A *table* is *series-partitioned* at creation time, by calling the
+[/create/table](/content/api/rest/create_table_rest#create-table-rest) endpoint with a `partition_type` option of
+`SERIES`, `partition_definitions` set to the percentage full the *open*
+*partition* should be before its *partition key set* is *closed* and a new one
+created, and `partition_keys` set to whichever columns should be included in
+the *partition key*.
+
+
+<Info>
+The default partition fill threshold is *50%*.
+</Info>
+
+For example, to create a *series-partitioned* *table* with the following
+criteria:
+
+* partitioned on the customer of each order
+* partitions with *closed* key sets will contain all orders from a set of unique
+  customers
+* *50%* fill threshold
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_series.kisql (lines 50-60) */}
+```sql SQL
+CREATE TABLE example.customer_order_series_partition_by_customer
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,4),
+    purchase_ts  TIMESTAMP NOT NULL
+    SHARD KEY(customer_id)
+)
+PARTITION BY SERIES (customer_id)
+PERCENT_FULL 50
+USING TABLE PROPERTIES (CHUNK SIZE = 3)
+```
+
+{/* Source: /examples/python/partition.py (lines 4-7 597-616) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "customer_id", GRC._ColumnType.INT, GCP.SHARD_KEY ],
+    [ "total_price", GRC._ColumnType.STRING, GCP.DECIMAL ],
+    [ "purchase_ts", GRC._ColumnType.LONG, GCP.TIMESTAMP ]
+]
+
+# Create a series-partitioned table using the column list and the
+# partition options
+table = gpudb.GPUdbTable(
+    columns,
+    name = "example.customer_order_series_partition_by_customer",
+    db = kinetica,
+    options = {
+        "partition_type": "SERIES",
+        "partition_keys": "customer_id",
+        "partition_definitions": "PERCENT_FULL 50"
+    }
+)
+```
+
+</CodeGroup>
+
+
+To create a *series-partitioned* *track table* with the following criteria:
+
+* partitioned on the *track ID*
+* partitions with *closed* key sets will contain all points from a unique set of
+  tracks
+* *25%* fill threshold
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/partition_by_series.kisql (lines 83-92) */}
+```sql SQL
+CREATE TABLE example.route_series_partition_by_track
+(
+    TRACKID    VARCHAR NOT NULL,
+    x          DOUBLE NOT NULL,
+    y          DOUBLE NOT NULL,
+    TIMESTAMP  TIMESTAMP NOT NULL
+)
+PARTITION BY SERIES (TRACKID)
+PERCENT_FULL 25
+USING TABLE PROPERTIES (CHUNK SIZE = 1)
+```
+
+{/* Source: /examples/python/partition.py (lines 4-7 644-664) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "TRACKID", GRC._ColumnType.STRING ],
+    [ "x", GRC._ColumnType.DOUBLE ],
+    [ "y", GRC._ColumnType.DOUBLE ],
+    [ "TIMESTAMP", GRC._ColumnType.LONG, GCP.TIMESTAMP ]
+]
+
+# Create a series-partitioned track table using the column list and the
+# partition options
+table = gpudb.GPUdbTable(
+    columns,
+    name = "example.route_series_partition_by_track",
+    db = kinetica,
+    options = {
+        "partition_type": "SERIES",
+        "partition_keys": "TRACKID",
+        "partition_definitions": "PERCENT_FULL 25"
+    }
+)
+```
+
+</CodeGroup>
+
+
+<a id="primary-key"></a>
+
+<a id="primary-keys"></a>
+
+
+## Primary Keys
+
+
+*Primary key* is a designation that can be applied to one or more columns in a
+[table](/content/concepts/tables).  A *primary key* composed of multiple columns is
+known as a *composite primary key*.
+
+
+### Purpose
+
+
+The *primary key* is used to ensure the uniqueness of the data contained in the
+keyed column(s).
+
+The uniqueness constraint is enforced upon insert in two ways:
+
+* If a record to be inserted has key values that match those of an already
+  existing record in the target *table*, the new record's values will either:
+
+  * Overwrite the existing record's values, if the `update_on_existing_pk`
+    option is set to `true`
+  * Be ignored (the new record effectively discarded), if the
+    `update_on_existing_pk` option is set to `false` or not set
+
+* If two or more records within a given batch insert have the same key values,
+  with respect to the *primary key* of the target *table*, the entire batch of
+  records to insert is rejected
+
+The *primary key* can also improve the performance of queries against the key
+columns by means of the [primary key index](/content/concepts/indexes#primary-key-index).
+
+
+<a id="primary-key-def"></a>
+
+
+### Designation
+
+
+By default, a *table* has no *primary key*.  One must be explicitly designated
+in the creation of the [type schema](/content/concepts/types#type-schema) associated with the
+*table*.
+
+Only one *primary key* can exist per *table*.
+
+
+<Info>
+The following [data types](/content/concepts/types#types-chart) cannot be used
+as all or part of a *primary key*:
+
+* *WKT*
+* *JSON*
+* *vector*
+* array of any type
+</Info>
+
+
+### Relation to Shard Key
+
+
+The *primary key* for a *table* not created as [replicated](/content/concepts/tables#replication)
+becomes its implicit [shard key](/content/concepts/tables#shard-key), used for distributing its
+records across processors.  *Replicated tables*, by definition, are not
+*sharded* and will necessarily have no *shard key*, implicit or otherwise.
+This implicit *shard key* for *non-replicated tables* can only be overridden
+when the *primary key* is a *composite primary key* and one or more of the
+*composite primary key* columns is explicitly designated as the *shard key*.
+
+
+### Relation to Foreign Key
+
+
+The *primary key* designation enables the column(s) to serve as the target of a
+[foreign key](/content/concepts/tables#foreign-key).  Note that if the *primary key* is a
+*composite primary key*, the *foreign key* must also be a
+*composite foreign key*, relating the columns from the source *table* to **all**
+columns in the *primary key*.
+
+
+### Index
+
+
+The *primary key* designation applies a
+[primary key index](/content/concepts/indexes#primary-key-index) to the *primary key* columns.
+
+
+### Creation
+
+
+For syntax and an example of creating a *primary key* in SQL, see
+[CREATE TABLE](/content/sql/ddl#sql-create-table).
+
+Creating a table with a *primary key* requires two steps.  First, mark the
+intended *primary key* column(s) with the `primary_key` property, and then
+create a *table* with those columns.
+
+For example, to create a table with a *primary key* on `id`:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/concepts.kisql (lines 59-64) */}
+```sql SQL
+CREATE TABLE example.primary_key_table
+(
+    id    INT NOT NULL,
+    name  VARCHAR(64),
+    PRIMARY KEY (id)
+)
+```
+
+{/* Source: /examples/python/tables.py (lines 4-7 81-93) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list, annotating the intended primary key column with
+#   primary_key
+columns = [
+    [ "id", GRC._ColumnType.INT, GCP.PRIMARY_KEY ],
+    [ "name", GRC._ColumnType.STRING, GCP.CHAR64 ]
+]
+
+# Create a table with a primary key using the column list
+gpudb.GPUdbTable(
+    columns,
+    name = "example.primary_key_table",
+    db = kinetica
+)
+```
+
+</CodeGroup>
+
+To create a table with a *composite primary key* on `id_a` & `id_b`:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/concepts.kisql (lines 68-74) */}
+```sql SQL
+CREATE TABLE example.composite_primary_key_table
+(
+    id_a  INT NOT NULL,
+    id_b  INT NOT NULL,
+    name  VARCHAR(64),
+    PRIMARY KEY (id_a, id_b)
+)
+```
+
+{/* Source: /examples/python/tables.py (lines 4-7 99-112) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list, annotating the intended primary key columns with
+#   primary_key
+columns = [
+    [ "id_a", GRC._ColumnType.INT, GCP.PRIMARY_KEY ],
+    [ "id_b", GRC._ColumnType.INT, GCP.PRIMARY_KEY ],
+    [ "name", GRC._ColumnType.STRING, GCP.CHAR64 ]
+]
+
+# Create a table with a composite primary key using the column list
+gpudb.GPUdbTable(
+    columns,
+    name = "example.composite_primary_key_table",
+    db = kinetica
+)
+```
+
+</CodeGroup>
+
+
+<a id="soft-primary-key"></a>
+
+
+## Soft Primary Keys
+
+
+*Soft primary key* is a designation that can be applied to one or more columns
+in a [table](/content/concepts/tables).  A *soft primary key* composed of multiple
+columns is known as a *composite soft primary key*.
+
+
+### Purpose
+
+
+The *soft primary key* is a designation given to a column or set of columns for
+which the user takes on the responsibility for maintaining uniqueness.  This
+externally-managed uniqueness changes system processing in the following ways:
+
+* Some join operations can still be optimized without a
+  [primary key index](/content/concepts/indexes#primary-key-index) if the values are known
+  to be unique.
+* Memory consumption is reduced, as the *soft primary key* does not require a
+  *primary key index* be resident in the
+  [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram), nor does it allow the
+  possibility of using a [relational index](/content/concepts/indexes#relational-index),
+  also saving memory.
+* Ingest performance is improved, as the server doesn't have the burden of
+  checking uniqueness of ingested data or updating the *primary key index*
+  with newly ingested key values.
+
+The benefit of using a *soft primary key* is largely dependent on use case, but
+workloads that involve heavy ingest or that consistently reach and exceed memory
+constraints may see improved performance.
+
+
+<a id="soft-primary-key-def"></a>
+
+
+### Designation
+
+
+By default, a *table* has no *soft primary key*.  One must be explicitly
+designated in the creation of the [type schema](/content/concepts/types#type-schema)
+associated with the *table*.
+
+Only one *soft primary key* can exist per *table*.
+
+
+<Info>
+The following [data types](/content/concepts/types#types-chart) cannot be used
+as all or part of a *soft primary key*:
+
+* *WKT*
+* *JSON*
+* *vector*
+* array of any type
+</Info>
+
+
+### Relation to Shard Key
+
+
+The *soft primary key* for a *table* not created as
+[replicated](/content/concepts/tables#replication) becomes its implicit
+[shard key](/content/concepts/tables#shard-key), used for distributing its records across
+processors.  *Replicated tables*, by definition, are not *sharded* and will
+necessarily have no *shard key*, implicit or otherwise.  This implicit
+*shard key* for *non-replicated tables* can only be overridden when the
+*soft primary key* is a *composite soft primary key* and one or more of the
+*composite soft primary key* columns is explicitly designated as the
+*shard key*.
+
+
+### Relation to Foreign Key
+
+
+The *soft primary key* designation does **not** enable the column(s) to serve as
+the target of a [foreign key](/content/concepts/tables#foreign-key).
+
+
+### Index
+
+
+A *soft primary key* is **not** backed by an index of any kind.
+
+
+### Creation
+
+
+For syntax and an example of creating a *soft primary key* in SQL, see
+[CREATE TABLE](/content/sql/ddl#sql-create-table).
+
+Creating a table with a *soft primary key* requires two steps.  First, mark the
+intended *soft primary key* column(s) with the `soft_primary_key` property,
+and then create a *table* with those columns.
+
+For example, to create a table with a *soft primary key* on `id`:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/concepts.kisql (lines 78-83) */}
+```sql SQL
+CREATE TABLE example.soft_primary_key_table
+(
+    id    INT NOT NULL,
+    name  VARCHAR(64),
+    SOFT PRIMARY KEY (id)
+)
+```
+
+{/* Source: /examples/python/tables.py (lines 4-7 118-130) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list, annotating the intended soft primary key column with
+#   soft_primary_key
+columns = [
+    [ "id", GRC._ColumnType.INT, GCP.SOFT_PRIMARY_KEY ],
+    [ "name", GRC._ColumnType.STRING, GCP.CHAR64 ]
+]
+
+# Create a table with a soft primary key using the column list
+gpudb.GPUdbTable(
+    columns,
+    name = "example.soft_primary_key_table",
+    db = kinetica
+)
+```
+
+</CodeGroup>
+
+To create a table with a *composite soft primary key* on `id_a` & `id_b`:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/concepts.kisql (lines 87-93) */}
+```sql SQL
+CREATE TABLE example.composite_soft_primary_key_table
+(
+    id_a  INT NOT NULL,
+    id_b  INT NOT NULL,
+    name  VARCHAR(64),
+    SOFT PRIMARY KEY (id_a, id_b)
+)
+```
+
+{/* Source: /examples/python/tables.py (lines 4-7 136-149) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list, annotating the intended soft primary key columns with
+#   soft_primary_key
+columns = [
+    [ "id_a", GRC._ColumnType.INT, GCP.SOFT_PRIMARY_KEY ],
+    [ "id_b", GRC._ColumnType.INT, GCP.SOFT_PRIMARY_KEY ],
+    [ "name", GRC._ColumnType.STRING, GCP.CHAR64 ]
+]
+
+# Create a table with a composite soft primary key using the column list
+gpudb.GPUdbTable(
+    columns,
+    name = "example.composite_soft_primary_key_table",
+    db = kinetica
+)
+```
+
+</CodeGroup>
+
+
+<a id="sharded"></a>
+
+<a id="shard-key"></a>
+
+<a id="shard-keys"></a>
+
+
+## Shard Keys
+
+
+*Shard key* is a designation that can be applied to one or more columns in a
+[table](/content/concepts/tables).  A *shard key* composed of multiple columns is known as a
+*composite shard key*.
+
+
+### Purpose
+
+The *shard key* is used in distributing records across processors.  This
+distribution allows for processing of queries against a
+[sharded table](/content/concepts/tables#sharding) to be performed in parallel.  In the absence of
+a *shard key*, for *non-replicated tables*, a hash is computed for each record
+and serves as the key by which the associated record is distributed to its
+corresponding processor, or *shard*.
+
+
+<a id="shard-key-def"></a>
+
+
+### Designation
+
+
+By default, a *table* has no *shard key*.  One can be explicitly designated in
+the creation of the [type schema](/content/concepts/types#type-schema) associated with the
+*table*.  One is also implicitly designated when a *non-replicated table* is
+assigned a [primary key](/content/concepts/tables#primary-key) or
+[soft primary key](/content/concepts/tables#soft-primary-key).  See the next section for
+details.
+
+Only one *shard key* can exist per *table*.
+
+
+<Info>
+The following [data types](/content/concepts/types#types-chart) cannot be used
+as all or part of a *shard key*:
+
+* *WKT*
+* *JSON*
+* *vector*
+* array of any type
+</Info>
+
+
+### Relation to Primary Key
+
+
+When a [primary key](/content/concepts/tables#primary-key) or
+[soft primary key](/content/concepts/tables#soft-primary-key) is assigned to any *table*
+not created as [replicated](/content/concepts/tables#replicated), it becomes the default
+*shard key*.  All columns involved in the *primary key* or *soft primary key*
+are used as the *shard key* in the order the columns were defined in the *table*
+creation.
+
+
+<Info>
+The ordering of columns within a *composite shard key* is critical
+when performing a *join* between the *composite shard keys* of two
+*tables*.  If two tables are both *sharded* on the same columns, but
+the *tables* were created with different orderings of those columns, a
+*sharded join* between them will not be possible.
+</Info>
+
+If a *primary key* or *soft primary key* exists on a *table*, one or more of the
+columns composing that key can be designated as the *shard key*--other columns
+the *table* may not be used.  Designating a *shard key* does not automatically
+create a corresponding *primary key*/*soft primary key* with the same column(s)
+for a table.
+
+
+### Creation
+
+
+For syntax and an example of creating a *shard key* in SQL, see
+[CREATE TABLE](/content/sql/ddl#sql-create-table).
+
+Creating a table with a *shard key* requires two steps.  First, mark the
+intended *shard key* column(s) with the `shard_key` property, and then create
+a *table* with those columns.
+
+For example, to create a table with a *shard key* on `id`:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/concepts.kisql (lines 34-39) */}
+```sql SQL
+CREATE TABLE example.sharded_table
+(
+    id    INT,
+    name  VARCHAR(64),
+    SHARD KEY (id)
+)
+```
+
+{/* Source: /examples/python/tables.py (lines 4-7 28-40) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list, annotating the intended shard key column with
+#   shard_key
+columns = [
+    [ "id", GRC._ColumnType.INT, GCP.SHARD_KEY ],
+    [ "name", GRC._ColumnType.STRING, GCP.CHAR64 ]
+]
+
+# Create a sharded table using the column list
+gpudb.GPUdbTable(
+    columns,
+    name = "example.sharded_table",
+    db = kinetica
+)
+```
+
+</CodeGroup>
+
+To create a table with a *composite shard key* on `id_a` & `id_b`:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/concepts.kisql (lines 97-103) */}
+```sql SQL
+CREATE TABLE example.composite_shard_key_table
+(
+    id_a  INT,
+    id_b  INT,
+    name  VARCHAR(64),
+    SHARD KEY (id_a, id_b)
+)
+```
+
+{/* Source: /examples/python/tables.py (lines 4-7 155-168) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list, annotating the intended shard key columns with
+#   shard_key
+columns = [
+    [ "id_a", GRC._ColumnType.INT, GCP.SHARD_KEY ],
+    [ "id_b", GRC._ColumnType.INT, GCP.SHARD_KEY ],
+    [ "name", GRC._ColumnType.STRING, GCP.CHAR64 ]
+]
+
+# Create a table with a composite shard key using the column list
+gpudb.GPUdbTable(
+    columns,
+    name = "example.composite_shard_key_table",
+    db = kinetica
+)
+```
+
+</CodeGroup>
+
+Lastly, to create a table with a *shard key* that is not the *primary key* (but
+consists of a proper subset of the columns), with the *primary key* on `id_a`
+& `id_b` and the *shard key* on `id_b`:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/concepts.kisql (lines 108-115) */}
+```sql SQL
+CREATE TABLE example.shard_key_not_primary_key_table
+(
+    id_a  INT NOT NULL,
+    id_b  INT NOT NULL,
+    name  VARCHAR(64),
+    PRIMARY KEY (id_a, id_b),
+    SHARD KEY (id_b)
+)
+```
+
+{/* Source: /examples/python/tables.py (lines 4-7 174-188) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list, annotating the intended primary key columns with
+#   primary_key and the intended shard key column with shard_key in addition
+columns = [
+    [ "id_a", GRC._ColumnType.INT, GCP.PRIMARY_KEY ],
+    [ "id_b", GRC._ColumnType.INT, GCP.PRIMARY_KEY, GCP.SHARD_KEY ],
+    [ "name", GRC._ColumnType.STRING, GCP.CHAR64 ]
+]
+
+# Create a table with a composite primary key and a shard key that consists
+#   of a proper subset of the primary key columns, using the column list
+gpudb.GPUdbTable(
+    columns,
+    name = "example.shard_key_not_primary_key_table",
+    db = kinetica
+)
+```
+
+</CodeGroup>
+
+Note also that *sharding* applies only to *non-replicated tables*, and the
+default [/create/table](/content/api/rest/create_table_rest#create-table-rest) distribution scheme implied in the
+example above is the *non-replicated* one.  If an attempt is made to create a
+*table* as *replicated* with a column set that specifies a *shard key*, the
+request will fail.  An attempt to create a *replicated table* with a *shard key*
+that is the same as the *primary key* (all columns marked with `primary_key`
+are also marked with `shard_key`) will succeed in creating a
+*replicated table*--the *shard key* designation will be ignored.
+
+
+<a id="foreign-key"></a>
+
+<a id="foreign-keys"></a>
+
+
+## Foreign Keys
+
+
+*Foreign key* is a designation that can be applied to one or more columns in a
+source [table](/content/concepts/tables) that relate them to a matching set of
+[primary key](/content/concepts/tables#primary-key) columns in a target *table*.  A *foreign key*
+composed of multiple columns is known as a *composite foreign key*.
+
+
+<Info>
+A *foreign key* can only target a table with a *primary key*; a
+[soft primary key](/content/concepts/tables#soft-primary-key) cannot serve as
+the target for a *foreign key* relation.
+</Info>
+
+
+### Purpose
+
+The *foreign key* is a tuning option for [joining](/content/concepts/joins) tables.
+It acts as a relational index from a source *table* to corresponding records in
+a target *table*.  As new records are inserted into the source *table*, the
+index is updated with references to the target records associated with them.  If
+a *foreign key* is not used, the *join* relationships are established during
+query time.
+
+*Foreign keys* do not provide referential integrity checks.
+
+
+<a id="foreign-key-def"></a>
+
+
+### Designation
+
+
+By default, a *table* has no *foreign key*.  One can be explicitly designated in
+the creation of the [type schema](/content/concepts/types#type-schema) associated with the
+*table*.  One can also be designated after *table* creation via the
+[/alter/table](/content/api/rest/alter_table_rest#alter-table-rest) endpoint.
+
+Multiple *foreign keys* can exist on a source *table*.  Multiple *foreign keys*
+may also point to a single target *table*; though, since *foreign key* targets
+must be *primary keys*, the *foreign keys* would all have to point to the
+*primary key* of the target *table*.
+
+
+<Info>
+*Foreign key* columns must be of the same
+[data types](/content/concepts/types#types-chart) as the *primary key* columns
+they reference, and as such, are limited to the set of types
+supported by primary keys.
+</Info>
+
+
+### Relation to Primary Key
+
+
+In order for the linkage to be made successfully, a *foreign key* must connect
+one or more columns in a source *table* with the *primary key* column(s) of a
+target *table*.  The *primary key* target requirement guarantees the uniqueness
+of the values in the target *table* columns, which is necessary for the
+*foreign key* relation to be made.
+
+In the case of a *composite primary key* on the target *table*, all of the
+columns that compose the *composite primary key* must be related by the
+*foreign key*.  A *foreign key* cannot be made to a proper subset of the
+*composite primary key* columns in the target *table*.
+
+If both *tables* are *sharded* there is a further restriction, noted below.
+
+
+### Relation to Shard Key
+
+
+If both the source & target *tables* are *sharded*, the *foreign key* must also
+connect the *shard key* of the source *table* to the *shard key* of the target
+*table*.  The *sharding* requirement exists to ensure the related records of
+each *table* being connected are located on the same processing node.  If either
+or both tables are *replicated*, the *sharding* requirement is alleviated, as
+all of the records from a *replicated table* will exist on all processor nodes,
+and thus, appear to be local to all records from the other *table* involved in
+the relation.
+
+For example, if *table* `source_table` is *sharded* on column `A`, and
+*table* `target_table` has a *primary key* & *shard key* on column `B`,
+the only possible *foreign key* from `source_table` to `target_table` would
+connect column `A` to column `B`.  No other columns from `source_table`
+can be used as source columns and no other columns from `target_table` can
+serve as target columns for the *foreign key*.
+
+In the case where the target *table* has a *shard key* whose columns are a
+proper subset of the *primary key* columns, the same rules apply.  If a *table*
+`source_table` has columns `A`, `B`, & `C` and is sharded on `B`, and
+*table* `target_table` has *primary key* columns `Y` & `Z` and is
+*sharded* on `Z`, there are two possible *foreign keys* from `source_table`
+to `target_table`:
+
+* `source_table(A, B) -> target_table(Y, Z)`
+* `source_table(C, B) -> target_table(Y, Z)`
+
+In both examples, all of the *primary key* columns (`Y` & `Z`) of the target
+*table* are pointed to by the *foreign key*, and the *shard key* columns (`B`
+& `Z`) of the two *tables* are related by the *foreign key*.
+
+
+### Creation
+
+
+*Foreign keys* can be designated at the time of table creation, using the
+[/create/table](/content/api/rest/create_table_rest#create-table-rest) endpoint.
+
+For example, to create a source *table* and connect the
+`pkt_id` column of the source *table* to the `id` column of an existing
+target *table*:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/concepts.kisql (lines 119-126) */}
+```sql SQL
+CREATE TABLE example.foreign_key_table
+(
+    id      INT,
+    pkt_id  INT,
+    name    VARCHAR(64),
+    SHARD KEY (pkt_id),
+    FOREIGN KEY (pkt_id) REFERENCES example.primary_key_table(id)
+)
+```
+
+{/* Source: /examples/python/tables.py (lines 4-7 194-211) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list, annotating with shard_key the column which will be
+#   related to the target table's primary key (and default shard key)
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "pkt_id", GRC._ColumnType.INT, GCP.SHARD_KEY ],
+    [ "name", GRC._ColumnType.STRING, GCP.CHAR64 ]
+]
+
+# Create a table with a foreign key to the previously-created primary key
+#   table, using the column list and specifying the foreign key option
+gpudb.GPUdbTable(
+    columns,
+    name = "example.foreign_key_table",
+    db = kinetica,
+    options = {
+      "foreign_keys":"pkt_id references example.primary_key_table(id)"
+    }
+)
+```
+
+</CodeGroup>
+
+*Foreign keys* can also be added after table creation, via
+[/alter/table](/content/api/rest/alter_table_rest#alter-table-rest).
+
+For example, to create a *composite foreign key* relating the
+`cpkt_id_a` and `cpkt_id_b` columns of an existing source *table* to the
+`id_a` and `id_b` columns of an existing target *table*, respectively:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/concepts.kisql (lines 130-132) */}
+```sql SQL
+ALTER TABLE example.composite_shard_key_table
+ADD FOREIGN KEY (id_a, id_b)
+    REFERENCES example.composite_primary_key_table(id_a, id_b)
+```
+
+{/* Source: /examples/python/tables.py (lines 217-223) */}
+```python Python
+# Alter the composite shard key table, adding a composite foreign key to the
+#   composite primary key table
+kinetica.alter_table(
+    table_name = "example.composite_shard_key_table",
+    action = "create_foreign_key",
+    value = "(id_a, id_b) references example.composite_primary_key_table(id_a, id_b)"
+)
+```
+
+</CodeGroup>
+
+Multiple *foreign keys* can be specified at the same time:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/table/concepts.kisql (lines 136-146) */}
+```sql SQL
+CREATE REPLICATED TABLE example.multiple_foreign_key_table
+(
+    id        INT,
+    pkt_id    INT,
+    cpkt_id_a INT,
+    cpkt_id_b INT,
+    name      VARCHAR(64),
+    FOREIGN KEY (pkt_id) REFERENCES example.primary_key_table(id),
+    FOREIGN KEY (cpkt_id_a, cpkt_id_b)
+        REFERENCES example.composite_primary_key_table(id_a, id_b)
+)
+```
+
+{/* Source: /examples/python/tables.py (lines 4-7 229-254) */}
+```python Python
+rt gpudb
+ gpudb import GPUdbRecordColumn as GRC
+ gpudb import GPUdbColumnProperty as GCP
+
+# Create a column list
+columns = [
+    [ "id", GRC._ColumnType.INT ],
+    [ "pkt_id", GRC._ColumnType.INT ],
+    [ "cpkt_id_a", GRC._ColumnType.INT ],
+    [ "cpkt_id_b", GRC._ColumnType.INT ],
+    [ "name", GRC._ColumnType.STRING, GCP.CHAR64 ]
+]
+
+# Create a table with foreign keys to the previously-created primary key
+#   & composite primary key tables, using the column list and specifying the
+#   foreign key option.  The table will be created as replicated, as the two
+#   target tables being related via foreign keys are sharded on different
+#   keys, and this table cannot be sharded on both of those keys.
+gpudb.GPUdbTable(
+    columns,
+    name = "example.multiple_foreign_key_table",
+    db = kinetica,
+    options = {
+        "foreign_keys":"""
+            pkt_id references example.primary_key_table(id);
+            (cpkt_id_a, cpkt_id_b) references example.composite_primary_key_table(id_a, id_b)
+        """,
+        "is_replicated":True
+    }
+)
+```
+
+</CodeGroup>

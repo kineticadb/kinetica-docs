@@ -1,0 +1,191 @@
+---
+title: Load Data from Local File
+description: Copy and paste tutorial for loading data from a local file on your computer
+sidebarTitle: Local
+---
+
+<a id="load-data-by-source-local"></a>
+
+
+To load data from your local computer, you can:
+
+- Use the command line from your computer with Kinetica's
+  [KiSQL](/content/load_data/by_source/local#load-from-local-upload-kisql) tool that allows you
+  to upload the file to the [Kinetica File System (KiFS)](/content/tools/kifs) and initiate the load into
+  the table with SQL.
+- Or, use a third party SQL tool like [DBeaver](https://dbeaver.io/)  with Kinetica's
+  [JDBC driver](/content/connectors/sql_guide#jdbc) and follow the same instructions for
+  *KiSQL*.  *Usage of a third party tool is outside the scope of this article.
+  Refer to the [JDBC driver](/content/connectors/sql_guide#jdbc) page for more information.*
+
+
+<a id="load-from-local-upload-kisql"></a>
+
+
+## KiSQL
+
+
+Download the appropriate version of [KiSQL](/content/tools/kisql#kisql) for your
+instance of Kinetica.
+
+Run *KiSQL* from the CLI and connect to Kinetica:
+
+```bash title="Connect to Kinetica with KiSQL"
+kisql --url http://localhost:9191;RowsPerFetch=20000 --user auser
+```
+
+Next, create a directory in *KiFS* using the
+[CREATE DIRECTORY](/content/sql/kifs#sql-kifs-create-dir) command:
+
+```sql title="Createa a Directory in KiFS"
+CREATE DIRECTORY 'my_directory'
+```
+
+Then, upload your file(s) to *KiFS* using the
+[UPLOAD FILE](/content/sql/kifs#sql-kifs-upload-file) command:
+
+```sql title="Upload a File to KiFS"
+UPLOAD FILES 'my_data.csv' INTO 'my_directory'
+```
+
+<a id="load-from-local-ingest"></a>
+
+
+To initiate the ingest of data into a Kinetica table, use the
+[LOAD INTO](/content/sql/load#sql-load-into) command for a one-time batch load. To
+reference files in *KiFS*, you can use a URL that looks like this:
+
+```
+kifs://<folder_name>/<filename>.<extension>
+```
+```sql title="Load Data from File in KiFS"
+LOAD INTO ki_home.my_data
+FROM FILE PATHS 'kifs://my_directory/my_data.csv'
+WITH OPTIONS (PRIMARY KEY = ('id'))
+```
+
+
+## Considerations
+
+
+The following are some common options used when loading.  For the full list of
+options, see [LOAD INTO](/content/sql/load#sql-load-into).  For copy/paste examples of many of
+the options, see [Loading Data](/content/snippets/load-data).
+
+
+### Error Handling
+
+
+Kinetica has two different
+[error handling modes](/content/sql/load#sql-load-file-server-load-opt) for dealing
+with erroneous data. To halt ingestion after a bad record is found, use the
+`ABORT` mode. To skip erroneous records and continue the ingest, use the
+`SKIP` mode.
+
+To inspect erroneous records, you may use the
+[BAD RECORD TABLE NAME](/content/sql/load#sql-load-file-server-load-opt) option.
+All bad records encountered will be stored there for review. The bad records
+table is limited to 10,000 records by default and may be overridden using the
+[BAD RECORD TABLE LIMIT](/content/sql/load#sql-load-file-server-load-opt) option.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_into_kifs_snippets.sql (lines 50-55) */}
+```sql Abort
+LOAD INTO ki_home.error_example
+FROM FILE PATHS 'kifs://data/orders.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    ON ERROR = ABORT
+)
+```
+
+{/* Source: /examples/sql/load/load_into_kifs_snippets.sql (lines 59-65) */}
+```sql Log Bad Records
+LOAD INTO ki_home.error_example
+FROM FILE PATHS 'kifs://data/orders.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    BAD RECORD TABLE NAME = 'error_example_invalid',
+    ON ERROR = SKIP
+)
+```
+
+</CodeGroup>
+
+
+### Load Specific Columns
+
+
+In some cases, you may only want to store certain columns from your source data.
+Use the [FIELDS MAPPED BY NAME(...)](/content/sql/load#sql-load-file-server-load-opt)
+option, which allows you to specify the desired fields to store in Kinetica.
+
+```sql title="Load Specific Columns Example"
+LOAD DATA INTO example.orders
+FROM FILE PATHS 'kifs://data/orders.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    FIELDS MAPPED BY NAME(ID, Name, Product_ID, Quantity)
+)
+```
+
+
+### DateTime Formatting
+
+
+Use the  [COLUMN FORMATS](/content/sql/load#sql-load-file-server-load-opt) option
+to format date and time fields into Kinetica Date, Time, and DateTime columns.
+Time formats are specified using a JSON formatted string. Non-placeholder characters
+must be wrapped in quotes, which must also be escaped (e.g.
+`'{"dt": {"date": "\"(\"YYYY\")\" Mon, DD"}}'`). Alternatively, you can use
+the `?` character as a wildcard character. Note that
+Kinetica does not handle or store timezones and they will be discarded.
+See the full list of supported
+[date and time format codes](/content/sql/query#sql-datetime-conversion-codes).
+
+<CodeGroup>
+
+{/* Source: /examples/sql/load/load_into_kifs_snippets.sql (lines 7-16) */}
+```sql ISO 8601 Timestamps
+-- Example Data:
+-- dt
+-- 2022-01-19T15:50:42Z+05:00
+
+LOAD INTO ki_home.timestamp_example
+FROM FILE PATHS 'kifs://data/orders.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    COLUMN FORMATS = '{"dt": {"datetime": "YYYY-MM-DD?HH:MI:SS"}}'
+)
+```
+
+{/* Source: /examples/sql/load/load_into_kifs_snippets.sql (lines 20-29) */}
+```sql Custom Date
+-- Example Data:
+-- d
+-- (2022) Feb, 22
+
+LOAD INTO ki_home.date_example
+FROM FILE PATHS 'kifs://data/orders.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    COLUMN FORMATS = '{"d": {"date": "\"(\"YYYY\")\" Mon, DD"}}'
+)
+```
+
+{/* Source: /examples/sql/load/load_into_kifs_snippets.sql (lines 33-42) */}
+```sql Custom Time
+-- Example Data:
+-- t
+-- 18-27-59.5536
+
+LOAD INTO ki_home.time_example
+FROM FILE PATHS 'kifs://data/orders.csv'
+FORMAT TEXT
+WITH OPTIONS (
+    COLUMN FORMATS = '{"t": {"time": "HH-MI-SS.MS"}}'
+)
+```
+
+</CodeGroup>

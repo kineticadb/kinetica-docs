@@ -1,0 +1,739 @@
+---
+title: Resource Management
+sidebarTitle: Resource Management
+---
+
+*Kinetica* provides a SQL interface for managing
+[resource groups](/content/rm/concepts#rm-concepts-resource-groups), which can be used
+to limit memory and thread usage, and execution priority for a user or group of
+users.  It also provides the means to modify the
+[tiers](/content/rm/concepts#rm-concepts-tiers) that the *resource groups* reference.
+
+The ability to manage *resource groups* is available through SQL, using the
+following commands:
+
+* [CREATE RESOURCE GROUP](#create-resource-group)
+* [ALTER RESOURCE GROUP](#alter-resource-group)
+* [DROP RESOURCE GROUP](#drop-resource-group)
+* [SHOW RESOURCE GROUP](#show-resource-group)
+* [DESCRIBE RESOURCE GROUP](#describe-resource-group)
+
+The ability to manage *tiers* is available through the following command:
+
+* [ALTER TIER](#alter-tier)
+
+See [Security](/content/sql/security#sql-security) for details on assigning *resource groups* to users and
+roles.
+
+
+<a id="sql-rg-create"></a>
+
+
+## CREATE RESOURCE GROUP
+
+
+*Resource groups* require only a name to be created, all limits are optional.
+*Resource group* names are case-sensitive and must contain only letters, digits,
+and underscores, and cannot begin with a digit.  A *resource group* must also
+not be named the same as an existing *resource group*, including the default
+*resource groups*: **kinetica_system_resource_group** &
+**kinetica_default_resource_group**.
+
+```sql title="CREATE RESOURCE GROUP Syntax"
+CREATE RESOURCE GROUP <resource group name>
+[ RANK <FIRST | LAST | BEFORE <group name> | AFTER <group name>> ]
+[
+    TIER LIMITS
+    (
+        <tier name> USING (<tier property name> = <tier property value>[,...]),
+        ...
+        <tier name> USING (<tier property name> = <tier property value>[,...])
+    )
+]
+[ WITH OPTIONS (<resource property name> = <resource property value>[,...]) ]
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;resource group name&gt;" id="<resource-group-name>" defaultOpen>
+
+Name of the [resource group](/content/rm/concepts#rm-concepts-resource-groups) to create.
+
+</Accordion>
+
+<Accordion title="RANK" id="rank" defaultOpen>
+
+Designation of where in the ordering of applicable *resource groups* this one should exist.  For
+a given set of *resource groups*, the one that is ranked before all the others will be used.
+
+`RANK` designations include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Keyword</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>FIRST</code></td>
+    <td>Make this *resource group* the new first one in the ordering.</td>
+  </tr>
+  <tr>
+    <td><code>LAST</code></td>
+    <td>Make this *resource group* the new last one in the ordering.</td>
+  </tr>
+  <tr>
+    <td><code>BEFORE &lt;group name&gt;</code></td>
+    <td>Place this *resource group* before the one specified by <code>group name</code> in the ordering.</td>
+  </tr>
+  <tr>
+    <td><code>AFTER &lt;group name&gt;</code></td>
+    <td>Place this *resource group* after the one specified by <code>group name</code> in the ordering.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="TIER LIMITS" id="tier-limits" defaultOpen>
+
+Optional indicator that a set of [tier](/content/rm/concepts#rm-concepts-tiers) names and corresponding
+property assignments will follow.
+
+Parameters for each *tier* assignment are as follows:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Keyword</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>tier name</code></td>
+    <td>Name of the *tier* to which limits will be assigned: <div><table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">  <thead>  <tr>    <th>Name</th>    <th>Description</th>  </tr>  </thead>  <tbody>  <tr>    <td><code>VRAM</code></td>    <td>Configure the [VRAM tier](/content/rm/concepts#rm-concepts-tiers-vram).</td>  </tr>  <tr>    <td><code>RAM</code></td>    <td>Configure the [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram).</td>  </tr>  </tbody></table></div></td>
+  </tr>
+  <tr>
+    <td><code>tier property name</code></td>
+    <td>Name of the *tier* property to which a limit will be assigned: <div><table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">  <thead>  <tr>    <th>Property</th>    <th>Description</th>  </tr>  </thead>  <tbody>  <tr>    <td><code>max_memory</code></td>    <td>Maximum amount of memory per rank per GPU that can be used in the *VRAM tier*, or maximum amount of memory per rank that can be used in the *RAM tier*.</td>  </tr>  </tbody></table></div></td>
+  </tr>
+  <tr>
+    <td><code>tier property value</code></td>
+    <td>Value to assign the corresponding *tier* property.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of *resource group* property option/value
+assignments will follow.
+
+See [Options](/content/sql/resource_group#sql-rg-create-opt) for the complete list of options.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-rg-create-opt"></a>
+
+
+### Options
+
+
+The following options can be specified to further modify a *resource group*
+configuration.
+
+<AccordionGroup>
+
+<Accordion title="max_cpu_concurrency" id="max_cpu_concurrency" defaultOpen>
+
+Maximum number of simultaneous threads that will be used to execute a request, per rank.
+Must be &gt;= *4*.
+
+</Accordion>
+
+<Accordion title="max_data" id="max_data" defaultOpen>
+
+Maximum amount of data, per rank, in bytes, that can be used by all database objects within this
+group; for example, a `max_data` of *1000000000* would limit a user with this *resource group*
+to a per-rank total of *1GB* of data usage across all tables, views, graphs, etc., including
+temporary objects supporting data processing operations (queries, materialized views, etc.).
+
+</Accordion>
+
+<Accordion title="max_scheduling_priority" id="max_scheduling_priority" defaultOpen>
+
+Maximum [scheduling priority](/content/rm/concepts#rm-concepts-scheduling-priority) of a task.
+
+</Accordion>
+
+<Accordion title="max_tier_priority" id="max_tier_priority" defaultOpen>
+
+Maximum [eviction priority](/content/rm/concepts#rm-concepts-eviction-priority) of a tiered object.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-rg-create-ex"></a>
+
+
+### Examples
+
+
+To create a simple **unlimited** *resource group* with default settings:
+
+{/* Source: /examples/sql/resource_group.kisql (lines 18) */}
+```sql CREATE RESOURCE GROUP Example
+CREATE RESOURCE GROUP unlimited
+```
+
+To create a **memory_over_execution** *resource group*, with high *tier*
+capacity limits, but low execution options:
+
+{/* Source: /examples/sql/resource_group.kisql (lines 24-35) */}
+```sql CREATE RESOURCE GROUP with Tier Limits & Options Example
+CREATE RESOURCE GROUP memory_over_execution
+TIER LIMITS
+(
+    VRAM USING (max_memory = 10737418240),
+    RAM USING (max_memory = 107374182400)
+)
+WITH OPTIONS
+(
+    max_cpu_concurrency = 5,
+    max_scheduling_priority = 30,
+    max_tier_priority = 4
+)
+```
+
+To create a **execution_over_memory** *resource group*, with lower *tier*
+capacity limits, but higher execution options, as compared to the
+**memory_over_execution** group:
+
+{/* Source: /examples/sql/resource_group.kisql (lines 41-53) */}
+```sql CREATE RESOURCE GROUP with Ranking Example
+CREATE RESOURCE GROUP execution_over_memory
+RANK BEFORE memory_over_execution
+TIER LIMITS
+(
+    VRAM USING (max_memory = 1073741824),
+    RAM USING (max_memory = 10737418240)
+)
+WITH OPTIONS
+(
+    max_cpu_concurrency = 7,
+    max_scheduling_priority = 70,
+    max_tier_priority = 10
+)
+```
+
+
+<a id="sql-rg-alter"></a>
+
+
+## ALTER RESOURCE GROUP
+
+
+Any of the following facets of a *resource group* can be altered, either
+individually or as a group:
+
+* Rank
+* Tier limits
+* Execution options
+
+```sql title="ALTER RESOURCE GROUP Syntax"
+ALTER RESOURCE GROUP <resource group name>
+[ RANK <FIRST | LAST | BEFORE <group name> | AFTER <group name>> ]
+[
+    TIER LIMITS
+    (
+        <tier name> USING (<tier property name> = <tier property value>[,...]),
+        ...
+        <tier name> USING (<tier property name> = <tier property value>[,...])
+    )
+]
+[ WITH OPTIONS (<resource property name> = <resource property value>[,...]) ]
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;resource group name&gt;" id="<resource-group-name>-2" defaultOpen>
+
+Name of the [resource group](/content/rm/concepts#rm-concepts-resource-groups) to alter.
+
+</Accordion>
+
+<Accordion title="RANK" id="rank-2" defaultOpen>
+
+Designation of where in the ordering of applicable *resource groups* this one should exist.  For
+a given set of *resource groups*, the one that is ranked before all the others will be used.
+
+`RANK` designations include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Keyword</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>FIRST</code></td>
+    <td>Make this *resource group* the new first one in the ordering.</td>
+  </tr>
+  <tr>
+    <td><code>LAST</code></td>
+    <td>Make this *resource group* the new last one in the ordering.</td>
+  </tr>
+  <tr>
+    <td><code>BEFORE &lt;group name&gt;</code></td>
+    <td>Place this *resource group* before the one specified by <code>group name</code> in the ordering.</td>
+  </tr>
+  <tr>
+    <td><code>AFTER &lt;group name&gt;</code></td>
+    <td>Place this *resource group* after the one specified by <code>group name</code> in the ordering.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="TIER LIMITS" id="tier-limits-2" defaultOpen>
+
+Optional indicator that a set of [tier](/content/rm/concepts#rm-concepts-tiers) names and corresponding
+property assignments will follow.
+
+Parameters for each *tier* assignment are as follows:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Keyword</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>tier name</code></td>
+    <td>Name of the *tier* to which limits will be assigned: <div><table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">  <thead>  <tr>    <th>Name</th>    <th>Description</th>  </tr>  </thead>  <tbody>  <tr>    <td><code>VRAM</code></td>    <td>Update the [VRAM tier](/content/rm/concepts#rm-concepts-tiers-vram).</td>  </tr>  <tr>    <td><code>RAM</code></td>    <td>Update the [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram).</td>  </tr>  </tbody></table></div></td>
+  </tr>
+  <tr>
+    <td><code>tier property name</code></td>
+    <td>Name of the *tier* property to which a limit will be assigned: <div><table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">  <thead>  <tr>    <th>Property</th>    <th>Description</th>  </tr>  </thead>  <tbody>  <tr>    <td><code>max_memory</code></td>    <td>Maximum amount of memory per rank per GPU that can be used in the *VRAM tier*, or maximum amount of memory per rank that can be used in the *RAM tier*.</td>  </tr>  </tbody></table></div></td>
+  </tr>
+  <tr>
+    <td><code>tier property value</code></td>
+    <td>Value to assign the corresponding *tier* property.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options-2" defaultOpen>
+
+Optional indicator that a comma-delimited list of *resource group* property option/value
+assignments will follow.
+
+See [Options](/content/sql/resource_group#sql-rg-alter-opt) for the complete list of options.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-rg-alter-opt"></a>
+
+
+### Options
+
+
+The following options can be specified to further modify a *resource group*
+configuration.
+
+
+<AccordionGroup>
+
+<Accordion title="max_cpu_concurrency" id="max_cpu_concurrency-2" defaultOpen>
+
+Maximum number of simultaneous threads that will be used to execute a request, per rank.
+Must be &gt;= *4*.
+
+</Accordion>
+
+<Accordion title="max_data" id="max_data-2" defaultOpen>
+
+Maximum amount of data, per rank, in bytes, that can be used by all database objects within this
+group; for example, a `max_data` of *1000000000* would limit a user with this *resource group*
+to a per-rank total of *1GB* of data usage across all tables, views, graphs, etc., including
+temporary objects supporting data processing operations (queries, materialized views, etc.).
+
+</Accordion>
+
+<Accordion title="max_scheduling_priority" id="max_scheduling_priority-2" defaultOpen>
+
+Maximum [scheduling priority](/content/rm/concepts#rm-concepts-scheduling-priority) of a task.
+
+</Accordion>
+
+<Accordion title="max_tier_priority" id="max_tier_priority-2" defaultOpen>
+
+Maximum [eviction priority](/content/rm/concepts#rm-concepts-eviction-priority) of a tiered object.
+
+</Accordion>
+
+<Accordion title="persist" id="persist" defaultOpen>
+
+Whether to save this change to the database configuration so that it will stay in effect after a
+database restart.  Default is `true`.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-rg-alter-ex"></a>
+
+
+### Examples
+
+
+To alter an existing **memory_and_execution** *resource group*,
+moving it to the highest ranking, while assigning new limits for the *RAM tier*
+and `max_cpu_concurrency` & `max_scheduling_priority` options, but leaving
+other existing settings untouched:
+
+{/* Source: /examples/sql/resource_group.kisql (lines 71-81) */}
+```sql ALTER RESOURCE GROUP Example
+ALTER RESOURCE GROUP memory_and_execution
+RANK FIRST
+TIER LIMITS
+(
+    RAM USING (max_memory = 214748364800)
+)
+WITH OPTIONS
+(
+    max_cpu_concurrency = 9,
+    max_scheduling_priority = 90
+)
+```
+
+
+<a id="sql-rg-drop"></a>
+
+
+## DROP RESOURCE GROUP
+
+
+An existing user-defined *resource group* can be removed from the system,
+provided there are no users or roles currently assigned to it and there are no
+tables or graphs contained within it.
+
+```sql title="DROP RESOURCE GROUP Syntax"
+DROP RESOURCE GROUP <resource group name>
+```
+
+
+### Examples
+
+
+To remove the **unlimited** *resource group*:
+
+{/* Source: /examples/sql/resource_group.kisql (lines 108) */}
+```sql DROP RESOURCE GROUP Example
+DROP RESOURCE GROUP unlimited
+```
+
+
+<a id="sql-rg-show"></a>
+
+
+## SHOW RESOURCE GROUP
+
+
+The DDL statement required to reconstruct any *resource group* can be shown. The
+DDL for all *resource groups* in the system can also be shown with a single
+command.
+
+```sql title="SHOW RESOURCE GROUP Syntax"
+SHOW RESOURCE GROUP < <resource group name> | ALL >
+```
+
+
+### Examples
+
+
+To show the DDL of the **memory_and_execution** *resource group*:
+
+{/* Source: /examples/sql/resource_group.kisql (lines 99) */}
+```sql SHOW RESOURCE GROUP Example
+SHOW RESOURCE GROUP memory_and_execution
+```
+
+To show the DDL of all *resource groups*:
+
+{/* Source: /examples/sql/resource_group.kisql (lines 111) */}
+```sql SHOW RESOURCE GROUP (All Groups) Example
+SHOW RESOURCE GROUP ALL
+```
+
+
+<a id="sql-rg-desc"></a>
+
+
+## DESCRIBE RESOURCE GROUP
+
+
+The configuration of any *resource group* can be shown, in tabular form.  The
+configuration for all *resource groups* in the system can also be shown with a
+single command.
+
+```sql title="SHOW RESOURCE GROUP Syntax"
+SHOW RESOURCE GROUP < <resource group name> | ALL >
+```
+
+
+### Examples
+
+
+To show the configuration of the **memory_and_execution**
+*resource group*:
+
+{/* Source: /examples/sql/resource_group.kisql (lines 102) */}
+```sql DESCRIBE RESOURCE GROUP Example
+DESCRIBE RESOURCE GROUP memory_and_execution
+```
+
+To show the configuration of all *resource groups*:
+
+{/* Source: /examples/sql/resource_group.kisql (lines 114) */}
+```sql DESCRIBE RESOURCE GROUP (All Groups) Example
+DESCRIBE RESOURCE GROUP ALL
+```
+
+
+<a id="sql-tier-alter"></a>
+
+
+## ALTER TIER
+
+
+The size & eviction thresholds of
+[storage tiers](/content/rm/concepts#rm-concepts-tiers) can be modified, applying the
+change to individually specified ranks or all ranks at once.
+
+*Tier* settings can be viewed with [SHOW SYSTEM PROPERTIES](/content/sql/system_properties#sql-show-system-properties).
+
+```sql title="ALTER TIER Syntax"
+ALTER TIER <tier name>
+WITH OPTIONS (<tier property name> = <tier property value>[,...])
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;tier name&gt;" id="<tier-name>" defaultOpen>
+
+Name of the [storage tier](/content/rm/concepts#rm-concepts-tiers) to alter.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Name</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>VRAM</code></td>
+    <td>Alter the [VRAM tier](/content/rm/concepts#rm-concepts-tiers-vram).</td>
+  </tr>
+  <tr>
+    <td><code>RAM</code></td>
+    <td>Alter the [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram).</td>
+  </tr>
+  <tr>
+    <td><code>DISK[n]</code></td>
+    <td>Alter the specified [disk tier](/content/rm/concepts#rm-concepts-tiers-disk).</td>
+  </tr>
+  <tr>
+    <td><code>PERSIST</code></td>
+    <td>Alter the [persist tier](/content/rm/concepts#rm-concepts-tiers-persist).</td>
+  </tr>
+  <tr>
+    <td><code>COLD[n]</code></td>
+    <td>Alter the specified [cold storage tier](/content/rm/concepts#rm-concepts-tiers-cold).</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options-3" defaultOpen>
+
+Optional indicator that a comma-delimited list of `tier property name` /
+`tier property value` assignments will follow.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Property</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>capacity</code></td>
+    <td>Size, in bytes, of a rank in this tier; for *RAM*, *disk*, &amp; *persist* tiers.</td>
+  </tr>
+  <tr>
+    <td><code>high_watermark</code></td>
+    <td>High watermark [eviction](/content/rm/concepts#rm-concepts-wb-eviction) threshold for a rank in this tier; for *VRAM*, *RAM*, *disk*, &amp; *persist* tiers.</td>
+  </tr>
+  <tr>
+    <td><code>low_watermark</code></td>
+    <td>Low watermark [eviction](/content/rm/concepts#rm-concepts-wb-eviction) threshold for a rank in this tier; for *VRAM*, *RAM*, *disk*, &amp; *persist* tiers.</td>
+  </tr>
+  <tr>
+    <td><code>wait_timeout</code></td>
+    <td>Timeout, in seconds, for reading from or writing to this tier; for *cold storage* tiers.</td>
+  </tr>
+  <tr>
+    <td><code>persist</code></td>
+    <td>Whether to save this change to the database configuration so that it will stay in effect after a database restart; default is <code>true</code>.</td>
+  </tr>
+  <tr>
+    <td><code>rank</code></td>
+    <td>Specific rank in this tier to apply the change to; default is to apply the change to all ranks in the tier.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-tier-alter-ex"></a>
+
+
+### Examples
+
+
+To alter the capacity of the [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram) on rank 0 to *500MB*
+temporarily (until the database is restarted):
+
+{/* Source: /examples/sql/rm/alter_tier.kisql (lines 20-26) */}
+```sql ALTER TIER Capacity on a Rank Temporarily Example
+ALTER TIER ram
+WITH OPTIONS
+(
+	'capacity' = '500000000',
+	'rank' = 0,
+	'persist' = false
+)
+```
+
+To show the change took effect:
+
+{/* Source: /examples/sql/rm/alter_tier.kisql (lines 31-32) */}
+```sql SHOW Tier Capacity on a Rank Example
+SHOW SYSTEM PROPERTIES
+WITH OPTIONS ('properties' = 'conf.tier.ram.rank0.limit')
+```
+{/* Source: /examples/sql/rm/alter_tier.out (lines 345-349) */}
+``` SHOW Tier Capacity on a Rank Output
++-----------------------------------------+
+| SYSTEM_PROPERTIES                       |
++-----------------------------------------+
+| conf.tier.ram.rank0.limit = 500000000   |
++-----------------------------------------+
+```
+
+To alter the eviction thresholds of the [VRAM tier](/content/rm/concepts#rm-concepts-tiers-vram) across all ranks, and
+save the change to the startup configuration:
+
+{/* Source: /examples/sql/rm/alter_tier.kisql (lines 73-78) */}
+```sql ALTER TIER Eviction Thresholds Permanently Example
+ALTER TIER vram
+WITH OPTIONS
+(
+	'high_watermark' = '95',
+	'low_watermark' = '75'
+)
+```
+
+To show the change took effect:
+
+{/* Source: /examples/sql/rm/alter_tier.kisql (lines 83-97) */}
+```sql SHOW Tier Eviction Thresholds Example
+SHOW SYSTEM PROPERTIES
+WITH OPTIONS
+(
+    'properties' =
+    '
+        conf.tier.vram.default.all_gpus.high_watermark,
+        conf.tier.vram.default.all_gpus.low_watermark,
+        conf.tier.vram.rank0.all_gpus.high_watermark,
+        conf.tier.vram.rank0.all_gpus.low_watermark,
+        conf.tier.vram.rank1.all_gpus.high_watermark,
+        conf.tier.vram.rank1.all_gpus.low_watermark,
+        conf.tier.vram.rank2.all_gpus.high_watermark,
+        conf.tier.vram.rank2.all_gpus.low_watermark
+    '
+)
+```
+{/* Source: /examples/sql/rm/alter_tier.out (lines 445-456) */}
+``` SHOW Tier Eviction Thresholds Output
++-------------------------------------------------------+
+| SYSTEM_PROPERTIES                                     |
++-------------------------------------------------------+
+| conf.tier.vram.default.all_gpus.high_watermark = 95   |
+| conf.tier.vram.default.all_gpus.low_watermark = 75    |
+| conf.tier.vram.rank0.all_gpus.high_watermark = 90     |
+| conf.tier.vram.rank0.all_gpus.low_watermark = 80      |
+| conf.tier.vram.rank1.all_gpus.high_watermark = 95     |
+| conf.tier.vram.rank1.all_gpus.low_watermark = 75      |
+| conf.tier.vram.rank2.all_gpus.high_watermark = 95     |
+| conf.tier.vram.rank2.all_gpus.low_watermark = 75      |
++-------------------------------------------------------+
+```

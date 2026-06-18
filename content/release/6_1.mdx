@@ -1,0 +1,167 @@
+---
+title: 6.1 Release Notes
+slug: 6.1
+---
+
+## APIs
+
+
+* The Python API can be installed from
+  [PyPI](https://pypi.python.org/pypi/gpudb)
+* Database [backups](/content/admin/backup_restore) possible while the
+  system is still online
+* The [/wms](/content/api/rest/wms_rest) endpoint has had numerous enhancements:
+
+  * Support for tables with multiple geospatial columns
+  * Additional `RASTER` and `CB_RASTER` mode options
+  * The ability to use a default class for the `CB_RASTER` mode
+
+* The Java API BulkInserter will automatically retry any failed inserts to
+  attempt to handle errors automatically
+* The `PIVOT` operation is enabled via the
+  [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest) endpoint options `pivot` and
+  `pivot_values`. See [Pivot](/content/concepts/pivot) for more information
+* The `UNPIVOT` operation is enabled via the new
+  [/aggregate/unpivot](/content/api/rest/aggregate_unpivot_rest) endpoint
+
+
+## Cloud Deployment
+
+
+* Marketplace instances with proper licensing and monitoring hooks are now
+  available for AWS and Azure
+* An auto-launcher for AWS and Azure has been developed to allow users to
+  "bring your own license" and set cluster size parameters for easy button
+  deployment
+
+
+## Connectors
+
+
+* [Spark Connector](/content/connectors/spark_guide) redesigned to focus on
+  massive parallel ingestion performance
+* [FME Connector](/content/connectors/fme_kinetica_format) now supports all native
+  data types and null values
+
+
+## Core
+
+
+* Column-based compression now available for most data types to
+  reduce the size of data in memory
+* [Dictionary Encoding](/content/concepts/dictionary_encoding) now available to reduce memory usage for
+  low-to-medium cardinality fixed-length string columns
+* Multi-table [joins](/content/concepts/joins) performance has been enhanced
+* A variety of date/time, conversion, aggregation, and math
+  [functions](/content/concepts/expressions) have been added
+* Result tables from the [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest),
+  [/aggregate/unique](/content/api/rest/aggregate_unique_rest),
+  [/aggregate/unpivot](/content/api/rest/aggregate_unpivot_rest),
+  [/create/projection](/content/api/rest/create_projection_rest), and
+  [/create/union](/content/api/rest/create_union_rest)
+  operations are now updatable and can exist as in-memory tables or as persisted
+  tables
+* The size limit for [primary keys](/content/concepts/tables#primary-key) has been increased to 160
+  bytes
+* The ability to specify a new [shard key](/content/concepts/tables#shard-key) in a result table is
+  available
+
+
+## Geospatial
+
+
+* By moving to a new *OpenGL* Framework architecture, geospatial
+  visualizations--most notably polygon and line geometries with high vertex
+  counts, scatter plots, and complex graphs or charts--have been greatly
+  improved
+* 2D Chart rendering has also been accelerated
+* Added the highest priority filters and
+  [geospatial functions](/content/location_intelligence/geo_functions) as
+  defined by ST_Geometry to enhance geospatial processing
+* Geospatial columns are now fully supported
+* Spatial joins via [Expressions](/content/concepts/expressions)
+
+
+## Installation / Management
+
+
+* The *Kinetica* deployment process has been simplified. The
+  [Kinetica Administration Application (GAdmin)](/content/admin/gadmin) interface handles all deployment administration,
+  even across multiple nodes.
+* The new [Host Manager](/content/admin/host_manager) service is an independent supervisor
+  process that manages several processes that are part of *Kinetica*, restarting
+  them automatically should they fail unexpectedly. *Host Manager* also
+  helps investigate problems and monitor cluster-wide performance.
+* A new [Job Manager](/content/admin/job_manager) feature monitors all incoming jobs for
+  *Kinetica* and maintains request ordering across the nodes in your Kinetica
+  cluster. *Job Manager* can assist in cancelling extremely long or stalled
+  jobs.
+* *GAdmin's* user interface has been overhauled to provide a more user-friendly
+  experience, including inline documentation, [APIs](/content/api), and
+  driver links/downloads; access to [SQL Query Tool](/content/admin/gadmin/query#gadmin-sql); and
+  simplification of [cluster administration](/content/admin/gadmin/cluster). Also,
+  *GAdmin* is now compatible with Internet Explorer.
+
+
+## Reveal
+
+
+* Time series reports are now filterable
+* The roles and permissions model for non-admin users has been improved to
+  provide a better out-of-the-box experience
+
+
+## Security
+
+
+* [Reveal](/content/bi/reveal) and
+  [ODBC](/content/connectors/sql_guide) are now integrated with the *Kinetica*
+  authorization system
+* *Kinetica* now supports mapping database roles to LDAP/Active Directory
+  groups
+* Database auditing capability per user and per endpoint has been significantly
+  improved
+* Additional settings have been added to the *ODBC* client and server
+  configuration files to allow for a more comprehensive setup
+
+
+## SQL
+
+
+* All new [geospatial functions](/content/location_intelligence/geo_functions)
+  have been exposed for SQL usage
+* Operations: `INSERT`, `CREATE TEMP TABLE AS`, `CREATE VRAM TABLE AS`
+* Functions: `KI_SHARD_KEY`
+* Data type: `DATETIME`
+* New KI hint that enables specifying a Job ID tag to assist in cancelling the
+  job if necessary: `KI_HINT_JOBID_PREFIX(x)`
+* Additional alterable properties available:
+
+  * `ALTER TABLE ... SET ... COMPRESSION [TO compression_type]`
+  * `ALTER TABLE ... SET [ACCESS MODE|PROTECTED]`
+  * `ALTER TABLE ... [SET SCHEMA | MOVE TO] ...`
+
+* Schema/collection alteration from SQL is now supported; operations available:
+
+  * `ALTER [SCHEMA | COLLECTION] ... ALLOW HOMOGENOUS [TABLES] <TRUE | FALSE>`
+  * `ALTER [SCHEMA | COLLECTION ] ... SET PROTECTED <TRUE | FALSE>`
+  * `ALTER [SCHEMA | COLLECTION] ... RENAME TO ...`
+  * `ALTER [SCHEMA | COLLECTION] ... SET TTL ...`
+
+* Support for equality of lists, e.g.,
+
+  ```
+  SELECT *
+  FROM calcs
+  WHERE (str, num) = ('FURNITURE', 12.3);
+  ```
+
+## User-Defined Functions (UDFs)
+
+
+* Performance enhancements to accelerate output table creation
+* Improved GPU multi-tenancy by including GPU usage metrics data structure
+* *Deepchem* package added to the *User-Defined Function* runtime environment
+* A [UDF simulator](/content/udf/simulating_udfs#udf-simulator) script is packaged with the Python API
+  that allows you to simulate running any type of UDF (*Java*, *C++*, or
+  *Python*) without the UDF having to be created in the database

@@ -1,0 +1,340 @@
+---
+title: Union
+---
+
+<a id="unions"></a>
+
+<a id="union"></a>
+
+
+A *union* is a representation of all rows that appear in any of a set of
+specified data sets ([tables](/content/concepts/tables#tables) or
+[views](/content/concepts/views#views)).
+
+
+<Info>
+A *union* is somewhat analogous to creating a table from a SQL
+`UNION` of two or more tables.  See [CREATE TABLE ... AS](/content/sql/ddl#sql-create-table-as) and
+[UNION](/content/sql/query#sql-union) for details.
+</Info>
+
+A *union* is performed via the [/create/union](/content/api/rest/create_union_rest)
+endpoint, using the `union` or `union_all` mode:
+
+* *Union* -- retains all unique rows from the specified data sets
+* *Union All* -- retains all rows from the specified data sets
+
+
+<Info>
+*Set intersection* and *set subtraction* are also available,
+and their descriptions and limitations can be found on
+[Intersect](/content/concepts/intersect) and [Except](/content/concepts/except), respectively.
+</Info>
+
+Performing a *union* creates a separate
+[memory-only table](/content/concepts/tables_memory_only) containing the results.
+*Union* results can be persisted (like [tables](/content/concepts/tables)) using
+the `persist` option.
+
+A *union* result table name must adhere to the standard
+[naming criteria](/content/concepts/tables#table-naming-criteria).  Each *union* result
+exists within a [schema](/content/concepts/schemas) and follows the standard
+[name resolution rules](/content/concepts/tables#table-name-resolution) for *tables*.
+
+Note that if the source data sets are [replicated](/content/concepts/tables#replicated),
+the results of the *union* will also be *replicated*. If the included data
+sets are [sharded](/content/concepts/tables#sharded), the resulting *memory-only table*
+from the *union* will also be *sharded*; this also means that if a
+non-sharded data set is included, the resulting *memory-only table* will also be
+non-sharded.
+
+Limitations on using *union* are discussed in further detail in the
+[Limitations and Cautions](/content/concepts/unions#union-limitations) section.
+
+
+<a id="union-compatible-data-types"></a>
+
+
+## Union-Compatible Data Types
+
+
+You can *union* any number or combination of data sets as long as the
+columns across the data sets being used have similar data [types](/content/concepts/types#types).
+Kinetica will cast compatible data *types* as follows:
+
+### int8
+
+| Compatible With | Result Type |
+| --- | --- |
+| int8 | int8 |
+
+### int16
+
+| Compatible With | Result Type |
+| --- | --- |
+| int16 | int16 |
+
+### int
+
+| Compatible With | Result Type |
+| --- | --- |
+| int | int |
+| long | long |
+| float | float |
+| double | double |
+| decimal | decimal |
+
+### long
+
+| Compatible With | Result Type |
+| --- | --- |
+| int | long |
+| long | long |
+| float | float |
+| double | double |
+| decimal | decimal |
+
+### float
+
+| Compatible With | Result Type |
+| --- | --- |
+| int | float |
+| long | float |
+| float | float |
+| double | double |
+| decimal | float |
+
+### double
+
+| Compatible With | Result Type |
+| --- | --- |
+| int | double |
+| long | double |
+| float | double |
+| double | double |
+| decimal | double |
+
+### decimal
+
+| Compatible With | Result Type |
+| --- | --- |
+| int | decimal |
+| long | decimal |
+| float | float |
+| double | double |
+| decimal | decimal |
+
+### date
+
+| Compatible With | Result Type |
+| --- | --- |
+| date | date |
+| datetime | datetime |
+| timestamp | timestamp |
+
+### time
+
+| Compatible With | Result Type |
+| --- | --- |
+| time | time |
+
+### datetime
+
+| Compatible With | Result Type |
+| --- | --- |
+| date | datetime |
+| datetime | datetime |
+
+### timestamp
+
+| Compatible With | Result Type |
+| --- | --- |
+| date | timestamp |
+| timestamp | timestamp |
+
+### charN
+
+| Compatible With | Result Type |
+| --- | --- |
+| charN | charN *(whichever N is larger)* |
+
+### wkt
+
+| Compatible With | Result Type |
+| --- | --- |
+| wkt | wkt |
+
+### ipv4
+
+| Compatible With | Result Type |
+| --- | --- |
+| ipv4 | ipv4 |
+
+
+<a id="union-perform"></a>
+
+
+## Performing a Union
+
+
+To perform a *union* of data sets, the [/create/union](/content/api/rest/create_union_rest)
+endpoint requires five parameters:
+
+1. the name of the [memory-only table](/content/concepts/tables_memory_only) to be created
+2. the list of member data sets to be used in the *union* operation;
+   the result will contain all of the elements from the first data set and all
+   of the elements from the second one
+3. the list of columns from each of the given data sets to be used in the
+   *union* operation
+4. the list of column names to be output to the resulting *memory-only table*
+5. the *union* mode specified in the `options` input parameter
+
+   * `union_all` (the default option)
+   * `union` or `union_distinct`
+
+
+<Info>
+If you do not specify a *union* mode, `union_all` will be used.
+</Info>
+
+
+### Examples
+
+
+A *union all* between the `lunch_menu` table and the
+`dinner_menu` table would look like:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/union.kisql (lines 110-123) */}
+```sql SQL
+CREATE OR REPLACE TABLE example.lunch_or_dinner_menu_all AS
+SELECT
+    food_name AS lunch_or_dinner_food_name,
+    category,
+    price
+FROM
+    example.lunch_menu
+UNION ALL
+SELECT
+    food_name,
+    category,
+    price
+FROM
+    example.dinner_menu
+```
+
+{/* Source: /examples/python/union.py (lines 81-89) */}
+```python Python
+kinetica.create_union(
+    table_name = "example.lunch_or_dinner_menu_all",
+    table_names = ["example.lunch_menu", "example.dinner_menu"],
+    input_column_names = [
+        ["food_name", "category", "price"],
+        ["food_name", "category", "price"]
+    ],
+    output_column_names = ["lunch_or_dinner_food_name", "category", "price"]
+)
+```
+
+</CodeGroup>
+
+The results from the above call would contain all menu items (including
+duplicates) in the extracted columns from `lunch_menu` and `dinner_menu`.
+
+A *union* (or *union distinct*) using the same tables can be performed via:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/union.kisql (lines 128-141) */}
+```sql SQL
+CREATE OR REPLACE TABLE example.lunch_or_dinner_menu_unique AS
+SELECT
+    food_name AS lunch_or_dinner_food_name,
+    category,
+    price
+FROM
+    example.lunch_menu
+UNION
+SELECT
+    food_name,
+    category,
+    price
+FROM
+    example.dinner_menu
+```
+
+{/* Source: /examples/python/union.py (lines 102-111) */}
+```python Python
+kinetica.create_union(
+    table_name = "example.lunch_or_dinner_menu_unique",
+    table_names = ["example.lunch_menu", "example.dinner_menu"],
+    input_column_names = [
+        ["food_name", "category", "price"],
+        ["food_name", "category", "price"]
+    ],
+    output_column_names = ["lunch_or_dinner_food_name", "category", "price"],
+    options = {"mode": "union"}
+)
+```
+
+</CodeGroup>
+
+The result of the *union* call above would contain all menu items
+(excluding duplicates) in the extracted columns from `lunch_menu` and
+`dinner_menu`.
+
+
+## Retrieving Union Data
+
+
+To retrieve records from the *union* results:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/union.kisql (lines 168-170) */}
+```sql SQL
+SELECT lunch_or_dinner_food_name, category, price
+FROM example.lunch_or_dinner_menu_unique
+ORDER BY lunch_or_dinner_food_name
+```
+
+{/* Source: /examples/python/union.py (lines 148-152) */}
+```python Python
+gpudb.GPUdbTable(name = "example.lunch_or_dinner_menu_unique", db = kinetica).get_records_by_column(
+    ["lunch_or_dinner_food_name", "category", "price"],
+    options = {"order_by": "lunch_or_dinner_food_name"},
+    print_data = True
+)
+```
+
+</CodeGroup>
+
+
+<a id="union-limitations"></a>
+
+
+## Limitations and Cautions
+
+
+* Performing a *union* between two data sets results in an entirely new data
+  set, so be mindful of the memory usage implications.
+* All data sets have to be [replicated](/content/concepts/tables#replicated) or not *replicated*,
+  e.g., you cannot *union* *replicated* and *non-replicated* data sets.
+* If attempting to perform a *distinct union* on [sharded](/content/concepts/tables#sharded) data
+  sets, all data sets have to be *sharded* similarly (if all data is not on the
+  same processing node, the *distinct union* can't be calculated properly).
+* The result of a *union* operation does not get updated if source data set(s)
+  are updated.
+* The `input_column_name` parameter vector size needs to match the number of
+  data sets listed, i.e. if you want to *union* a data set to itself, the
+  data set will need to be listed twice in the `table_names` parameter.
+* The `input_column_name` parameter vectors need to be listed in the same
+  order as their source data sets, e.g., if three data sets are listed in the
+  `table_names` parameter, the first data set's columns should be listed first
+  in the `input_column_name` parameter, etc.
+* The result of a *union* is transient, by default, and will expire after the
+  default [TTL](/content/concepts/ttl) setting.
+* The result of a *union* is not persisted, by default, and will not survive a
+  database restart; specifying a `persist` option of `true` will make the
+  *table* permanent and not expire.

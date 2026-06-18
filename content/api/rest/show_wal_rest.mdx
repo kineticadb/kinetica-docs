@@ -1,0 +1,38 @@
+---
+title: /show/wal
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="show-wal-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/show/wal
+```
+Requests table write-ahead log (WAL) properties. Returns information about the
+requested table WAL entries.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_names | array of strings | List of tables to query. An asterisk returns all tables. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> show_settings: If *true* include a map of the WAL settings for the requested tables. The default value is `true`. The supported values are: * true * false |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'show_wal_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /show/wal endpoint: <br/> <br/> table_names: [array of strings] List of returned tables. <br/> <br/> sizes: [array of arrays of longs] List of current WAL usage. <br/> <br/> capacities: [array of longs] List of WAL capacities. <br/> <br/> uncommitted: [array of arrays of longs] List of number of uncommitted entries. <br/> <br/> settings: [array of maps of string to strings] List of table WAL settings. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

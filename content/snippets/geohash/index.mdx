@@ -1,0 +1,60 @@
+---
+title: Geohashing
+description: Copy-paste examples of geohashing data with SQL
+slug: geohash
+# time_estimate: 5 MIN
+---
+
+## Enrich a Point-Based Table with Geohashes
+
+
+Create a geohash for pickup locations in the NYC taxi data set.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/geohash.kisql (lines 18-25) */}
+```sql Lat/Lon-Based Table
+CREATE OR REPLACE TABLE example_geospatial.nyctaxi_geohash AS
+(
+	SELECT
+		pickup_latitude,
+		pickup_longitude,
+		STXY_GEOHASH(pickup_longitude, pickup_latitude, 6) AS geohash
+	FROM example_geospatial.nyctaxi_xy
+)
+```
+
+{/* Source: /examples/sql/geohash.kisql (lines 60-66) */}
+```sql WKT-Based Table
+CREATE OR REPLACE TABLE example_geospatial.nyctaxi_geohash AS
+(
+	SELECT
+		pickup_location,
+		ST_GEOHASH(pickup_location, 6) AS geohash
+	FROM example_geospatial.nyctaxi_wkt
+)
+```
+
+</CodeGroup>
+
+
+## Create an Aggregated View with WKT Geometries
+
+
+Use the table created above to generate a geohash grid view with the counts of
+pickups within each cell.
+
+{/* Source: /examples/sql/geohash.kisql (lines 32-37) */}
+```sql Aggregated Pick-Up Counts per Geohash Cell
+SELECT
+	geohash,
+	ST_GEOMFROMGEOHASH(geohash) AS geohash_cell,
+	COUNT(*) AS total_pickups
+FROM example_geospatial.nyctaxi_geohash
+GROUP BY geohash
+```
+
+The geohash grid output as a class break render:
+
+
+![geohash.png](/content/snippets/geohash/geohash.png)

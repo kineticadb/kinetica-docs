@@ -1,0 +1,446 @@
+---
+title: Creating Data Sources
+description: Copy-paste examples of how to create data sources with SQL
+# time_estimate: 5 MIN
+---
+
+Several authentication schemes across multiple providers are supported. For a
+detailed overview of all of the provider-specific options, see the
+[SQL documentation](/content/sql/ddl#sql-create-data-source).
+
+
+<Info>
+Creating an authenticated *data source* may require creating a
+corresponding  [credential](/content/sql/ddl#sql-create-credential) object to
+store the authentication information and then referencing that object when
+creating the *data source*. See [Creating Credentials](/content/snippets/create-credentials)
+for examples.
+</Info>
+
+<a id="snippet-sql-create-data-source-azure"></a>
+
+
+## Azure BLOB
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_source/data_source_format_azure.kisql (lines 100-103 105-107) */}
+```sql Credential
+CREATE DATA SOURCE azure_ds
+LOCATION = 'AZURE'
+WITH OPTIONS
+(
+    CREDENTIAL = 'azure_cred',
+    CONTAINER NAME = 'samplecontainer'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_azure.kisql (lines 18-19 15 21-22 16 24) */}
+```sql Public (No Auth)
+CREATE DATA SOURCE azure_ds
+LOCATION = 'AZURE'
+USER = 'sampleacc'
+WITH OPTIONS
+(
+    CONTAINER NAME = 'samplecontainer'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_azure.kisql (lines 32-36 38-42) */}
+```sql Managed Credentials
+CREATE DATA SOURCE azure_ds
+LOCATION = 'AZURE'
+USER = 'sampleacc'
+WITH OPTIONS
+(
+    USE_MANAGED_CREDENTIALS = true,
+    STORAGE ACCOUNT NAME = 'sampelacc',
+    CONTAINER NAME = 'samplecontainer',
+    TENANT ID = 'x0xxx10-00x0-0x01-0xxx-x0x0x01xx100'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_azure.kisql (lines 50-55 57-58) */}
+```sql Password
+CREATE DATA SOURCE azure_ds
+LOCATION = 'AZURE'
+USER = 'sampleacc'
+PASSWORD = 'foobaz123'
+WITH OPTIONS
+(
+    CONTAINER NAME = 'samplecontainer'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_azure.kisql (lines 66-70 72-74) */}
+```sql SAS Token
+CREATE DATA SOURCE azure_ds
+LOCATION = 'AZURE'
+USER = 'sampleacc'
+WITH OPTIONS
+(
+    CONTAINER NAME = 'samplecontainer',
+    SAS TOKEN = 'sv=2015-07-08&sr=b&sig=39Up0JzHkxhUlhFEjEH9673DJxe7w6clRCg0V6lCgSo%3D&se=2016-10-18T21%A51%A337Z&sp=rcw'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_azure.kisql (lines 82-87 89-92) */}
+```sql Active Directory
+CREATE DATA SOURCE azure_ds
+LOCATION = 'AZURE'
+USER = 'jdoe'
+PASSWORD = 'foobaz123'
+WITH OPTIONS
+(
+    STORAGE ACCOUNT NAME = 'sampelacc',
+    CONTAINER NAME = 'samplecontainer',
+    TENANT ID = 'x0xxx10-00x0-0x01-0xxx-x0x0x01xx100'
+)
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-data-source-gcs"></a>
+
+
+## Google Cloud Storage
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_source/data_source_format_gcs.kisql (lines 102-105 107         14 109) */}
+```sql Credential
+CREATE DATA SOURCE gcs_ds
+LOCATION = 'GCS'
+WITH OPTIONS
+(
+	CREDENTIAL = 'gcs_cred',
+	GCS_BUCKET_NAME = 'gcs-public'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_gcs.kisql (lines 117-120 122         14 124) */}
+```sql Managed Credentials
+CREATE DATA SOURCE gcs_ds
+LOCATION = 'GCS'
+WITH OPTIONS
+(
+	USE_MANAGED_CREDENTIALS = true,
+	GCS_BUCKET_NAME = 'gcs-public'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_gcs.kisql (lines 48-51             14  53) */}
+```sql Public (No Auth)
+CREATE DATA SOURCE gcs_ds
+LOCATION = 'GCS'
+WITH OPTIONS
+(
+	GCS_BUCKET_NAME = 'gcs-public'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_gcs.kisql (lines 61-62 16-17 65-66 14  68) */}
+```sql User ID & Key
+CREATE DATA SOURCE gcs_ds
+LOCATION = 'GCS'
+USER = 'auser@auser.iam.gserviceaccount.com'
+PASSWORD = '-----BEGIN PRIVATE KEY-----\nABCDEFG=\n-----END PRIVATE KEY-----\n'
+WITH OPTIONS
+(
+	GCS_BUCKET_NAME = 'gcs-public'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_gcs.kisql (lines 76-79 19-31       14  94) */}
+```sql JSON Key
+CREATE DATA SOURCE gcs_ds
+LOCATION = 'GCS'
+WITH OPTIONS
+(
+	GCS_SERVICE_ACCOUNT_KEYS = '
+	{
+		"type": "service_account",
+		"project_id": "auser",
+		"private_key_id": "abcdef1234567890",
+		"private_key": "-----BEGIN PRIVATE KEY-----\nABCDEFG=\n-----END PRIVATE KEY-----\n",
+		"client_email": "auser@auser.iam.gserviceaccount.com",
+		"client_id": "1234567890",
+		"auth_uri": "https://accounts.google.com/o/oauth2/auth",
+		"token_uri": "https://oauth2.googleapis.com/token",
+		"auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+		"client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/auser%40auser.iam.gserviceaccount.com"
+	}',
+	GCS_BUCKET_NAME = 'gcs-public'
+)
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-data-source-hdfs"></a>
+
+
+## HDFS
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_source/data_source_format_hdfs.kisql (lines 56-59 61-62) */}
+```sql Credential
+CREATE DATA SOURCE hdfs_ds
+LOCATION = 'HDFS://example.com:8020'
+WITH OPTIONS
+(
+    CREDENTIAL = 'hdfs_cred'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_hdfs.kisql (lines 14-17) */}
+```sql Password
+CREATE DATA SOURCE hdfs_ds
+LOCATION = 'HDFS://example.com:8020'
+USER = 'jdoe'
+PASSWORD = 'foobaz123'
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_hdfs.kisql (lines 41-45 47-48) */}
+```sql Kerberos Keytab
+CREATE DATA SOURCE hdfs_ds
+LOCATION = 'HDFS://example.com:8020'
+USER = 'jdoe'
+WITH OPTIONS
+(
+    KERBEROS KEYTAB = '/path/to/jdoe.keytab'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_hdfs.kisql (lines 26-30 32-33) */}
+```sql Kerberos Token
+CREATE DATA SOURCE hdfs_ds
+LOCATION = 'HDFS://example.com:8020'
+USER = 'jdoe'
+WITH OPTIONS
+(
+    USE KERBEROS = true
+)
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-data-source-jdbc"></a>
+
+
+## JDBC
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_source/data_source_format_jdbc.kisql (lines 44-51) */}
+```sql Credential
+CREATE DATA SOURCE jdbc_ds
+LOCATION = 'jdbc:postgresql://localhost:5432/ki_home'
+WITH OPTIONS
+(
+	CREDENTIAL = 'jdbc_cred',
+	JDBC_DRIVER_CLASS_NAME = 'org.postgresql.Driver',
+	JDBC_DRIVER_JAR_PATH = 'kifs://drivers/postgresql.jar'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_jdbc.kisql (lines 28-36) */}
+```sql Password
+CREATE DATA SOURCE jdbc_ds
+LOCATION = 'jdbc:postgresql://localhost:5432/ki_home'
+USER = 'auser'
+PASSWORD = 'Passw0rd!'
+WITH OPTIONS
+(
+	JDBC_DRIVER_CLASS_NAME = 'org.postgresql.Driver',
+	JDBC_DRIVER_JAR_PATH = 'kifs://drivers/postgresql.jar'
+)
+```
+
+</CodeGroup>
+
+
+<a id="snippet-sql-create-data-source-kafka"></a>
+
+
+## Kafka (Apache)
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_source/data_source_format_kafka.kisql (lines 28-31 33-35) */}
+```sql Credential
+CREATE DATA SOURCE kafka_ds
+LOCATION = 'KAFKA://example.com:9092'
+WITH OPTIONS
+(
+    KAFKA_TOPIC_NAME = 'sample',
+    CREDENTIAL = 'kafka_cred'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_kafka.kisql (lines 43-46 48-52) */}
+```sql Credential w/ Schema Registry
+CREATE DATA SOURCE kafka_ds
+LOCATION = 'KAFKA://example.com:9092'
+WITH OPTIONS
+(
+    KAFKA_TOPIC_NAME = 'sample',
+    CREDENTIAL = 'kafka_cred',
+    SCHEMA_REGISTRY_LOCATION = 'https://example.com:8082',
+    SCHEMA_REGISTRY_CREDENTIAL = 'kafka_sr_cred'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_kafka.kisql (lines 14-17 19-20) */}
+```sql Public (No Auth)
+CREATE DATA SOURCE kafka_ds
+LOCATION = 'KAFKA://example.com:9092'
+WITH OPTIONS
+(
+    KAFKA_TOPIC_NAME = 'sample'
+)
+```
+
+</CodeGroup>
+
+
+<Info>
+Creating an authenticated Kafka *data source* requires creating a
+corresponding [credential](/content/sql/ddl#sql-create-credential) object to
+store the Kafka credentials and then referencing that object when creating
+the *data source*.  See [Kafka (Apache)](/content/snippets/create-credentials#snippet-sql-create-credential-kafka)
+for examples.
+</Info>
+
+<a id="snippet-sql-create-data-source-confluent"></a>
+
+
+## Kafka (Confluent)
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_source/data_source_format_confluent.kisql (lines 28-31 33-35) */}
+```sql Credential
+CREATE DATA SOURCE confluent_ds
+LOCATION = 'CONFLUENT://example.com:9092'
+WITH OPTIONS
+(
+    KAFKA_TOPIC_NAME = 'sample',
+    CREDENTIAL = 'confluent_cred'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_confluent.kisql (lines 43-46 48-52) */}
+```sql Credential w/ Schema Registry
+CREATE DATA SOURCE confluent_ds
+LOCATION = 'CONFLUENT://example.com:9092'
+WITH OPTIONS
+(
+    KAFKA_TOPIC_NAME = 'sample',
+    CREDENTIAL = 'confluent_cred',
+    SCHEMA_REGISTRY_LOCATION = 'https://example.com:8082',
+    SCHEMA_REGISTRY_CREDENTIAL = 'confluent_sr_cred'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_confluent.kisql (lines 14-17 19-20) */}
+```sql Public (No Auth)
+CREATE DATA SOURCE confluent_ds
+LOCATION = 'CONFLUENT://example.com:9092'
+WITH OPTIONS
+(
+    KAFKA_TOPIC_NAME = 'sample'
+)
+```
+
+</CodeGroup>
+
+
+<Info>
+Creating an authenticated Confluent *data source* requires creating a
+corresponding [credential](/content/sql/ddl#sql-create-credential) object to
+store the Confluent credentials and then referencing that object when
+creating the *data source*.  See
+[Kafka (Confluent)](/content/snippets/create-credentials#snippet-sql-create-credential-confluent) for examples.
+</Info>
+
+<a id="snippet-sql-create-data-source-s3"></a>
+
+
+## S3
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/data_source/data_source_format_s3.kisql (lines 83-86 88-91) */}
+```sql Credential
+CREATE DATA SOURCE s3_ds
+LOCATION = 'S3'
+WITH OPTIONS
+(
+    CREDENTIAL = 's3_cred',
+    BUCKET NAME = 'samplebucket',
+    REGION = 'us-east-2'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_s3.kisql (lines 14-20) */}
+```sql Public (No Auth)
+CREATE OR REPLACE DATA SOURCE s3_ds
+LOCATION = 'S3'
+WITH OPTIONS
+(
+    BUCKET NAME = 'quickstartpublic',
+    REGION = 'us-west-1'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_s3.kisql (lines 28-31 33-36) */}
+```sql Managed Credentials
+CREATE OR REPLACE DATA SOURCE s3_ds
+LOCATION = 'S3'
+WITH OPTIONS
+(
+    USE_MANAGED_CREDENTIALS = true,
+    BUCKET NAME = 'samplebucket',
+    REGION = 'us-east-1'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_s3.kisql (lines 44-49 51-53) */}
+```sql Access Key
+CREATE DATA SOURCE s3_ds
+LOCATION = 'S3'
+USER = 'AKIAIOSFODNN7EXAMPLE'
+PASSWORD = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+WITH OPTIONS
+(
+    BUCKET NAME = 'samplebucket',
+    REGION = 'us-east-2'
+)
+```
+
+{/* Source: /examples/sql/data_source/data_source_format_s3.kisql (lines 61-66 68-71) */}
+```sql IAM Role
+CREATE DATA SOURCE s3_ds
+LOCATION = 'S3'
+USER = 'AKIAIOSFODNN7EXAMPLE'
+PASSWORD = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'
+WITH OPTIONS
+(
+    BUCKET NAME = 'samplebucket',
+    REGION = 'us-east-2',
+    S3_AWS_ROLE_ARN = 'arn:aws:iam::123456789012:user/JohnDoe'
+)
+```
+
+</CodeGroup>

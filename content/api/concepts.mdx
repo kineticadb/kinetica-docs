@@ -1,0 +1,405 @@
+---
+title: API Concepts
+sidebarTitle: Concepts
+---
+
+<a id="api-label"></a>
+
+
+## Native
+
+
+* [C++ API Documentation](/content/api/c++) | [C++ GitHub Repo](https://github.com/kineticadb/kinetica-api-cpp)
+* [C# API Documentation](/content/api/csharp) | [C# GitHub Repo](https://github.com/kineticadb/kinetica-api-cs)
+* [Java API Documentation](/content/api/java) | [Java GitHub Repo](https://github.com/kineticadb/kinetica-api-java)
+* [JavaScript API Documentation](/content/api/javascript) | [JavaScript GitHub Repo](https://github.com/kineticadb/kinetica-api-javascript)
+* [Node.js API Documentation](/content/api/nodejs-mod) | [Node.js GitHub Repo](https://github.com/kineticadb/kinetica-api-javascript)
+* [Python API Documentation](/content/api/python) | [Python GitHub Repo](https://github.com/kineticadb/kinetica-api-python)
+* [REST API Documentation](/content/api/rest)
+
+
+<a id="api-conn"></a>
+
+
+## Connecting via API
+
+
+The following shows the means of connecting to *Kinetica* via the various APIs
+available.
+
+
+### HTTP Connections
+
+
+<CodeGroup>
+
+{/* Source: connecting/cpp.txt (lines 1-3 4-5 7         8) */}
+```c++ C++
+#include "gpudb/GPUdb.hpp"
+
+gpudb::GPUdb::Options options = gpudb::GPUdb::Options();
+options.setUsername("<username>");
+options.setPassword("<password>");
+
+gpudb::GPUdb kinetica("http://<db.host>:9191", options);
+```
+
+{/* Source: connecting/csharp.txt (lines 1-3 4-5 7         8) */}
+```c# C#
+using kinetica;
+
+Kinetica.Options options = new Kinetica.Options();
+options.Username = "<username>";
+options.Password = "<password>";
+
+Kinetica kinetica = new Kinetica("http://<db.host>:9191", options );
+```
+
+{/* Source: connecting/java.txt (lines 1-3 5-6 8         14) */}
+```java Java
+import com.gpudb.GPUdb;
+
+GPUdb.Options options = new GPUdb.Options()
+    .setUsername("<username>")
+    .setPassword("<password>");
+
+GPUdb kinetica = new GPUdb("http://<db.host>:9191", options);
+```
+
+{/* Source: connecting/javascript.txt (lines 1-3 4 6 7-8 10-12) */}
+```html JavaScript
+<script type="text/javascript" src="GPUdb.js"></script>
+<script type="text/javascript">
+var kinetica = new GPUdb(
+    "http://<db.host>:9191",
+    {
+        username: "<username>",
+        password: "<password>"
+    }
+);
+</script>
+```
+
+{/* Source: connecting/nodejs.txt (lines 1-3 4 6 7-8 10-11) */}
+```javascript Node.js
+// To install Kinetica, first run this from the CLI: npm i @kinetica/gpudb
+var GPUdb = require("@kinetica/gpudb");
+var kinetica = new GPUdb(
+    ["http://<db.host>:9191"],
+    {
+        username: "<username>",
+        password: "<password>"
+    }
+);
+```
+
+{/* Source: connecting/python.txt (lines 1-3 4-5   8-9 10 12-13) */}
+```python Python
+import gpudb
+
+options = gpudb.GPUdb.Options()
+options.username = "<username>"
+options.password = "<password>"
+
+kinetica = gpudb.GPUdb(
+    host=["http://<db.host>:9191"],
+    options = options
+)
+```
+
+{/* Source: connecting/rest.txt (lines 1-3 4 6 8 10-11) */}
+```bash REST
+# Example call invoking the /show/system/properties endpoint
+#   and requesting the database's version number
+curl --location --request POST \
+     'http://<db.host>:9191/show/system/properties' \
+     --user <username>:<password> \
+     --data '{"options": {"properties": "version.gpudb_core_version"}}' \
+     --header 'cache-control: no-cache' \
+     --header 'content-type: application/json'
+```
+
+</CodeGroup>
+
+
+<a id="https-with-certificate-validation"></a>
+
+
+### HTTPS Connections with Certificate Validation
+
+
+<CodeGroup>
+
+{/* Source: connecting/cpp.txt (lines 1-3 4-5 7         9) */}
+```c++ C++
+#include "gpudb/GPUdb.hpp"
+
+gpudb::GPUdb::Options options = gpudb::GPUdb::Options();
+options.setUsername("<username>");
+options.setPassword("<password>");
+
+gpudb::GPUdb kinetica("https://<db.host>:8082/gpudb-0", options);
+```
+
+{/* Source: connecting/csharp.txt (lines 1-3 4-5 7         9) */}
+```c# C#
+using kinetica;
+
+Kinetica.Options options = new Kinetica.Options();
+options.Username = "<username>";
+options.Password = "<password>";
+
+Kinetica kinetica = new Kinetica("https://<db.host>:8082/gpudb-0", options );
+```
+
+{/* Source: connecting/java.txt (lines 1-3 5-6 8 9-12 13 15) */}
+```java Java
+import com.gpudb.GPUdb;
+
+GPUdb.Options options = new GPUdb.Options()
+    .setUsername("<username>")
+    .setPassword("<password>");
+
+// By default, the Java system CA trust store will be used;
+//   to specify a different trust store, use these options:
+options.setTrustStoreFilePath("</path/to/truststore.jks>");
+options.setTrustStorePassword("<trustStorePassword>");
+
+GPUdb kinetica = new GPUdb("https://<db.host>:8082/gpudb-0", options);
+```
+
+{/* Source: connecting/javascript.txt (lines 1-3 5 6 7-8 10-12) */}
+```html JavaScript
+<script type="text/javascript" src="GPUdb.js"></script>
+<script type="text/javascript">
+var kinetica = new GPUdb(
+    "https://<db.host>:8082/gpudb-0",
+    {
+        username: "<username>",
+        password: "<password>"
+    }
+);
+</script>
+```
+
+{/* Source: connecting/nodejs.txt (lines 1-3 5 6 7-8 10-11) */}
+```javascript Node.js
+// To install Kinetica, first run this from the CLI: npm i @kinetica/gpudb
+var GPUdb = require("@kinetica/gpudb");
+var kinetica = new GPUdb(
+    ["https://<db.host>:8082/gpudb-0"],
+    {
+        username: "<username>",
+        password: "<password>"
+    }
+);
+```
+
+{/* Source: connecting/python.txt (lines 1-3 4-5   8-9 11 12-13) */}
+```python Python
+import gpudb
+
+options = gpudb.GPUdb.Options()
+options.username = "<username>"
+options.password = "<password>"
+
+kinetica = gpudb.GPUdb(
+    host=["https://<db.host>:8082/gpudb-0"],
+    options = options
+)
+```
+
+{/* Source: connecting/rest.txt (lines 1-3 5 6 8 10-11) */}
+```bash REST
+# Example call invoking the /show/system/properties endpoint
+#   and requesting the database's version number
+curl --location --request POST \
+     'https://<db.host>:8082/gpudb-0/show/system/properties' \
+     --user <username>:<password> \
+     --data '{"options": {"properties": "version.gpudb_core_version"}}' \
+     --header 'cache-control: no-cache' \
+     --header 'content-type: application/json'
+```
+
+</CodeGroup>
+
+
+<a id="https-without-certificate-validation"></a>
+
+
+### HTTPS Connections without Certificate Validation
+
+
+<Info>
+Using these setups, no certificate validation of any kind will be
+performed; not recommended for production deployments.
+
+To bypass certificate checks in JDBC, see
+[Secure Connections](/content/connectors/sql_guide#jdbc-connecting-secure).  To bypass certificate checks
+in *KiSQL*, see [Parameterized Options](/content/tools/kisql#kisql-conn-opt).
+</Info>
+
+<CodeGroup>
+
+{/* Source: connecting/java.txt (lines 1-3 4 5-6 8       15) */}
+```java Java
+import com.gpudb.GPUdb;
+
+GPUdb.Options options = new GPUdb.Options()
+    .setBypassSslCertCheck(true)
+    .setUsername("<username>")
+    .setPassword("<password>");
+
+GPUdb kinetica = new GPUdb("https://<db.host>:8082/gpudb-0", options);
+```
+
+{/* Source: connecting/python.txt (lines 1-3 4-5 7 8-9 11 12-13) */}
+```python Python
+import gpudb
+
+options = gpudb.GPUdb.Options()
+options.username = "<username>"
+options.password = "<password>"
+options.skip_ssl_cert_verification = True
+
+kinetica = gpudb.GPUdb(
+    host=["https://<db.host>:8082/gpudb-0"],
+    options = options
+)
+```
+
+{/* Source: connecting/rest.txt (lines 1-3 5 6 8-11) */}
+```bash REST
+# Example call invoking the /show/system/properties endpoint
+#   and requesting the database's version number
+curl --location --request POST \
+     'https://<db.host>:8082/gpudb-0/show/system/properties' \
+     --user <username>:<password> \
+     --data '{"options": {"properties": "version.gpudb_core_version"}}' \
+     --insecure \
+     --header 'cache-control: no-cache' \
+     --header 'content-type: application/json'
+```
+
+</CodeGroup>
+
+<a id="https-with-oauth"></a>
+
+
+### HTTPS Connections with OIDC/OAuth Authentication
+
+
+<CodeGroup>
+
+{/* Source: connecting/cpp.txt (lines 1-3 6 7           9) */}
+```c++ C++
+#include "gpudb/GPUdb.hpp"
+
+gpudb::GPUdb::Options options = gpudb::GPUdb::Options();
+options.setOauthToken("<oauthToken>");
+
+gpudb::GPUdb kinetica("https://<db.host>:8082/gpudb-0", options);
+```
+
+{/* Source: connecting/csharp.txt (lines 1-3 6 7           9) */}
+```c# C#
+using kinetica;
+
+Kinetica.Options options = new Kinetica.Options();
+options.OauthToken = "<oauthToken>";
+
+Kinetica kinetica = new Kinetica("https://<db.host>:8082/gpudb-0", options );
+```
+
+{/* Source: connecting/java.txt (lines 1-3 7 8           15) */}
+```java Java
+import com.gpudb.GPUdb;
+
+GPUdb.Options options = new GPUdb.Options()
+    .setOauthToken("<oauthToken>");
+
+GPUdb kinetica = new GPUdb("https://<db.host>:8082/gpudb-0", options);
+```
+
+{/* Source: connecting/javascript.txt (lines 1-3 5 6 9   10-12) */}
+```html JavaScript
+<script type="text/javascript" src="GPUdb.js"></script>
+<script type="text/javascript">
+var kinetica = new GPUdb(
+    "https://<db.host>:8082/gpudb-0",
+    {
+        oauth_token: "<oauthToken>"
+    }
+);
+</script>
+```
+
+{/* Source: connecting/nodejs.txt (lines 1-3 5 6 9   10-11) */}
+```javascript Node.js
+// To install Kinetica, first run this from the CLI: npm i @kinetica/gpudb
+var GPUdb = require("@kinetica/gpudb");
+var kinetica = new GPUdb(
+    ["https://<db.host>:8082/gpudb-0"],
+    {
+        oauth_token: "<oauthToken>"
+    }
+);
+```
+
+{/* Source: connecting/python.txt (lines 1-3 6     8-9 11 12-13) */}
+```python Python
+import gpudb
+
+options = gpudb.GPUdb.Options()
+options.oauth_token = "<oauthToken>"
+
+kinetica = gpudb.GPUdb(
+    host=["https://<db.host>:8082/gpudb-0"],
+    options = options
+)
+```
+
+{/* Source: connecting/rest.txt (lines 1-3 5 7 8 10-11) */}
+```bash REST
+# Example call invoking the /show/system/properties endpoint
+#   and requesting the database's version number
+curl --location --request POST \
+     'https://<db.host>:8082/gpudb-0/show/system/properties' \
+     --oauth2-bearer "<token>" \
+     --data '{"options": {"properties": "version.gpudb_core_version"}}' \
+     --header 'cache-control: no-cache' \
+     --header 'content-type: application/json'
+```
+
+</CodeGroup>
+
+<br />
+
+<a id="api-compatibility"></a>
+
+
+## Compatibility Matrix
+
+
+The following chart shows the version compatibilities between the various APIs
+and a target database server.  While only the major & minor version numbers
+*(6.2, 7.0, 7.1, 7.2)* must match to achieve interoperability, the complete
+feature set for a given database version can only be utilized via the
+corresponding API version, depicted below.
+
+| Database | C++ | C# | Java | Javascript | Node.js | Python |
+| --- | --- | --- | --- | --- | --- | --- |
+| 6.2 | 6.2.* | 6.2.* | 6.2.* | 6.2.* | 6.2.* | 6.2.* |
+| 7.0.X | 7.0.X | 7.0.X | 7.0.X | 7.0.X | 7.0.X | 7.0.X |
+| 7.1.X | 7.1.X | 7.1.X | 7.1.X | 7.1.X | 7.1.X | 7.1.X |
+| 7.2.X | 7.2.X | 7.2.X | 7.2.X | 7.2.X | 7.2.X | 7.2.X |
+
+<br />
+
+
+## Dynamic Schemas
+
+
+When working with APIs, it is helpful to have an understanding of how data is
+returned by the database.  For a detailed breakdown in Java & Python, see
+[Dynamic Schemas](/content/api/dynamic_schemas).

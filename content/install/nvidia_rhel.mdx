@@ -1,0 +1,411 @@
+---
+title: Install Nvidia Drivers on RHEL
+---
+
+This section will provide instructions on installing *Nvidia* drivers in an RHEL
+environment, if the target servers have *Nvidia* GPUs.
+
+
+## Disable Secure Boot and SELinux
+
+
+<Info>
+Disabling Secure Boot and *SELinux* may not be necessary for every
+setup.
+</Info>
+
+The *Nvidia* drivers are installed by compiling and installing kernel modules.
+If they are not signed by a trusted source, then you will not be able to use
+secure boot.  Consequently, you will likely want to disable secure boot in the
+BIOS of your server.  To do so, you will need to (re)boot your server and enter
+the BIOS menus.
+
+Similarly, *SELinux* tends to interfere with *Nvidia* driver installation and
+should be disabled by editing the <Badge color="gray">/etc/sysconfig/selinux</Badge> configuration
+file and changing the `SELINUX` line to:
+
+```
+SELINUX=disabled
+```
+
+## Ensure the GPUs are Installed
+
+
+Ensure that the <Badge color="gray">lspci</Badge> command is installed (which lists the PCI devices
+connected to the server):
+
+```
+sudo yum -y install pciutils
+```
+Perform a quick check to determine what *Nvidia* cards have been installed:
+
+```
+lspci | grep -e VGA -ie NVIDIA
+```
+The output of the <Badge color="gray">lspci</Badge> command above should be something similar to:
+
+```
+00:02.0 VGA compatible controller: Intel Corporation 4th Gen ...
+01:00.0 VGA compatible controller: Nvidia Corporation ...
+```
+If you do not see a line that includes `Nvidia`, then the GPU is not properly
+installed.  Otherwise, you should see the make and model of the GPU devices that
+are installed.
+
+
+## Disable Nouveau
+
+
+### Blacklist Nouveau in Modprobe
+
+
+The *nouveau* driver is an alternative to the *Nvidia* drivers generally
+installed on the server.  It does not work with *CUDA* and must be disabled.
+The first step is to edit the file at
+<Badge color="gray">/etc/modprobe.d/blacklist-nouveau.conf</Badge>.  Something like:
+
+```
+cat <<EOF | sudo tee /etc/modprobe.d/blacklist-nouveau.conf
+blacklist nouveau
+options nouveau modeset=0
+EOF
+```
+
+### Update Grub to Blacklist Nouveau
+
+
+* On RHEL 6
+
+  Backup your *grub* config:
+
+  ```
+  sudo cp /boot/grub/grub.conf /boot/grub/grub.conf.bak
+  ```
+  Edit your *grub* config and add `rdblacklist=nouveau` to the end of any lines
+  starting with `kernel`.  For example:
+
+  ```
+  kernel /vmlinuz-... quiet rdblacklist=nouveau
+  ```
+* On RHEL 7
+
+  Backup your *grub* config templates:
+
+  ```
+  sudo cp /etc/sysconfig/grub /etc/sysconfig/grub.bak
+  ```
+  Then, update your *grub* config template at <Badge color="gray">/etc/sysconfig/grub</Badge>.  Add
+  `rd.driver.blacklist=grub.nouveau` to the `GRUB_CMDLINE_LINUX` variable.
+  For example, change:
+
+  ```
+  GRUB_CMDLINE_LINUX="crashkernel=auto ... quiet"
+  ```
+  to:
+
+  ```
+  GRUB_CMDLINE_LINUX="crashkernel=auto ... quiet rd.driver.blacklist=grub.nouveau"
+  ```
+  Then, rebuild your *grub* config:
+
+  ```
+  sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+  ```
+
+### Regenerate the Initramfs Image
+
+
+Backup the old *initramfs* image, generate a new *initramfs* image, disable any
+graphical logins and reboot the server:
+
+```
+sudo mv /boot/initramfs-$(uname -r).img /boot/initramfs-$(uname -r)-nouveau.img
+sudo dracut /boot/initramfs-$(uname -r).img $(uname -r)
+```
+
+### Exiting X
+
+
+The *Nvidia* driver will not allow you to install a new driver while *X* is
+open, so if *X* is enabled, it must first be exited.  The simplest way to exit
+*X* is to switch to a TTY console using <kbd>Ctrl-Alt-F1</kbd>, login, and run:
+
+```
+sudo init 3
+```
+After that has completed, *X* may be disabled so that the system does not
+attempt to start *X* in the case where the system has rebooted, but the driver
+has not finished installing.  First, determine which graphical login your server
+uses:
+
+```
+ps aux | grep -v 'grep' | grep 'lightdm|gdm|kdm'
+```
+* On RHEL 6
+
+  Disable the graphical login and reboot as follows (adjust for the login
+  manager that is running):
+
+  ```
+  echo  "manual" | sudo tee -a /etc/init/lightdm.override
+  sudo reboot now
+  ```
+* On RHEL 7
+
+  Disable the graphical login as follows (adjust for the login manager that is
+  running):
+
+  ```
+  sudo systemctl disable lightdm
+  sudo reboot now
+  ```
+After the system reboots, it should no longer start up with a graphical login.
+The graphical login will be re-enabled after completing the *Nvidia* driver
+installation.
+
+
+### Ensure the Nouveau Driver is Disabled
+
+
+After the reboot has completed, check to ensure that the *nouveau* driver has
+been disabled:
+
+```
+lsmod | grep "nouveau" > /dev/null && echo "WARNING: nouveau still active" || echo "Success"
+```
+If *nouveau* is still active, then run the following command and repeat the
+above check to ensure that *Nouveau* has been removed:
+
+```
+sudo rmmod nouveau
+```
+Check if *nouveau* is installed as an RPM:
+
+```
+rpm -qa | grep xorg-x11-drv-nouveau
+```
+If the RPM is installed, then run the following command to uninstall it:
+
+```
+sudo yum remove xorg-x11-drv-nouveau
+```
+
+## Prerequisites
+
+
+Several prerequisites should be installed before installing the *Nvidia*
+drivers.
+
+1. Install the EPEL repo:
+
+   ```
+   yum install epel-release
+   ```
+2. Upgrade the kernel and restart the machine:
+
+   ```
+   yum upgrade kernel
+   sudo reboot now
+   ```
+3. Install the dependencies:
+
+   ```
+   sudo yum -y install kernel-devel kernel-headers gcc dkms acpid
+   ```
+
+## Install Drivers Only
+
+
+<Note>
+To accommodate GL-accelerated rendering, OpenGL and GL Vendor
+Neutral Dispatch (GLVND) are now required and should be installed
+with the Nvidia drivers. OpenGL is an installation option in the
+`*.run` type of drivers. In other types of the
+drivers, OpenGL is enabled by default in most modern versions
+(dated 2016 and later). GLVND can be installed using the
+installer menus or via the `--glvnd-glx-client` command line
+flag.
+</Note>
+
+This section deals with installing the drivers via the `*.run` executables
+provided by *Nvidia*.
+
+To download only the drivers, navigate to http://www.nvidia.com/object/unix.html
+and click the **Latest Long Lived Branch version** under the appropriate
+CPU architecture. On the ensuing page, click **Download** and then click
+**Agree and Download** on the page that follows.
+
+
+<Info>
+The Unix drivers found in the link above are also compatible with all
+Nvidia Tesla models.
+</Info>
+
+If you'd prefer to download the full driver repository, *Nvidia* provides a tool
+to recommend the most recent available driver for your graphics card
+at http://www.Nvidia.com/Download/index.aspx?lang=en-us.
+
+If you are unsure which *Nvidia* devices are installed, the `lspci` command
+should give you that information:
+
+```
+lspci | grep -e VGA -ie NVIDIA
+```
+Download the recommended driver executable.  Change the file permissions to
+allow execution:
+
+```
+chmod +x ./NVIDIA-Linux-$(uname -m)-*.run
+```
+Run the install.  If you are prompted about cryptographic signatures on the
+kernel module, answer *Sign the Kernel Module* and then
+*Generate a new key pair*.  At the end, **DO NOT** update your *X* config if it
+asks.  Note that the following attempts to diagnose a common problem where the
+installer fails to correctly detect and deal with the situation where the kernel
+has been signed, but signed kernel modules are not required.
+
+
+```
+grep CONFIG_MODULE_SIG=y /boot/config-$(uname -r) && \
+grep "CONFIG_MODULE_SIG_FORCE is not set" /boot/config-$(uname -r) && \
+sudo ./NVIDIA-Linux-$(uname -m)-*.run -e || \
+sudo ./NVIDIA-Linux-$(uname -m)-*.run
+```
+If there are any issues with the installation, the installer should notify you
+where the log is kept; the default location is usually:
+
+```
+/var/log/nvidia-installer.log
+```
+
+### Troubleshoot the Nvidia Installer
+
+
+One common issue with installing the *Nvidia* driver is that it will fail out
+because the *Nvidia* driver *taints the kernel*.  The issue is that the driver
+is not signed and the default install does not attempt to sign it, but the
+kernel is expecting a signed driver.  If you encounter this error, you should
+re-run the install in expert mode:
+
+```
+sudo ./nvidia-Linux-<arch>-<version>.run -e
+```
+When prompted about cryptographic signatures on the kernel module, answer
+*Sign the Kernel Module* and then *Generate a new key pair*.  Again, at the end,
+make sure to answer *No* when asked if you want the installer to update your *X*
+configuration.
+
+This situation is usually detected during the above install step, but if there
+are issues, you can run this command separately.
+
+Another issue that may arise is that if the `kernel-devel` version and the
+system kernel version don't match up, the *Nvidia* driver install will not
+proceed after accepting the license. To fix this issue:
+
+```
+yum update
+sudo reboot now
+```
+
+### Other Reference Material
+
+
+*Nvidia* has a large readme online at:
+
+```
+http://us.download.nvidia.com/XFree86/Linux-<arch>/<version>/README/index.html
+```
+For example, on `x86` for version `375.26`, the readme is online at:
+
+```
+http://us.download.nvidia.com/XFree86/Linux-x86_64/375.26/README/index.html.
+```
+
+## Test the Nvidia Installation
+
+
+After the *Nvidia* drivers are installed, you can test the installation by
+running the command:
+
+```
+nvidia-smi
+```
+Which should return something similar to:
+
+```
++------------------------------------------------------+
+| NVIDIA-SMI 361.42     Driver Version: 361.42         |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|===============================+======================+======================|
+|   0  Quadro K1100M       Off  | 0000:01:00.0     Off |                  N/A |
+| N/A   44C    P0    N/A /  N/A |      8MiB /  2047MiB |      0%      Default |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                       GPU Memory |
+|  GPU       PID  Type  Process name                               Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+```
+
+### Multiple Driver Failure
+
+
+If an error is returned, stating:
+
+```
+Failed to initialize NVML: GPU access blocked by the operating system
+```
+there may be multiple versions of the *Nvidia* drivers on the system.  Try
+running:
+
+```
+rpm -qa | grep -E "cuda|nvidia"
+```
+Review any versions listed and remove them as needed.  Also run:
+
+```
+locate libnvidia | grep ".so."
+```
+Confirm that the files all end with either a `1` or the version of the
+*Nvidia* driver that you installed, for example `.375.21`.
+
+
+## Restart X Server
+
+
+### Enable X
+
+
+If you disabled the *X Server* to install your *Nvidia* driver, enable it now.
+First, check which service is responsible for the *X Server*:
+
+```
+ps aux | grep -v 'grep' | grep 'lightdm|gdm|kdm'
+```
+The following will enable the `lightdm` service, for the case where
+`lightdm` is responsible for the *X Server* .  Adjust for the particular
+service running on your server from the above command.
+
+* On RHEL 6:
+
+  ```
+  sudo rm -f /etc/init/lightdm.override
+  ```
+* On RHEL 7:
+
+  ```
+  sudo systemctl enable lightdm
+  ```
+
+### Reboot
+
+
+Then, the simplest way to get back into *X* is to reboot the server:
+
+```
+sudo reboot now
+```

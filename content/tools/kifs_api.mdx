@@ -1,0 +1,225 @@
+---
+title: KiFS API Support
+---
+
+*KiFS*, while able to be managed in all native APIs, has enhanced support in the
+Java API.
+
+
+<a id="kifs-api-init"></a>
+
+
+## API Initialization
+
+
+When using *KiFS* via the Java API, the handler class must be initialized.  The
+examples in the following sections make use of this interface and assume these
+steps have been taken.
+
+{/* Source: /examples/java/kifs/src/main/java/KifsTutorial.java (lines 1-3) */}
+```java KiFS API Imports
+import com.gpudb.GPUdb;
+import com.gpudb.GPUdbBase;
+import com.gpudb.filesystem.GPUdbFileHandler;
+```
+
+{/* Source: /examples/java/kifs/src/main/java/KifsTutorial.java (lines 38-45) */}
+```java KiFS API Initialization
+// Establish connection with a running instance of Kinetica
+GPUdbBase.Options options = new GPUdbBase.Options();
+options.setUsername(user);
+options.setPassword(pass);
+GPUdb kdb = new GPUdb("http://" + host + ":9191", options);
+
+// Acquire handle for KiFS interface
+GPUdbFileHandler gfh = new GPUdbFileHandler(kdb);
+```
+
+
+<a id="kifs-directory"></a>
+
+
+## Directories
+
+
+In *KiFS*, a *directory* is a top-level container for
+[files](/content/tools/kifs_api#kifs-file).  A *directory* cannot be nested within
+another directory, though a *file* contained within a *directory* may have a
+path that gives the appearance of being contained within one or more nested
+*virtual directories*.  A *directory* must exist before files can be uploaded
+into it.
+
+
+### Creating Directories
+
+
+To create a *KiFS directory*, `data`:
+
+{/* Source: /examples/java/kifs/src/main/java/KifsTutorial.java (lines 57) */}
+```java Create Directory Example
+gfh.createDirectory("data", false);
+```
+
+
+### Showing Directories
+
+
+To show the stats of a *KiFS directory*, `data`:
+
+{/* Source: /examples/java/kifs/src/main/java/KifsTutorial.java (lines 66-72) */}
+```java Show Directory Example
+List<KifsDirectoryInfo> dirs = gfh.showDirectories("data", null);
+for (KifsDirectoryInfo dir : dirs)
+{
+	System.out.println(dir.getKifsPath());
+	System.out.println("* Created by: " + dir.getCreatedBy());
+	System.out.println("* Created time: " + dir.getCreationTime());
+}
+```
+
+To show the stats of all *KiFS directories*, pass `null` for the *directory*
+name:
+
+{/* Source: /examples/java/kifs/src/main/java/KifsTutorial.java (lines 77-79) */}
+```java Show All Directories Example
+List<KifsDirectoryInfo> allDirs = gfh.showDirectories(null, null);
+for (KifsDirectoryInfo dir : allDirs)
+	System.out.println("* " + dir.getKifsPath());
+```
+
+
+### Deleting Directories
+
+
+To delete an empty, existing *KiFS directory*, use the following parameters:
+
+* `data` - name of the *directory*
+* `false` - don't delete *files* contained within the *directory*, and return
+  an error if any are found
+* `false` - return an error if the *directory* is not found
+
+{/* Source: /examples/java/kifs/src/main/java/KifsTutorial.java (lines 89) */}
+```java Delete Empty Directory Example
+gfh.deleteDirectory("data", false, false);
+```
+
+To delete a *KiFS directory*, `data`, and all *files* contained within,
+regardless of whether the *directory* exists (similar to a Unix `rm -rf`):
+
+* `data` - name of the *directory*
+* `true` - delete any *files* contained within the *directory*
+* `true` - suppress the error in the case that the *directory* is not found
+
+{/* Source: /examples/java/kifs/src/main/java/KifsTutorial.java (lines 54) */}
+```java Delete Non-Empty Directory Example
+gfh.deleteDirectory("data", true, true);
+```
+
+
+<a id="kifs-file"></a>
+
+
+## Files
+
+
+In *KiFS*, a *file* is a user-uploaded text or binary object.  Each *file* is
+located within a *directory* and must have a unique name within that
+*directory*.  The name can contain forward slashes to create the appearance of a
+hierarchical *virtual directory* structure and help namespace the files.
+Overall, each file is referenced by the composite of the directory and file
+name.
+
+
+### Uploading Files
+
+
+To upload a file to a *KiFS directory*, `data`, under a *virtual directory*,
+`geo`:
+
+{/* Source: /examples/java/kifs/src/main/java/KifsTutorial.java (lines 98) */}
+```java Upload Single File Example
+gfh.upload("upload/data/csv/flights.csv", "data/geo", null, null);
+```
+
+To upload a set of files to a *KiFS directory*, `data`, under a
+*virtual directory*, `geo`:
+
+{/* Source: /examples/java/kifs/src/main/java/KifsTutorial.java (lines 100-108) */}
+```java Upload Multiple Files Example
+// Add files to the list of files to upload
+List<String> localFileNames = new ArrayList<>();
+localFileNames.add("upload/programs/analyze-paths.jar");
+localFileNames.add("upload/data/csv/flights.csv");
+
+// Upload each file as data/geo/<filename>
+//   All files, regardless of source path, will be placed directly
+//   under "data/geo"
+gfh.upload(localFileNames, "data/geo", null, null);
+```
+
+
+### Listing Files
+
+
+To list the *KiFS files* in a *directory*, `data`:
+
+{/* Source: /examples/java/kifs/src/main/java/KifsTutorial.java (lines 117-118) */}
+```java List Files Example
+for (KifsFileInfo fileInfo : gfh.showFiles(Collections.singletonList("data")))
+	System.out.println("* " + fileInfo.getFileName() + " (" + fileInfo.getFileSize() + "B)");
+```
+
+
+### Downloading Files
+
+
+To download a *KiFS file* to a local directory, `download`:
+
+{/* Source: /examples/java/kifs/src/main/java/KifsTutorial.java (lines 127) */}
+```java Download Single File Example
+gfh.download("data/geo/flights.csv", "download", null, null);
+```
+
+To download a set of *KiFS files* to a local directory, `download`:
+
+{/* Source: /examples/java/kifs/src/main/java/KifsTutorial.java (lines 131-135) */}
+```java Download Multiple Files Example
+List<String> remoteFileNames = new ArrayList<>();
+remoteFileNames.add("data/geo/analyze-paths.jar");
+remoteFileNames.add("data/geo/flights.csv");
+
+gfh.download(remoteFileNames, "download", null, null);
+```
+
+
+### Deleting Files
+
+
+To delete a set of *KiFS files*:
+
+{/* Source: /examples/java/kifs/src/main/java/KifsTutorial.java (lines 131-134 163) */}
+```java Delete Multiple Files Example
+List<String> remoteFileNames = new ArrayList<>();
+remoteFileNames.add("data/geo/analyze-paths.jar");
+remoteFileNames.add("data/geo/flights.csv");
+
+gfh.deleteFiles(remoteFileNames);
+```
+
+
+## KiFS Endpoints
+
+
+The following REST API endpoint calls can also be used to manage *KiFS*.
+
+| API Call | Description |
+| --- | --- |
+| [/create/directory](/content/api/rest/create_directory_rest#create-directory-rest) | Creates a *directory*, a container for files |
+| [/delete/directory](/content/api/rest/delete_directory_rest#delete-directory-rest) | Removes the *directory*; can optionally remove all contained *files* |
+| [/show/directories](/content/api/rest/show_directories_rest#show-directories-rest) | Outputs the properties of one or more specified *directories*, or optionally, all *directories* |
+| [/grant/permission/directory](/content/api/rest/grant_permission_directory_rest#grant-permission-directory-rest) | Grants the [permission](/content/security/sec_concepts#security-concepts-permissions-kifs) for a user to access files within a *directory* |
+| [/revoke/permission/directory](/content/api/rest/revoke_permission_directory_rest#revoke-permission-directory-rest) | Revokes the [permission](/content/security/sec_concepts#security-concepts-permissions-kifs) for a user to access files within a *directory* |
+| [/delete/files](/content/api/rest/delete_files_rest#delete-files-rest) | Removes one or more *files* |
+| [/download/files](/content/api/rest/download_files_rest#download-files-rest) | Downloads one or more *files* |
+| [/show/files](/content/api/rest/show_files_rest#show-files-rest) | Outputs the properties of one or more *files* |
+| [/upload/files](/content/api/rest/upload_files_rest#upload-files-rest) | Uploads one or more *files* to a *directory* |

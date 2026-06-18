@@ -1,0 +1,69 @@
+---
+title: Kinetica Components Configuration
+---
+
+## Reveal
+
+
+1. Navigate to <Badge color="gray">/opt/gpudb/connectors/reveal/etc/default.json</Badge> and
+   update the `url` setting:
+
+   ```
+   "gadmin": {
+     "url": "https://localhost:8443/gadmin"
+   },
+   ```
+
+## GAdmin
+
+
+1. Navigate to the <Badge color="gray">/opt/gpudb/tomcat/webapps/gadmin/js/settings.js</Badge> file
+   and update the `REVEAL_PORT` variable to the secured *Reveal* port (default
+   8444):
+
+   ```
+   var REVEAL_PORT = '8444';
+   ```
+2. Navigate to the
+   <Badge color="gray">/opt/gpudb/tomcat/webapps/gadmin/WEB-INF/classes/gaia.properties</Badge> file
+   and update the following settings to `https`, ensuring the host is correct
+   for your setup
+
+   ```
+   gpudb_ext_url = https://<hostname>:8082/gpudb-0
+
+   ...
+   gpudb_ext_hm_url = https://<hostname>:8082/gpudb-host-manager
+   ```
+3. In the <Badge color="gray">/opt/gpudb/tomcat/conf/catalina.properties</Badge> file at the bottom:
+
+   1. Add the `trustStore` setting value with the proper file path to the
+      keystore:
+
+      ```
+      javax.net.ssl.trustStore=</path/to/keystore>
+      ```
+   2. Add the trust store password to the file using one of the following
+      methods:
+
+      * Add the following setting with the plain-text password for an
+        unencrypted password:
+
+        ```
+        javax.net.ssl.trustStorePassword=<your-keystore-password>
+        ```
+      * Encrypt the password using the `/opt/gpudb/core/bin/gpudb_encrypt.sh`
+        utility (see [Obfuscating Plain-Text Passwords](/content/security/sec_hardening) for details), then provide
+        the following setting with the encrypted password value and the file
+        path to the `gpudb_decrypt.sh` script (located in
+        `/opt/gpudb/core/bin/` by default):
+
+        ```
+        ssl_truststore_password_script=/opt/gpudb/core/bin/gpudb_decrypt.sh <encrypted-password>
+        ```
+
+<Note>
+A keystore being added to <Badge color="gray">catalina.properties</Badge> will
+prevent security settings from being overwritten during a
+*Kinetica* upgrade
+</Note>

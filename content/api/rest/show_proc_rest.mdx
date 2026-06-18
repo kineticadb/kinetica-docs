@@ -1,0 +1,37 @@
+---
+title: /show/proc
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="show-proc-rest"></a>
+
+
+```
+URL: http://<db.host>:<db.port>/show/proc
+```
+Shows information about a proc.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| proc_name | string | Name of the proc to show information about. If specified, must be the name of a currently existing proc. If not specified, information about all procs will be returned. <br/> <br/> The default value is ''. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> include_files: If set to *true*, the files that make up the proc will be returned. If set to *false*, the files will not be returned. The default value is `false`. The supported values are: * true * false |
+
+
+## Output Parameter Description
+
+
+The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
+
+| Name | Type | Description |
+| --- | --- | --- |
+| status | String | 'OK' or 'ERROR' |
+| message | String | Empty if success or an error message |
+| data_type | String | 'show_proc_response' or 'none' in case of an error |
+| data | String | Empty string |
+| data_str | JSON or String | This embedded JSON represents the result of the /show/proc endpoint: <br/> <br/> proc_names: [array of strings] The proc names. <br/> <br/> execution_modes: [array of strings] The execution modes of the procs named in output parameter *proc_names*. +--------------+--------------+ \|Supported \|Description \| \|Values \| \| +==============+==============+ \|distributed \|Distributed \| \| \| \| +--------------+--------------+ \|nondistributed\|Nondistributed\| \| \| \| +--------------+--------------+ <br/> <br/> files: [array of maps of string to bytes] Maps of the files that make up the procs named in output parameter *proc_names*. <br/> <br/> commands: [array of strings] The commands (excluding arguments) that will be invoked when the procs named in output parameter *proc_names* are executed. <br/> <br/> args: [array of arrays of strings] Arrays of command-line arguments that will be passed to the procs named in output parameter *proc_names* when executed. <br/> <br/> options: [array of maps of string to strings] The optional parameters for the procs named in output parameter *proc_names*. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |

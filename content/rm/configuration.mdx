@@ -1,0 +1,429 @@
+---
+title: Resource Management Configuration
+---
+
+## Overview
+
+
+Within *Resource Management*, there are three main areas of configuration that
+take place while the database is offline:
+
+1. [Tiered Storage](#tiered-storage)
+2. [Default Resource Group](#default-resource-group)
+3. [Tier Strategy](#tier-strategy)
+
+For configuration that can be performed while the database is online, see
+[Resource Management Usage](/content/rm/usage).
+
+
+## Tiered Storage
+
+
+All [tiers](/content/rm/concepts#rm-concepts-tiers) must be defined while the database is
+offline, in <Badge color="gray">/opt/gpudb/core/etc/gpudb.conf</Badge>, though the capacity and
+high & low watermarks within each *tier* can be altered while the database is
+operational.
+
+
+<Note>
+The *VRAM Tier* pre-allocates memory upon system startup, and
+this capacity cannot be altered while the database is running.
+</Note>
+
+| Tier | Total Instances | Description |
+| --- | --- | --- |
+| VRAM | 1 | Video RAM; present in all CUDA-based installations |
+| RAM | 1 | Main memory; present in all installations |
+| Disk | 0..N | Optional disk-based cache; required for caching non-persisted database objects |
+| Persist | 1 | Primary disk-based data store; present in all installations |
+| Cold Storage | 0..N | Optional secondary disk-based data store |
+
+A *Kinetica* installation will have one *VRAM Tier* (CUDA installations), one
+*RAM Tier*, one *Persist Tier*, and as many *Disk Cache Tier* &
+*Cold Storage Tier* instances as are configured by the system administrator.
+
+
+### Global Tier Parameters
+
+
+The only parameter that spans all *tiers* is the
+**tier.global.concurrent_wait_timeout**.  This is the time, in seconds,
+that a request should wait for a dependent resource to load that is currently
+being loaded to fulfill a separate request.
+
+This timeout should be adjusted to cover the expected wait time for the slowest
+data source in the system.  If the slowest *tier* were the *Persist Tier*, a
+reasonable timeout may be expected to be much smaller than if the slowest *tier*
+were a *Cold Storage Tier* with longer transfer times.
+
+
+<a id="rm-config-tiered-storage-parameters"></a>
+
+
+### Tier-Specific Parameters
+
+
+For *tier*-specific parameters, the general format for defining the *tier* is:
+
+```xml
+tier.<tier_type>.<config_level>.[<config_sublevel>.]<parameter>
+```
+
+The **tier_type** is one of the five basic types of *tiers*:
+
+* `vram` - [VRAM Tier](#vram-tier) *(GPU memory)*
+* `ram` - [RAM Tier](#ram-tier) *(Main memory)*
+* `disk` - [Disk Cache Tier](#disk-cache-tier) *(Disk cache)*
+* `persist` - [Persist Tier](#persist-tier) *(Permanent storage)*
+* `cold` - [Cold Storage Tier](#cold-storage-tier) *(Extended long-term storage)*
+
+A **config_level** of `default` applies the parameter's value to all
+*ranks*, system wide, for the respective *tier*.  To override that default value
+for a specific *rank*, the **config_level** should be `rank` followed
+by the index of the *rank* to modify.
+
+The only *tier* with a **config_sublevel** is the *VRAM Tier*, which
+uses `all_gpus`.  This simply applies the default values and rank overrides to
+all GPU devices and acts as a placeholder for future use.
+
+While the complete set of valid **parameter** names varies between
+*tiers*, most (except the *Cold Storage Tier*) will have the following common
+ones:
+
+* **limit** - the maximum capacity of the *tier*
+* **high_watermark** - the high watermark, as a percentage, to use for
+  [watermark-based eviction](/content/rm/concepts#rm-concepts-wb-eviction)
+* **low_watermark** - the low watermark, as a percentage, to use for
+  [watermark-based eviction](/content/rm/concepts#rm-concepts-wb-eviction)
+
+If there is no backing *Cold Storage Tier*, the high & low watermarks for the
+*Persist Tier* can be disabled.
+
+
+<Note>
+To disable *watermark-based eviction*, set **high_watermark** &
+**low_watermark** to `100`.  This can be done for an entire *tier*,
+using `default`, or for individual *ranks* within a *tier* by specifying
+the *rank* index (`rank[#]`).  Also setting a *tier's* size limit to `-1`
+will implicitly disable *watermark-based eviction*; except in the case of the
+*VRAM Tier*, where it will reserve 95% of video RAM and use the watermark
+settings for eviction.
+</Note>
+
+For example, to set the high & low watermarks for the *VRAM Tier* to 90% & 50%,
+respectively, use:
+
+```bash
+tier.vram.default.all_gpus.high_watermark = 90
+tier.vram.default.all_gpus.low_watermark = 50
+```
+
+To set the high & low watermarks for *rank1* in the *Disk Cache Tier* instance
+*disk3* to 95% & 90%, respectively, while disabling *watermark-based eviction*
+for *rank2*:
+
+```bash
+tier.disk3.rank1.high_watermark = 95
+tier.disk3.rank1.low_watermark = 90
+tier.disk3.rank2.high_watermark = 100
+tier.disk3.rank2.low_watermark = 100
+```
+
+
+### VRAM Tier
+
+
+The default configuration assigns the [VRAM Tier](/content/rm/concepts#rm-concepts-tiers-vram)
+95% of VRAM and high & low watermarks of 90% & 50%, respectively.
+
+A **limit** of `-1` reserves 95% of available video RAM for usage by
+the *VRAM Tier*.  To set to a specific amount of VRAM, change this setting to be
+the number of bytes of VRAM to use.  The **high_watermark** &
+**low_watermark** values are in percentages of the **limit**.
+
+```bash
+tier.vram.default.all_gpus.limit = -1
+tier.vram.default.all_gpus.high_watermark = 90
+tier.vram.default.all_gpus.low_watermark = 50
+```
+
+
+### RAM Tier
+
+
+The default configuration assigns the [RAM Tier](/content/rm/concepts#rm-concepts-tiers-ram) no
+size limit and disables *watermark-based eviction*.
+
+```bash
+tier.ram.default.limit = -1
+```
+
+
+<Note>
+It is recommended to give the *RAM Tier* a size limit, as this
+allows other processes on the host to use the remainder of the RAM and also
+enables database object eviction to the *Disk Cache Tier* and *Persist Tier*.
+</Note>
+
+A **limit** of `-1` assigns no RAM size limit for usage by the
+*RAM Tier*.  To set to a specific amount of RAM, change this setting to be
+the number of bytes of RAM to use.  The **high_watermark** &
+**low_watermark** values are in percentages of the **limit**.
+
+
+<a id="rm-config-tiered-storage-disk-cache-tier"></a>
+
+
+### Disk Cache Tier
+
+
+The default configuration defines no
+[Disk Cache Tier](/content/rm/concepts#rm-concepts-tiers-disk) instances.
+
+To define a *Disk Cache Tier*, first ensure that a *RAM Tier* **limit**
+is set to a positive number that is the number of bytes of RAM to use.  Without
+this being set, no eviction from the *RAM Tier* will take place, and the
+*Disk Cache Tier* will be unused.
+
+Next, define a *Disk Cache Tier* instance.  The instance should be identified by
+the keyword `disk`, followed by a digit, `0` - `9`.  The **path**
+parameter needs to be set to a directory/mount point that exists on all
+*Kinetica* hosts and has read/write access for the `gpudb` user.  A
+**limit** of `-1` assigns no disk size limit for usage by the
+*Disk Cache Tier*.  To set to a specific amount of disk space to use, change
+this setting to be the number of bytes of disk to use.
+The **high_watermark** & **low_watermark** values are in
+percentages of the **limit**.
+
+Lastly, the *Disk Cache Tier* can be configured to store persistent objects.
+If the disk backing the *Disk Cache Tier* is more performant than the disk
+backing the *Persist Tier*, set **store_persistent_objects** to `true`
+to cache persistent objects in the *Disk Cache Tier*.  If not more performant
+(especially if the disks backing the *Disk Cache Tier* & *Persist Tier* are the
+same disk), set **store_persistent_objects** to `false` to bypass the
+*Disk Cache Tier* when writing persistent objects to disk.
+
+For instance, to create a 500GB *Disk Cache Tier* instance with ID `disk1`,
+using a mount point of <Badge color="gray">/opt/gpudb/diskcache</Badge>,
+*watermark-based eviction* thresholds of 90% & 80%, and caching of persistent
+objects:
+
+```bash
+tier.disk1.default.path = /opt/gpudb/diskcache
+tier.disk1.default.limit = 536870912000
+tier.disk1.default.high_watermark = 90
+tier.disk1.default.low_watermark = 80
+tier.disk1.default.store_persistent_objects = true
+```
+
+
+<Note>
+It is recommended to give each *Disk Cache Tier* instance a size
+limit, as this allows other processes on the host to use the remainder of the
+disk capacity and also enables database object eviction to the
+*Persist Tier*.
+</Note>
+
+
+### Persist Tier
+
+
+The default configuration assigns the
+[Persist Tier](/content/rm/concepts#rm-concepts-tiers-persist) no size limit and disables
+*watermark-based eviction*.  It also saves database column & object data to the
+default *Kinetica* persistence directory, <Badge color="gray">/opt/gpudb/persist</Badge>.
+
+```bash
+tier.persist.default.path = ${gaia.persist_directory}
+tier.persist.default.limit = -1
+```
+
+
+<Note>
+The *Persist Tier* should be given a size limit if any
+*Cold Storage Tier* instances are to be used to back it, as database object
+eviction from the *Persist Tier* to cold storage can only take place if the
+*Persist Tier* has a defined limit.
+</Note>
+
+The persistence path of database objects can be modified by setting the
+**path**.  A **limit** of `-1` assigns no disk size limit for
+usage by the *Persist Tier*.  To set to a specific amount of disk space, change
+this setting to be the number of bytes of disk to use.  The
+**high_watermark** & **low_watermark** values are in percentages
+of the **limit**.
+
+
+### Cold Storage Tier
+
+
+The default configuration defines no
+[Cold Storage Tier](/content/rm/concepts#rm-concepts-tiers-cold) instances.
+
+To define a *Cold Storage Tier*, first ensure that the *Persist Tier* has a
+**limit** set to a positive number that is the number of bytes of disk
+space to use.  Without this being set, no eviction from the *Persist Tier* will
+take place, and the *Cold Storage Tier* will be unused.
+
+Next, define the *Cold Storage Tier* instance.  The instance should be
+identified by the keyword `cold`, followed by a digit, `0` - `9`.  The
+**type** parameter should be set to one of the following, with a
+corresponding **base_path**:
+
+* `disk` *(local/network storage)*
+* `hdfs` *(Hadoop File System)*
+* `azure` *(Azure blob storage)*
+* `s3` *(Amazon S3)*
+
+Lastly, set the provider-specific parameters that correspond to the specified
+**type**.  For local/network storage, no additional parameters are
+required.  For remote storage, see [Cold Storage Tier](/content/config#config-main-cold-storage-tier)
+in the *Configuration Reference* for the full set of parameters.
+
+For instance, to create a network *Cold Storage Tier* instance with ID
+`cold1`, using a mount point of <Badge color="gray">/opt/gpudb/cold</Badge>:
+
+```bash
+tier.cold1.default.type = disk
+tier.cold1.default.base_path = /opt/gpudb/cold
+```
+
+To create an HDFS *Cold Storage Tier* instance with ID `cold2`, with a URI of
+`hdfs://localhost:9000`, an HDFS user named `kinetica`, a root HDFS path of
+`/gpudb/cold`, and using Kerberos with a keytab file path of
+`/opt/gpudb/krb5.keytab`:
+
+```bash
+tier.cold2.default.type = hdfs
+tier.cold2.default.base_path = /gpudb/cold
+tier.cold2.default.hdfs_uri = hdfs://localhost:9000
+tier.cold2.default.hdfs_principal = kinetica
+tier.cold2.default.hdfs_use_kerberos = true
+tier.cold2.default.hdfs_kerberos_keytab = /opt/gpudb/krb5.keytab
+```
+
+To create a Microsoft Azure *Cold Storage Tier* instance with ID `cold3`,
+having a container name of `kinetica`, a storage account name & key of
+`name` & `key`, respectively, and a root path of `/gpudb/cold`:
+
+```bash
+tier.cold3.default.type = azure
+tier.cold3.default.base_path = /gpudb/cold
+tier.cold3.default.azure_container_name = kinetica
+tier.cold3.default.azure_storage_account_name = name
+tier.cold3.default.azure_storage_account_key = key
+```
+
+To create an Amazon S3 *Cold Storage Tier* instance with ID `cold4`, having a
+bucket name of `kinetica`, an S3 Access Key ID & Secret Access Key of `key`
+& `secret`, respectively, and a root S3 path of `/gpudb/cold`:
+
+```bash
+tier.cold4.default.type = s3
+tier.cold4.default.base_path = /gpudb/cold
+tier.cold4.default.s3_bucket_name = kinetica
+tier.cold4.default.s3_aws_access_key_id = key
+tier.cold4.default.s3_aws_secret_access_key = secret
+```
+
+
+<Info>
+If not supplying the `s3_aws_access_key_id` or
+`s3_aws_secret_access_key` parameter values via the
+<Badge color="gray">/opt/gpudb/core/etc/gpudb.conf</Badge> file, the values should instead
+be provided via the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
+or via the respective `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
+[environment variables](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html).
+</Info>
+
+<a id="rm-config-resource-group-default"></a>
+
+
+## Default Resource Group
+
+
+The default [resource group](/content/rm/concepts#rm-concepts-resource-groups) is applied to
+all users who do not have one set explicitly.
+
+The default parameters can be modified in <Badge color="gray">/opt/gpudb/core/etc/gpudb.conf</Badge>
+and are described in the [Configuration Reference](/content/config) under
+[Default Resource Group](/content/config#config-main-default-resource-group).
+
+
+## Tier Strategy
+
+
+There are two configuration parameters in <Badge color="gray">/opt/gpudb/core/etc/gpudb.conf</Badge>
+described in the [Configuration Reference](/content/config) under [Tier Strategy](/content/config#config-main-tier-strategy)
+that relate to [tier strategy](/content/rm/concepts#rm-concepts-tier-strategy):
+
+1. [Default Tier Strategy](#default-tier-strategy)
+2. [Tier Strategy Predicate Evaluation Interval](#tier-strategy-predicate-evaluation-interval)
+
+
+<a id="rm-config-tier-strategy-default"></a>
+
+
+### Default Tier Strategy
+
+
+The **tier_strategy.default** parameter is the default *tier strategy*
+that is applied to all tables and columns that do not have a *tier strategy* set
+explicitly during table creation or have had it subsequently altered.
+
+A default *tier strategy* can include a single
+[Disk Cache Tier](/content/rm/concepts#rm-concepts-tiers-disk) instance to enable the caching
+to disk of all database objects, including non-persistent ones like
+[filtered views](/content/concepts/filtered_views),
+[join views](/content/concepts/joins),
+[memory-only tables](/content/concepts/tables_memory_only), as well as those that
+are created temporarily to service user requests.  Without a *Disk Cache Tier*
+in the *default tier strategy*, these other non-persistent objects will not be
+able to be moved out of RAM to allow for other data that may be required to
+support the processing of higher-priority requests.
+
+The *strategy* can also include a
+[Cold Storage Tier](/content/rm/concepts#rm-concepts-tiers-cold) instance to allow database
+objects to be moved off of local disks, making room for other data.  Without a
+*Cold Storage Tier* in the default *tier strategy*, each user-created persisted
+table will have to be designated, during creation or modification, as able to be
+moved off of local disks.
+
+An example default *tier strategy* configuration is:
+
+```bash
+tier_strategy.default = VRAM 1, RAM 5, DISK1 5, PERSIST 5, COLD2
+```
+
+This would give all objects in the system an average default priority, while
+not caching any objects in VRAM and allowing transient objects to be cached on
+disk and persistent tables to be automatically off-loaded to cold storage.
+
+
+<a id="rm-config-tier-strategy-predicate-evaluation-interval"></a>
+
+
+### Tier Strategy Predicate Evaluation Interval
+
+
+Predicates can be used within a *tier strategy* to distribute & prioritize table
+and column data among the defined *tiers*.  Those predicates are reevaluated at
+an interval to determine whether it is necessary to move data to a different
+*tier*.
+
+The two cases where reevaluation will have an impact are:
+
+1. The predicate contains a function that is not data-based, like `NOW()`,
+   which may be used to keep current data within a given tier.  For instance, to
+   keep in RAM all records which have been modified in the last hour, the
+   *RAM Tier* could have a predicate like:
+
+   ```sql
+   last_updated > NOW() - 3600
+   ```
+
+2. The predicate references a column whose values have been updated since the
+   last evaluation interval
+
+The parameter **tier_strategy.predicate_evaluation_interval** allows
+this interval to be specified, in minutes.

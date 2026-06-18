@@ -1,0 +1,149 @@
+---
+title: Table Monitors
+---
+
+## Overview
+
+
+A *table monitor* (SQL [Stream](/content/sql/ddl#sql-create-stream)) is an entity
+that can be created to watch a source [table](/content/concepts/tables) for inserts,
+updates, or deletes, and relay notifications for consumption by interested
+clients to one of the following targets:
+
+* a local ZMQ message queue (default)
+* a local database table
+* an external Apache Kafka broker
+* an external webhook
+
+A *table monitor* is bound to a single type of table operation to monitor,
+assigned when created, and cannot be changed to monitor other types afterwards.
+For instance, a *table monitor* created to watch for inserts will not monitor
+update or deletes or be able to be modified to watch for one of those two
+instead, or in addition, after creation.
+
+*Table monitors* provide the following notifications, based on table activity
+monitored.
+
+| Table Activity | Table Monitor Notification |
+| --- | --- |
+| *inserts* | The entirety of each record inserted into the source table will be forwarded to the target. |
+| *updates* | The number of records updated for each update operation executed against the source table will be forwarded to the target. |
+| *deletes* | The number of records deleted for each delete operation executed against the source table will be forwarded to the target. |
+
+A *table monitor* name (if named by the user) must adhere to the standard
+[naming criteria](/content/concepts/tables#table-naming-criteria).  Each *table monitor*
+exists within a [schema](/content/concepts/schemas) and follows the standard
+[name resolution rules](/content/concepts/tables#table-name-resolution) for *tables*.
+
+
+## Configuration
+
+
+The configuration of the *table monitor* processing is dependent on type of
+target to which the *table monitor* is assigned.
+
+
+### Local ZMQ
+
+
+*Table monitor* notifications, by default, are published to a local ZMQ, which
+listens for subscriber connections on the system *table monitor port*
+(default *9002*).
+This is configured as **set_monitor_port** under
+[Network Configuration](/content/config#config-main-network) in the
+<Badge color="gray">gpudb.conf</Badge> file.
+
+When a table is monitored by a *table monitor* and the target of a
+[multi-head ingest](/content/tuning/multihead/multihead_ingest),
+notifications are pushed from the worker nodes to the head node through the head
+node's *table monitor proxy port* (default *9003*).
+This is configured as
+**set_monitor_proxy_port** under
+[Network Configuration](/content/config#config-main-network) in the
+<Badge color="gray">gpudb.conf</Badge> file.
+
+Notifications of inserts pulled from the queue are multi-part messages, with the
+first message being the topic ID and the remainder being binary-encoded *Avro*
+objects, one per record inserted.  These must be decoded using the *type schema*
+returned by the *table monitor* creation call.
+
+
+### Local Table
+
+
+A *table monitor* created with a local table reference as its destination or
+with a [data sink](/content/concepts/data_sinks) referencing a local table will
+update that local target table with the changes it monitors in the source table.
+
+The form of the local table reference is:
+
+```
+table://[<schema name>].<table name>
+```
+
+### External Consumer
+
+
+A *table monitor* can be assigned an external consumer as a target, either
+defined directly in its creation call (unauthenticated connections only), or via
+a pre-defined [data sink](/content/concepts/data_sinks).  If defined directly, a
+*data sink* will automatically be created to support the *table monitor*, and
+return its name in the response to the creation call.
+
+This type of *table monitor* will publish notifications to its target in JSON
+format.
+
+
+## Managing Table Monitors
+
+
+A *table monitor* can be managed using the following API endpoint calls.  For
+managing *table monitors* in SQL, see [CREATE STREAM](/content/sql/ddl#sql-create-stream).
+
+| API Call | Description |
+| --- | --- |
+| [/create/tablemonitor](/content/api/rest/create_tablemonitor_rest#create-tablemonitor-rest) | Creates a *table monitor*, given the name of the table to monitor and any optional configuration information |
+| [/clear/tablemonitor](/content/api/rest/clear_tablemonitor_rest#clear-tablemonitor-rest) | Removes a *table monitor*, given a *topic ID* |
+| [/show/tablemonitors](/content/api/rest/show_tablemonitors_rest#show-tablemonitors-rest) | Outputs the properties of one or more *table monitors*, given a set of *topic IDs*; or outputs the properties of all *table monitors* |
+| [/grant/permission](/content/api/rest/grant_permission_rest#grant-permission-rest) | Grants the [permission](/content/security/sec_concepts#security-concepts-permissions-monitor) for a user to remove a *table monitor* |
+| [/has/permission](/content/api/rest/has_permission_rest#has-permission-rest) | Checks for the [permission](/content/security/sec_concepts#security-concepts-permissions-monitor) for a user to remove a *table monitor* |
+| [/revoke/permission](/content/api/rest/revoke_permission_rest#revoke-permission-rest) | Revokes the [permission](/content/security/sec_concepts#security-concepts-permissions-monitor) for a user to remove a *table monitor* |
+
+
+When a *table monitor* is created with the
+[/create/tablemonitor](/content/api/rest/create_tablemonitor_rest#create-tablemonitor-rest) endpoint, several values are returned:
+
+* *topic ID* - used to subscribe to the *table monitor's* notifications and to
+  identify or remove the *table monitor*
+* *type schema* - used to decode records within insert notifications
+* *info* - a hierarchy of key/value pairs, which will include the
+  randomly-generated name of the backing *data sink*, if one was automatically
+  created to support the *table monitor*
+
+During the *table monitor's* lifetime, it cannot be modified.
+
+The existence of a *table monitor* on a table can be verified by calling the
+[/show/table](/content/api/rest/show_table_rest#show-table-rest) endpoint with the corresponding table name, and parsing
+the response for the list of attached *table monitors* found under the
+`additional_info` &gt; `table_monitor` keys.  Each *table monitor's* monitored
+event type (*insert*, *update*, or *delete*) and *topic ID* are available.
+
+A *table monitor* will run continuously until it is manually removed.
+
+*Table monitors* will be temporarily unavailable during a database restart, but
+will become active once the database begins servicing requests again.
+
+
+## Limitations & Cautions
+
+
+* A *table monitor* can be used to monitor a [table](/content/concepts/tables) or a
+  [materialized view](/content/concepts/materialized_views) ending in a *table*, but not a
+  [filtered view](/content/concepts/filtered_views) or [join view](/content/concepts/joins).
+
+
+## Example
+
+
+For a tutorial on using *table monitors* with an associated complete example,
+see [Table Monitor Guide](/content/guides/table_monitor).

@@ -1,0 +1,2678 @@
+---
+title: Security
+sidebarTitle: Security
+---
+
+<a id="sql-security"></a>
+
+
+*Kinetica* provides basic table-level role-based access control for users.  It
+also allows global read/write and administrative access to be granted.
+For details about *Kinetica* security, see [Security Concepts](/content/security/sec_concepts).
+
+
+<Tip>
+A limited set of user/role information can be extracted via function
+calls.  See [User/Security Functions](/content/sql/query#sql-functions-security) for details.
+</Tip>
+
+Security features accessible via SQL include:
+
+* [User Management](/content/sql/security#sql-security-user-mgmt)
+* [Role Management](/content/sql/security#sql-security-role-mgmt)
+* [Privilege Management](/content/sql/security#sql-security-priv-mgmt)
+* [Impersonation (Execute As...)](/content/sql/security#sql-security-impersonation) - enables execution of commands as
+  another user
+
+
+<a id="sql-security-user-mgmt"></a>
+
+
+## User Management
+
+
+The ability to manage user accounts is available through SQL, using the
+following commands:
+
+* [CREATE USER](/content/sql/security#sql-security-user-mgmt-create)
+* [ALTER USER](/content/sql/security#sql-security-user-mgmt-alter)
+* [DROP USER](/content/sql/security#sql-security-user-mgmt-drop)
+* [SHOW SECURITY FOR User](/content/sql/security#sql-security-user-mgmt-show)
+
+See [Users](/content/security/sec_concepts#security-concepts-users) for details about users within
+*Kinetica*.
+
+
+<a id="sql-security-user-mgmt-create"></a>
+
+
+### CREATE USER
+
+
+[Users](/content/security/sec_concepts#security-concepts-users) can be added to the system and assigned
+[permissions](/content/security/sec_concepts#security-concepts-permissions) either directly or via
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+Optionally, the user can be associated with a
+[resource group](/content/rm/concepts#rm-concepts-resource-groups) and/or be assigned a
+[default schema](/content/concepts/schemas#schema-default).
+
+```sql title="CREATE USER Syntax"
+CREATE USER <user name>
+[ < [WITH] PASSWORD [=] | IDENTIFIED BY [PASSWORD] > '<user password>' ]
+[ [WITH] RESOURCE GROUP [=] <group name> ]
+[ [WITH] DEFAULT SCHEMA [=] <schema name> ]
+[ [WITH] ACTIVATED [=] <TRUE | FALSE> ]
+```
+
+
+<Info>
+The password needs to be single-quoted and must not contain single quotes.
+</Info>
+
+
+#### Examples
+
+
+Two of the ways to create a new internal user with the user ID of
+**jsmith** and a password of **secret** are:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 49 55) */}
+```sql CREATE USER Example
+CREATE USER jsmith IDENTIFIED BY 'secret'
+CREATE USER jsmith WITH PASSWORD 'secret'
+```
+
+To create an internal user with the user ID of **jsmith**, a password of
+**secret**, and assigning the **memory_over_execution** *resource group*:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 60-62) */}
+```sql CREATE USER with Resource Group Example
+CREATE USER jsmith
+IDENTIFIED BY 'secret'
+WITH RESOURCE GROUP memory_over_execution
+```
+
+To create a user with an existing external LDAP user, the user name should match
+the LDAP user name and be prepended with the `@` symbol; no password is
+supplied, as the user will be externally authenticated:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 42) */}
+```sql CREATE USER (External) Example
+CREATE USER "@jsmith"
+```
+
+
+<a id="sql-security-user-mgmt-alter"></a>
+
+
+### ALTER USER
+
+
+Any of the following facets of a [user](/content/security/sec_concepts#security-concepts-users) can be
+altered, either individually or as a group:
+
+* password
+* [resource group](/content/rm/concepts#rm-concepts-resource-groups)
+* [default schema](/content/concepts/schemas#schema-default)
+
+```sql title="ALTER USER Syntax"
+ALTER USER <user name>
+SET
+    [ PASSWORD [=] '<user password>' ]
+    [ RESOURCE GROUP [=] <group name | DEFAULT> ]
+    [ DEFAULT SCHEMA [=] <schema name | DEFAULT> ]
+    [ ACTIVATED [=] <TRUE | FALSE> ]
+```
+
+
+<Info>
+The password needs to be single-quoted and must not contain single quotes.
+</Info>
+
+
+#### Examples
+
+
+To alter a user with the user ID of **jsmith**, assigning a
+password of **new_secret**, and the **memory_over_execution** *resource group*:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 84-87) */}
+```sql ALTER USER with Resource Group Example
+ALTER USER jsmith
+SET
+    PASSWORD = 'new_secret'
+    RESOURCE GROUP memory_over_execution
+```
+
+To unassign the **memory_over_execution** *resource_group* from the **jsmith**
+user:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 79-81) */}
+```sql ALTER USER Removing Resource Group Example
+ALTER USER jsmith
+SET
+    RESOURCE GROUP DEFAULT
+```
+
+
+<a id="sql-security-user-mgmt-drop"></a>
+
+
+### DROP USER
+
+
+Any [user](/content/security/sec_concepts#security-concepts-users), other than the
+[default users](/content/security/sec_concepts#security-concepts-users-default), can be removed from the
+system.  Note that any database objects created by a user will remain when the
+user is removed.
+
+```sql title="DROP USER Syntax"
+DROP USER <user name>
+```
+
+
+#### Examples
+
+
+To drop an internal user **jsmith**:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 52) */}
+```sql DROP USER (Internal) Example
+DROP USER jsmith
+```
+
+To drop an external LDAP user **jsmith**:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 45) */}
+```sql DROP USER (External) Example
+DROP USER "@jsmith"
+```
+
+
+<a id="sql-security-user-mgmt-show"></a>
+
+
+### SHOW SECURITY FOR User
+
+
+For any one or more (or all) [users](/content/security/sec_concepts#security-concepts-users) in the
+system, the following can be listed:
+
+* [permissions](/content/security/sec_concepts#security-concepts-permissions)
+* [roles](/content/security/sec_concepts#security-concepts-roles)
+* [resource groups](/content/rm/concepts#rm-concepts-resource-groups)
+* [default schema](/content/concepts/schemas#schema-default)
+
+In addition, permissions, roles, & resource groups will be listed recursively
+for the roles the specified users have and the roles those roles have, etc.
+This allows the full set of permissions for a given user, both direct &
+inherited, to be viewed with one command.
+
+```sql title="SHOW SECURITY FOR User Syntax"
+SHOW SECURITY FOR <user name>,...
+```
+
+
+#### Examples
+
+
+To show the permissions, roles, *resource group*, and
+*default schema* for user **jsmith**:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 93) */}
+```sql SHOW SECURITY FOR User Example
+SHOW SECURITY FOR jsmith
+```
+
+
+<a id="sql-security-role-mgmt"></a>
+
+
+## Role Management
+
+
+The ability to manage roles is available through SQL, using the following
+commands:
+
+* [CREATE ROLE](#create-role)
+* [ALTER ROLE](#alter-role)
+* [DROP ROLE](#drop-role)
+* [SHOW SECURITY FOR Role](#show-security-for-role)
+
+See [Roles](/content/security/sec_concepts#security-concepts-roles) for details about roles within *Kinetica*.
+
+
+<a id="sql-security-role-mgmt-create"></a>
+
+
+### CREATE ROLE
+
+
+A new [role](/content/security/sec_concepts#security-concepts-roles) can be created as a container for
+[permissions](/content/security/sec_concepts#security-concepts-permissions) or other roles, though both
+of those must be granted to the role after its creation.
+
+Optionally, the role can be associated with a
+[resource group](/content/rm/concepts#rm-concepts-resource-groups).
+
+```sql title="CREATE ROLE Syntax"
+CREATE ROLE <role name>
+[ [WITH] RESOURCE GROUP [=] <group name> ]
+```
+
+
+#### Examples
+
+
+To create an **analyst** role:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 26) */}
+```sql CREATE ROLE Example
+CREATE ROLE analyst
+```
+
+To create an **executive** role, assigning it the **execution_over_memory**
+*resource group*:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 34-35) */}
+```sql CREATE ROLE with Resource Group Example
+CREATE ROLE executive
+WITH RESOURCE GROUP execution_over_memory
+```
+
+
+### ALTER ROLE
+
+
+A [role](/content/security/sec_concepts#security-concepts-roles) can have its associated
+[resource group](/content/rm/concepts#rm-concepts-resource-groups) modified.
+
+```sql title="ALTER ROLE Syntax"
+ALTER ROLE <role name>
+SET RESOURCE GROUP [=] <group name | DEFAULT>
+```
+
+
+#### Examples
+
+
+To assign the **memory_over_execution** *resource group* to the **analyst**
+role:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 68-69) */}
+```sql ALTER ROLE Example
+ALTER ROLE analyst
+SET RESOURCE GROUP memory_over_execution
+```
+
+To unassign the *resource group* from the **analyst** role:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 72-73) */}
+```sql ALTER ROLE Removing Resource Group Example
+ALTER ROLE analyst
+SET RESOURCE GROUP DEFAULT
+```
+
+
+### DROP ROLE
+
+
+Dropping a [role](/content/security/sec_concepts#security-concepts-roles) will remove the associated
+[permissions](/content/security/sec_concepts#security-concepts-permissions) & roles granted through the
+role to all [users](/content/security/sec_concepts#security-concepts-users) with the role.  Users & roles
+granted the same permissions either directly or via other roles will retain
+those permissions.
+
+Any role, other than the [default roles](/content/security/sec_concepts#security-concepts-roles-default),
+can be removed from the system.
+
+```sql title="DROP ROLE Syntax"
+DROP ROLE <role name>
+```
+
+
+#### Examples
+
+
+To drop the **analyst** role:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 29) */}
+```sql DROP ROLE Example
+DROP ROLE analyst
+```
+
+
+### SHOW SECURITY FOR Role
+
+
+For any one or more (or all) [roles](/content/security/sec_concepts#security-concepts-roles) in the
+system, the following can be listed:
+
+* [permissions](/content/security/sec_concepts#security-concepts-permissions)
+* [roles](/content/security/sec_concepts#security-concepts-roles)
+* [resource groups](/content/rm/concepts#rm-concepts-resource-groups)
+
+In addition, these attributes will be listed recursively for the roles the
+specified roles have and the roles those roles have, etc.  This allows the full
+set of permissions for a given role, both direct & inherited, to be viewed with
+one command.
+
+```sql title="SHOW SECURITY FOR Role Syntax"
+SHOW SECURITY FOR <role name>,...
+```
+
+
+#### Examples
+
+
+To show the permissions, roles, and *resource group* for the **analyst** role:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 96) */}
+```sql SHOW SECURITY FOR Role Example
+SHOW SECURITY FOR analyst
+```
+
+
+<a id="sql-security-priv-mgmt"></a>
+
+
+## Privilege Management
+
+
+The ability to manage user & role privileges is available through SQL, using the
+following commands:
+
+* Roles ([GRANT](/content/sql/security#sql-security-priv-mgmt-role-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-role-revoke))
+* System Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-sys-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-sys-revoke))
+* Schema Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-schema-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-schema-revoke))
+* Table Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-table-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-table-revoke))
+* Credential Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-cred-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-cred-revoke))
+* Data Source Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-ds-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-ds-revoke))
+* Data Sink Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-dsink-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-dsink-revoke))
+* Directory Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-dir-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-dir-revoke))
+* Function Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-udf-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-udf-revoke))
+* Graph Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-graph-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-graph-revoke))
+* Procedure Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-sqlp-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-sqlp-revoke))
+* SQL-GPT Context Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-gpt-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-gpt-revoke))
+* Stream Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-stream-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-stream-revoke))
+* [SHOW SECURITY](/content/sql/security#sql-security-show)
+* [CHECK](/content/sql/security#sql-security-check)
+
+See [Users](/content/security/sec_concepts#security-concepts-users) for details about user accounts within
+*Kinetica*.
+
+
+<a id="sql-security-priv-mgmt-role-grant"></a>
+
+
+### GRANT Role
+
+
+[Roles](/content/security/sec_concepts#security-concepts-roles) can be granted directly to
+[users](/content/security/sec_concepts#security-concepts-users) or other roles.
+
+```sql title="GRANT Role Syntax"
+GRANT <role name> TO <user name | role name>
+```
+
+
+#### Examples
+
+
+To grant a role allowing access to analyst tables to the
+**analyst** role, and then grant that **analyst** role to user **jsmith**:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 49 52) */}
+```sql GRANT ROLE Example
+GRANT analyst_table_access TO analyst
+GRANT analyst TO jsmith
+```
+
+
+<a id="sql-security-priv-mgmt-sys"></a>
+
+<a id="sql-security-priv-mgmt-sys-grant"></a>
+
+
+### GRANT SYSTEM Permission
+
+
+[System permissions](/content/security/sec_concepts#security-concepts-permissions-system) can be
+granted directly to [users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+
+<a id="sql-perm-system-admin"></a>
+
+
+#### System Administration
+
+
+```sql title="GRANT System Administrative Permission Syntax"
+GRANT SYSTEM ADMIN TO <user name | role name>
+```
+
+| Permission | Description |
+| --- | --- |
+| `SYSTEM ADMIN` | [System administrator permission](/content/security/sec_concepts#system-admin) |
+
+
+<a id="sql-perm-system-mgmt"></a>
+
+
+#### System Management
+
+
+```sql title="GRANT System Management Permission Syntax"
+GRANT SYSTEM < CREATE | MONITOR | READ | WRITE > TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `SYSTEM CREATE` | [System create permission](/content/security/sec_concepts#system-create) |
+| `SYSTEM MONITOR` | [System monitor permission](/content/security/sec_concepts#system-monitor) |
+| `SYSTEM READ` | [System read permission](/content/security/sec_concepts#system-read) |
+| `SYSTEM WRITE` | [System write permission](/content/security/sec_concepts#system-write) |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+<a id="sql-perm-user-admin"></a>
+
+
+#### User Administration
+
+
+```sql title="GRANT User Administrative Permission Syntax"
+GRANT USER ADMIN TO <user name | role name>
+```
+
+| Permission | Description |
+| --- | --- |
+| `USER ADMIN` | [User administrator permission](/content/security/sec_concepts#user-admin) |
+
+
+<a id="sql-perm-create-dir"></a>
+
+
+#### Create Directory
+
+
+```sql title="GRANT KiFS Directory Create Permission Syntax"
+GRANT CREATE DIRECTORY TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `CREATE DIRECTORY` | [Create directory permission](/content/security/sec_concepts#directory-create) |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+<a id="sql-perm-create-udf"></a>
+
+
+#### Create UDF/UDTF
+
+
+```sql title="GRANT UDF Create Permission Syntax"
+GRANT CREATE FUNCTION TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `CREATE FUNCTION` | [Create UDF/UDTF permission](/content/security/sec_concepts#proc-create) |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+#### Examples
+
+
+To grant system administrator permission to **jsmith**:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 58) */}
+```sql GRANT SYSTEM ADMIN Example
+GRANT SYSTEM ADMIN TO jsmith
+```
+
+To grant read access to all tables to the **auditor** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 61) */}
+```sql GRANT SYSTEM READ Example
+GRANT SYSTEM READ TO auditor
+```
+
+To grant user administrator permission to **jsmith**:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 67) */}
+```sql GRANT USER ADMIN Example
+GRANT USER ADMIN TO jsmith
+```
+
+
+<a id="sql-security-priv-mgmt-schema"></a>
+
+<a id="sql-security-priv-mgmt-schema-grant"></a>
+
+
+### GRANT Schema Permission
+
+
+[Schema permissions](/content/security/sec_concepts#security-concepts-permissions-schema), which
+allow management of [schemas](/content/sql/ddl#sql-create-schema) and their
+contained objects can be granted directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+```sql title="GRANT Schema Permission Syntax"
+GRANT < SELECT | INSERT | UPDATE | DELETE | CREATE <object type> | ALL > [PRIVILEGES]
+ON [SCHEMA] <schema reference>
+TO <user name | role name>
+[WITH GRANT OPTION]
+```
+
+
+#### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="PRIVILEGES" id="privileges" defaultOpen>
+
+Optional keyword for SQL-92 compatibility.
+
+</Accordion>
+
+<Accordion title="SCHEMA" id="schema" defaultOpen>
+
+Optional keyword to avoid ambiguity between a grant to a schema and a grant to a
+table/view in the user's default schema.
+
+</Accordion>
+
+<Accordion title="&lt;schema reference&gt;" id="<schema-reference>" defaultOpen>
+
+Either the name of the schema to which access is being granted or a wildcard expression
+signifying the schema(s) and table(s)/views(s) to which access is being granted.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Wildcard Form</th>
+    <th>Selected Objects</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>*</code></td>
+    <td>All schemas currently in the database</td>
+  </tr>
+  <tr>
+    <td><code>*.*</code></td>
+    <td>All schemas, tables, &amp; views currently in the database</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;object type&gt;" id="<object-type>" defaultOpen>
+
+For granting `CREATE` privilege, the object type to give permission to create in the
+given schema.
+
+Supported object types include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Target Type</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>CONTEXT</code></td>
+    <td>[SQL-GPT context](/content/sql/sqlgpt#sql-gpt-create-context) object</td>
+  </tr>
+  <tr>
+    <td><code>CREDENTIAL</code></td>
+    <td>[Credential](/content/sql/ddl#sql-create-credential) object</td>
+  </tr>
+  <tr>
+    <td><code>DATA SINK</code></td>
+    <td>External [data sink](/content/sql/ddl#sql-create-data-sink)</td>
+  </tr>
+  <tr>
+    <td><code>DATA SOURCE</code></td>
+    <td>External [data source](/content/sql/ddl#sql-create-data-source)</td>
+  </tr>
+  <tr>
+    <td><code>GRAPH</code></td>
+    <td>[Graph](/content/sql/graph#sql-graph-create)</td>
+  </tr>
+  <tr>
+    <td><code>PROCEDURE</code></td>
+    <td>SQL [stored procedure](/content/sql/procedure#sql-procedures)</td>
+  </tr>
+  <tr>
+    <td><code>STREAM</code></td>
+    <td>[Stream](/content/sql/ddl#sql-create-stream)</td>
+  </tr>
+  <tr>
+    <td><code>TABLE</code></td>
+    <td>[Table](/content/sql/ddl#sql-create-table) (or view)</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WITH GRANT OPTION" id="with-grant-option" defaultOpen>
+
+Grant this permission with a
+[grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<Info>
+The `ALL` permission corresponds to the native
+[table_admin](/content/security/sec_concepts#security-concepts-permissions-schema) permission,
+which gives full read/write access as well as the additional permission to
+`CREATE`, `ALTER`, & `DROP` any table or view in the specified
+schema(s).
+</Info>
+
+
+#### Examples
+
+
+To grant `SELECT` access on all schemas to the **auditor** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 79) */}
+```sql GRANT Read on Schemas to Role Example
+GRANT SELECT ON * TO auditor
+```
+
+To grant `SELECT` access on all current and future tables & views within the
+**app_schema** schema to the **app_user** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 82) */}
+```sql GRANT Read on Schema to Role Example
+GRANT SELECT ON app_schema TO app_user
+```
+
+To grant full access on each of the schemas, tables, & views in the database
+individually to the **dbadmin** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 88) */}
+```sql GRANT All Permissions on All Schemas/Tables/Views to Role Example
+GRANT ALL ON *.* TO dbadmin
+```
+
+
+<a id="sql-security-priv-mgmt-table"></a>
+
+<a id="sql-security-priv-mgmt-table-grant"></a>
+
+
+### GRANT Table Permission
+
+
+[Table permissions](/content/security/sec_concepts#security-concepts-permissions-table), which can
+be applied to tables and views, can be granted directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+
+<Note>
+For granting the ability to create *tables*, see
+[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
+</Note>
+
+[Row-level security](/content/security/sec_concepts#sec-concepts-perm-table-row) can be invoked for
+`SELECT` privilege by specifying a `WHERE` clause expression.
+
+[Column-level security](/content/security/sec_concepts#sec-concepts-perm-table-col) can be invoked for
+`SELECT` privilege by specifying a list of accessible columns and/or
+[column security functions](/content/security/sec_concepts#sec-concepts-perm-table-col-func).
+
+```sql title="GRANT Table Permission Syntax"
+GRANT < SELECT | INSERT | UPDATE | DELETE | ALL > [PRIVILEGES]
+[ON [TABLE] <object reference> [<column list>]]
+TO <user name | role name>
+[WHERE <expression>]
+[WITH GRANT OPTION]
+```
+
+
+#### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="PRIVILEGES" id="privileges-2" defaultOpen>
+
+Optional keyword for SQL-92 compatibility.
+
+</Accordion>
+
+<Accordion title="ON" id="on" defaultOpen>
+
+Optional object specifier for granting permission to a specific object or set of objects.
+If not specified, then the grant will be for all tables and views
+in all schemas now and in the future
+
+</Accordion>
+
+<Accordion title="TABLE" id="table" defaultOpen>
+
+Optional keyword for SQL-92 compatibility, and to avoid ambiguity between a grant to a
+table/view in the user's default schema (when `<schema name>` is omitted) and a grant
+to a schema.
+
+</Accordion>
+
+<Accordion title="&lt;object reference&gt;" id="<object-reference>" defaultOpen>
+
+The name of the table/view and/or schema to which access is being granted.
+the following forms are valid:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Form</th>
+    <th>Selected Objects</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td>*&lt;schema&gt;.&lt;object&gt;*</td>
+    <td>Fully-qualified table or view name in the specified schema</td>
+  </tr>
+  <tr>
+    <td><code>*.*</code></td>
+    <td>All existing tables &amp; views that the granting user can see across all schemas</td>
+  </tr>
+  <tr>
+    <td><code>*</code></td>
+    <td>All existing schemas that the granting user can see, which will grant access to all tables and views in those schemas now and in the future</td>
+  </tr>
+  <tr>
+    <td>*&lt;schema&gt;*</td>
+    <td>All tables and views in the specified schema now and in the future</td>
+  </tr>
+  <tr>
+    <td>*&lt;object&gt;*</td>
+    <td>Table or view in the default schema.  If a schema exists with the same name, it will be used.  To avoid this, specify the fully-qualified object name.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;column list&gt;" id="<column-list>" defaultOpen>
+
+Optional comma-separated list of specific table columns and/or
+[column security functions](/content/security/sec_concepts#sec-concepts-perm-table-col-func) applied to columns
+on which to grant access; see [Column-Level Security](/content/security/sec_concepts#sec-concepts-perm-table-col) for details.
+
+</Accordion>
+
+<Accordion title="WHERE &lt;expression&gt;" id="where-<expression>" defaultOpen>
+
+Optional filter expression on the table to which access is being granted, determining to
+which rows of the target table the grantee will be given access; see
+[Row-Level Security](/content/security/sec_concepts#sec-concepts-perm-table-row) for details.
+
+</Accordion>
+
+<Accordion title="WITH GRANT OPTION" id="with-grant-option-2" defaultOpen>
+
+Grant this permission with a
+[grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others.
+
+
+<Info>
+`WITH GRANT OPTION` is not allowed when also granting with row or column
+restrictions.
+</Info>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<Info>
+The `ALL` permission corresponds to the native
+[table_admin](/content/security/sec_concepts#security-concepts-permissions-table) permission, which
+gives full read/write access as well as the additional permission either to
+`ALTER` and `DROP` the specified table.
+</Info>
+
+
+#### Examples
+
+
+For example, to grant full access on the **network_config** table to **jsmith**:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 73) */}
+```sql GRANT All Permissions on Table to User Example
+GRANT ALL PRIVILEGES ON TABLE example.network_config TO jsmith
+```
+
+To grant `SELECT` access on the **network_config_history** table to the
+**analyst** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 76) */}
+```sql GRANT Read on Table to Role Example
+GRANT SELECT ON example.network_config_history TO analyst
+```
+
+To grant full access on each of the tables & views within the
+**example** schema to the **developer** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 85) */}
+```sql GRANT All Permissions on Current Tables/Views in Schema to Role Example
+GRANT ALL ON example.* TO developer
+```
+
+
+<a id="sql-security-priv-mgmt-row-grant"></a>
+
+
+#### Row-Level Security Examples
+
+
+To grant `SELECT` access on an **rx_order** table for all orders placed since
+the year **2002**:
+
+{/* Source: /examples/sql/security/security_row_column.kisql (lines 47-49) */}
+```sql GRANT Row-Level Access by Filter Example
+GRANT SELECT ON example.rx_order
+	TO zanalyst
+	WHERE order_ts >= '2002-01-01'
+```
+
+To grant `SELECT` access on an **rx_order** table for only orders belonging
+to the current user:
+
+{/* Source: /examples/sql/security/security_row_column.kisql (lines 52-54) */}
+```sql GRANT Row-Level Access Tied to Current User Example
+GRANT SELECT ON example.rx_order
+	TO rx_user
+	WHERE name = USER()
+```
+
+
+<a id="sql-security-priv-mgmt-col-grant"></a>
+
+
+#### Column-Level Security Examples
+
+
+To grant `SELECT` access on the following columns of an **rx_order** table:
+
+* obfuscated version of the orderer's social security number
+* name of the prescription ordered
+* order date/time
+
+{/* Source: /examples/sql/security/security_row_column.kisql (lines 111) */}
+```sql GRANT Obfuscated Column-Level Access Example
+GRANT SELECT ON example.rx_order(HASH(ssn), rx_name, order_ts) TO zanalyst
+```
+
+To grant `SELECT` access on the following columns of an **rx_order** table:
+
+* masked version of the orderer's social security number (last 4 digits)
+* name of the orderer
+* name of the prescription ordered
+* order date/time
+
+{/* Source: /examples/sql/security/security_row_column.kisql (lines 114) */}
+```sql GRANT Masked Column-Level Access Example
+GRANT SELECT ON example.rx_order(MASK(ssn, 1, 6), name, rx_name, order_ts) TO rx_user
+```
+
+
+<a id="sql-security-priv-mgmt-cred-grant"></a>
+
+
+### GRANT Credential Permission
+
+
+[Credential permissions](/content/security/sec_concepts#security-concepts-permissions-credential),
+which allow management of [credentials](/content/sql/ddl#sql-create-credential),
+can be granted directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+
+<Note>
+For granting the ability to create *credentials*, see
+[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
+</Note>
+
+```sql title="GRANT Credential Permission Syntax"
+GRANT <READ | ADMIN> ON CREDENTIAL <credential name> TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `ADMIN` | Modify or drop the given *credential* (includes `READ` access). |
+| `READ` | Use or view the configuration of the given *credential*. |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+#### Examples
+
+
+To grant read access on the *credential* named
+**auser_azure_active_dir_creds** to the **auser** *user*:
+
+{/* Source: /examples/sql/credential/credential.kisql (lines 50) */}
+```sql GRANT Credential Use Permission Example
+GRANT READ ON CREDENTIAL auser_azure_active_dir_creds TO auser
+```
+
+To grant administrative access on the *credential* to the **auser** *user*:
+
+{/* Source: /examples/sql/credential/credential.kisql (lines 63) */}
+```sql GRANT Credential Administrative Permission Example
+GRANT ADMIN ON CREDENTIAL auser_azure_active_dir_creds TO auser
+```
+
+
+<a id="sql-security-priv-mgmt-ds-grant"></a>
+
+
+### GRANT Data Source Permission
+
+
+[Data source permissions](/content/security/sec_concepts#security-concepts-permissions-datasource),
+which allow management of [data sources](/content/sql/ddl#sql-create-data-source),
+can be granted directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+
+<Note>
+For granting the ability to create *data sources*, see
+[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
+</Note>
+
+```sql title="GRANT Data Source Permission Syntax"
+GRANT <CONNECT | ADMIN> ON DATA SOURCE <data source name> TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `ADMIN` | Modify or drop the given *data source* (includes `CONNECT` access). |
+| `CONNECT` | Connect to, load data into, or view the configuration of the given *data source*. |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+#### Examples
+
+
+To grant connect access on the *data source* named
+**kin_ds** to the **auser** *user*:
+
+{/* Source: /examples/sql/data_source/data_source.kisql (lines 69) */}
+```sql GRANT Data Source Use Permission Example
+GRANT CONNECT ON DATA SOURCE kin_ds TO auser
+```
+
+To grant administrative access on the *data source* named **kin_ds_anon** to the
+**auser** *user*:
+
+{/* Source: /examples/sql/data_source/data_source.kisql (lines 108) */}
+```sql GRANT Data Source Administrative Permission Example
+GRANT ADMIN ON DATA SOURCE kin_ds_anon TO auser
+```
+
+
+<a id="sql-security-priv-mgmt-dsink-grant"></a>
+
+
+### GRANT Data Sink Permission
+
+
+[Data sink permissions](/content/security/sec_concepts#security-concepts-permissions-datasink),
+which allow management of [data sinks](/content/sql/ddl#sql-create-data-sink),
+can be granted directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+
+<Note>
+For granting the ability to create *data sinks*, see
+[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
+</Note>
+
+```sql title="GRANT Data Sink Permission Syntax"
+GRANT <CONNECT | ADMIN> ON DATA SINK <data sink name> TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `ADMIN` | Modify or drop the given *data sink* (includes `CONNECT` access). |
+| `CONNECT` | Connect to, load data into, or view the configuration of the given *data sink*. |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+#### Examples
+
+
+To grant connect & load access on the *data sink* named
+**kin_dsink** to the **auser** *user*:
+
+{/* Source: /examples/sql/data_sink/data_sink.kisql (lines 78) */}
+```sql GRANT Data Sink Use Permission Example
+GRANT CONNECT ON DATA SINK kin_dsink TO auser
+```
+
+To grant administrative access on the *data sink* named **kin_dsink_http** to the
+**auser** *user*:
+
+{/* Source: /examples/sql/data_sink/data_sink.kisql (lines 110) */}
+```sql GRANT Data Sink Administrative Permission Example
+GRANT ADMIN ON DATA SINK kin_dsink_http TO auser
+```
+
+
+<a id="sql-security-priv-mgmt-dir-grant"></a>
+
+
+### GRANT Directory Permission
+
+
+[KiFS directory permissions](/content/security/sec_concepts#security-concepts-permissions-kifs),
+which allow management of *files* within
+[KiFS directories](/content/sql/kifs#sql-kifs-create-dir), can be granted
+directly to [users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+
+<Note>
+For granting the ability to create *directories*, see
+[GRANT SYSTEM Permission](/content/sql/security#sql-security-priv-mgmt-sys-grant).
+</Note>
+
+```sql title="GRANT Directory Permission Syntax"
+GRANT <READ | WRITE> ON DIRECTORY <directory name> TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `READ` | List, download, or load data from *files* within the given *directory*. |
+| `WRITE` | Upload *files* to or delete *files* from the given *directory* (includes `READ` access). |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+#### Examples
+
+
+To grant read access on a *directory* named **kdata** to the
+**kuser** *user*:
+
+{/* Source: /examples/sql/kifs.kisql (lines 152) */}
+```sql GRANT Directory Read Permission Example
+GRANT READ ON DIRECTORY 'kdata' TO kuser
+```
+
+To grant write access on a *directory* named **kdata** to the **kuser** *user*:
+
+{/* Source: /examples/sql/kifs.kisql (lines 168) */}
+```sql GRANT Directory Write Permission Example
+GRANT WRITE ON DIRECTORY 'kdata' TO kuser
+```
+
+
+<a id="sql-security-priv-mgmt-udf-grant"></a>
+
+
+### GRANT Function (UDF/UDTF) Permission
+
+
+[Function permissions](/content/security/sec_concepts#security-concepts-permissions-function),
+which allow management of [UDFs/UDTFs](/content/sql/udf#sql-udf), can be granted
+directly to [users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+
+<Note>
+For granting the ability to create *UDFs/UDTFs*, see
+[GRANT SYSTEM Permission](/content/sql/security#sql-security-priv-mgmt-sys-grant).
+</Note>
+
+```sql title="GRANT FUNCTION (UDF) Permission Syntax"
+GRANT <EXECUTE | ADMIN> ON FUNCTION < <function name> | * > TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `ADMIN` | Drop the given *UDF*, and display full configuration about it (includes `EXECUTE` access). <br/> <br/> When `*` is used instead of *function name*, gives permission to manage [Python UDF function environments](/content/sql/udf#sql-create-function-environment). |
+| `EXECUTE` | Run and terminate the given *UDF*, and display limited configuration about it. |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+<Info>
+Use `*` instead of *function name* to grant the specified permission
+to all existing & future UDFs.
+</Info>
+
+
+#### Examples
+
+
+To grant execute on the **udf_sos_py_proc** *UDF* to **udf_user**:
+
+{/* Source: /examples/sql/udf/udf.kisql (lines 99) */}
+```sql GRANT Function Execute Permission Example
+GRANT EXECUTE ON FUNCTION UDF_SOS_PY_PROC TO udf_user
+```
+
+To grant administrative access on every existing & future *UDF*, as well as the
+ability to manage Python UDF environments, to **udf_user**:
+
+{/* Source: /examples/sql/udf/udf_env_perm.kisql (lines 27) */}
+```sql GRANT Function Administrative Permission Example
+GRANT ADMIN ON FUNCTION * TO udf_user
+```
+
+
+<a id="sql-security-priv-mgmt-graph-grant"></a>
+
+
+### GRANT Graph Permission
+
+
+[Graph permissions](/content/security/sec_concepts#security-concepts-permissions-graph), which
+allow management of [graphs](/content/sql/graph), can be granted
+directly to [users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+
+<Note>
+For granting the ability to create *graphs*, see
+[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
+</Note>
+
+```sql title="GRANT Graph Permission Syntax"
+GRANT <READ | WRITE | ADMIN> ON GRAPH <graph name> TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `ADMIN` | Drop the given *graph* (includes `WRITE` access). |
+| `READ` | Query, match, solve, & show the given *graph*. |
+| `WRITE` | Modify the given *graph* (includes `READ` access). |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+#### Examples
+
+
+To grant query, match, solve, & show access on the *graph* named
+**big_cities_graph** to **geo_user**:
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 351) */}
+```sql GRANT Graph Permission Example
+GRANT READ ON GRAPH big_cities_graph TO geo_user
+```
+
+
+<a id="sql-security-priv-mgmt-sqlp-grant"></a>
+
+
+### GRANT Procedure Permission
+
+
+[Procedure permissions](/content/security/sec_concepts#security-concepts-permissions-procedure),
+which allow execution of [SQL procedures](/content/sql/procedure#sql-procedures), can be
+granted directly to [users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+
+<Note>
+For granting the ability to create *SQL procedures*, see
+[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
+</Note>
+
+```sql title="GRANT EXECUTE PROCEDURE Permission Syntax"
+GRANT EXECUTE PROCEDURE ON <procedure name> TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `EXECUTE` | Run the given *SQL procedure*. |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+#### Examples
+
+
+To grant execute on the **sqlp_weekly** procedure to **spuser**:
+
+{/* Source: /examples/sql/procedure/create_procedure.kisql (lines 106) */}
+```sql GRANT EXECUTE PROCEDURE Permission Example
+GRANT EXECUTE PROCEDURE ON example.sqlp_weekly TO spuser
+```
+
+
+<a id="sql-security-priv-mgmt-gpt-grant"></a>
+
+
+### GRANT SQL-GPT Context Permission
+
+
+[SQL-GPT](/content/sql-gpt/concepts) *context permissions*,
+which allow management of
+[SQL-GPT contexts](/content/sql/sqlgpt#sql-gpt-create-context),
+can be granted directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+
+<Note>
+For granting the ability to create *SQL-GPT contexts*, see
+[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
+</Note>
+
+```sql title="GRANT SQL-GPT Context Permission Syntax"
+GRANT <READ | ADMIN> ON CONTEXT <context name> TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `ADMIN` | Modify or drop the given *context* (includes `READ` access). |
+| `READ` | Use the given *context* to generate SQL using a SQL-GPT query. |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+#### Examples
+
+
+To grant *read* access on the *SQL-GPT context* named
+**example.atc_ctx** to the **ctxuser** *user*:
+
+{/* Source: /examples/sql/sql-gpt/syntax.kisql (lines 232) */}
+```sql GRANT SQL-GPT Context Permission Example
+GRANT READ ON CONTEXT example.atc_ctx TO ctxuser
+```
+
+
+<a id="sql-security-priv-mgmt-stream-grant"></a>
+
+
+### GRANT Stream Permission
+
+
+[Stream permissions](/content/security/sec_concepts#security-concepts-permissions-monitor),
+which allow removal & display of [streams](/content/sql/ddl#sql-create-stream),
+can be granted directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+
+<Note>
+For granting the ability to create *streams*, see
+[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
+</Note>
+
+```sql title="GRANT Stream Administrative Permission Syntax"
+GRANT ADMIN ON STREAM <stream name> TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `ADMIN` | Drop the given *stream*. |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+#### Examples
+
+
+To grant administrative access on the *stream* named
+**kin_stream** to the **auser** *user*:
+
+{/* Source: /examples/sql/stream/stream.kisql (lines 67) */}
+```sql GRANT Stream Administrative Permission Example
+GRANT ADMIN ON STREAM example.kin_stream TO auser
+```
+
+
+<a id="sql-security-priv-mgmt-role-revoke"></a>
+
+
+### REVOKE Role
+
+
+[Roles](/content/security/sec_concepts#security-concepts-roles) can be revoked from
+[users](/content/security/sec_concepts#security-concepts-users) or other roles.
+
+```sql title="REVOKE Role Syntax"
+REVOKE <role name> FROM <user name | role name>
+```
+
+
+#### Examples
+
+
+To revoke a role allowing access to analyst tables from the **analyst** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 104) */}
+```sql REVOKE Role from Role Example
+REVOKE analyst_table_access FROM analyst
+```
+
+To revoke the **analyst** role from user **jsmith**:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 107) */}
+```sql REVOKE Role from User Example
+REVOKE analyst FROM jsmith
+```
+
+
+<a id="sql-security-priv-mgmt-sys-revoke"></a>
+
+
+### REVOKE SYSTEM Permission
+
+
+[System permissions](/content/security/sec_concepts#security-concepts-permissions-system) can be
+revoked from [users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+```sql title="REVOKE System Administrative Permission Syntax"
+REVOKE SYSTEM < ADMIN | CREATE | MONITOR | READ | WRITE > FROM <user name | role name>
+```
+
+```sql title="REVOKE User Administrative Permission Syntax"
+REVOKE USER ADMIN FROM <user name | role name>
+```
+
+```sql title="REVOKE KiFS Directory Create Permission Syntax"
+REVOKE CREATE DIRECTORY FROM <user name | role name>
+```
+
+```sql title="REVOKE UDF Create Permission Syntax"
+REVOKE CREATE FUNCTION FROM <user name | role name>
+```
+
+
+#### Examples
+
+
+To revoke system administrator permission from **jsmith**:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 113) */}
+```sql REVOKE SYSTEM ADMIN Example
+REVOKE SYSTEM ADMIN FROM jsmith
+```
+
+To revoke read access to all tables from the **auditor** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 116) */}
+```sql REVOKE SYSTEM READ Example
+REVOKE SYSTEM READ FROM auditor
+```
+
+To revoke user administrator permission from **jsmith**:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 122) */}
+```sql REVOKE USER ADMIN Example
+REVOKE USER ADMIN FROM jsmith
+```
+
+
+<a id="sql-security-priv-mgmt-schema-revoke"></a>
+
+
+### REVOKE Schema Permission
+
+
+[Schema permissions](/content/security/sec_concepts#security-concepts-permissions-schema), which
+allow management of [schemas](/content/sql/ddl#sql-create-schema) and their
+contained objects can be revoked from
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+```sql title="REVOKE Schema Permission Syntax"
+REVOKE < SELECT | INSERT | UPDATE | DELETE | CREATE <object type> | ALL > [PRIVILEGES]
+ON [SCHEMA] <schema reference>
+FROM <user name | role name>
+```
+
+
+#### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="PRIVILEGES" id="privileges-3" defaultOpen>
+
+Optional keyword for SQL-92 compatibility
+
+</Accordion>
+
+<Accordion title="SCHEMA" id="schema-2" defaultOpen>
+
+Optional keyword to avoid ambiguity between revoking a grant to a schema and a grant to a
+table/view in the user's default schema
+
+</Accordion>
+
+<Accordion title="&lt;schema reference&gt;" id="<schema-reference>-2" defaultOpen>
+
+Either the name of the schema to which access is being revoked or a wildcard expression
+signifying the schema(s) and table(s)/views(s) to which access is being revoked
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Wildcard Form</th>
+    <th>Selected Objects</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>*</code></td>
+    <td>All schemas currently in the database</td>
+  </tr>
+  <tr>
+    <td><code>*.*</code></td>
+    <td>All schemas, tables, &amp; views currently in the database</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;object type&gt;" id="<object-type>-2" defaultOpen>
+
+For revoking `CREATE` privilege, the object type to remove permission to create in the
+given schema.
+
+Supported object types include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Target Type</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>CONTEXT</code></td>
+    <td>[SQL-GPT context](/content/sql/sqlgpt#sql-gpt-create-context) object</td>
+  </tr>
+  <tr>
+    <td><code>CREDENTIAL</code></td>
+    <td>[Credential](/content/sql/ddl#sql-create-credential) object</td>
+  </tr>
+  <tr>
+    <td><code>DATA SINK</code></td>
+    <td>External [data sink](/content/sql/ddl#sql-create-data-sink)</td>
+  </tr>
+  <tr>
+    <td><code>DATA SOURCE</code></td>
+    <td>External [data source](/content/sql/ddl#sql-create-data-source)</td>
+  </tr>
+  <tr>
+    <td><code>GRAPH</code></td>
+    <td>[Graph](/content/sql/graph#sql-graph-create)</td>
+  </tr>
+  <tr>
+    <td><code>PROCEDURE</code></td>
+    <td>SQL [stored procedure](/content/sql/procedure#sql-procedures)</td>
+  </tr>
+  <tr>
+    <td><code>STREAM</code></td>
+    <td>[Stream](/content/sql/ddl#sql-create-stream)</td>
+  </tr>
+  <tr>
+    <td><code>TABLE</code></td>
+    <td>[Table](/content/sql/ddl#sql-create-table) (or view)</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<Info>
+The `ALL` permission corresponds to the native
+[table_admin](/content/security/sec_concepts#security-concepts-permissions-schema) permission,
+which gives full read/write access as well as the additional permission to
+`CREATE`, `ALTER`, & `DROP` any table or view in the specified
+schema(s).
+</Info>
+
+
+#### Examples
+
+
+To revoke `SELECT` access on all schemas from the **auditor** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 134) */}
+```sql REVOKE Read on Schemas from Role Example
+REVOKE SELECT ON * FROM auditor
+```
+
+To revoke `SELECT` access on all current and future tables & views within the
+**app_schema** schema from the **app_user** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 137) */}
+```sql REVOKE Read on Schema from Role Example
+REVOKE SELECT ON app_schema FROM app_user
+```
+
+To revoke full access on each of the schemas, tables, & views in the database
+individually from the **dbadmin** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 143) */}
+```sql REVOKE All Permissions on All Schemas/Tables/Views from Role Example
+REVOKE ALL ON *.* FROM dbadmin
+```
+
+
+<a id="sql-security-priv-mgmt-table-revoke"></a>
+
+
+### REVOKE Table Permission
+
+
+[Table permissions](/content/security/sec_concepts#security-concepts-permissions-table), which can
+be applied to tables and views, can be revoked from
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+
+<Note>
+For revoking the ability to create *tables*, see
+[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
+</Note>
+
+[Row-level security](/content/security/sec_concepts#sec-concepts-perm-table-row) can be revoked for
+`SELECT` privilege only by revoking `SELECT` privilege from the entire
+table.
+
+
+<Info>
+Access to individual rows cannot be revoked; instead, full `SELECT`
+access should be revoked, followed by a grant of access to the appropriate
+rows.
+</Info>
+
+[Column-level security](/content/security/sec_concepts#sec-concepts-perm-table-col) can be revoked for
+`SELECT` privilege by specifying a list of columns for which access will be
+revoked, regardless of any security functions that may have been applied to the
+column when granting access (`HASH`, `MASK`).
+
+```sql title="REVOKE Table Permission Syntax"
+REVOKE < SELECT | INSERT | UPDATE | DELETE | ALL > [PRIVILEGES]
+ON [TABLE] [<schema name>.]<table/view name> [<column list>]
+FROM <user name | role name>
+```
+
+
+#### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="PRIVILEGES" id="privileges-4" defaultOpen>
+
+Optional keyword for SQL-92 compatibility
+
+</Accordion>
+
+<Accordion title="TABLE" id="table-2" defaultOpen>
+
+Optional keyword for SQL-92 compatibility, and to avoid ambiguity between revoking a
+grant to a table/view in the user's default schema (when `<schema name>` is omitted)
+and a grant to a schema
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+The name of the schema containing the table/view to which access is being revoked; if
+omitted, the table/view will be looked for in the default schema
+
+</Accordion>
+
+<Accordion title="&lt;table/view name&gt;" id="<table/view-name>" defaultOpen>
+
+The name of the table to which access is being revoked; the wildcard `*` can be used to
+revoke access to all tables/views within the given `<schema name>` schema
+
+</Accordion>
+
+<Accordion title="&lt;column list&gt;" id="<column-list>-2" defaultOpen>
+
+Optional comma-separated list of specific table columns to which access is being revoked;
+see [Column-Level Security](/content/security/sec_concepts#sec-concepts-perm-table-col) for details
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<Info>
+The `ALL` permission corresponds to the native
+[table_admin](/content/security/sec_concepts#security-concepts-permissions-table) permission, which
+gives full read/write access as well as the additional permission either to
+`ALTER` and `DROP` the specified table or to `CREATE`, `ALTER`, &
+`DROP` all tables in the specified schema.
+</Info>
+
+
+#### Examples
+
+
+For example, to revoke full access on the **network_config** table from
+**jsmith**:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 128) */}
+```sql REVOKE All Permissions on Table from User Example
+REVOKE ALL PRIVILEGES ON TABLE example.network_config FROM jsmith
+```
+
+To revoke `SELECT` access on the **network_config_history** table from the
+**analyst** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 131) */}
+```sql REVOKE Read on Table from Role Example
+REVOKE SELECT ON example.network_config_history FROM analyst
+```
+
+To revoke full access on each of the tables & views within the **example**
+schema from the **developer** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 140) */}
+```sql REVOKE All Permissions on Current Tables/Views in Schema from Role Example
+REVOKE ALL ON example.* FROM developer
+```
+
+
+<a id="sql-security-priv-mgmt-row-revoke"></a>
+
+
+#### Row-Level Security Examples
+
+
+To revoke `SELECT` access on an **rx_order** table for all orders placed since
+the year **2002** (as was granted in the
+[row-level grant example](/content/sql/security#sql-security-priv-mgmt-row-grant)), revoke all
+`SELECT` access:
+
+{/* Source: /examples/sql/security/security_row_column.kisql (lines 81) */}
+```sql REVOKE Row-Level Access Example
+REVOKE SELECT ON example.rx_order FROM zanalyst
+```
+
+
+<a id="sql-security-priv-mgmt-col-revoke"></a>
+
+
+#### Column-Level Security Examples
+
+
+To revoke `SELECT` access on the following columns of an **rx_order** table:
+
+* orderer's social security number
+
+{/* Source: /examples/sql/security/security_row_column.kisql (lines 141) */}
+```sql REVOKE Obfuscated Column-Level Access Example
+REVOKE SELECT ON example.rx_order(ssn) FROM zanalyst
+```
+
+To revoke `SELECT` access on the following columns of an **rx_order** table:
+
+* masked version of the orderer's social security number (last 4 digits)
+* name of the prescription ordered
+
+{/* Source: /examples/sql/security/security_row_column.kisql (lines 144) */}
+```sql REVOKE Masked Column-Level Access Example
+REVOKE SELECT ON example.rx_order(ssn, rx_name) FROM rx_user
+```
+
+
+<a id="sql-security-priv-mgmt-cred-revoke"></a>
+
+
+### REVOKE Credential Permission
+
+
+[Permissions](/content/security/sec_concepts#security-concepts-permissions-credential) on
+[credentials](/content/sql/ddl#sql-create-credential)
+that have been [granted](/content/sql/security#sql-security-priv-mgmt-cred-grant)
+directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
+
+
+<Note>
+For revoking the ability to create *credentials*, see
+[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
+</Note>
+
+```sql title="REVOKE Credential Permission Syntax"
+REVOKE <READ | ADMIN> ON CREDENTIAL <credential name> FROM <user name | role name>
+```
+
+
+#### Examples
+
+
+To revoke read access on the *credential* named
+**auser_azure_active_dir_creds** from the **auser** *user*:
+
+{/* Source: /examples/sql/credential/credential.kisql (lines 76) */}
+```sql REVOKE Credential Use Permission Example
+REVOKE READ ON CREDENTIAL auser_azure_active_dir_creds FROM auser
+```
+
+To revoke administrative access on the *credential* from the **auser** *user*:
+
+{/* Source: /examples/sql/credential/credential.kisql (lines 82) */}
+```sql REVOKE Credential Administrative Permission Example
+REVOKE ADMIN ON CREDENTIAL auser_azure_active_dir_creds FROM auser
+```
+
+
+<a id="sql-security-priv-mgmt-ds-revoke"></a>
+
+
+### REVOKE Data Source Permission
+
+
+[Permissions](/content/security/sec_concepts#security-concepts-permissions-datasource) on
+[data sources](/content/sql/ddl#sql-create-data-source)
+that have been [granted](/content/sql/security#sql-security-priv-mgmt-ds-grant)
+directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
+
+
+<Note>
+For revoking the ability to create *data sources*, see
+[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
+</Note>
+
+```sql title="REVOKE Data Source Permission Syntax"
+REVOKE <CONNECT | ADMIN> ON DATA SOURCE <data source name> FROM <user name | role name>
+```
+
+
+#### Examples
+
+
+To revoke connect access on the *data source* named **kin_ds** from
+the **auser** *user*:
+
+{/* Source: /examples/sql/data_source/data_source.kisql (lines 83) */}
+```sql REVOKE Data Source Use Permission Example
+REVOKE CONNECT ON DATA SOURCE kin_ds FROM auser
+```
+
+To revoke administrative access on the *data source* named **kin_ds_anon** from
+the **auser** *user*:
+
+{/* Source: /examples/sql/data_source/data_source.kisql (lines 116) */}
+```sql REVOKE Data Source Administrative Permission Example
+REVOKE ADMIN ON DATA SOURCE kin_ds_anon FROM auser
+```
+
+
+<a id="sql-security-priv-mgmt-dsink-revoke"></a>
+
+
+### REVOKE Data Sink Permission
+
+
+[Permissions](/content/security/sec_concepts#security-concepts-permissions-datasink) on
+[data sinks](/content/sql/ddl#sql-create-data-sink)
+that have been [granted](/content/sql/security#sql-security-priv-mgmt-dsink-grant)
+directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
+
+
+<Note>
+For revoking the ability to create *data sinks*, see
+[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
+</Note>
+
+```sql title="REVOKE Data Sink Permission Syntax"
+REVOKE <CONNECT | ADMIN> ON DATA SINK <data sink name> FROM <user name | role name>
+```
+
+
+#### Examples
+
+
+To revoke connect access on the *data sink* named **kin_dsink**
+from the **auser** *user*:
+
+{/* Source: /examples/sql/data_sink/data_sink.kisql (lines 92) */}
+```sql REVOKE Data Sink Use Permission Example
+REVOKE CONNECT ON DATA SINK kin_dsink FROM auser
+```
+
+To revoke administrative access on the *data sink* named **kin_dsink_http** from
+the **auser** *user*:
+
+{/* Source: /examples/sql/data_sink/data_sink.kisql (lines 118) */}
+```sql REVOKE Data Sink Administrative Permission Example
+REVOKE ADMIN ON DATA SINK kin_dsink_http FROM auser
+```
+
+
+<a id="sql-security-priv-mgmt-dir-revoke"></a>
+
+
+### REVOKE Directory Permission
+
+
+[Permissions](/content/security/sec_concepts#security-concepts-permissions-kifs) on
+[KiFS directories](/content/sql/kifs#sql-kifs-create-dir)
+that have been [granted](/content/sql/security#sql-security-priv-mgmt-dir-grant)
+directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
+
+
+<Note>
+For revoking the ability to create *directories*, see
+[REVOKE SYSTEM Permission](/content/sql/security#sql-security-priv-mgmt-sys-revoke).
+</Note>
+
+```sql title="REVOKE Directory Permission Syntax"
+REVOKE <READ | WRITE> ON DIRECTORY <directory name> FROM <user name | role name>
+```
+
+
+#### Examples
+
+
+To revoke read access on a *directory* named **kdata** from the
+**kuser** *user*:
+
+{/* Source: /examples/sql/kifs.kisql (lines 184) */}
+```sql REVOKE Directory Read Permission Example
+REVOKE READ ON DIRECTORY 'kdata' FROM kuser
+```
+
+To revoke write access on a *directory* named **kdata** from the **kuser** *user*:
+
+{/* Source: /examples/sql/kifs.kisql (lines 190) */}
+```sql REVOKE Directory Write Permission Example
+REVOKE WRITE ON DIRECTORY 'kdata' FROM kuser
+```
+
+
+<a id="sql-security-priv-mgmt-udf-revoke"></a>
+
+
+### REVOKE Function (UDF/UDTF) Permission
+
+
+Permissions relating to
+[UDFs/UDTFs](/content/security/sec_concepts#security-concepts-permissions-function) and
+[Python UDF function environments](/content/udf/python/writing#udf-python-func-env)
+that have been [granted](/content/sql/security#sql-security-priv-mgmt-udf-grant)
+directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
+
+
+<Note>
+For revoking the ability to create *UDFs/UDTFs*, see
+[REVOKE SYSTEM Permission](/content/sql/security#sql-security-priv-mgmt-sys-revoke).
+</Note>
+
+```sql title="REVOKE FUNCTION (UDF) Permission Syntax"
+REVOKE <EXECUTE | ADMIN> ON FUNCTION < <function name> | * > FROM <user name | role name>
+```
+
+
+#### Examples
+
+
+To revoke execute on the **udf_sos_py_proc** *UDF* from **udf_user**:
+
+{/* Source: /examples/sql/udf/udf.kisql (lines 211) */}
+```sql REVOKE Function Execute Permission Example
+REVOKE EXECUTE ON FUNCTION UDF_SOS_PY_PROC FROM udf_user
+```
+
+To revoke administrative access on every existing & future *UDF*, as well as the
+ability to manage *function environments*, from **udf_user**:
+
+{/* Source: /examples/sql/udf/udf_env_perm.kisql (lines 39) */}
+```sql REVOKE Function Administrative Permission Example
+REVOKE ADMIN ON FUNCTION * FROM udf_user
+```
+
+
+<a id="sql-security-priv-mgmt-graph-revoke"></a>
+
+
+### REVOKE Graph Permission
+
+
+[Permissions](/content/security/sec_concepts#security-concepts-permissions-graph) on
+[graphs](/content/sql/graph#sql-graph) that have been
+[granted](/content/sql/security#sql-security-priv-mgmt-graph-grant)
+directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
+
+
+<Note>
+For revoking the ability to create *graphs*, see
+[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
+</Note>
+
+```sql title="REVOKE Graph Permission Syntax"
+REVOKE <READ | WRITE | ADMIN> ON GRAPH <graph name> FROM <user name | role name>
+```
+
+
+#### Examples
+
+
+To revoke query, match, solve, & show access on the *graph* named
+**big_cities_graph** from **geo_user**:
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 372) */}
+```sql REVOKE Graph Permission Example
+REVOKE READ ON GRAPH big_cities_graph FROM geo_user
+```
+
+
+<a id="sql-security-priv-mgmt-sqlp-revoke"></a>
+
+
+### REVOKE Procedure Permission
+
+
+Permissions relating to [SQL procedures](/content/sql/procedure#sql-procedures) can be revoked
+from [users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+
+<Note>
+For revoking the ability to create *SQL procedures*, see
+[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
+</Note>
+
+```sql title="REVOKE EXECUTE PROCEDURE Permission Syntax"
+REVOKE EXECUTE PROCEDURE ON <procedure name> FROM <user name | role name>
+```
+
+
+#### Examples
+
+
+To revoke execute on the **sqlp_weekly** procedure from **spuser**:
+
+{/* Source: /examples/sql/procedure/create_procedure.kisql (lines 109) */}
+```sql REVOKE EXECUTE PROCEDURE Permission Example
+REVOKE EXECUTE PROCEDURE ON example.sqlp_weekly FROM spuser
+```
+
+
+<a id="sql-security-priv-mgmt-gpt-revoke"></a>
+
+
+### REVOKE SQL-GPT Context Permission
+
+
+Permissions on [SQL-GPT contexts](/content/sql/sqlgpt#sql-gpt-create-context)
+that have been [granted](/content/sql/security#sql-security-priv-mgmt-gpt-grant)
+directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
+
+
+<Note>
+For revoking the ability to create *SQL-GPT contexts*, see
+[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
+</Note>
+
+```sql title="REVOKE SQL-GPT Context Permission Syntax"
+REVOKE <READ | ADMIN> ON CONTEXT <context name> FROM <user name | role name>
+```
+
+
+#### Examples
+
+
+To revoke *read* access on the *SQL-GPT context* named
+**example.atc_ctx** from the **ctxuser** *user*:
+
+{/* Source: /examples/sql/sql-gpt/syntax.kisql (lines 235) */}
+```sql REVOKE SQL-GPT Context Permission Example
+REVOKE READ ON CONTEXT example.atc_ctx FROM ctxuser
+```
+
+
+<a id="sql-security-priv-mgmt-stream-revoke"></a>
+
+
+### REVOKE Stream Permission
+
+
+[Permissions](/content/security/sec_concepts#security-concepts-permissions-monitor) on
+[streams](/content/sql/ddl#sql-create-stream)
+that have been [granted](/content/sql/security#sql-security-priv-mgmt-stream-grant)
+directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
+
+
+<Note>
+For revoking the ability to create *streams*, see
+[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
+</Note>
+
+```sql title="REVOKE Stream Administrative Permission Syntax"
+REVOKE ADMIN ON STREAM <stream name> FROM <user name | role name>
+```
+
+
+#### Examples
+
+
+To revoke administrative access on the *stream* named
+**kin_stream** from the **auser** *user*:
+
+{/* Source: /examples/sql/stream/stream.kisql (lines 75) */}
+```sql REVOKE Stream Administrative Permission Example
+REVOKE ADMIN ON STREAM example.kin_stream FROM auser
+```
+
+
+<a id="sql-security-show"></a>
+
+
+### SHOW SECURITY
+
+
+For any one or more (or all) [users](/content/security/sec_concepts#security-concepts-users) and
+[roles](/content/security/sec_concepts#security-concepts-roles) in the system, the following can be
+listed:
+
+* [permissions](/content/security/sec_concepts#security-concepts-permissions)
+* [roles](/content/security/sec_concepts#security-concepts-roles)
+* [resource groups](/content/rm/concepts#rm-concepts-resource-groups)
+* [default schema](/content/concepts/schemas#schema-default) (users only)
+
+In addition, permissions, roles, & resource groups will be listed recursively
+for the roles the specified users/roles have and the roles those roles have,
+etc.  This allows the full set of permissions for a given user or role, both
+direct & inherited, to be viewed with one command.
+
+```sql title="SHOW SECURITY Syntax"
+SHOW SECURITY [FOR <user name | role name>,...]
+```
+
+
+#### Examples
+
+
+To show the permissions, roles, *resource groups*, and
+*default schema* for user **jsmith**:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 93) */}
+```sql SHOW SECURITY FOR User Example
+SHOW SECURITY FOR jsmith
+```
+
+To show the permissions, roles, and *resource groups* for the **analyst** role:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 96) */}
+```sql SHOW SECURITY FOR Role Example
+SHOW SECURITY FOR analyst
+```
+
+To show the permissions, roles, *resource groups*, and *default schema* for the
+**anonymous** user and the **public** role:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 99) */}
+```sql SHOW SECURITY FOR Multiple Users/Roles Example
+SHOW SECURITY FOR anonymous, public
+```
+
+To show all users & roles:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 102) */}
+```sql SHOW SECURITY FOR All Users/Roles Example
+SHOW SECURITY
+```
+
+
+<a id="sql-security-check"></a>
+
+
+### CHECK
+
+
+[Users](/content/security/sec_concepts#security-concepts-users) (or the current user) can have
+their effective permissions checked, including:
+
+* Role assignments
+* Administrative permissions
+* Object-level access
+
+A result of `YES` or `NO` will be returned, based on whether the given user
+has the specified permissions or not, either directly or through a role or
+administrative access.
+[Row/Column-level](/content/sql/security#sql-security-priv-mgmt-row-grant) permission
+information will be returned after the `YES`, if applicable.
+
+```sql title="CHECK PERMISSION Syntax"
+CHECK <permission> [PERMISSION] [ON [<target type>] <target>]
+[FOR <user>]
+[IF EXISTS]
+```
+
+```sql title="CHECK ROLE Syntax"
+CHECK ROLE OF <role>
+[FOR <user>]
+[IF EXISTS]
+```
+
+
+#### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;permission&gt;" id="<permission>" defaultOpen>
+
+Permission to verify for the given user
+
+Supported permissions include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Permission</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>ADMIN</code> | <code>ALL</code></td>
+    <td>Applicable to [credential](/content/sql/ddl#sql-create-credential) objects and [tables](/content/sql/ddl#sql-create-table) (or views)</td>
+  </tr>
+  <tr>
+    <td><code>CONNECT</code></td>
+    <td>Applicable to external [data sources](/content/sql/ddl#sql-create-data-source)</td>
+  </tr>
+  <tr>
+    <td><code>DELETE</code></td>
+    <td>Applicable to [tables](/content/sql/ddl#sql-create-table)</td>
+  </tr>
+  <tr>
+    <td><code>EXECUTE</code></td>
+    <td>Applicable to [User-Defined Functions](/content/sql/udf#sql-udf) (UDFs) and SQL [stored procedures](/content/sql/procedure#sql-procedures)</td>
+  </tr>
+  <tr>
+    <td><code>INSERT</code></td>
+    <td>Applicable to [tables](/content/sql/ddl#sql-create-table)</td>
+  </tr>
+  <tr>
+    <td><code>READ</code></td>
+    <td>Applicable to [credential](/content/sql/ddl#sql-create-credential) objects</td>
+  </tr>
+  <tr>
+    <td><code>SELECT</code></td>
+    <td>Applicable to [tables](/content/sql/ddl#sql-create-table) (or views)</td>
+  </tr>
+  <tr>
+    <td><code>SYSTEM ADMIN</code></td>
+    <td>[System admin](/content/sql/security#sql-perm-system-admin) permission</td>
+  </tr>
+  <tr>
+    <td><code>SYSTEM CREATE</code></td>
+    <td>[System create](/content/sql/security#sql-perm-system-mgmt) permission</td>
+  </tr>
+  <tr>
+    <td><code>SYSTEM MONITOR</code></td>
+    <td>[System monitor](/content/sql/security#sql-perm-system-mgmt) permission</td>
+  </tr>
+  <tr>
+    <td><code>SYSTEM READ</code></td>
+    <td>[System read](/content/sql/security#sql-perm-system-mgmt) permission</td>
+  </tr>
+  <tr>
+    <td><code>SYSTEM WRITE</code></td>
+    <td>[System write](/content/sql/security#sql-perm-system-mgmt) permission</td>
+  </tr>
+  <tr>
+    <td><code>UPDATE</code></td>
+    <td>Applicable to [tables](/content/sql/ddl#sql-create-table)</td>
+  </tr>
+  <tr>
+    <td><code>USER ADMIN</code></td>
+    <td>[User admin](/content/sql/security#sql-perm-user-admin) permission</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="PERMISSION" id="permission" defaultOpen>
+
+Optional keyword for clarity
+
+</Accordion>
+
+<Accordion title="ON" id="on-2" defaultOpen>
+
+Keyword for specifying the optional *ON* clause, which checks for the specified `permission`
+on the following `target` (and optional `target type`) given in this clause
+
+</Accordion>
+
+<Accordion title="&lt;target type&gt;" id="<target-type>" defaultOpen>
+
+Optional keyword for specifying the object type of the target; may be necessary to disambiguate
+same-named objects of differing types
+
+Supported target types include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Target Type</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>CONTEXT</code></td>
+    <td>[SQL-GPT context](/content/sql/sqlgpt#sql-gpt-create-context) object</td>
+  </tr>
+  <tr>
+    <td><code>CREDENTIAL</code></td>
+    <td>[Credential](/content/sql/ddl#sql-create-credential) object</td>
+  </tr>
+  <tr>
+    <td><code>DATA SINK</code></td>
+    <td>External [data source](/content/sql/ddl#sql-create-data-source)</td>
+  </tr>
+  <tr>
+    <td><code>DATA SOURCE</code></td>
+    <td>External [data source](/content/sql/ddl#sql-create-data-source)</td>
+  </tr>
+  <tr>
+    <td><code>DIRECTORY</code></td>
+    <td>[KiFS](/content/tools/kifs) directory</td>
+  </tr>
+  <tr>
+    <td><code>FUNCTION</code></td>
+    <td>[User-Defined Function](/content/sql/udf#sql-udf) (UDF)</td>
+  </tr>
+  <tr>
+    <td><code>GRAPH</code></td>
+    <td>[Graph](/content/sql/graph#sql-graph-create)</td>
+  </tr>
+  <tr>
+    <td><code>PROCEDURE</code></td>
+    <td>SQL [stored procedure](/content/sql/procedure#sql-procedures)</td>
+  </tr>
+  <tr>
+    <td><code>SCHEMA</code></td>
+    <td>[Schema](/content/sql/ddl#sql-create-schema)</td>
+  </tr>
+  <tr>
+    <td><code>STREAM</code></td>
+    <td>[Stream](/content/sql/ddl#sql-create-stream)</td>
+  </tr>
+  <tr>
+    <td><code>TABLE</code></td>
+    <td>[Table](/content/sql/ddl#sql-create-table) (or view)</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;target&gt;" id="<target>" defaultOpen>
+
+Name of the object to which the given user's specified permission will be checked
+
+</Accordion>
+
+<Accordion title="&lt;role&gt;" id="<role>" defaultOpen>
+
+Name of the role of which the given user's membership will be checked
+
+</Accordion>
+
+<Accordion title="FOR &lt;user&gt;" id="for-<user>" defaultOpen>
+
+Optional *FOR* clause, which checks whether the specified permission/role exists for the `user`
+given in this clause; if omitted, the current user will be checked
+
+</Accordion>
+
+<Accordion title="IF EXISTS" id="if-exists" defaultOpen>
+
+Optional error suppression clause, which causes the check to return `No` if any of the entities
+specified do not exist; without this clause, non-existent entities will return an error
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-security-impersonation"></a>
+
+
+## Impersonation (Execute As...)
+
+
+When logged into the database as one user, SQL commands can be run as a second
+user (that user can be *impersonated*).  To do this, first log in to the
+database as an administrator, then switch to the second user, and finally, run
+the command.  Afterwards, the original user can be reverted back to in order to
+execute commands as that administrator again; alternatively, an option can be
+specified to prevent switching back to the original user.
+
+The ability to impersonate other users is available through SQL, using the
+following commands:
+
+* [EXECUTE AS](#execute-as)
+* [REVERT](#revert)
+* [SET USER](#set-user)
+
+
+<Note>
+Only a user with administrator privilege can impersonate
+another user, and only an administrator with a Kinetica database account.
+Any users who are mapped to Kinetica as administrators via external
+authentication will need to ensure that a corresponding Kinetica
+administrator account has been created for impersonation to succeed.
+
+Additionally, *impersonation* is only supported via ODBC/JDBC.
+</Note>
+
+
+<a id="sql-security-impersonation-exec-as"></a>
+
+
+### EXECUTE AS
+
+
+During a SQL session, a user can execute subsequent commands as another user.
+
+
+<Info>
+This command is only available through
+[KiSQL](/content/tools/kisql) or database clients configured with
+the [Kinetica ODBC/JDBC driver](/content/connectors/sql_guide#odbc-jdbc).
+</Info>
+
+```sql title="EXECUTE AS Syntax"
+EXEC[UTE] AS USER = '<user name>' [WITH NO REVERT]
+```
+
+The `WITH NO REVERT` option prevents the impersonated user from switching back
+to the original user.  This is useful in several cases, including:
+
+* An administrator needs to run a script as a user with specific permissions,
+  but doesn't want the script to be able to revert back to administrator
+  privileges during its execution.
+* An application server connects to the database with its own credentials, but
+  issues commands to the database on behalf of an application user.  Again,
+  there is a need to prevent the application user from reverting back to the
+  application server's database account and using those privileges to execute
+  commands.
+
+<a id="sql-security-impersonation-exec-as-example"></a>
+
+
+#### Example
+
+
+To demonstrate the uses of `EXECUTE AS USER`, the following commands can be
+issued upon logging into the database as an administrator.
+
+First, verify the current user is **admin**:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 56) */}
+```sql Show Current User Example
+SELECT CURRENT_USER() AS whoami
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 109-113) */}
+``` Show Current User Output
++----------+
+| whoami   |
++----------+
+| admin    |
++----------+
+```
+
+Then, switch to a user **auser** and verify the session is now executing
+commands as that user:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 60) */}
+```sql Switch User Example
+EXECUTE AS USER = 'auser'
+```
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 62) */}
+```sql Show Switched User
+SELECT CURRENT_USER() AS whoami
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 124-128) */}
+``` Show Switched User Output
++----------+
+| whoami   |
++----------+
+| auser    |
++----------+
+```
+
+Accessing a database object that **auser** has permission for results in a
+successful outcome:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 66-67) */}
+```sql Query Accessible Table as Switched User Example
+SELECT *
+FROM example.auser_can_access
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 135-139) */}
+``` Query Output
++------+
+|   id |
++------+
+|    1 |
++------+
+```
+
+Accessing an object that **auser** doesn't have permission for results in an
+error:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 70-71) */}
+```sql Query Inaccessible Table as Switched User Example
+SELECT *
+FROM example.auser_cant_access
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 146) */}
+``` Query Output
+[GPUdb]executeSql: SqlEngine: Object 'auser_cant_access' not found within 'example' (<REF>)
+```
+
+To switch back to the original user and verify the current identity, use the
+[REVERT](/content/sql/security#sql-security-impersonation-revert) command:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 75) */}
+```sql Switch Back to Original User Example
+REVERT
+```
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 77) */}
+```sql Show Switched Back User
+SELECT CURRENT_USER() AS whoami
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 156-160) */}
+``` Show Switched Back User Output
++----------+
+| whoami   |
++----------+
+| admin    |
++----------+
+```
+
+Now, switch to **auser** using the `WITH NO REVERT` option:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 82) */}
+```sql Switch User without Reversion Example
+EXECUTE AS USER = 'auser' WITH NO REVERT
+```
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 84) */}
+```sql Show Switched User
+SELECT CURRENT_USER() AS whoami
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 171-175) */}
+``` Show Switched User Output
++----------+
+| whoami   |
++----------+
+| auser    |
++----------+
+```
+
+Attempts to switch back to the administrator user will fail:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 88) */}
+```sql Attempt to Switch Back Example
+REVERT
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 181) */}
+``` Error Output
+Error: May not revert user after WITH NO REVERT
+```
+
+Verify the session is still executing commands as the **auser** user:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 90) */}
+```sql Show Current User
+SELECT CURRENT_USER() AS whoami
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 186-190) */}
+``` Show Current User Output
++----------+
+| whoami   |
++----------+
+| auser    |
++----------+
+```
+
+
+<a id="sql-security-impersonation-revert"></a>
+
+
+### REVERT
+
+
+After using [EXECUTE AS](/content/sql/security#sql-security-impersonation-exec-as) or
+[SET USER](/content/sql/security#sql-security-impersonation-setuser) to switch to another user, the
+original user can be switched back to using the following command:
+
+
+<Info>
+This command is only available through
+[KiSQL](/content/tools/kisql) or database clients configured with
+the [Kinetica ODBC/JDBC driver](/content/connectors/sql_guide#odbc-jdbc).
+</Info>
+
+```sql title="REVERT Syntax"
+REVERT
+```
+
+See the `EXECUTE AS`
+[example](/content/sql/security#sql-security-impersonation-exec-as-example) for an example usage
+of `REVERT`.
+
+
+<a id="sql-security-impersonation-setuser"></a>
+
+
+### SET USER
+
+
+The `SET USER` (or `SETUSER`) command is simply an alias for the
+[EXECUTE AS](/content/sql/security#sql-security-impersonation-exec-as) and
+[REVERT](/content/sql/security#sql-security-impersonation-revert) commands.
+
+
+<Info>
+This command is only available through
+[KiSQL](/content/tools/kisql) or database clients configured with
+the [Kinetica ODBC/JDBC driver](/content/connectors/sql_guide#odbc-jdbc).
+</Info>
+
+The following commands are equivalent for switching to another user:
+
+```sql title="SET USER Syntax"
+< < SET USER <user name> > | < EXECUTE AS USER = '<user name>' > >
+```
+
+
+<Note>
+There is no ability to prevent reversion to the original user
+when using the `SET USER` command.  To prevent reversion, see
+[EXECUTE AS](/content/sql/security#sql-security-impersonation-exec-as).
+</Note>
+
+The following commands are equivalent for switching back to the original user:
+
+```sql title="Revert User Syntax"
+< SET USER | REVERT >
+```

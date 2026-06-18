@@ -1,0 +1,476 @@
+---
+title: Backing Up/Restoring Kinetica
+sidebarTitle: "Back Up & Restoring"
+---
+
+## Overview
+
+
+*Kinetica* provides two means of backing up data:
+
+* [Database Backup](/content/admin/backup_restore#database-backup) - full, incremental, &
+  differential data hot backup
+* [System Backup](/content/admin/backup_restore#system-backup) - file-based full system backup
+
+
+<a id="database-backup"></a>
+
+
+## Database Backup
+
+
+[SQL commands](/content/sql/backup_restore) can be used to initiate hot
+*backups*, with *full*, *incremental*, & *differential snapshots*, and
+restorations of schema objects & data within the database.
+
+| Objects Backed Up | Objects Not Backed Up |
+| --- | --- |
+| * [Credentials](/content/sql/ddl#sql-create-credential) <br/> * [Data Sinks](/content/sql/ddl#sql-create-data-sink) <br/> * [Data Sources](/content/sql/ddl#sql-create-data-source) <br/> * [Resource Groups](/content/sql/resource_group) <br/> * [Roles](/content/sql/security#sql-security-role-mgmt) <br/> * [SQL Procedures](/content/sql/procedure#sql-procedures) <br/> * [SQL-GPT Contexts](/content/sql/sqlgpt#sql-gpt-create-context) <br/> * [Streams](/content/sql/ddl#sql-create-stream) <br/> * [Tables](/content/sql/ddl#sql-create-table) <br/> * [UDFs](/content/sql/udf) <br/> * [UDF Environments](/content/sql/udf#sql-create-function-environment) <br/> * [Users](/content/sql/security#sql-security-user-mgmt) <br/> * [Views](/content/sql/ddl#sql-create-view) | * [Graphs](/content/sql/graph) <br/> * [KiFS Files](/content/sql/kifs) <br/> * [ML Models/Containers](/content/sql/ml) <br/> * [Symbols](/content/api/rest/insert_symbol_rest) |
+
+
+<Info>
+*  For the set of SQL commands for database *backup*, see
+   [Database Backup/Restore](/content/sql/backup_restore).
+*  For a full system backup, see [System Backup](/content/admin/backup_restore#system-backup).
+</Info>
+
+
+### Snapshot Types
+
+
+Three types of *snapshots* are supported for database objects & data:
+
+* **full** - *snapshot* of the given database objects & data
+* **incremental** - *snapshot* of the changes in the database objects & data
+  since the last *snapshot* of any kind
+* **differential** - *snapshot* of the changes in the database objects & data
+  since the last *full snapshot*
+
+
+### Backup Storage
+
+
+Database *backup* files will be transferred to the target specified in the given
+[data sink](/content/sql/ddl#sql-create-data-sink).  There, they will be stored
+under two levels of directories:  the top-level directory will be the name of
+the database *backup* and the subdirectory will be the timestamp the *snapshot*
+was taken; e.g.:
+
+```
+/<backup_name>/ki_backup_info.json
+/<backup_name>/<backup_name>.mdb
+/<backup_name>/<snapshot_timestamp>/<snapshot_timestamp>.mdb
+/<backup_name>/<snapshot_timestamp>/rank-<rank_number>/tom-<TOM_number>/*
+```
+A new *backup* will result in the creation of a directory with the corresponding
+*backup* name, as well as a *snapshot* timestamp directory with the
+*full snapshot* files.  An *incremental* or *differential snapshot* for a given
+*backup* will result in the creation of another *snapshot* timestamp directory,
+under the *backup* directory, containing all the files for that *snapshot*.
+
+A [data source](/content/sql/ddl#sql-create-data-source) is required to retrieve
+detail about *backups* and restore database objects & data from them.  The
+*data source* must point to the same remote store as the *data sink* through
+which a *backup* was created in order to access and restore from it.
+
+
+### Backup Use Case
+
+
+A typical usage of the backup feature is:
+
+* create a *backup*, taking an initial *full snapshot*
+* schedule iterative *incremental* or *differential snapshots*
+* restore a *backup*
+
+
+#### Initial Backup
+
+
+To create the initial *backup*, run a [CREATE BACKUP](/content/sql/backup_restore#sql-backup-create)
+statement, in SQL, that specifies:
+
+* the name to use for the *backup*--the backed-up database object set
+* the [data sink](/content/sql/ddl#sql-create-data-sink) that will be used to
+  transfer the backed-up files to the remote store (e.g., s3)
+* the set of database objects to back up
+
+For example, to create an initial *backup* with the following parameters:
+
+* `daily_backup` - name of the *backup*
+* `backup_ds` - *data sink* targeting the remote file service
+* `example_backup` - name of the [schema](/content/sql/ddl#sql-create-schema)
+  to back up
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 490-492) */}
+```sql Create Initial Backup Example
+CREATE BACKUP daily_backup
+DATA SINK = backup_ds
+OBJECTS (ALL = example_backup)
+```
+
+
+#### Schedule Iterative Snapshots
+
+
+To schedule iterative *snapshots* after the initial *backup* is done, create a
+[SQL procedure](/content/sql/procedure) that specifies:
+
+* the name of the backed-up database object set (same as the initial *backup*)
+* the [data sink](/content/sql/ddl#sql-create-data-sink) that will be used to
+  transfer the *snapshots* to the remote store (same as the initial *backup*)
+* the schedule for running the incremental *snapshots*
+
+For example, to schedule incremental *snapshots* with the following parameters:
+
+* `daily_backup` - name of the *backup* to which *snapshots* will be added
+* `backup_ds` - *data sink* targeting the remote file service
+* `1 DAY` - daily *snapshot* interval
+* `STARTING AT...2025-01-01` - starting at a date in the past causes the
+  first *snapshot* to be taken at the next possible time interval
+* `STARTING AT...00:00:00` - schedule the *snapshot* to be taken at midnight
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 495-500) */}
+```sql Schedule Iterative Snapshots Example
+CREATE PROCEDURE scheduled_backup
+BEGIN
+	BACKUP daily_backup
+	DATA SINK = backup_ds
+END
+EXECUTE FOR EVERY 1 DAY STARTING AT '2025-01-01 00:00:00';
+```
+
+
+#### Restore Backup
+
+
+To restore database objects and table data from the latest *snapshot* in a
+*backup*, using the following parameters:
+
+* `daily_backup` - name of the *backup* to restore
+* `restore_ds` - *data source* targeting the remote file service
+* `example_backup` - name of the [schema](/content/sql/ddl#sql-create-schema)
+  to restore
+* `replace` - any exising database object will be overwritten by its
+  counterpart from the *backup*
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 511-514) */}
+```sql Restore Backup Example
+RESTORE BACKUP daily_backup
+DATA SOURCE = restore_ds
+OBJECTS (ALL = example_backup)
+WITH OPTIONS (RESTORE_POLICY = 'replace')
+```
+
+
+<a id="system-backup"></a>
+
+
+## System Backup
+
+
+*KAgent* can be used to simplify the processes of backing up and restoring the
+*Kinetica* database.  It is distributed separately from the database and can be
+installed and used to configure a *Kinetica* cluster following the instructions
+under [Kinetica Installation with KAgent](/content/install/kagent_install).
+
+There are two interfaces to *KAgent* for backing up a *Kinetica* cluster:
+
+* [Graphical User Interface](/content/admin/kagent/manage#kagent-ui-backups)
+* Command-Line Interface (described below)
+
+
+### Prerequisites
+
+
+*KAgent* backup management has two requirements:
+
+* *KAgent* installed, with access to the cluster being managed
+* A properly configured *Kinetica* cluster
+
+
+<Info>
+*Kinetica* does not need to be offline to be backed up or restored.
+The backup process **will** put *Kinetica* into **read-only** mode,
+however, which will block operations requiring disk write access
+(table creation/modification, persist-backed ingestion, etc.).
+</Info>
+
+
+<a id="backrest-backup"></a>
+
+
+### Backing Up
+
+
+All the data in *Kinetica* can be backed up in either an ad-hoc or scheduled
+fashion, using the command line.  To learn about how to back up Kinetica using
+the *KAgent* GUI, consult [Backups](/content/admin/kagent/manage#kagent-ui-backups).
+
+Backups are stored local to each node in the cluster.  Those local backup file
+target directories can be mounted via NFS or similar external shared storage to
+consolidate those files to a single device.  If multiple clusters are backed up
+to the same shared storage under the same backup directory, those backups will
+be able to be restored to any of the clusters in the group; e.g., if *Cluster A*
+and *Cluster B* are both backed up to the same shared location, the backups of
+*Cluster A* can be restored to *Cluster B* and vice versa.
+
+The base command for creating a backup:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster backup [--schedule <schedule>] [--backup-path <backup path>] <cluster name>
+```
+
+<Tip>
+To list the backup schedule for the cluster:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster backup --list-schedule ALL <cluster name>
+```
+</Tip>
+
+
+#### Schedule
+
+
+There are three options for schedule:
+
+* `now` -- Runs a single backup right now without creating or modifying the
+  schedule; *(default behavior)*
+
+* A <Badge color="blue-destructive">crontab</Badge> schedule quoted string -- Will overwrite any existing
+  backup schedule with the one specified.
+
+  For example, `'0 0 1 1-3 *'` will schedule backups at *12:00 AM on the 1st*
+  *day of each month, January through March*.
+
+  Consult the
+  [crontab documentation](http://man7.org/linux/man-pages/man5/crontab.5.html)
+  for details on schedule specification format.
+
+* `never` -- Clears the current backup schedule for the given cluster name
+
+
+#### Backup Path
+
+
+The backup path should be any valid file path on the *Kinetica* cluster nodes.
+If the directory does not exist on one or more nodes, *KAgent* will create it.
+
+The default backup path is `/opt/backups`.
+
+Under this backup path directory, *KAgent* will create a subdirectory with the
+name of the cluster as the directory name.  *KAgent* will then create a snapshot
+subdirectory under the cluster-specific subdirectory, named with the date/time
+at which the backup was initiated, into which all backup files will be placed.
+
+For instance, given the following backup command execution, run at *12:34:56* on
+*January 2nd, 2019*:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster backup --backup-path /opt/backup mycluster
+```
+Backup files will be placed under this location, on each node:
+
+```
+/opt/backup/mycluster/snapshot.2019-01-02.12-34-56
+```
+
+#### Examples
+
+
+To list backups scheduled for the `mycluster` cluster:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster backup --list-schedule ALL mycluster
+```
+To create an immediate backup of the `mycluster` cluster in the *(default)*
+`/opt/backups` directory:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster backup mycluster
+```
+To create a backup in `/opt/backup` for the cluster named
+`mainkincluster` scheduled for 22:00 on day 1 through 5 of every week:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster backup --schedule '0 22 * * 1-5' --backup-path /opt/backup mainkincluster
+```
+To remove the backup scheduled for the `mycluster` cluster:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster backup --schedule never mycluster
+```
+<a id="kagent-cli-listing"></a>
+
+<a id="backrest-list"></a>
+
+
+### Listing
+
+
+The backups available to be restored to a given cluster can be listed via
+command line or the *KAgent* GUI.  See [Snapshots](/content/admin/kagent/manage#kagent-ui-restore) for details on
+how to display a list of backups in the GUI.
+
+The base command for listing backups available to a given cluster:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster list-backups [--backup-path <backup path>] <cluster name>
+```
+
+#### Backup Path
+
+
+The backup path should be the file path on each *Kinetica* cluster node that
+contains the backups to list.
+
+The default backup path is `/opt/backups`.
+
+*KAgent* will look on each cluster node for the directory named in the `--backup-path`
+parameter and list the contents of that directory.
+
+For instance, given the following restore command execution:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster list-backups --backup-path /opt/backup mycluster
+```
+A backup snapshot directory will be looked for under `/opt/backup`, on each
+node of the cluster `mycluster`.
+
+
+#### Examples
+
+
+To list all backups available to the cluster `mycluster`:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster list-backups mycluster
+```
+This might show output like the following, for cluster snapshots under
+the default `/opt/backups` directory:
+
+```
+/mycluster/snapshot.2019-01-02.01-23-45
+/mycluster/snapshot.2019-01-02.12-34-56
+```
+To list all backups available to the cluster `clusterA`, under a shared backup
+directory of `/opt/backup`:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster list-backups --backup-path /opt/backup clusterA
+```
+This might show output like the following, for cluster snapshots under
+`/opt/backup`:
+
+```
+/clusterA/snapshot.2019-01-02.01-23-45
+/clusterA/snapshot.2019-01-02.11-11-11
+/clusterB/snapshot.2019-01-02.02-34-56
+/clusterB/snapshot.2019-01-02.12-12-12
+```
+
+<Info>
+That if multiple clusters are backed up to the same shared location,
+all clusters' backups will be listed, allowing for later restoration of the
+targeted cluster from any of the other clusters' backups.
+</Info>
+
+<a id="backrest-restore"></a>
+
+
+### Restoring
+
+
+Backups made through *KAgent* are restored through *KAgent*, either via command
+line or the *KAgent* GUI.  See [Snapshots](/content/admin/kagent/manage#kagent-ui-restore) for details on
+restoring from snapshots using the GUI.
+
+The base command for restoring from backup:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster restore --restore-from <source cluster name>/<snapshot name> [--backup-path <backup path>] <target cluster name>
+```
+
+#### Restore From
+
+
+The `--restore-from` parameter specifies which backup snapshot should be
+restored. It should be the path to the existing snapshot to restore from,
+including the directory that is the name of the cluster from which the backup
+was taken:
+
+```
+<source cluster name>/snapshot.<date>.<time>
+```
+This should be the same path that is displayed by the
+[backup listing command](/content/admin/backup_restore#kagent-cli-listing).
+
+
+#### Backup Path
+
+
+The backup path should be the file path on each *Kinetica* cluster node that
+contains the backups to restore.
+
+The default backup path is `/opt/backups`.
+
+*KAgent* will look on each cluster node in the directory given in the
+`--backup-path` parameter for the directory named in the `--restore-from`
+parameter.  If found, *KAgent* will restore the database on each node from its
+corresponding local snapshot.
+
+For instance, given the following restore command execution:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster restore --restore-from mycluster/snapshot.2019-01-02.12-34-56 mycluster
+```
+A backup snapshot directory will be looked for at this location, on each node:
+
+```
+/opt/backups/mycluster/snapshot.2019-01-02.12-34-56
+```
+
+#### Examples
+
+
+To restore a backup of the `mycluster` cluster in the *(default)*
+`/opt/backups` directory that was initiated on *January 2nd, 2019* at
+*12:34:56*:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster restore --restore-from mycluster/snapshot.2019-01-02.12-34-56 mycluster
+```
+To restore a backup in `/tmp/kinetica-backups/` for the cluster named
+`mainkincluster` that was initiated on *January 2nd, 2019* at *01:23:45*:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster restore --restore-from mainkincluster/snapshot.2019-01-02.01-23-34 --backup-path /tmp/kinetica-backups/ mainkincluster
+```
+To restore a snapshot taken from one cluster, `clusterA`, to another cluster,
+`clusterB`, using a backup in the *(default)* `/opt/backups` directory:
+
+```
+/opt/gpudb/kagent/bin/kagent cluster restore --restore-from clusterA/snapshot.2019-01-02.12-34-56 clusterB
+```
+
+### Deleting Backups
+
+
+Backups can be deleted manually from their locations in the cluster's snapshot
+directory.
+
+The command for deleting a backup:
+
+```
+rm -rf <backup path>/<cluster name>/<snapshot name>
+```
+For example, to delete a backup of the `mycluster` cluster in the
+`/opt/backups` directory that was initiated on *January 2nd, 2019* at
+*12:34:56*, run the following command on each node in the cluster:
+
+```
+rm -rf /opt/backups/mycluster/snapshot.2019-01-02.12-34-56
+```
+See [Listing](/content/admin/backup_restore#kagent-cli-listing) for details on how to list the backups available
+to be deleted.

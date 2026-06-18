@@ -1,0 +1,74 @@
+---
+title: Create Type
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="create-type-feature-overview"></a>
+
+
+Creates a new type describing the columns of a table. The type definition is
+specified as a list of columns, each specified as a list of the column name,
+data type, and any column attributes.
+
+Example of a type definition with some parameters:
+
+```
+[
+    ["id", "int8", "primary_key"],
+    ["dept_id", "int8", "primary_key", "shard_key"],
+    ["manager_id", "int8", "nullable"],
+    ["first_name", "char32"],
+    ["last_name", "char64"],
+    ["salary", "decimal"],
+    ["hire_date", "date"]
+]
+```
+Each column definition consists of the column name (which should meet the
+standard
+[column naming criteria](../../concepts/tables/#table-naming-criteria)), the
+column's [specific type](../../concepts/types/#types-chart) (int, long,
+float, double, string, bytes, or any of the possible values for input parameter
+*properties*), and any
+[data handling](../../concepts/types/#types-data-handling),
+[data key](../../concepts/types/#types-data-keys), or
+[data replacement](../../concepts/types/#types-data-replace) properties.
+
+Note that some properties are mutually exclusive--i.e. they cannot be specified
+for any given column simultaneously.  One example of mutually exclusive
+properties are *primary_key* and *nullable*.
+
+A single [primary key](../../concepts/tables/#primary-keys) and/or single
+[shard key](../../concepts/tables/#shard-keys) can be set across one or more
+columns. If a primary key is specified, then a uniqueness constraint is
+enforced, in that only a single object can exist with a given primary key
+column value (or set of values for the key columns, if using a composite
+primary key). When [inserting](/content/feature_overview/insert_records_feature_overview#insert-records-feature-overview)
+data into a table with a primary key, depending on the parameters in the
+request, incoming objects with primary key values that match existing objects
+will either overwrite (i.e. update) the existing object or will be skipped and
+not added into the set.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| type_definition | string | JSON string defining the columns of the type to be registered, as described above. |
+| label | string | A user-defined description string which can be used to differentiate between tables and types with otherwise identical schemas. |
+| properties | map of string to arrays of strings | [DEPRECATED--please use these property values in the input parameter *type_definition* directly, as described at the top, instead]  Each key-value pair specifies the properties to use for a given column where the key is the column name. All keys used must be relevant column names for the given table.  Specifying any property overrides the default properties for that column (which is based on the column's data type). <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> data: Default property for all numeric and string type columns; makes the column available for GPU queries. <br/> <br/> text_search: Valid only for select 'string' columns. Enables full text search--see [Full Text Search](../../concepts/full_text_search/) for details and applicable string column types. <br/> <br/> timestamp: Valid only for 'long' columns. Indicates that this field represents a timestamp and will be provided in milliseconds since the Unix epoch: 00:00:00 Jan 1 <br/> 1970. Dates represented by a timestamp must fall between the year 1000 and the year 2900. <br/> <br/> ulong: Valid only for 'string' columns. It represents an unsigned long integer data type. The string can only be interpreted as an unsigned long data type with minimum value of zero, and maximum value of 18446744073709551615. <br/> <br/> uuid: Valid only for 'string' columns. It represents an uuid data type. Internally, it is stored as a 128-bit integer. <br/> <br/> decimal: Valid only for 'string' columns. It represents a SQL type NUMERIC(19, 4) data type. There can be up to 15 digits before the decimal point and up to four digits in the fractional part. The value can be positive or negative (indicated by a minus sign at the beginning). This property is mutually exclusive with the *text_search* property. <br/> <br/> date: Valid only for 'string' columns. Indicates that this field represents a date and will be provided in the format 'YYYY-MM-DD'. The allowable range is 1000-01-01 through 2900-01-01. This property is mutually exclusive with the *text_search* property. <br/> <br/> time: Valid only for 'string' columns. Indicates that this field represents a time-of-day and will be provided in the format 'HH:MM:SS.mmm'. The allowable range is 00:00:00.000 through 23:59:59.999. This property is mutually exclusive with the *text_search* property. <br/> <br/> datetime: Valid only for 'string' columns. Indicates that this field represents a datetime and will be provided in the format 'YYYY-MM-DD HH:MM:SS.mmm'. The allowable range is 1000-01-01 00:00:00.000 through 2900-01-01 23:59:59.999. This property is mutually exclusive with the *text_search* property. <br/> <br/> char1: This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 1 character. <br/> <br/> char2: This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 2 characters. <br/> <br/> char4: This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 4 characters. <br/> <br/> char8: This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 8 characters. <br/> <br/> char16: This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 16 characters. <br/> <br/> char32: This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 32 characters. <br/> <br/> char64: This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 64 characters. <br/> <br/> char128: This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 128 characters. <br/> <br/> char256: This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 256 characters. <br/> <br/> boolean: This property provides optimized memory and query performance for int columns. Ints with this property must be between 0 and 1(inclusive) <br/> <br/> int8: This property provides optimized memory and query performance for int columns. Ints with this property must be between -128 and +127 (inclusive) <br/> <br/> int16: This property provides optimized memory and query performance for int columns. Ints with this property must be between -32768 and +32767 (inclusive) <br/> <br/> ipv4: This property provides optimized memory, disk and query performance for string columns representing IPv4 addresses (i.e. 192.168.1.1). Strings with this property must be of the form: A.B.C.D where A, B, C and D are in the range of 0-255. <br/> <br/> array: Valid only for 'string' columns. Indicates that this field contains an array. The value type and (optionally) the item count should be specified in parenthesis; e.g., 'array(int, 10)' for a 10-integer array. Both 'array(int)' and 'array(int, -1)' will designate an unlimited-length integer array, though no bounds checking is performed on arrays of any length. <br/> <br/> json: Valid only for 'string' columns. Indicates that this field contains values in JSON format. <br/> <br/> vector: Valid only for 'bytes' columns. Indicates that this field contains a vector of floats. The length should be specified in parenthesis, e.g., 'vector(1000)'. <br/> <br/> wkt: Valid only for 'string' and 'bytes' columns. Indicates that this field contains geospatial geometry objects in Well-Known Text (WKT) or Well-Known Binary (WKB) format. <br/> <br/> primary_key: This property indicates that this column will be part of (or the entire) [primary key](../../concepts/tables/#primary-keys). <br/> <br/> soft_primary_key: This property indicates that this column will be part of (or the entire) [soft primary key](../../concepts/tables/#soft-primary-keys). <br/> <br/> shard_key: This property indicates that this column will be part of (or the entire) [shard key](../../concepts/tables/#shard-keys). <br/> <br/> nullable: This property indicates that this column is nullable. However, setting this property is insufficient for making the column nullable. The user must declare the type of the column as a union between its regular type and 'null' in the Avro schema for the record type in input parameter *type_definition*. For example, if a column is of type integer and is nullable, then the entry for the column in the Avro schema must be: ['int', 'null']. The C++, C#, Java, and Python APIs have built-in convenience for bypassing setting the Avro schema by hand. For those languages, one can use this property as usual and not have to worry about the Avro schema for the record. <br/> <br/> compress: This property indicates that this column should be [compressed](../../concepts/column_compression/) with the given codec and optional level; e.g., 'compress(snappy)' for Snappy compression and 'compress(zstd(7))' for zstd level 7 compression. This property is primarily used in order to save disk space. <br/> <br/> dict: This property indicates that this column should be [dictionary encoded](../../concepts/dictionary_encoding/). It can only be used in conjunction with restricted string (charN), int, long or date columns. Dictionary encoding is best for columns where the cardinality (the number of unique values) is expected to be low. This property can save a large amount of memory. <br/> <br/> init_with_now: For 'date', 'time', 'datetime', or 'timestamp' column types, replace empty strings and invalid timestamps with 'NOW()' upon insert. <br/> <br/> init_with_uuid: For 'uuid' type, replace empty strings and invalid UUID values with randomly-generated UUIDs upon insert. <br/> <br/> update_with_now: For 'date', 'time', 'datetime', or 'timestamp' column types, update the field with 'NOW()' upon any update. <br/> <br/> update_with_user: For 'charN' or 'string' column types, update the field with the current user's name upon any update. <br/> <br/> default: Sets a default value expression for this column, e.g. 'default(0)', 'default(''pending'')', or 'default(NOW())'. When the column is omitted from an insert via request_schema_str, the expression is evaluated and the result is used as the column value. <br/> <br/> default_sql: Sets a default value expression for this column with SQL syntax, e.g. 'default(0)', 'default(''pending'')', or 'default(NOW())'. Only used for showing the expression when generating SQL DDL. |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> compression_codec: The default [compression codec](../../concepts/column_compression/) for this type's columns. |
+
+
+## Output Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| type_id | string | An identifier representing the created type. This type_id can be used in subsequent calls to [create a table](/content/feature_overview/create_table_feature_overview#create-table-feature-overview). |
+| type_definition | string | Value of input parameter *type_definition*. |
+| label | string | Value of input parameter *label*. |
+| properties | map of string to arrays of strings | Value of input parameter *properties*. |
+| info | map of string to strings | Additional information. |

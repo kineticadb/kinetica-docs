@@ -1,0 +1,415 @@
+---
+title: System Properties
+sidebarTitle: System Properties
+---
+
+<a id="sql-system-properties"></a>
+
+
+*Kinetica* provides a SQL interface for managing
+[system properties](/content/config), which control everything from
+GPUs, hostnames, storage, graph server, and more.
+
+The ability to manage system properties is available through SQL, using the
+following commands:
+
+* [ALTER SYSTEM SET PROPERTIES](#alter-system-set-properties)
+* [SHOW SYSTEM PROPERTIES](#show-system-properties)
+
+
+<a id="alter-system-set-properties"></a>
+
+<a id="sql-alter-system-properties"></a>
+
+
+## ALTER SYSTEM SET PROPERTIES
+
+
+Only a small subset of the system properties can be altered at runtime. See the
+[/alter/system/properties](/content/api/rest/alter_system_properties_rest) endpoint documentation for the
+full list. Only users with the `system_admin`
+[permission](/content/security/sec_concepts#security-concepts-permissions) can issue this command.
+
+```sql title="ALTER SYSTEM SET PROPERTIES Syntax"
+ALTER SYSTEM SET PROPERTIES ('<property key>' = '<property value>'[,...])
+[WITH OPTIONS ('persist' = < 'true' | 'false' >)]
+```
+
+Use the `WITH OPTIONS` clause to specify whether the setting should be saved
+to the system configuration to be used after future database restarts.  Set the
+`persist` option to `false` to only change the property temporarily, until
+the database is restarted.  By default, the change will be persisted.
+
+
+### Alterable Properties
+
+
+Not all system properties can be modified while the system is running.  The
+following is a list of those that can be modified.
+
+<AccordionGroup>
+
+<Accordion title="enable_audit" id="enable_audit" defaultOpen>
+
+Enable or disable auditing.
+
+</Accordion>
+
+<Accordion title="audit_headers" id="audit_headers" defaultOpen>
+
+Enable or disable auditing of request headers.
+
+</Accordion>
+
+<Accordion title="audit_body" id="audit_body" defaultOpen>
+
+Enable or disable auditing of request bodies.
+
+</Accordion>
+
+<Accordion title="audit_data" id="audit_data" defaultOpen>
+
+Enable or disable auditing of request data.
+
+</Accordion>
+
+<Accordion title="audit_response" id="audit_response" defaultOpen>
+
+Enable or disable auditing of response information.
+
+</Accordion>
+
+<Accordion title="tps_per_tom" id="tps_per_tom" defaultOpen>
+
+Size of the worker rank data processing thread pool.  This includes operations such as
+inserts, updates, & deletes on table data.  Multi-head inserts are not affected by this
+limit. The minimum allowed value is `2`. The maximum allowed value is `8192`.
+
+</Accordion>
+
+<Accordion title="tcs_per_tom" id="tcs_per_tom" defaultOpen>
+
+Size of the worker rank data calculation thread pool.  This is primarily used for
+computation-based operations such as aggregates and record retrieval. The minimum allowed
+value is `2`. The maximum allowed value is `8192`.
+
+</Accordion>
+
+<Accordion title="subtask_concurrency_limit" id="subtask_concurrency_limit" defaultOpen>
+
+Maximum number of simultaneous threads allocated to a given request, per rank.  Note that
+thread allocation may also be limited by resource group limits and/or system load.
+
+</Accordion>
+
+<Accordion title="concurrent_kernel_execution" id="concurrent_kernel_execution" defaultOpen>
+
+Enable or disable concurrent kernel execution.
+
+</Accordion>
+
+<Accordion title="max_concurrent_kernels" id="max_concurrent_kernels" defaultOpen>
+
+Maximum number of kernels that can be running at the same time on a given GPU.  Set to
+`0` for no limit.  Only takes effect if `concurrent_kernel_execution` is `true`.
+The maximum allowed value is `256`.
+
+</Accordion>
+
+<Accordion title="max_get_records_size" id="max_get_records_size" defaultOpen>
+
+The maximum number of records the database will serve for a given data retrieval call.  The
+maximum allowed value is `1000000`.
+
+</Accordion>
+
+<Accordion title="request_timeout" id="request_timeout" defaultOpen>
+
+Number of minutes after which filtering (e.g., [/filter](/content/api/rest/filter_rest)) and
+aggregating  (e.g., [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest)) queries will time out.
+The maximum allowed value is `1440`.
+
+</Accordion>
+
+<Accordion title="enable_overlapped_equi_join" id="enable_overlapped_equi_join" defaultOpen>
+
+Enable or disable the overlapped-equi-join filter.
+
+</Accordion>
+
+<Accordion title="chunk_size" id="chunk_size" defaultOpen>
+
+Number of records per chunk, applied to all new tables.  To disable chunking, use `0`.
+
+</Accordion>
+
+<Accordion title="chunk_column_max_memory" id="chunk_column_max_memory" defaultOpen>
+
+Maximum data size, in bytes, for each column in a chunk, applied to all new tables.  Use
+`0` for no maximum.
+
+</Accordion>
+
+<Accordion title="chunk_max_memory" id="chunk_max_memory" defaultOpen>
+
+Maximum data size for all columns in a chunk, applied to all new tables.  Use `0` for no
+maximum; use `-1` to use the default, based on RAM tier limits or host memory per rank.
+
+</Accordion>
+
+<Accordion title="execution_mode" id="execution_mode" defaultOpen>
+
+Scheme to use for kernel executions.  Possible values:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Mode</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>host</code></td>
+    <td>Execute kernels only on the *host* (CPU)</td>
+  </tr>
+  <tr>
+    <td><code>device</code></td>
+    <td>Execute kernels only on the *device* (GPU)</td>
+  </tr>
+  <tr>
+    <td><code>default</code></td>
+    <td>Execution engine decides whether to execute kernels on the *host* or the *device*</td>
+  </tr>
+  <tr>
+    <td><code>&lt;rows&gt;</code></td>
+    <td>Execute kernels on the host if the chunked column contains the given number of rows or fewer; otherwise, execute on the device</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="shadow_agg_size" id="shadow_agg_size" defaultOpen>
+
+Maximum number of bytes in the *shadow aggregate chunk cache*.  The maximum allowed value
+is `2147483647`.
+
+</Accordion>
+
+<Accordion title="shadow_filter_size" id="shadow_filter_size" defaultOpen>
+
+Maximum number of bytes in the *shadow filter chunk cache*.  The maximum allowed value is
+`2147483647`.
+
+</Accordion>
+
+<Accordion title="telm_persist_query_metrics" id="telm_persist_query_metrics" defaultOpen>
+
+Enable or disable persisting of query metrics in a table.  If disabled, metrics will still
+be available for point-in-time export.
+
+</Accordion>
+
+<Accordion title="postgres_proxy_idle_connection_timeout" id="postgres_proxy_idle_connection_timeout" defaultOpen>
+
+PostgreSQL Wire Protocol service idle connection timeout, in seconds
+
+</Accordion>
+
+<Accordion title="postgres_proxy_keep_alive" id="postgres_proxy_keep_alive" defaultOpen>
+
+Enable or disable PostgreSQL Wire Protocol service's keep alive.
+
+</Accordion>
+
+<Accordion title="ai_enable_rag" id="ai_enable_rag" defaultOpen>
+
+Enable or disable [SQL-GPT RAG](/content/sql-gpt/concepts#sql-gpt-overview-rag).
+
+</Accordion>
+
+<Accordion title="ai_api_provider" id="ai_api_provider" defaultOpen>
+
+AI API provider type
+
+</Accordion>
+
+<Accordion title="ai_api_url" id="ai_api_url" defaultOpen>
+
+AI API URL
+
+</Accordion>
+
+<Accordion title="ai_api_key" id="ai_api_key" defaultOpen>
+
+AI API key
+
+</Accordion>
+
+<Accordion title="ai_api_embeddings_model" id="ai_api_embeddings_model" defaultOpen>
+
+AI API embeddings model name
+
+</Accordion>
+
+<Accordion title="ai_api_connection_timeout" id="ai_api_connection_timeout" defaultOpen>
+
+AI API connection timeout, in seconds
+
+</Accordion>
+
+<Accordion title="external_files_directory" id="external_files_directory" defaultOpen>
+
+Root directory path, on the head node of the cluster, from where external table data files
+are accessed.
+
+</Accordion>
+
+<Accordion title="egress_single_file_max_size" id="egress_single_file_max_size" defaultOpen>
+
+Maximum file size, in MB, to allow saving to a single file.  May be overridden by target
+limitations.  The maximum allowed value is `200000`.
+
+</Accordion>
+
+<Accordion title="egress_parquet_compression" id="egress_parquet_compression" defaultOpen>
+
+Parquet file compression type.  The supported values are:
+
+* `uncompressed`
+* `snappy`
+* `gzip`
+
+</Accordion>
+
+<Accordion title="kafka_batch_size" id="kafka_batch_size" defaultOpen>
+
+Maximum number of Kafka records to be ingested in a single batch.  The maximum allowed
+value is `10000000`.
+
+</Accordion>
+
+<Accordion title="kafka_wait_time" id="kafka_wait_time" defaultOpen>
+
+Maximum time, in seconds, to buffer records received from Kafka before ingestion.  The
+maximum allowed value is `120`.
+
+</Accordion>
+
+<Accordion title="kafka_poll_timeout" id="kafka_poll_timeout" defaultOpen>
+
+Maximum time, in milliseconds, for each poll to get records from Kafka.  The maximum
+allowed value is `1000`.
+
+</Accordion>
+
+<Accordion title="system_metadata_retention_period" id="system_metadata_retention_period" defaultOpen>
+
+For persistent metadata tables, the time, in seconds, to retain rows prior to deletion.
+Note that records are deleted periodically, so this retention period is the minimum
+lifetime of a given metadata record.
+
+</Accordion>
+
+<Accordion title="kifs_directory_data_limit" id="kifs_directory_data_limit" defaultOpen>
+
+Default maximum capacity to apply to a newly-created KiFS directory, in bytes.  Use `-1`
+for no limit.
+
+</Accordion>
+
+<Accordion title="enable_one_step_compound_equi_join" id="enable_one_step_compound_equi_join" defaultOpen>
+
+Enable or disable the *one-step compound equi-join* algorithm.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Examples
+
+
+To increase the request timeout and the maximum `/get/records`
+size permanently (in the startup configuration):
+
+{/* Source: /examples/sql/system_properties.kisql (lines 15-18) */}
+```sql ALTER SYSTEM SET PROPERTIES Example
+ALTER SYSTEM SET PROPERTIES (
+    'request_timeout' = '25',
+    'max_get_records_size' = '25000'
+)
+```
+
+To set the default [embeddings model](/content/vector_search#vector-model) until the
+database is restarted:
+
+{/* Source: /examples/sql/system_properties.kisql (lines 42-43) */}
+```sql ALTER SYSTEM SET Default Embedding Model Temporarily Example
+ALTER SYSTEM SET PROPERTIES ('ai_enable_rag' = 'true')
+WITH OPTIONS ('persist' = 'false')
+```
+
+
+<a id="show-system-properties"></a>
+
+<a id="sql-show-system-properties"></a>
+
+
+## SHOW SYSTEM PROPERTIES
+
+
+System properties can be shown by any user.
+
+```sql title="SHOW SYSTEM PROPERTIES Syntax"
+SHOW SYSTEM PROPERTIES
+[WITH OPTIONS ('properties' = '<config parameter name>[,...]')]
+```
+
+
+### Examples
+
+
+To show all system properties:
+
+{/* Source: /examples/sql/system_properties.kisql (lines 10) */}
+```sql SHOW SYSTEM PROPERTIES Example
+SHOW SYSTEM PROPERTIES
+```
+
+To show the internal & external cluster node URLs:
+
+{/* Source: /examples/sql/system_properties.kisql (lines 36-37) */}
+```sql SHOW SYSTEM PROPERTIES Individually Example
+SHOW SYSTEM PROPERTIES
+WITH OPTIONS ('properties' = 'conf.worker_http_server_urls,conf.worker_http_server_urls_private')
+```
+
+To show all [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram) properties:
+
+{/* Source: /examples/sql/system_properties.kisql (lines 48-66) */}
+```sql SHOW RAM Tier Properties Example
+SHOW SYSTEM PROPERTIES
+WITH OPTIONS
+(
+    'properties' =
+    '
+        conf.tier.ram.default.high_watermark,
+        conf.tier.ram.default.limit,
+        conf.tier.ram.default.low_watermark,
+        conf.tier.ram.rank0.high_watermark,
+        conf.tier.ram.rank0.limit,
+        conf.tier.ram.rank0.low_watermark,
+        conf.tier.ram.rank1.high_watermark,
+        conf.tier.ram.rank1.limit,
+        conf.tier.ram.rank1.low_watermark,
+        conf.tier.ram.rank2.high_watermark,
+        conf.tier.ram.rank2.limit,
+        conf.tier.ram.rank2.low_watermark
+    '
+)
+```

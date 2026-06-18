@@ -1,0 +1,38 @@
+---
+title: Filter
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="filter-feature-overview"></a>
+
+
+Filters data based on the specified expression.  The results are stored in a
+[result set](../../concepts/filtered_views/) with the given input parameter
+*view_name*.
+
+For details see [Expressions](../../concepts/expressions/).
+
+The response message contains the number of points for which the expression
+evaluated to be true, which is equivalent to the size of the result view.
+
+
+## Input Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| table_name | string | Name of the table to filter, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). This may be the name of a table or a view (when chaining queries). |
+| view_name | string | If provided, then this will be the name of the view containing the results, in [schema_name.]view_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution) and meeting [table naming criteria](../../concepts/tables/#table-naming-criteria). Must not be an already existing table or view. <br/> <br/> The default value is ''. |
+| expression | string | The select expression to filter the specified table.  For details see [Expressions](../../concepts/expressions/). |
+| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> create_temp_table: If *true*, a unique temporary table name will be generated in the sys_temp schema and used in place of input parameter *view_name*. This is always allowed even if the caller does not have permission to create tables. The generated name is returned in *qualified_view_name*. The default value is `false`. The supported values are: * true * false <br/> <br/> collection_name: [DEPRECATED--please specify the containing schema for the view as part of input parameter *view_name* and use [Create Schema](/content/feature_overview/create_schema_feature_overview#create-schema-feature-overview) to create the schema if non-existent] Name of a schema for the newly created view. If the schema is non-existent, it will be automatically created. <br/> <br/> view_id: View this filtered-view is part of. The default value is ''. <br/> <br/> ttl: Sets the [TTL](../../concepts/ttl/) of the view specified in input parameter *view_name*. |
+
+
+## Output Parameter Description
+
+
+| Name | Type | Description |
+| --- | --- | --- |
+| count | long | The number of records that matched the given select expression. |
+| info | map of string to strings | Additional information. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> qualified_view_name: The fully qualified name of the view (i.e. including the schema). |

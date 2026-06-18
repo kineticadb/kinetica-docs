@@ -1,0 +1,172 @@
+---
+title: Full Text Search
+---
+
+<a id="fulltextsearch"></a>
+
+
+The SQL [FILTER_BY_STRING](/content/sql/query#sql-string-functions-fts) function, as well as the
+[/filter/bystring](/content/api/rest/filter_bystring_rest#filter-bystring-rest) endpoint, enables the use of several
+string-based search modes, including full text search via the *search* mode.
+The syntax and restrictions for this search follow, including examples of
+applying different search criteria.
+
+In order for a full text search to be applied to a column, the following
+requirements must be met:
+
+* Full text search must be enabled by setting `enable_text_search` to `true`
+  in the <Badge color="gray">/opt/gpudb/core/etc/gpudb.conf</Badge> configuration file; see
+  [Text Search](/content/config#config-main-text-search) for details.
+* The column must be a *string* [type](/content/concepts/types#types-chart) and have the
+  `text_search` [column property](/content/concepts/types#types-data-handling) applied.
+  The following *specific types* under the *string base type* are
+  text-searchable:
+
+  * `char1` - `char256`
+  * `date`
+  * `datetime`
+  * `ipv4`
+  * `string`
+  * `time`
+  * `uuid`
+
+
+## Individual Term Match
+
+
+To search for one or more search terms, add the terms to a space-separated list.
+
+| Search Text | Result |
+| --- | --- |
+| `perfect union` | matches any record containing *perfect*, *union*, or both |
+
+
+## Exact Phrase Match
+
+
+To search for an exact phrase, double quote the entire search text.
+
+| Search Text | Result |
+| --- | --- |
+| `"Perfect Union"` | matches the exact phrase *Perfect Union* |
+
+
+## Boolean Operations
+
+
+Valid operators include `NOT`, `AND`, `OR`, & parentheses `()`.  An
+`OR` is assumed if no operator is specified.
+
+| Search Text | Result |
+| --- | --- |
+| `justice AND tranquility` | matches records containing both *justice* and *tranquility* |
+| `justice OR tranquility` | matches records containing either *justice* or *tranquility* (or both) <br/> <Info> This is the default behavior, so `justice OR tranquility` is equivalent to `justice tranquility` </Info> |
+| `justice NOT tranquility` | matches records containing *justice* that don't contain *tranquility* |
+| `(justice tranquility honesty) AND peace` | matches records containing *peace* that also contain any one or more of *justice*, *tranquility*, & *honesty* |
+
+
+## Wildcard Match
+
+
+Wildcard matches can be specified with either single-character or
+multi-character wildcards, or a combination of the two:
+
+* `?` - Exactly one character
+* `*` - Zero or more characters
+
+| Search Text | Result |
+| --- | --- |
+| `est*ish*` | matches any records containing a word that starts with *est*, followed by any number of characters, followed by *is*, and ending with any number of additional characters; this would match records containing *establish*, *establishable*, and *establishment* |
+| `est???is?` | matches any records containing a word that starts with *est*, followed by exactly three characters, followed by *is*, and ending with any single character; this would match records containing *establish*, but not *establishable* or *establishment* |
+| `est*abl?` | matches any records containing a word that starts with *est*, followed by any number of characters, followed by *abl*, and ending with any single character; this would match records containing *establishable*, but not *establish* or *establishment* |
+
+
+## Fuzzy Match
+
+
+Fuzzy matches can be specified by appending a tilde (`~`) to the end of the
+fuzzy match term.  A decimal number between 0 (inclusive) and 1 (exclusive) can
+be used to specify the minimum relative similarity of the match, with `0`
+indicating the fuzziest match possible, and values closer to `1` indicating an
+increasingly stricter match.  The default match threshold is `.5`.
+
+| Search Text | Result |
+| --- | --- |
+| `rear~` | matches records containing *rear*, *fear*, *bear*, or *read* |
+| `rear~.8` | matches records containing *rear*, but not *fear*, *bear*, or *read* |
+
+
+## Proximity Match
+
+
+To match two words within a specified distance of each other, quote the two
+terms, separated by a space, and append a tilde (`~`) followed by the distance
+in number of words.
+
+| Search Text | Result |
+| --- | --- |
+| `"Union Tranquility"~10` | matches records containing *Union* and *Tranquility* within *10* words of each other |
+
+
+## Term Relevance
+
+
+To increase the relevance of a matched search term versus other given terms,
+append a caret (`^`) followed by a positive numeric boosting factor for that
+term.  A quote-enclosed phrase can also have its relevance increased.  The
+default factor is `1`.
+
+| Search Text | Result |
+| --- | --- |
+| `we have fun^5` | matches records containing any of *we*, *have*, or *fun*, but giving a greater match relevance score to records containing *fun* |
+
+
+## Required, Optional, & Prohibited Matches
+
+
+Within the context of a group of terms, any of the terms can be marked as
+required or prohibited:
+
+* `+` - when prepended to a term, requires that the term be matched
+* `-` - when prepended to a term, prohibits matches on the term
+* *&lt;no marker&gt;* - when neither marker is prepended to a term, the term is
+  optional
+
+| Search Text | Result |
+| --- | --- |
+| `we -never have +fun` | matches records containing *fun*, optionally containing *we* or *have*, and not containing *never* |
+
+
+## Range Matches
+
+
+Inclusive `[<term1> TO <term2>]` and exclusive `{<term1> TO <term2>}`
+matches are supported.  Matches where one side is inclusive and the other
+exclusive are not supported.
+
+| Search Text | Result |
+| --- | --- |
+| `[100 TO 200]` | matches records containing any numbers that lexicographically sort between *100* and *200*, including *100* and *200* <br/> <Info> This is a lexicographical comparison, so a search of `[100 TO 200]` would match *2*, *20*, or *1AZ* </Info> |
+| `{alpha TO beta}` | matches records containing words that lexicographically sort between *alpha* and *beta*, not including either *alpha* or *beta* |
+
+
+## Escaping Special Characters
+
+
+Special characters are escaped with a backslash (`\`).  Special characters
+include:
+
+|  |  |  |  |
+| --- | --- | --- | --- |
+| `+` <br/> <br/> `-` <br/> <br/> `^` <br/> <br/> `"` | `~` <br/> <br/> `*` <br/> <br/> `?` <br/> <br/> `:` | `\` <br/> <br/> `&&` <br/> <br/> `\|\|` <br/> <br/> `!` | `( )` <br/> <br/> `{ }` <br/> <br/> `[ ]` |
+
+
+## Restrictions
+
+
+* The first character of a search term cannot be a wildcard (`*` or `?`)
+* Search terms cannot be any of the following:
+
+  |  |  |  |  |
+  | --- | --- | --- | --- |
+  | `a` <br/> <br/> `an` <br/> <br/> `and` <br/> <br/> `are` <br/> <br/> `as` <br/> <br/> `at` <br/> <br/> `be` <br/> <br/> `but` | `by` <br/> <br/> `for` <br/> <br/> `if` <br/> <br/> `in` <br/> <br/> `into` <br/> <br/> `is` <br/> <br/> `it` <br/> <br/> `no` | `not` <br/> <br/> `of` <br/> <br/> `on` <br/> <br/> `or` <br/> <br/> `such` <br/> <br/> `that` <br/> <br/> `the` <br/> <br/> `their` | `then` <br/> <br/> `these` <br/> <br/> `they` <br/> <br/> `this` <br/> <br/> `to` <br/> <br/> `was` <br/> <br/> `will` <br/> <br/> `with` |

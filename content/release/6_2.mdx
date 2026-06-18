@@ -1,0 +1,121 @@
+---
+title: 6.2 Release Notes
+slug: 6.2
+---
+
+## Core
+
+
+* The size limit for [primary keys](/content/concepts/tables#primary-key) has been increased to 320
+  bytes [#pk_max_size]_
+* [Dictionary encoding](/content/concepts/dictionary_encoding)
+  performance enhancements
+* [Jobs](/content/admin/gadmin/jobs) can now be performed asynchronously
+* The Kinetica File System *(KiFS)* has been introduced to greatly ease ML
+  workflows centered around file processing and file generation
+* Non-[HA](/content/ha)
+  [multi-head primary key lookup](/content/tuning/multihead/multihead_egress) is
+  now possible using the `RecordRetriever` object available in the
+  [Java](/content/api/java/com/gpudb/RecordRetriever.html) and
+  [Python](../../api/python/?source/recordretriever.html) APIs
+* *HA* support for *multi-head primary key lookup* and *multi-head ingest*
+* [/alter/table](/content/api/rest/alter_table_rest) jobs are now cancellable
+* A [Host Manager](/content/admin/host_manager)-controlled alerting system
+  for application-level significant events and hardware resource usage. Alerts
+  can be managed via `gpudb.conf`, and you can view the most recent alerts
+  in [Kinetica Administration Application (GAdmin)](/content/admin/gadmin)
+* Improvements to [aggregation](/content/api/rest/aggregate_groupby_rest):
+
+  * Aggregates listed in a `HAVING` expression no longer have to exist in the
+    column name list
+  * Aggregates can now be listed before grouping attributes in the column name
+    list
+  * Additional grouping functions (for both [SQL](/content/sql/query#sql-grouping)
+    and the [native APIs](/content/api)):
+
+    * [Rollup](/content/concepts/rollup)
+    * [Cube](/content/concepts/cube)
+    * [Grouping Sets](/content/concepts/grouping_sets)
+
+
+* Full Materialized View support via [SQL](/content/sql/ddl#sql-create-view) or the
+  [native APIs](/content/api/rest/create_materializedview_rest)--any number of
+  source [tables](/content/concepts/tables) and intermediary *tables* & operations
+  can be involved in creating a *materialized view*
+* Various improvements to the GAdmin user interface
+* Support for [rank, partition, and window](/content/concepts/window)
+  functionality in both *SQL* and the native APIs
+* The *Python* API has been updated to include an extension that enables
+  increased speed when inserting and retrieving records from a
+  [GPUdbTable object](../../api/python/?source/gpudbtable.html)
+* [Joins](/content/concepts/joins) can now be created using derived columns, e.g.,
+
+  ```
+  h_db.create_join_table(
+    join_table_name="my_join",
+    table_names=[table.alias("a"),table.alias("b")],
+    column_names=["a.x as ax","b.y as by","a.x+b.y as c"],
+    expressions=["a.x = b.x"]
+  )
+  ```
+* The [/aggregate/statistics](/content/api/rest/aggregate_statistics_rest) endpoint can now tune the
+  behavior of the `percentile()` function using a second, comma-separated
+  resolution value. The higher the resolution, the more accurate the estimation
+  is but the longer the calculation takes, e.g., a 50th percentile resolution
+  of 200:
+
+  ```
+  h_db.aggregate_statistics(
+      table_name="my_table"
+      column_name="col1",
+      stats="count,min,percentile(50,200)"
+  )
+  ```
+
+## Geospatial
+
+
+* Improved symbology scaling
+
+
+## Security
+
+
+* Passwords now have a character limit of 1024, and user names and role names
+  now have a character limit of 64
+
+
+## SQL
+
+
+* SQL Views & Materialized Views
+
+  * [Create View](/content/sql/ddl#sql-create-view)
+  * [Alter View](/content/sql/ddl#sql-alter-view)
+  * [Refresh View](/content/sql/ddl#sql-refresh-view)
+  * [Drop View](/content/sql/ddl#sql-drop-view)
+
+* Operations:
+
+  * [Window](/content/sql/query#sql-window) Functions
+  * [Pivot](/content/sql/query#sql-pivot)
+  * [Unpivot](/content/sql/query#sql-unpivot)
+  * Grouping Functions
+
+    * [Rollup](/content/concepts/rollup)
+    * [Cube](/content/concepts/cube)
+    * [Grouping Sets](/content/concepts/grouping_sets)
+
+
+## User-Defined Functions (UDFs)
+
+
+* Improved performance of non-distributed [UDF](/content/udf) read and write
+* Per-node [concurrency limit](/content/udf/concurrency_limits#concurrency-limits) setting available in
+  [GAdmin](/content/admin) or the `max_concurrency_per_node` option
+  in the [/create/proc](/content/api/rest/create_proc_rest) endpoint
+* Each *UDF* API has access to a [status](/content/udf/python/writing#status-reporting) field under
+  `ProcData` that helps convey status information during *UDF* execution
+
+
+**Footnotes**
