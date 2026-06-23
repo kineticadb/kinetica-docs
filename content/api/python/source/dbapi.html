@@ -1,0 +1,820 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DBAPI Module &mdash; GPUdb 7.2.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?version=7.2.3.9"></script>
+      <script src="../_static/documentation_options.js?version=7.2.3.9"></script>
+      <script src="../_static/doctools.js?version=7.2.3.9"></script>
+      <script src="../_static/ext_link.js?version=7.2.3.9"></script>
+      <script src="../_static/sphinx_highlight.js?version=7.2.3.9"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="SQL-GPT Contexts" href="gpudbsqlcontext.html" /> 
+</head>
+
+<body class="kinetica-pydoc wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            GPUdb
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Kinetica Standard Objects</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="gpudb.html">GPUdb</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbtable.html">GPUdbTable</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbtableoptions.html">GPUdbTableOptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbcolumnproperty.html">GPUdbColumnProperty</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbrecordtype.html">GPUdbRecordType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbrecordcolumn.html">GPUdbRecordColumn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbrecord.html">GPUdbRecord</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbexception.html">GPUdbException</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Kinetica Multi-Head I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="gpudbingestor.html">GPUdbIngestor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recordretriever.html">RecordRetriever</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbworkerlist.html">GPUdbWorkerList</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">KIFS File Handling</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="gpudbfilehandler.html">GPUdbFileHandler</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Table Monitors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="gpudbtablemonitor.html">GPUdbTableMonitor</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SQL and Pandas Dataframes</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="gpudbsqliterator.html">GPUdbSqlIterator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataframeutils.html">DataFrameUtils</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SQL-GPT</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="gpudbsqlcontext.html">GPUdbSqlContext</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SQL DB API</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">DBAPI</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.connect"><code class="docutils literal notranslate"><span class="pre">connect()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.aconnect"><code class="docutils literal notranslate"><span class="pre">aconnect()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.KineticaConnection"><code class="docutils literal notranslate"><span class="pre">KineticaConnection</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.KineticaConnection.callproc"><code class="docutils literal notranslate"><span class="pre">KineticaConnection.callproc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.KineticaConnection.close"><code class="docutils literal notranslate"><span class="pre">KineticaConnection.close()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.KineticaConnection.commit"><code class="docutils literal notranslate"><span class="pre">KineticaConnection.commit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.KineticaConnection.cursor"><code class="docutils literal notranslate"><span class="pre">KineticaConnection.cursor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.KineticaConnection.execute"><code class="docutils literal notranslate"><span class="pre">KineticaConnection.execute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.KineticaConnection.executemany"><code class="docutils literal notranslate"><span class="pre">KineticaConnection.executemany()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.KineticaConnection.executescript"><code class="docutils literal notranslate"><span class="pre">KineticaConnection.executescript()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.KineticaConnection.rollback"><code class="docutils literal notranslate"><span class="pre">KineticaConnection.rollback()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.Cursor"><code class="docutils literal notranslate"><span class="pre">Cursor</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.callproc"><code class="docutils literal notranslate"><span class="pre">Cursor.callproc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.close"><code class="docutils literal notranslate"><span class="pre">Cursor.close()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.commit"><code class="docutils literal notranslate"><span class="pre">Cursor.commit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.connection"><code class="docutils literal notranslate"><span class="pre">Cursor.connection</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.description"><code class="docutils literal notranslate"><span class="pre">Cursor.description</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.execute"><code class="docutils literal notranslate"><span class="pre">Cursor.execute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.executemany"><code class="docutils literal notranslate"><span class="pre">Cursor.executemany()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.executescript"><code class="docutils literal notranslate"><span class="pre">Cursor.executescript()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.fetchall"><code class="docutils literal notranslate"><span class="pre">Cursor.fetchall()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.fetchmany"><code class="docutils literal notranslate"><span class="pre">Cursor.fetchmany()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.fetchone"><code class="docutils literal notranslate"><span class="pre">Cursor.fetchone()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.nextset"><code class="docutils literal notranslate"><span class="pre">Cursor.nextset()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.rollback"><code class="docutils literal notranslate"><span class="pre">Cursor.rollback()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.rowcount"><code class="docutils literal notranslate"><span class="pre">Cursor.rowcount</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.setinputsizes"><code class="docutils literal notranslate"><span class="pre">Cursor.setinputsizes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb.dbapi.Cursor.setoutputsize"><code class="docutils literal notranslate"><span class="pre">Cursor.setoutputsize()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.TimestampFromTicks"><code class="docutils literal notranslate"><span class="pre">TimestampFromTicks()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.TimeFromTicks"><code class="docutils literal notranslate"><span class="pre">TimeFromTicks()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.DateFromTicks"><code class="docutils literal notranslate"><span class="pre">DateFromTicks()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.Date"><code class="docutils literal notranslate"><span class="pre">Date</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.Time"><code class="docutils literal notranslate"><span class="pre">Time</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.Timestamp"><code class="docutils literal notranslate"><span class="pre">Timestamp</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.ROWID"><code class="docutils literal notranslate"><span class="pre">ROWID</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.DATETIME"><code class="docutils literal notranslate"><span class="pre">DATETIME</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.NUMBER"><code class="docutils literal notranslate"><span class="pre">NUMBER</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.BINARY"><code class="docutils literal notranslate"><span class="pre">BINARY</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.STRING"><code class="docutils literal notranslate"><span class="pre">STRING</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.Binary"><code class="docutils literal notranslate"><span class="pre">Binary</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.InterfaceError"><code class="docutils literal notranslate"><span class="pre">InterfaceError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.DatabaseError"><code class="docutils literal notranslate"><span class="pre">DatabaseError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.DataError"><code class="docutils literal notranslate"><span class="pre">DataError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.IntegrityError"><code class="docutils literal notranslate"><span class="pre">IntegrityError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.InternalError"><code class="docutils literal notranslate"><span class="pre">InternalError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.NotSupportedError"><code class="docutils literal notranslate"><span class="pre">NotSupportedError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.OperationalError"><code class="docutils literal notranslate"><span class="pre">OperationalError</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb.dbapi.ProgrammingError"><code class="docutils literal notranslate"><span class="pre">ProgrammingError</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GPUdb</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">DBAPI Module</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-gpudb.dbapi">
+<span id="dbapi-module"></span><h1>DBAPI Module<a class="headerlink" href="#module-gpudb.dbapi" title="Link to this heading"></a></h1>
+<p>Pure Python DB API wrapper around Kinetica Python API.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="gpudb.dbapi.connect">
+<span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">connect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'kinetica://'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#gpudb.dbapi.KineticaConnection" title="gpudb.dbapi.core.connection.KineticaConnection"><span class="pre">KineticaConnection</span></a></span></span><a class="reference internal" href="../_modules/gpudb/dbapi.html#connect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.connect" title="Link to this definition"></a></dt>
+<dd><p>The global method to return a Kinetica connection</p>
+<p>Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#  Basic authentication</span>
+<span class="n">con</span> <span class="o">=</span> <span class="n">gpudb</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+    <span class="s2">&quot;kinetica://&quot;</span><span class="p">,</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">URL</span><span class="p">,</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">USER</span><span class="p">,</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="n">PASS</span><span class="p">,</span>
+    <span class="n">default_schema</span> <span class="o">=</span> <span class="n">SCHEMA</span><span class="p">,</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;skip_ssl_cert_verification&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+<span class="p">)</span>
+
+<span class="c1">#  oauth2 authentication</span>
+<span class="n">con</span> <span class="o">=</span> <span class="n">gpudb</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span>
+    <span class="s2">&quot;kinetica://&quot;</span><span class="p">,</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">URL</span><span class="p">,</span>
+    <span class="n">oauth_token</span> <span class="o">=</span> <span class="s2">&quot;token_value&quot;</span><span class="p">,</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;skip_ssl_cert_verification&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>connection_string (<em>str, optional</em>) –</dt><dd><p>the connection string which must be “kinetica://”</p>
+</dd>
+<dt>**kwargs (<em>Dict[str, Any]</em>) –</dt><dd><p>the arguments passed to the overloaded method <a class="reference internal" href="#gpudb.dbapi.connect" title="gpudb.dbapi.connect"><code class="xref py py-meth docutils literal notranslate"><span class="pre">connect()</span></code></a></p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Raises</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>ProgrammingError –</dt><dd><p>Raised in case wrong connection parameters are</p>
+</dd>
+</dl>
+<p>detected or a connection fails for some other reason</p>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>KineticaConnection –</dt><dd><p>a <a class="reference internal" href="#gpudb.dbapi.KineticaConnection" title="gpudb.dbapi.KineticaConnection"><code class="xref py py-class docutils literal notranslate"><span class="pre">KineticaConnection</span></code></a> instance</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gpudb.dbapi.aconnect">
+<span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">aconnect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'kinetica://'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">AsyncKineticaConnection</span></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/aio.html#aconnect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.aconnect" title="Link to this definition"></a></dt>
+<dd><p>The global method to return an async Kinetica connection</p>
+<p>Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#  Basic authentication</span>
+<span class="n">con</span> <span class="o">=</span> <span class="n">gpudb</span><span class="o">.</span><span class="n">aconnect</span><span class="p">(</span>
+    <span class="s2">&quot;kinetica://&quot;</span><span class="p">,</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">URL</span><span class="p">,</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">USER</span><span class="p">,</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="n">PASS</span><span class="p">,</span>
+    <span class="n">default_schema</span> <span class="o">=</span> <span class="n">SCHEMA</span><span class="p">,</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;skip_ssl_cert_verification&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+<span class="p">)</span>
+
+<span class="c1">#  oauth2 authentication</span>
+<span class="n">con</span> <span class="o">=</span> <span class="n">gpudb</span><span class="o">.</span><span class="n">aconnect</span><span class="p">(</span>
+    <span class="s2">&quot;kinetica://&quot;</span><span class="p">,</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="n">URL</span><span class="p">,</span>
+    <span class="n">oauth_token</span> <span class="o">=</span> <span class="s2">&quot;token_value&quot;</span><span class="p">,</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;skip_ssl_cert_verification&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>connection_string (<em>str, optional</em>) –</dt><dd><p>the connection string which must be “kinetica://”</p>
+</dd>
+<dt>**kwargs (<em>Dict[str, Any]</em>) –</dt><dd><p>the arguments passed to the overloaded method <a class="reference internal" href="#gpudb.dbapi.connect" title="gpudb.dbapi.connect"><code class="xref py py-meth docutils literal notranslate"><span class="pre">connect()</span></code></a></p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Raises</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>ProgrammingError –</dt><dd><p>Raised in case wrong connection parameters are</p>
+</dd>
+</dl>
+<p>detected or a connection fails for some other reason</p>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>KineticaConnection –</dt><dd><p>a <a class="reference internal" href="#gpudb.dbapi.KineticaConnection" title="gpudb.dbapi.KineticaConnection"><code class="xref py py-class docutils literal notranslate"><span class="pre">KineticaConnection</span></code></a> instance</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="gpudb.dbapi.KineticaConnection">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">KineticaConnection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_style</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'numeric_dollar'</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oauth_token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpudb_options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gpudb/dbapi/core/connection.html#KineticaConnection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.KineticaConnection" title="Link to this definition"></a></dt>
+<dd><p>A DB API 2.0 compliant connection for Kinetica, as outlined in
+PEP 249.</p>
+<p>Constructor
+Called by <a class="reference internal" href="#gpudb.dbapi.connect" title="gpudb.dbapi.connect"><code class="xref py py-meth docutils literal notranslate"><span class="pre">connect()</span></code></a> in <a class="reference internal" href="#module-gpudb.dbapi" title="gpudb.dbapi"><code class="xref py py-mod docutils literal notranslate"><span class="pre">gpudb.dbapi</span></code></a></p>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>param_style (<em>Optional[str], optional</em>) –</dt><dd><p>String constant stating the type of parameter marker formatting
+expected by the interface. Defaults to ParamStyle.NUMERIC_DOLLAR.</p>
+</dd>
+<dt>url (<em>Optional[str], optional</em>) –</dt><dd><p>the Kinetica URL; has to be keyword only. Defaults to None.</p>
+</dd>
+<dt>username (<em>Optional[str], optional</em>) –</dt><dd><p>the Kinetica username. Defaults to None.</p>
+</dd>
+<dt>password (<em>Optional[str], optional</em>) –</dt><dd><p>the Kinetica password. Defaults to None.</p>
+</dd>
+<dt>oauth_token (<em>Optional[str], optional</em>) –</dt><dd><p>the oauth2 token. Defaults to None.</p>
+</dd>
+<dt>default_schema (<em>Optional[str], optional</em>) –</dt><dd><p>the Kinetica default schema; has to be keyword only. Defaults to None.</p>
+</dd>
+<dt>gpudb_options (<em>Optional[dict], optional</em>) –</dt><dd><p>Defaults to None. Allows all standard GPUdb.Options keys.</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Raises</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>ProgrammingError –</dt><dd><p>Raised in case of incorrect parameters passed in</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.KineticaConnection.callproc">
+<span class="sig-name descname"><span class="pre">callproc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">procname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/connection.html#KineticaConnection.callproc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.KineticaConnection.callproc" title="Link to this definition"></a></dt>
+<dd><dl>
+<dt>This method is used to call a Kinetica procedure.</dt><dd><p>The sequence of parameters must contain one entry for each argument
+that the procedure expects.
+The result of the call is returned as modified copy of the input sequence.</p>
+<p>The procedure may also provide a result set as output.</p>
+</dd>
+</dl>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>procname (<em>ProcName</em>) –</dt><dd><p>the name of the procedure</p>
+</dd>
+<dt>parameters (<em>Optional[ProcArgs], optional</em>) –</dt><dd><p>the parameters to the procedure, which Kinetica doesn’t support</p>
+</dd>
+</dl>
+<p>as of now. Defaults to None. This is ignored for now</p>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>Optional[ProcArgs] –</dt><dd><p>None</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.KineticaConnection.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/connection.html#KineticaConnection.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.KineticaConnection.close" title="Link to this definition"></a></dt>
+<dd><p>Close the database connection.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.KineticaConnection.commit">
+<span class="sig-name descname"><span class="pre">commit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/connection.html#KineticaConnection.commit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.KineticaConnection.commit" title="Link to this definition"></a></dt>
+<dd><p>Commit changes made since the start of the pending transaction.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.KineticaConnection.cursor">
+<span class="sig-name descname"><span class="pre">cursor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#gpudb.dbapi.Cursor" title="gpudb.dbapi.core.cursor.Cursor"><span class="pre">Cursor</span></a></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/connection.html#KineticaConnection.cursor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.KineticaConnection.cursor" title="Link to this definition"></a></dt>
+<dd><p>Return a database cursor.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.KineticaConnection.execute">
+<span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sql_statement</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#gpudb.dbapi.Cursor" title="gpudb.dbapi.core.cursor.Cursor"><span class="pre">Cursor</span></a></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/connection.html#KineticaConnection.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.KineticaConnection.execute" title="Link to this definition"></a></dt>
+<dd><p>The method to execute a single SQL statement (query or command) and return a cursor.</p>
+<p>Parameters may be provided as sequence or mapping and will be bound to variables in the operation.
+Variables are specified in a database-specific notation (see the module’s paramstyle attribute for details).</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">ParamStyle</span></code></p>
+</div>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>sql_statement (<em>SQLQuery</em>) –</dt><dd><p>the SQL statement (query or command) to execute</p>
+</dd>
+<dt>parameters (<em>Optional[QueryParameters], optional</em>) –</dt><dd><p>the parameters to the query;
+typically a heterogeneous list. Defaults to None.</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Raises</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>ProgrammingError –</dt><dd><p>Raised in case the SQL statement passed in is invalid</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>Cursor –</dt><dd><p>a Cursor containing the results of the query</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.KineticaConnection.executemany">
+<span class="sig-name descname"><span class="pre">executemany</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_of_parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#gpudb.dbapi.Cursor" title="gpudb.dbapi.core.cursor.Cursor"><span class="pre">Cursor</span></a></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/connection.html#KineticaConnection.executemany"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.KineticaConnection.executemany" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Method used to execute the same statement with a sequence of parameter values.</dt><dd><p>The cursor is only returned from the last execution</p>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#gpudb.dbapi.KineticaConnection.execute" title="gpudb.dbapi.KineticaConnection.execute"><code class="xref py py-func docutils literal notranslate"><span class="pre">execute()</span></code></a></p>
+</div>
+<p>Example - inserting multiple records</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">con1</span> <span class="o">=</span> <span class="n">gpudb</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s2">&quot;kinetica://&quot;</span><span class="p">,</span> <span class="n">connect_args</span><span class="o">=</span><span class="p">{</span>
+    <span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="s1">&#39;http://localhost:9191&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;username&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;password&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;bypass_ssl_cert_check&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+
+<span class="n">create_query</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;create table ki_home.test_table (i integer not null, bi bigint not null) using table &quot;</span>
+                <span class="s2">&quot;properties (no_error_if_exists=TRUE)&quot;</span><span class="p">)</span>
+<span class="n">con1</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">create_query</span><span class="p">)</span>
+
+<span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">bi</span> <span class="o">=</span> <span class="mi">1000</span>
+<span class="n">num_pairs</span> <span class="o">=</span> <span class="mi">50000</span>
+
+<span class="c1"># Generate a list of pairs with the same values and monotonically increasing first value</span>
+<span class="n">pairs</span> <span class="o">=</span> <span class="p">[[</span><span class="n">i</span> <span class="o">+</span> <span class="n">x</span><span class="p">,</span> <span class="n">bi</span> <span class="o">+</span> <span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_pairs</span><span class="p">)]</span>
+<span class="n">insert_many_query</span> <span class="o">=</span> <span class="s2">&quot;insert into ki_home.test_table (i, bi) values ($1, $2)&quot;</span>
+<span class="n">con1</span><span class="o">.</span><span class="n">executemany</span><span class="p">(</span><span class="n">insert_many_query</span><span class="p">,</span> <span class="n">pairs</span><span class="p">)</span>
+<span class="n">con1</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>operation (<em>SQLQuery</em>) –</dt><dd><p>the SQL query</p>
+</dd>
+<dt>seq_of_parameters (<em>Sequence[QueryParameters]</em>) –</dt><dd><p>a list of parameters (tuples)</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>Cursor –</dt><dd><p>a Cursor instance to iterate over the results</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.KineticaConnection.executescript">
+<span class="sig-name descname"><span class="pre">executescript</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">script</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#gpudb.dbapi.Cursor" title="gpudb.dbapi.core.cursor.Cursor"><span class="pre">Cursor</span></a></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/connection.html#KineticaConnection.executescript"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.KineticaConnection.executescript" title="Link to this definition"></a></dt>
+<dd><p>This method executes an SQL script which is a ‘;’ separated list of SQL statements.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="#gpudb.dbapi.KineticaConnection.execute" title="gpudb.dbapi.KineticaConnection.execute"><code class="xref py py-func docutils literal notranslate"><span class="pre">execute()</span></code></a></p>
+</div>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>script (<em>SQLQuery</em>) –</dt><dd><p>an SQL script</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>Cursor –</dt><dd><p>the Cursor returned as a result of execution of the last statement in the script</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.KineticaConnection.rollback">
+<span class="sig-name descname"><span class="pre">rollback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/connection.html#KineticaConnection.rollback"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.KineticaConnection.rollback" title="Link to this definition"></a></dt>
+<dd><p>Roll back to the start of the pending transaction, discarding
+changes.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">Cursor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">connection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#gpudb.dbapi.KineticaConnection" title="gpudb.dbapi.KineticaConnection"><span class="pre">KineticaConnection</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gpudb/dbapi/core/cursor.html#Cursor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.Cursor" title="Link to this definition"></a></dt>
+<dd><p>A DB API 2.0 compliant cursor for Kinetica, as outlined in
+PEP 249.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.callproc">
+<span class="sig-name descname"><span class="pre">callproc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">procname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/cursor.html#Cursor.callproc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.Cursor.callproc" title="Link to this definition"></a></dt>
+<dd><p>Execute an SQL stored procedure, passing the sequence of parameters.
+The parameters should contain one entry for each procedure argument.</p>
+<p>The result of the call is returned as a modified copy of the input
+parameters. The procedure may also provide a result set, which
+can be made available through the standard fetch methods.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/cursor.html#Cursor.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.Cursor.close" title="Link to this definition"></a></dt>
+<dd><p>Close the cursor.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.commit">
+<span class="sig-name descname"><span class="pre">commit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/cursor.html#Cursor.commit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.Cursor.commit" title="Link to this definition"></a></dt>
+<dd><p>Commit changes made since the start of the pending transaction.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.connection">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">connection</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#gpudb.dbapi.KineticaConnection" title="gpudb.dbapi.KineticaConnection"><span class="pre">KineticaConnection</span></a></em><a class="headerlink" href="#gpudb.dbapi.Cursor.connection" title="Link to this definition"></a></dt>
+<dd><p>The parent Connection of the implementing cursor.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.description">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">description</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">type</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#gpudb.dbapi.Cursor.description" title="Link to this definition"></a></dt>
+<dd><p>This read-only attribute is a sequence of 7-item sequences.</p>
+<p>Each of these sequences contains information describing one result column:</p>
+<blockquote>
+<div><p>name
+type_code
+display_size
+internal_size
+precision
+scale
+null_ok</p>
+</div></blockquote>
+<p>The first two items (name and type_code) are mandatory, the other five
+are optional and are set to None if no meaningful values can be provided.</p>
+<p>This attribute will be None for operations that do not return rows or
+if the cursor has not had an operation invoked via the .execute*() method yet.</p>
+<p><strong>Returns</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>Optional[Sequence[ColumnDescription]] –</dt><dd><p>a sequence of immutable tuples like:</p>
+</dd>
+</dl>
+<p>[ (<em>‘field_1’, &lt;class ‘int’&gt;, None, None, None, None, None</em>) –</p>
+<p>(‘field_2’, &lt;class ‘int’&gt;, None, None, None, None, None), –</p>
+<p>(‘field_3’, &lt;class ‘str’&gt;, None, None, None, None, None), –</p>
+<p>(‘field_4’, &lt;class ‘float’&gt;, None, None, None, None, None)]</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.execute">
+<span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#gpudb.dbapi.Cursor" title="gpudb.dbapi.core.cursor.Cursor"><span class="pre">Cursor</span></a></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/cursor.html#Cursor.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.Cursor.execute" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Executes an SQL statement and returns a Cursor instance which can</dt><dd><p>used to iterate over the results of the query</p>
+</dd>
+</dl>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>operation (<em>SQLQuery</em>) –</dt><dd><p>an SQL statement</p>
+</dd>
+<dt>parameters (<em>Optional[QueryParameters], optional</em>) –</dt><dd><p>the parameters
+to the SQL statement; typically a heterogeneous list. Defaults to None.</p>
+</dd>
+<dt>default_schema (<em>Optional[str], optional</em>) –</dt><dd><p>the default schema to</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>Cursor –</dt><dd><p>Returns an instance of self which is used by KineticaConnection</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.executemany">
+<span class="sig-name descname"><span class="pre">executemany</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seq_of_parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#gpudb.dbapi.Cursor" title="gpudb.dbapi.core.cursor.Cursor"><span class="pre">Cursor</span></a></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/cursor.html#Cursor.executemany"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.Cursor.executemany" title="Link to this definition"></a></dt>
+<dd><p>Execute an SQL query, parameterising the query with sequences
+or mappings passed as parameters.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.executescript">
+<span class="sig-name descname"><span class="pre">executescript</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">script</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#gpudb.dbapi.Cursor" title="gpudb.dbapi.core.cursor.Cursor"><span class="pre">Cursor</span></a></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/cursor.html#Cursor.executescript"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.Cursor.executescript" title="Link to this definition"></a></dt>
+<dd><p>Not supported as of now.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.fetchall">
+<span class="sig-name descname"><span class="pre">fetchall</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/cursor.html#Cursor.fetchall"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.Cursor.fetchall" title="Link to this definition"></a></dt>
+<dd><p>Fetch the remaining rows from the query result set as a list of
+sequences of Python types.</p>
+<p>If rows in the result set have been exhausted, an empty list
+will be returned. If the previous call to <cite>execute</cite> did not
+produce a result set, an error can be raised.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.fetchmany">
+<span class="sig-name descname"><span class="pre">fetchmany</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/cursor.html#Cursor.fetchmany"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.Cursor.fetchmany" title="Link to this definition"></a></dt>
+<dd><p>Fetch the next <cite>size</cite> rows from the query result set as a list
+of sequences of Python types.</p>
+<p>If the size parameter is not supplied, the arraysize property will
+be used instead.</p>
+<p>If rows in the result set have been exhausted, an empty list
+will be returned. If the previous call to <cite>execute</cite> did not
+produce a result set, an error can be raised.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.fetchone">
+<span class="sig-name descname"><span class="pre">fetchone</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/cursor.html#Cursor.fetchone"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.Cursor.fetchone" title="Link to this definition"></a></dt>
+<dd><p>Fetch the next row from the query result set as a sequence of Python
+types (or return None when no more rows are available).</p>
+<p>If the previous call to <cite>execute</cite> did not produce a result set, an
+error can be raised.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.nextset">
+<span class="sig-name descname"><span class="pre">nextset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/cursor.html#Cursor.nextset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.Cursor.nextset" title="Link to this definition"></a></dt>
+<dd><p>Skip the cursor to the next available result set, discarding
+rows from the current set. If there are no more sets, return
+None, otherwise return True.</p>
+<p>This method is optional, as not all databases implement multiple
+result sets.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.rollback">
+<span class="sig-name descname"><span class="pre">rollback</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/cursor.html#Cursor.rollback"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.Cursor.rollback" title="Link to this definition"></a></dt>
+<dd><p>Roll back to the start of the pending transaction, discarding
+changes.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.rowcount">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">rowcount</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#gpudb.dbapi.Cursor.rowcount" title="Link to this definition"></a></dt>
+<dd><p>A read-only attribute returning the number of rows that the last
+execute call returned (for e.g. SELECT calls) or affected (for e.g.
+UPDATE/INSERT calls).</p>
+<p>If no execute has been performed or the rowcount cannot be determined,
+this should return -1.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.setinputsizes">
+<span class="sig-name descname"><span class="pre">setinputsizes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sizes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Type</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/cursor.html#Cursor.setinputsizes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.Cursor.setinputsizes" title="Link to this definition"></a></dt>
+<dd><p>Can be used before a call to <cite>execute</cite> to predefine memory areas
+for the operation’s parameters.</p>
+<p><cite>sizes</cite> is a sequence containing an item - a type, or an integer
+specifying the maximum length for a string - for each input
+parameter. If the item is None, no memory will be reserved for
+that column.</p>
+<p>Implementations are free to have this method do nothing.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb.dbapi.Cursor.setoutputsize">
+<span class="sig-name descname"><span class="pre">setoutputsize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/gpudb/dbapi/core/cursor.html#Cursor.setoutputsize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.Cursor.setoutputsize" title="Link to this definition"></a></dt>
+<dd><p>Can be used before a call to <cite>execute</cite> to predefine buffer
+sizes for fetches of ‘large’ columns (e.g. LONG, BLOB, etc.).</p>
+<p><cite>size</cite> is an int, referring to the size of the column.</p>
+<p><cite>column</cite> is an optional int, referring to the index in the
+result sequence. If this is not provided, this will set
+the default size for all ‘large’ columns in the cursor.</p>
+<p>Implementations are free to have this method do nothing.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gpudb.dbapi.TimestampFromTicks">
+<span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">TimestampFromTicks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#gpudb.dbapi.TimestampFromTicks" title="Link to this definition"></a></dt>
+<dd><p>timestamp[, tz] -&gt; tz’s local time from POSIX timestamp.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gpudb.dbapi.TimeFromTicks">
+<span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">TimeFromTicks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/gpudb/dbapi/pep249/type_constructors.html#TimeFromTicks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.TimeFromTicks" title="Link to this definition"></a></dt>
+<dd><p>Return the time, given a Unix timestamp.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="gpudb.dbapi.DateFromTicks">
+<span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">DateFromTicks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span><a class="headerlink" href="#gpudb.dbapi.DateFromTicks" title="Link to this definition"></a></dt>
+<dd><p>Create a date from a POSIX timestamp.</p>
+<p>The timestamp is a number, e.g. created via time.time(), that is interpreted
+as local time.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpudb.dbapi.Date">
+<span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">Date</span></span><a class="headerlink" href="#gpudb.dbapi.Date" title="Link to this definition"></a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">date</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpudb.dbapi.Time">
+<span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">Time</span></span><a class="headerlink" href="#gpudb.dbapi.Time" title="Link to this definition"></a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">time</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpudb.dbapi.Timestamp">
+<span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">Timestamp</span></span><a class="headerlink" href="#gpudb.dbapi.Timestamp" title="Link to this definition"></a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">datetime</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpudb.dbapi.ROWID">
+<span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">ROWID</span></span><a class="headerlink" href="#gpudb.dbapi.ROWID" title="Link to this definition"></a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpudb.dbapi.DATETIME">
+<span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">DATETIME</span></span><a class="headerlink" href="#gpudb.dbapi.DATETIME" title="Link to this definition"></a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">datetime</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpudb.dbapi.NUMBER">
+<span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">NUMBER</span></span><a class="headerlink" href="#gpudb.dbapi.NUMBER" title="Link to this definition"></a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpudb.dbapi.BINARY">
+<span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">BINARY</span></span><a class="headerlink" href="#gpudb.dbapi.BINARY" title="Link to this definition"></a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpudb.dbapi.STRING">
+<span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">STRING</span></span><a class="headerlink" href="#gpudb.dbapi.STRING" title="Link to this definition"></a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="gpudb.dbapi.Binary">
+<span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">Binary</span></span><a class="headerlink" href="#gpudb.dbapi.Binary" title="Link to this definition"></a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code></p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="gpudb.dbapi.Error">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">Error</span></span><a class="reference internal" href="../_modules/gpudb/dbapi/pep249/exceptions.html#Error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.Error" title="Link to this definition"></a></dt>
+<dd><p>Base error outlined in PEP 249.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="gpudb.dbapi.InterfaceError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">InterfaceError</span></span><a class="reference internal" href="../_modules/gpudb/dbapi/pep249/exceptions.html#InterfaceError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.InterfaceError" title="Link to this definition"></a></dt>
+<dd><p>Interface error outlined in PEP 249.</p>
+<p>Raised for errors with the database interface.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="gpudb.dbapi.DatabaseError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">DatabaseError</span></span><a class="reference internal" href="../_modules/gpudb/dbapi/pep249/exceptions.html#DatabaseError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.DatabaseError" title="Link to this definition"></a></dt>
+<dd><p>Database error outlined in PEP 249.</p>
+<p>Raised for errors with the database.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="gpudb.dbapi.DataError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">DataError</span></span><a class="reference internal" href="../_modules/gpudb/dbapi/pep249/exceptions.html#DataError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.DataError" title="Link to this definition"></a></dt>
+<dd><p>Data error outlined in PEP 249.</p>
+<p>Raised for errors that are due to problems with processed data.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="gpudb.dbapi.IntegrityError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">IntegrityError</span></span><a class="reference internal" href="../_modules/gpudb/dbapi/pep249/exceptions.html#IntegrityError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.IntegrityError" title="Link to this definition"></a></dt>
+<dd><p>Integrity error outlined in PEP 249.</p>
+<p>Raised when errors occur which affect the relational integrity of
+the database (e.g. constraint violations).</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="gpudb.dbapi.InternalError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">InternalError</span></span><a class="reference internal" href="../_modules/gpudb/dbapi/pep249/exceptions.html#InternalError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.InternalError" title="Link to this definition"></a></dt>
+<dd><p>Integrity error outlined in PEP 249.</p>
+<p>Raised when the database encounters an internal error.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="gpudb.dbapi.NotSupportedError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">NotSupportedError</span></span><a class="reference internal" href="../_modules/gpudb/dbapi/pep249/exceptions.html#NotSupportedError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.NotSupportedError" title="Link to this definition"></a></dt>
+<dd><p>Not supported error outlined in PEP 249.</p>
+<p>Raised when an unsupported operation is attempted.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="gpudb.dbapi.OperationalError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">OperationalError</span></span><a class="reference internal" href="../_modules/gpudb/dbapi/pep249/exceptions.html#OperationalError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.OperationalError" title="Link to this definition"></a></dt>
+<dd><p>Operational error outlined in PEP 249.</p>
+<p>Raised for errors in the database’s operation.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="gpudb.dbapi.ProgrammingError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gpudb.dbapi.</span></span><span class="sig-name descname"><span class="pre">ProgrammingError</span></span><a class="reference internal" href="../_modules/gpudb/dbapi/pep249/exceptions.html#ProgrammingError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb.dbapi.ProgrammingError" title="Link to this definition"></a></dt>
+<dd><p>Programming error outlined in PEP 249.</p>
+<p>Raised for SQL programming errors.</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="gpudbsqlcontext.html" class="btn btn-neutral float-left" title="SQL-GPT Contexts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Kinetica DB Inc..</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

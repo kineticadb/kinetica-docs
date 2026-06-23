@@ -1,0 +1,326 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Class DataFrameUtils &mdash; GPUdb 7.2.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?version=7.2.3.9"></script>
+      <script src="../_static/documentation_options.js?version=7.2.3.9"></script>
+      <script src="../_static/doctools.js?version=7.2.3.9"></script>
+      <script src="../_static/ext_link.js?version=7.2.3.9"></script>
+      <script src="../_static/sphinx_highlight.js?version=7.2.3.9"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="SQL-GPT Contexts" href="gpudbsqlcontext.html" />
+    <link rel="prev" title="Class GPUdbSqlIterator" href="gpudbsqliterator.html" /> 
+</head>
+
+<body class="kinetica-pydoc wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            GPUdb
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Kinetica Standard Objects</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="gpudb.html">GPUdb</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbtable.html">GPUdbTable</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbtableoptions.html">GPUdbTableOptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbcolumnproperty.html">GPUdbColumnProperty</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbrecordtype.html">GPUdbRecordType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbrecordcolumn.html">GPUdbRecordColumn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbrecord.html">GPUdbRecord</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbexception.html">GPUdbException</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Kinetica Multi-Head I/O</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="gpudbingestor.html">GPUdbIngestor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recordretriever.html">RecordRetriever</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gpudbworkerlist.html">GPUdbWorkerList</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">KIFS File Handling</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="gpudbfilehandler.html">GPUdbFileHandler</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Table Monitors</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="gpudbtablemonitor.html">GPUdbTableMonitor</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SQL and Pandas Dataframes</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="gpudbsqliterator.html">GPUdbSqlIterator</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">DataFrameUtils</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#gpudb_dataframe.DataFrameUtils"><code class="docutils literal notranslate"><span class="pre">DataFrameUtils</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb_dataframe.DataFrameUtils.sql_to_df"><code class="docutils literal notranslate"><span class="pre">DataFrameUtils.sql_to_df()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb_dataframe.DataFrameUtils.table_to_df"><code class="docutils literal notranslate"><span class="pre">DataFrameUtils.table_to_df()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb_dataframe.DataFrameUtils.table_type_as_df"><code class="docutils literal notranslate"><span class="pre">DataFrameUtils.table_type_as_df()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb_dataframe.DataFrameUtils.df_to_table"><code class="docutils literal notranslate"><span class="pre">DataFrameUtils.df_to_table()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gpudb_dataframe.DataFrameUtils.df_insert_into_table"><code class="docutils literal notranslate"><span class="pre">DataFrameUtils.df_insert_into_table()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SQL-GPT</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="gpudbsqlcontext.html">GPUdbSqlContext</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">SQL DB API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="dbapi.html">DBAPI</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">GPUdb</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Class DataFrameUtils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="class-dataframeutils">
+<h1>Class DataFrameUtils<a class="headerlink" href="#class-dataframeutils" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="gpudb_dataframe.DataFrameUtils">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">gpudb_dataframe.</span></span><span class="sig-name descname"><span class="pre">DataFrameUtils</span></span><a class="reference internal" href="../_modules/gpudb/gpudb_dataframe.html#DataFrameUtils"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb_dataframe.DataFrameUtils" title="Link to this definition"></a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="gpudb_dataframe.DataFrameUtils.sql_to_df">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">sql_to_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="gpudb.html#gpudb.GPUdb" title="gpudb.GPUdb"><span class="pre">GPUdb</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">sql</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sql_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sql_opts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/gpudb/gpudb_dataframe.html#DataFrameUtils.sql_to_df"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb_dataframe.DataFrameUtils.sql_to_df" title="Link to this definition"></a></dt>
+<dd><p>Create a <code class="xref py py-class docutils literal notranslate"><span class="pre">pd.Dataframe</span></code> from the results of a SQL query.</p>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>db (<em>GPUdb</em>) –</dt><dd><p>a <code class="xref py py-class docutils literal notranslate"><span class="pre">GPUdb</span></code> instance</p>
+</dd>
+<dt>sql (<em>str</em>) –</dt><dd><p>the SQL query</p>
+</dd>
+<dt>sql_params (<em>list</em>) –</dt><dd><p>the query parameters. Defaults to None.</p>
+</dd>
+<dt>batch_size (<em>int</em>) –</dt><dd><p>the batch size for the SQL execution results. Defaults to <code class="xref py py-attr docutils literal notranslate"><span class="pre">BATCH_SIZE</span></code>.</p>
+</dd>
+<dt>sql_opts (<em>dict</em>) –</dt><dd><p>the SQL options as a dict. Defaults to None.</p>
+</dd>
+<dt>show_progress (<em>bool</em>) –</dt><dd><p>whether to display progress or not. Defaults to False.</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Raises</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>GPUdbException –</dt><dd><p>If the SQL query failed</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>pd.DataFrame –</dt><dd><p>a Pandas <code class="xref py py-class docutils literal notranslate"><span class="pre">pd.Dataframe</span></code> or None if the SQL query has returned no results</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb_dataframe.DataFrameUtils.table_to_df">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">table_to_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="gpudb.html#gpudb.GPUdb" title="gpudb.GPUdb"><span class="pre">GPUdb</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/gpudb/gpudb_dataframe.html#DataFrameUtils.table_to_df"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb_dataframe.DataFrameUtils.table_to_df" title="Link to this definition"></a></dt>
+<dd><p>Convert a Kinetica table into a <code class="xref py py-class docutils literal notranslate"><span class="pre">pd.Dataframe</span></code> and load data into it.</p>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>db (<em>GPUdb</em>) –</dt><dd><p>a <code class="xref py py-class docutils literal notranslate"><span class="pre">GPUdb</span></code> instance</p>
+</dd>
+<dt>table_name (<em>str</em>) –</dt><dd><p>name of the Kinetica table</p>
+</dd>
+<dt>batch_size (<em>int</em>) –</dt><dd><p>the batch size for the SQL execution results. Defaults to <code class="xref py py-attr docutils literal notranslate"><span class="pre">BATCH_SIZE</span></code>.</p>
+</dd>
+<dt>show_progress (<em>bool</em>) –</dt><dd><p>whether to display progress or not. Defaults to False.</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>pd.Dataframe –</dt><dd><p>Returns a Pandas <code class="xref py py-class docutils literal notranslate"><span class="pre">pd.Dataframe</span></code> created from the Kinetica table</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb_dataframe.DataFrameUtils.table_type_as_df">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">table_type_as_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gpudb_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="gpudbtable.html#gpudb.GPUdbTable" title="gpudb.GPUdbTable"><span class="pre">GPUdbTable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="reference internal" href="../_modules/gpudb/gpudb_dataframe.html#DataFrameUtils.table_type_as_df"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb_dataframe.DataFrameUtils.table_type_as_df" title="Link to this definition"></a></dt>
+<dd><p>Convert the type schema (column list) of a <code class="xref py py-class docutils literal notranslate"><span class="pre">GPUdbTable</span></code> into a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">pd.Dataframe</span></code>.</p>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>gpudb_table (<em>GPUdbTable</em>) –</dt><dd><p>a <code class="xref py py-class docutils literal notranslate"><span class="pre">GPUdbTable</span></code> instance</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>pd.DataFrame –</dt><dd><p>a Pandas <code class="xref py py-class docutils literal notranslate"><span class="pre">pd.Dataframe</span></code> created by analyzing the table column types</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb_dataframe.DataFrameUtils.df_to_table">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">df_to_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="gpudb.html#gpudb.GPUdb" title="gpudb.GPUdb"><span class="pre">GPUdb</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clear_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">create_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="gpudbtable.html#gpudb.GPUdbTable" title="gpudb.GPUdbTable"><span class="pre">GPUdbTable</span></a></span></span><a class="reference internal" href="../_modules/gpudb/gpudb_dataframe.html#DataFrameUtils.df_to_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb_dataframe.DataFrameUtils.df_to_table" title="Link to this definition"></a></dt>
+<dd><p>Load a <code class="xref py py-class docutils literal notranslate"><span class="pre">pd.Dataframe</span></code> into a table; optionally dropping any existing table,
+creating it if it doesn’t exist, and loading data into it; and then returning a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">GPUdbTable</span></code> reference to the table.</p>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div><dl>
+<dt>df (<em>pd.DataFrame</em>) –</dt><dd><p>The Pandas <code class="xref py py-class docutils literal notranslate"><span class="pre">pd.Dataframe</span></code> to load into a table</p>
+</dd>
+<dt>db (<em>GPUdb</em>) –</dt><dd><p><code class="xref py py-class docutils literal notranslate"><span class="pre">GPUdb</span></code> instance</p>
+</dd>
+<dt>table_name (<em>str</em>) –</dt><dd><p>Name of the target Kinetica table for the <code class="xref py py-class docutils literal notranslate"><span class="pre">pd.Dataframe</span></code> loading</p>
+</dd>
+<dt>column_types (<em>dict</em>) –</dt><dd><p>Optional Kinetica column properties to apply to the column type definitions inferred
+from the <code class="xref py py-class docutils literal notranslate"><span class="pre">pd.Dataframe</span></code>; map of column name to a list of column properties
+for that column, excluding the inferred base type. Defaults to empty map. For
+example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span> <span class="s2">&quot;middle_name&quot;</span><span class="p">:</span> <span class="p">[</span> <span class="s1">&#39;char64&#39;</span><span class="p">,</span> <span class="s1">&#39;nullable&#39;</span> <span class="p">],</span> <span class="s2">&quot;state&quot;</span><span class="p">:</span> <span class="p">[</span> <span class="s1">&#39;char2&#39;</span><span class="p">,</span> <span class="s1">&#39;dict&#39;</span> <span class="p">]</span> <span class="p">}</span>
+</pre></div>
+</div>
+</dd>
+<dt>clear_table (<em>bool</em>) –</dt><dd><p>Whether to drop an existing table of the same name or not before creating this one.
+Defaults to False.</p>
+</dd>
+<dt>create_table (<em>bool</em>) –</dt><dd><p>Whether to create the table if it doesn’t exist or not. Defaults to True.</p>
+</dd>
+<dt>load_data (<em>bool</em>) –</dt><dd><p>Whether to load data into the target table or not. Defaults to True.</p>
+</dd>
+<dt>show_progress (<em>bool</em>) –</dt><dd><p>Whether to show progress of the operation on the console. Defaults to False.</p>
+</dd>
+<dt>batch_size (<em>int</em>) –</dt><dd><p>The number of records at a time to load into the target table. Defaults to
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">BATCH_SIZE</span></code>.</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Raises</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>GPUdbException –</dt><dd><p>If the <code class="xref py py-class docutils literal notranslate"><span class="pre">pd.Dataframe</span></code> is empty, the table doesn’t exist and
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">create_table</span></code> is False, or the data ingest fails</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>GPUdbTable –</dt><dd><p>a <code class="xref py py-class docutils literal notranslate"><span class="pre">GPUdbTable</span></code> instance created from the <code class="xref py py-class docutils literal notranslate"><span class="pre">pd.Dataframe</span></code> passed
+in</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="gpudb_dataframe.DataFrameUtils.df_insert_into_table">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">df_insert_into_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gpudb_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="gpudbtable.html#gpudb.GPUdbTable" title="gpudb.GPUdbTable"><span class="pre">GPUdbTable</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="../_modules/gpudb/gpudb_dataframe.html#DataFrameUtils.df_insert_into_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#gpudb_dataframe.DataFrameUtils.df_insert_into_table" title="Link to this definition"></a></dt>
+<dd><p>Load a Pandas <code class="xref py py-class docutils literal notranslate"><span class="pre">pd.Dataframe</span></code> into a <code class="xref py py-class docutils literal notranslate"><span class="pre">GPUdbTable</span></code>.</p>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>df (<em>pd.Dataframe</em>) –</dt><dd><p>a Pandas <code class="xref py py-class docutils literal notranslate"><span class="pre">pd.Dataframe</span></code></p>
+</dd>
+<dt>gpudb_table (<em>GPUdbTable</em>) –</dt><dd><p>a <code class="xref py py-class docutils literal notranslate"><span class="pre">GPUdbTable</span></code> instance</p>
+</dd>
+<dt>batch_size (<em>int</em>) –</dt><dd><p>a batch size to use for loading data into the table. Defaults to <code class="xref py py-attr docutils literal notranslate"><span class="pre">BATCH_SIZE</span></code>.</p>
+</dd>
+<dt>show_progress (<em>bool</em>) –</dt><dd><p>whether to show progress of the operation. Defaults to False.</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Raises</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>GPUdbException –</dt><dd><p>If the data ingest fails</p>
+</dd>
+</dl>
+</div></blockquote>
+<p><strong>Returns</strong></p>
+<blockquote>
+<div><dl class="simple">
+<dt>int –</dt><dd><p>the number of rows of the <code class="xref py py-class docutils literal notranslate"><span class="pre">pd.Dataframe</span></code> actually inserted into the Kinetica table</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="gpudbsqliterator.html" class="btn btn-neutral float-left" title="Class GPUdbSqlIterator" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="gpudbsqlcontext.html" class="btn btn-neutral float-right" title="SQL-GPT Contexts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Kinetica DB Inc..</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
