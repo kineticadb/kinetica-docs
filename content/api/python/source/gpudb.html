@@ -7677,15 +7677,15 @@ indicating success or failure of the trigger deactivation.</p>
 <blockquote>
 <div><dl class="simple">
 <dt>table_name (<em>str</em>) –</dt><dd><p>Name of a table, in [schema_name.]table_name format, using
-standard <a class="reference external" href="../../../concepts/tables/#table-name-resolution">name resolution rules</a>.  Must
-be an existing table.  A value of <a href="#id1"><span class="problematic" id="id2">**</span></a>* collects statistics on
+standard <a class="reference external" href="../../../concepts/tables/#table-name-resolution">name resolution rules</a>. Must
+be an existing table.  A value of ‘*’ collects statistics on
 every user table the caller may read (excluding system schemas,
 views, and temporary tables); when used, input parameter
-<em>column_names</em> must be <em>[”</em>”]*.</p>
+<em>column_names</em> must be ‘*’.</p>
 </dd>
 <dt>column_names (<em>list of str</em>) –</dt><dd><p>List of one or more column names in input parameter
 <em>table_name</em> for which to collect statistics (cardinality, mean
-value, etc.).  A single entry of <a href="#id3"><span class="problematic" id="id4">**</span></a>* expands to every
+value, etc.). A single entry of ‘*’ expands to every
 collectable column on the table (geometry, vector, JSON, and
 array columns are skipped). The user can provide a single
 element (which will be automatically promoted to a list
@@ -12259,12 +12259,18 @@ when <em>execute_at_startup</em> is <em>true</em>. The default value is ‘’.<
 <p><strong>Returns</strong></p>
 <blockquote>
 <div><p>A dict with the following entries–</p>
-<dl class="simple">
+<dl>
 <dt>run_id (<em>str</em>) –</dt><dd><p>The run ID of the running proc instance. This may be passed to
 <a class="reference internal" href="#gpudb.GPUdb.show_proc_status" title="gpudb.GPUdb.show_proc_status"><code class="xref py py-meth docutils literal notranslate"><span class="pre">GPUdb.show_proc_status()</span></code></a> to obtain status information, or
 <a class="reference internal" href="#gpudb.GPUdb.kill_proc" title="gpudb.GPUdb.kill_proc"><code class="xref py py-meth docutils literal notranslate"><span class="pre">GPUdb.kill_proc()</span></code></a> to kill the proc instance.</p>
 </dd>
-<dt>info (<em>dict of str to str</em>) –</dt><dd><p>Additional information.</p>
+<dt>info (<em>dict of str to str</em>) –</dt><dd><p>Additional information.
+Allowed keys are:</p>
+<ul class="simple">
+<li><p><strong>deferred_tables</strong> –
+&lt;DEVELOPER&gt;</p></li>
+</ul>
+<p>The default value is an empty dict ( {} ).</p>
 </dd>
 </dl>
 </div></blockquote>
@@ -21451,9 +21457,9 @@ table(s).</p>
 <div><dl>
 <dt>table_names (<em>list of str</em>) –</dt><dd><p>Names of tables whose metadata will be fetched, each in
 [schema_name.]table_name format, using standard <a class="reference external" href="../../../concepts/tables/#table-name-resolution">name
-resolution rules</a>.  All
+resolution rules</a>. All
 provided tables must exist, or an error is returned.  A single
-entry of <a href="#id5"><span class="problematic" id="id6">**</span></a>* expands to every user table the caller may read
+entry of ‘*’ expands to every user table the caller may read
 (excluding system schemas, views, and temporary tables); when
 used it must be the only entry. The user can provide a single
 element (which will be automatically promoted to a list
@@ -21479,15 +21485,15 @@ Columns, per table in input parameter <em>table_names</em>, to
 collect statistics for when &#64;{input.key options.collect_now}
 is <em>true</em>; ignored otherwise.  Encoded as a ‘;’-separated
 parallel array aligned with input parameter <em>table_names</em>
-(e.g. <em>x,y;z</em> requests columns x,y for the first table and z
-for the second).  A value of <strong>* expands to every collectable
+(e.g. ‘x,y;z’ requests columns x,y for the first table and z
+for the second).  A value of ‘*’ expands to every collectable
 column on each table (geometry, vector, JSON, and array
 columns are skipped).  An explicit list may not be combined
-with a *</strong> table_names wildcard. The default value is ‘’.</p></li>
+with a ‘*’ table_names wildcard. The default value is ‘’.</p></li>
 <li><p><strong>collect_now</strong> –
 If <em>true</em>, the columns named by &#64;{input.key
 options.column_names} are collected synchronously during this
-request and reflected in the response.  Default <em>false</em>.
+request and reflected in the response.
 Allowed values are:</p>
 <ul class="simple">
 <li><p>true</p></li>
