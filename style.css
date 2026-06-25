@@ -14,7 +14,8 @@
 
 .kinetica-javadoc,
 .kinetica-jsdoc,
-.kinetica-pydoc {
+.kinetica-pydoc,
+.kinetica-doxygen {
   /* generated reference is dense; tighten the default prose rhythm a touch */
   line-height: 1.5;
 }
@@ -24,7 +25,9 @@
 .kinetica-javadoc .member-signature,
 .kinetica-jsdoc .signature,
 .kinetica-jsdoc .type-signature,
-.kinetica-pydoc .sig {
+.kinetica-pydoc .sig,
+.kinetica-doxygen .memproto,
+.kinetica-doxygen .memname {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.9em;
   white-space: pre-wrap;       /* wrap long generic signatures instead of overflowing */
@@ -34,14 +37,18 @@
 /* --- member / parameter tables ------------------------------------------ */
 .kinetica-javadoc table,
 .kinetica-jsdoc table,
-.kinetica-pydoc table.docutils {
+.kinetica-pydoc table.docutils,
+.kinetica-doxygen table.fieldtable,
+.kinetica-doxygen table.params {
   width: 100%;
   border-collapse: collapse;
   margin: 0.75rem 0;
 }
 .kinetica-javadoc th, .kinetica-javadoc td,
 .kinetica-jsdoc th, .kinetica-jsdoc td,
-.kinetica-pydoc table.docutils th, .kinetica-pydoc table.docutils td {
+.kinetica-pydoc table.docutils th, .kinetica-pydoc table.docutils td,
+.kinetica-doxygen table.fieldtable th, .kinetica-doxygen table.fieldtable td,
+.kinetica-doxygen table.params td {
   border: 1px solid var(--border-color, #e5e7eb);
   padding: 0.4rem 0.6rem;
   text-align: left;
@@ -71,16 +78,30 @@
  * — these rules restore the definition-list look: bold terms, indented defs. */
 .kinetica-javadoc .dl,
 .kinetica-jsdoc .dl,
-.kinetica-pydoc .dl { margin: 0.5rem 0; }
+.kinetica-pydoc .dl,
+.kinetica-doxygen .dl { margin: 0.5rem 0; }
 .kinetica-javadoc .dt,
 .kinetica-jsdoc .dt,
-.kinetica-pydoc .dt {
+.kinetica-pydoc .dt,
+.kinetica-doxygen .dt {
   font-weight: 600;
   margin-top: 0.6rem;
 }
 .kinetica-javadoc .dd,
 .kinetica-jsdoc .dd,
-.kinetica-pydoc .dd { margin-left: 1.25rem; }
+.kinetica-pydoc .dd,
+.kinetica-doxygen .dd { margin-left: 1.25rem; }
+
+/* --- inline formatting remapped to <span>/<div> ------------------------- *
+ * Mintlify won't render literal <em>/<i>/<b> JSX, so the converters remap them
+ * to <span> carrying the original tag as a class; restore their semantics. */
+.kinetica-javadoc .em, .kinetica-jsdoc .em, .kinetica-pydoc .em, .kinetica-doxygen .em,
+.kinetica-javadoc .i,  .kinetica-jsdoc .i,  .kinetica-pydoc .i,  .kinetica-doxygen .i {
+  font-style: italic;
+}
+.kinetica-javadoc .b, .kinetica-jsdoc .b, .kinetica-pydoc .b, .kinetica-doxygen .b {
+  font-weight: 600;
+}
 
 /* --- inheritance / class hierarchy -------------------------------------- */
 .kinetica-javadoc .inheritance { margin-left: 1rem; }
@@ -92,4 +113,42 @@
   border-left: 3px solid #f59e0b;
   padding: 0.25rem 0.75rem;
   margin: 0.5rem 0;
+}
+
+/* --- Doxygen (C# API) --------------------------------------------------- */
+/* Doxygen renders member summaries as borderless <table class="memberdecls">
+ * and each member's detail as a <div class="memitem"> (signature in .memproto,
+ * docs in .memdoc).  Restore light separation and section weight. */
+.kinetica-doxygen table.memberdecls {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+}
+.kinetica-doxygen table.memberdecls td {
+  padding: 0.2rem 0.4rem;
+  vertical-align: top;
+}
+.kinetica-doxygen .memitem {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 6px;
+  margin: 0.75rem 0;
+}
+.kinetica-doxygen .memproto {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  font-weight: 600;
+}
+.kinetica-doxygen .memdoc { padding: 0.4rem 0.6rem; }
+.kinetica-doxygen h2.groupheader {
+  margin-top: 1.25rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+.kinetica-doxygen .memtitle { font-weight: 600; }
+/* code fragments */
+.kinetica-doxygen div.fragment {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  white-space: pre-wrap;
+  overflow-x: auto;
 }
