@@ -1,0 +1,371 @@
+---
+title: "AggregateStatisticsRequest"
+description: "AggregateStatisticsRequest — Kinetica Java API"
+---
+
+<div className="kinetica-javadoc">
+<div className="header">
+<div className="sub-title"><span className="package-label-in-type">Package</span>&nbsp;<a href="/content/api/java/com/gpudb/protocol/package-summary">com.gpudb.protocol</a></div>
+<h1 title="Class AggregateStatisticsRequest" className="title">Class AggregateStatisticsRequest</h1>
+</div>
+<div className="inheritance" title="Inheritance Tree"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" className="external-link">java.lang.Object</a> <div className="inheritance">com.gpudb.protocol.AggregateStatisticsRequest</div> </div>
+<div className="section class-description" id="class-description">
+<div className="dl notes">
+<div className="dt">All Implemented Interfaces:</div>
+<div className="dd"><code>org.apache.avro.generic.GenericContainer</code>, <code>org.apache.avro.generic.IndexedRecord</code></div>
+</div>
+<hr />
+<div className="type-signature"><span className="modifiers">public class </span><span className="element-name type-name-label">AggregateStatisticsRequest</span> <span className="extends-implements">extends <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" className="external-link">Object</a> implements org.apache.avro.generic.IndexedRecord</span></div>
+<div className="block">A set of parameters for <a href="/content/api/java/com/gpudb/GPUdb#aggregateStatistics(com.gpudb.protocol.AggregateStatisticsRequest)"><code>GPUdb.aggregateStatistics</code></a>. <p> Calculates the requested statistics of the given column(s) in a given table. </p><p> The available statistics are: <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#COUNT"><code>COUNT</code></a> (number of total objects), <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#MEAN"><code>MEAN</code></a>, <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#STDV"><code>STDV</code></a> (standard deviation), <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#VARIANCE"><code>VARIANCE</code></a>, <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#SKEW"><code>SKEW</code></a>, <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#KURTOSIS"><code>KURTOSIS</code></a>, <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#SUM"><code>SUM</code></a>, <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#MIN"><code>MIN</code></a>, <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#MAX"><code>MAX</code></a>, <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#WEIGHTED_AVERAGE"><code>WEIGHTED\_AVERAGE</code></a>, <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#CARDINALITY"><code>CARDINALITY</code></a> (unique count), <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#ESTIMATED_CARDINALITY"><code>ESTIMATED\_CARDINALITY</code></a>, <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#PERCENTILE"><code>PERCENTILE</code></a>, and <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#PERCENTILE_RANK"><code>PERCENTILE\_RANK</code></a>. </p><p> Estimated cardinality is calculated by using the hyperloglog approximation technique. </p><p> Percentiles and percentile ranks are approximate and are calculated using the t-digest algorithm. They must include the desired <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#PERCENTILE"><code>PERCENTILE</code></a>/<a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#PERCENTILE_RANK"><code>PERCENTILE\_RANK</code></a>. To compute multiple percentiles each value must be specified separately (i.e. 'percentile(75.0),percentile(99.0),percentile\_rank(1234.56),percentile\_rank(-5)'). </p><p> A second, comma-separated value can be added to the <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#PERCENTILE"><code>PERCENTILE</code></a> statistic to calculate percentile resolution, e.g., a 50th percentile with 200 resolution would be 'percentile(50,200)'. </p><p> The weighted average statistic requires a weight column to be specified in <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Options#WEIGHT_COLUMN_NAME"><code>WEIGHT\_COLUMN\_NAME</code></a>. The weighted average is then defined as the sum of the products of <a href="#getColumnName()"><code>columnName</code></a> times the <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Options#WEIGHT_COLUMN_NAME"><code>WEIGHT\_COLUMN\_NAME</code></a> values divided by the sum of the <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Options#WEIGHT_COLUMN_NAME"><code>WEIGHT\_COLUMN\_NAME</code></a> values. </p><p> Additional columns can be used in the calculation of statistics via <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Options#ADDITIONAL_COLUMN_NAMES"><code>ADDITIONAL\_COLUMN\_NAMES</code></a>. Values in these columns will be included in the overall aggregate calculation--individual aggregates will not be calculated per additional column. For instance, requesting the <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#COUNT"><code>COUNT</code></a> and <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#MEAN"><code>MEAN</code></a> of <a href="#getColumnName()"><code>columnName</code></a> x and <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Options#ADDITIONAL_COLUMN_NAMES"><code>ADDITIONAL\_COLUMN\_NAMES</code></a> y and z, where x holds the numbers 1-10, y holds 11-20, and z holds 21-30, would return the total number of x, y, and z values (30), and the single average value across all x, y, and z values (15.5). </p><p> The response includes a list of key/value pairs of each statistic requested and its corresponding value.</p></div>
+</div>
+<div className="section summary">
+<ul className="summary-list">
+<li>
+<div className="section nested-class-summary" id="nested-class-summary">
+<h2>Nested Class Summary</h2>
+<div className="caption"><span>Nested Classes</span></div>
+<div className="summary-table three-column-summary">
+<div className="table-header col-first">Modifier and Type</div>
+<div className="table-header col-second">Class</div>
+<div className="table-header col-last">Description</div>
+<div className="col-first even-row-color"><code>static final class&nbsp;</code></div>
+<div className="col-second even-row-color"><code><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Options" className="type-name-link" title="class in com.gpudb.protocol">AggregateStatisticsRequest.Options</a></code></div>
+<div className="col-last even-row-color">
+<div className="block">A set of string constants for the <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest" title="class in com.gpudb.protocol"><code>AggregateStatisticsRequest</code></a> parameter <a href="#getOptions()"><code>options</code></a>.</div>
+</div>
+<div className="col-first odd-row-color"><code>static final class&nbsp;</code></div>
+<div className="col-second odd-row-color"><code><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats" className="type-name-link" title="class in com.gpudb.protocol">AggregateStatisticsRequest.Stats</a></code></div>
+<div className="col-last odd-row-color">
+<div className="block">A set of string constants for the <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest" title="class in com.gpudb.protocol"><code>AggregateStatisticsRequest</code></a> parameter <a href="#getStats()"><code>stats</code></a>.</div>
+</div>
+</div>
+</div>
+</li>
+<li>
+<div className="section constructor-summary" id="constructor-summary">
+<h2>Constructor Summary</h2>
+<div className="caption"><span>Constructors</span></div>
+<div className="summary-table two-column-summary">
+<div className="table-header col-first">Constructor</div>
+<div className="table-header col-last">Description</div>
+<div className="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E()" className="member-name-link">AggregateStatisticsRequest</a>()</code></div>
+<div className="col-last even-row-color">
+<div className="block">Constructs an AggregateStatisticsRequest object with default parameters.</div>
+</div>
+<div className="col-constructor-name odd-row-color"><code><a href="#%3Cinit%3E(java.lang.String,java.lang.String,java.lang.String,java.util.Map)" className="member-name-link">AggregateStatisticsRequest</a><wbr />(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&nbsp;tableName, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&nbsp;columnName, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&nbsp;stats, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html" title="class or interface in java.util" className="external-link">Map</a>&lt;<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>,<wbr /><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&gt;&nbsp;options)</code></div>
+<div className="col-last odd-row-color">
+<div className="block">Constructs an AggregateStatisticsRequest object with the specified parameters.</div>
+</div>
+</div>
+</div>
+</li>
+<li>
+<div className="section method-summary" id="method-summary">
+<h2>Method Summary</h2>
+<div id="method-summary-table">
+<div className="table-tabs" role="tablist" aria-orientation="horizontal"><button id="method-summary-table-tab0" role="tab" aria-selected="true" aria-controls="method-summary-table.tabpanel" tabIndex="0" className="active-table-tab">All Methods</button><button id="method-summary-table-tab1" role="tab" aria-selected="false" aria-controls="method-summary-table.tabpanel" tabIndex="-1" className="table-tab">Static Methods</button><button id="method-summary-table-tab2" role="tab" aria-selected="false" aria-controls="method-summary-table.tabpanel" tabIndex="-1" className="table-tab">Instance Methods</button><button id="method-summary-table-tab4" role="tab" aria-selected="false" aria-controls="method-summary-table.tabpanel" tabIndex="-1" className="table-tab">Concrete Methods</button></div>
+<div id="method-summary-table.tabpanel" role="tabpanel" aria-labelledby="method-summary-table-tab0">
+<div className="summary-table three-column-summary">
+<div className="table-header col-first">Modifier and Type</div>
+<div className="table-header col-second">Method</div>
+<div className="table-header col-last">Description</div>
+<div className="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>boolean</code></div>
+<div className="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#equals(java.lang.Object)" className="member-name-link">equals</a><wbr />(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" className="external-link">Object</a>&nbsp;obj)</code></div>
+<div className="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">&nbsp;</div>
+<div className="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" className="external-link">Object</a></code></div>
+<div className="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#get(int)" className="member-name-link">get</a><wbr />(int&nbsp;index)</code></div>
+<div className="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div className="block">This method supports the Avro framework and is not intended to be called directly by the user.</div>
+</div>
+<div className="col-first even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code>static org.apache.avro.Schema</code></div>
+<div className="col-second even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code><a href="#getClassSchema()" className="member-name-link">getClassSchema</a>()</code></div>
+<div className="col-last even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4">
+<div className="block">This method supports the Avro framework and is not intended to be called directly by the user.</div>
+</div>
+<div className="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></code></div>
+<div className="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#getColumnName()" className="member-name-link">getColumnName</a>()</code></div>
+<div className="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div className="block">Name of the primary column for which the statistics are to be calculated.</div>
+</div>
+<div className="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html" title="class or interface in java.util" className="external-link">Map</a><wbr />&lt;<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>,<wbr /><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&gt;</code></div>
+<div className="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#getOptions()" className="member-name-link">getOptions</a>()</code></div>
+<div className="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div className="block">Optional parameters.</div>
+</div>
+<div className="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>org.apache.avro.Schema</code></div>
+<div className="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#getSchema()" className="member-name-link">getSchema</a>()</code></div>
+<div className="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div className="block">This method supports the Avro framework and is not intended to be called directly by the user.</div>
+</div>
+<div className="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></code></div>
+<div className="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#getStats()" className="member-name-link">getStats</a>()</code></div>
+<div className="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div className="block">Comma separated list of the statistics to calculate, e.g.&nbsp;"sum,mean".</div>
+</div>
+<div className="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></code></div>
+<div className="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#getTableName()" className="member-name-link">getTableName</a>()</code></div>
+<div className="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div className="block">Name of the table on which the statistics operation will be performed, in \[schema\_name.\]table\_name format, using standard <a href="/content/concepts/tables/#table-name-resolution" target="_top">name resolution rules</a>.</div>
+</div>
+<div className="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>int</code></div>
+<div className="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#hashCode()" className="member-name-link">hashCode</a>()</code></div>
+<div className="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">&nbsp;</div>
+<div className="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>void</code></div>
+<div className="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#put(int,java.lang.Object)" className="member-name-link">put</a><wbr />(int&nbsp;index, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" className="external-link">Object</a>&nbsp;value)</code></div>
+<div className="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div className="block">This method supports the Avro framework and is not intended to be called directly by the user.</div>
+</div>
+<div className="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest" title="class in com.gpudb.protocol">AggregateStatisticsRequest</a></code></div>
+<div className="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#setColumnName(java.lang.String)" className="member-name-link">setColumnName</a><wbr />(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&nbsp;columnName)</code></div>
+<div className="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div className="block">Name of the primary column for which the statistics are to be calculated.</div>
+</div>
+<div className="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest" title="class in com.gpudb.protocol">AggregateStatisticsRequest</a></code></div>
+<div className="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#setOptions(java.util.Map)" className="member-name-link">setOptions</a><wbr />(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html" title="class or interface in java.util" className="external-link">Map</a>&lt;<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>,<wbr /><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&gt;&nbsp;options)</code></div>
+<div className="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div className="block">Optional parameters.</div>
+</div>
+<div className="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest" title="class in com.gpudb.protocol">AggregateStatisticsRequest</a></code></div>
+<div className="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#setStats(java.lang.String)" className="member-name-link">setStats</a><wbr />(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&nbsp;stats)</code></div>
+<div className="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div className="block">Comma separated list of the statistics to calculate, e.g.&nbsp;"sum,mean".</div>
+</div>
+<div className="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest" title="class in com.gpudb.protocol">AggregateStatisticsRequest</a></code></div>
+<div className="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#setTableName(java.lang.String)" className="member-name-link">setTableName</a><wbr />(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&nbsp;tableName)</code></div>
+<div className="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div className="block">Name of the table on which the statistics operation will be performed, in \[schema\_name.\]table\_name format, using standard <a href="/content/concepts/tables/#table-name-resolution" target="_top">name resolution rules</a>.</div>
+</div>
+<div className="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></code></div>
+<div className="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#toString()" className="member-name-link">toString</a>()</code></div>
+<div className="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">&nbsp;</div>
+</div>
+</div>
+</div>
+<div className="inherited-list"> <h3 id="methods-inherited-from-class-java.lang.Object">Methods inherited from class&nbsp;java.lang.<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" className="external-link">Object</a></h3> <code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#clone()" title="class or interface in java.lang" className="external-link">clone</a>, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#finalize()" title="class or interface in java.lang" className="external-link">finalize</a>, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#getClass()" title="class or interface in java.lang" className="external-link">getClass</a>, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#notify()" title="class or interface in java.lang" className="external-link">notify</a>, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#notifyAll()" title="class or interface in java.lang" className="external-link">notifyAll</a>, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#wait()" title="class or interface in java.lang" className="external-link">wait</a>, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#wait(long)" title="class or interface in java.lang" className="external-link">wait</a>, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#wait(long,int)" title="class or interface in java.lang" className="external-link">wait</a></code></div>
+</div>
+</li>
+</ul>
+</div>
+<div className="section details">
+<ul className="details-list">
+<li>
+<div className="section constructor-details" id="constructor-detail">
+<h2>Constructor Details</h2>
+<ul className="member-list">
+<li>
+<div className="section detail" id="&lt;init&gt;()">
+<h3>AggregateStatisticsRequest</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="element-name">AggregateStatisticsRequest</span>()</div>
+<div className="block">Constructs an AggregateStatisticsRequest object with default parameters.</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="&lt;init&gt;(java.lang.String,java.lang.String,java.lang.String,java.util.Map)">
+<h3>AggregateStatisticsRequest</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="element-name">AggregateStatisticsRequest</span><wbr /><span className="parameters">(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&nbsp;tableName, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&nbsp;columnName, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&nbsp;stats, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html" title="class or interface in java.util" className="external-link">Map</a>&lt;<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>,<wbr /><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&gt;&nbsp;options)</span></div>
+<div className="block">Constructs an AggregateStatisticsRequest object with the specified parameters.</div>
+<div className="dl notes">
+<div className="dt">Parameters:</div>
+<div className="dd"><code>tableName</code> - Name of the table on which the statistics operation will be performed, in \[schema\_name.\]table\_name format, using standard <a href="/content/concepts/tables/#table-name-resolution" target="_top">name resolution rules</a>.</div>
+<div className="dd"><code>columnName</code> - Name of the primary column for which the statistics are to be calculated.</div>
+<div className="dd"><code>stats</code> - Comma separated list of the statistics to calculate, e.g. "sum,mean". Supported values: <ul> <li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#COUNT"><code>COUNT</code></a>: Number of objects (independent of the given column(s)). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#MEAN"><code>MEAN</code></a>: Arithmetic mean (average), equivalent to sum/count. </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#STDV"><code>STDV</code></a>: Sample standard deviation (denominator is count-1). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#VARIANCE"><code>VARIANCE</code></a>: Unbiased sample variance (denominator is count-1). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#SKEW"><code>SKEW</code></a>: Skewness (third standardized moment). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#KURTOSIS"><code>KURTOSIS</code></a>: Kurtosis (fourth standardized moment). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#SUM"><code>SUM</code></a>: Sum of all values in the column(s). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#MIN"><code>MIN</code></a>: Minimum value of the column(s). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#MAX"><code>MAX</code></a>: Maximum value of the column(s). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#WEIGHTED_AVERAGE"><code>WEIGHTED\_AVERAGE</code></a>: Weighted arithmetic mean (using the option <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Options#WEIGHT_COLUMN_NAME"><code>WEIGHT\_COLUMN\_NAME</code></a> as the weighting column). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#CARDINALITY"><code>CARDINALITY</code></a>: Number of unique values in the column(s). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#ESTIMATED_CARDINALITY"><code>ESTIMATED\_CARDINALITY</code></a>: Estimate (via hyperloglog technique) of the number of unique values in the column(s). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#PERCENTILE"><code>PERCENTILE</code></a>: Estimate (via t-digest) of the given percentile of the column(s) (percentile(50.0) will be an approximation of the median). Add a second, comma-separated value to calculate percentile resolution, e.g., 'percentile(75,150)'. </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#PERCENTILE_RANK"><code>PERCENTILE\_RANK</code></a>: Estimate (via t-digest) of the percentile rank of the given value in the column(s) (if the given value is the median of the column(s), percentile\_rank(&lt;median&gt;) will return approximately 50.0). </li></ul></div>
+<div className="dd"><code>options</code> - Optional parameters. <ul> <li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Options#ADDITIONAL_COLUMN_NAMES"><code>ADDITIONAL\_COLUMN\_NAMES</code></a>: A list of comma separated column names over which statistics can be accumulated along with the primary column. All columns listed and <code>columnName</code> must be of the same type. Must not include the column specified in <code>columnName</code> and no column can be listed twice. </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Options#WEIGHT_COLUMN_NAME"><code>WEIGHT\_COLUMN\_NAME</code></a>: Name of column used as weighting attribute for the weighted average statistic. </li></ul> The default value is an empty <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html" title="class or interface in java.util" className="external-link"><code>Map</code></a>.</div>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<div className="section method-details" id="method-detail">
+<h2>Method Details</h2>
+<ul className="member-list">
+<li>
+<div className="section detail" id="getClassSchema()">
+<h3>getClassSchema</h3>
+<div className="member-signature"><span className="modifiers">public static</span>&nbsp;<span className="return-type">org.apache.avro.Schema</span>&nbsp;<span className="element-name">getClassSchema</span>()</div>
+<div className="block">This method supports the Avro framework and is not intended to be called directly by the user.</div>
+<div className="dl notes">
+<div className="dt">Returns:</div>
+<div className="dd">The schema for the class.</div>
+</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="getTableName()">
+<h3>getTableName</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></span>&nbsp;<span className="element-name">getTableName</span>()</div>
+<div className="block">Name of the table on which the statistics operation will be performed, in \[schema\_name.\]table\_name format, using standard <a href="/content/concepts/tables/#table-name-resolution" target="_top">name resolution rules</a>.</div>
+<div className="dl notes">
+<div className="dt">Returns:</div>
+<div className="dd">The current value of <code>tableName</code>.</div>
+</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="setTableName(java.lang.String)">
+<h3>setTableName</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type"><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest" title="class in com.gpudb.protocol">AggregateStatisticsRequest</a></span>&nbsp;<span className="element-name">setTableName</span><wbr /><span className="parameters">(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&nbsp;tableName)</span></div>
+<div className="block">Name of the table on which the statistics operation will be performed, in \[schema\_name.\]table\_name format, using standard <a href="/content/concepts/tables/#table-name-resolution" target="_top">name resolution rules</a>.</div>
+<div className="dl notes">
+<div className="dt">Parameters:</div>
+<div className="dd"><code>tableName</code> - The new value for <code>tableName</code>.</div>
+<div className="dt">Returns:</div>
+<div className="dd"><code>this</code> to mimic the builder pattern.</div>
+</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="getColumnName()">
+<h3>getColumnName</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></span>&nbsp;<span className="element-name">getColumnName</span>()</div>
+<div className="block">Name of the primary column for which the statistics are to be calculated.</div>
+<div className="dl notes">
+<div className="dt">Returns:</div>
+<div className="dd">The current value of <code>columnName</code>.</div>
+</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="setColumnName(java.lang.String)">
+<h3>setColumnName</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type"><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest" title="class in com.gpudb.protocol">AggregateStatisticsRequest</a></span>&nbsp;<span className="element-name">setColumnName</span><wbr /><span className="parameters">(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&nbsp;columnName)</span></div>
+<div className="block">Name of the primary column for which the statistics are to be calculated.</div>
+<div className="dl notes">
+<div className="dt">Parameters:</div>
+<div className="dd"><code>columnName</code> - The new value for <code>columnName</code>.</div>
+<div className="dt">Returns:</div>
+<div className="dd"><code>this</code> to mimic the builder pattern.</div>
+</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="getStats()">
+<h3>getStats</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></span>&nbsp;<span className="element-name">getStats</span>()</div>
+<div className="block">Comma separated list of the statistics to calculate, e.g.&nbsp;"sum,mean". Supported values: <ul> <li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#COUNT"><code>COUNT</code></a>: Number of objects (independent of the given column(s)). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#MEAN"><code>MEAN</code></a>: Arithmetic mean (average), equivalent to sum/count. </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#STDV"><code>STDV</code></a>: Sample standard deviation (denominator is count-1). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#VARIANCE"><code>VARIANCE</code></a>: Unbiased sample variance (denominator is count-1). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#SKEW"><code>SKEW</code></a>: Skewness (third standardized moment). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#KURTOSIS"><code>KURTOSIS</code></a>: Kurtosis (fourth standardized moment). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#SUM"><code>SUM</code></a>: Sum of all values in the column(s). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#MIN"><code>MIN</code></a>: Minimum value of the column(s). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#MAX"><code>MAX</code></a>: Maximum value of the column(s). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#WEIGHTED_AVERAGE"><code>WEIGHTED\_AVERAGE</code></a>: Weighted arithmetic mean (using the option <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Options#WEIGHT_COLUMN_NAME"><code>WEIGHT\_COLUMN\_NAME</code></a> as the weighting column). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#CARDINALITY"><code>CARDINALITY</code></a>: Number of unique values in the column(s). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#ESTIMATED_CARDINALITY"><code>ESTIMATED\_CARDINALITY</code></a>: Estimate (via hyperloglog technique) of the number of unique values in the column(s). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#PERCENTILE"><code>PERCENTILE</code></a>: Estimate (via t-digest) of the given percentile of the column(s) (percentile(50.0) will be an approximation of the median). Add a second, comma-separated value to calculate percentile resolution, e.g., 'percentile(75,150)'. </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#PERCENTILE_RANK"><code>PERCENTILE\_RANK</code></a>: Estimate (via t-digest) of the percentile rank of the given value in the column(s) (if the given value is the median of the column(s), percentile\_rank(&lt;median&gt;) will return approximately 50.0). </li></ul></div>
+<div className="dl notes">
+<div className="dt">Returns:</div>
+<div className="dd">The current value of <code>stats</code>.</div>
+</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="setStats(java.lang.String)">
+<h3>setStats</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type"><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest" title="class in com.gpudb.protocol">AggregateStatisticsRequest</a></span>&nbsp;<span className="element-name">setStats</span><wbr /><span className="parameters">(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&nbsp;stats)</span></div>
+<div className="block">Comma separated list of the statistics to calculate, e.g.&nbsp;"sum,mean". Supported values: <ul> <li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#COUNT"><code>COUNT</code></a>: Number of objects (independent of the given column(s)). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#MEAN"><code>MEAN</code></a>: Arithmetic mean (average), equivalent to sum/count. </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#STDV"><code>STDV</code></a>: Sample standard deviation (denominator is count-1). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#VARIANCE"><code>VARIANCE</code></a>: Unbiased sample variance (denominator is count-1). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#SKEW"><code>SKEW</code></a>: Skewness (third standardized moment). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#KURTOSIS"><code>KURTOSIS</code></a>: Kurtosis (fourth standardized moment). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#SUM"><code>SUM</code></a>: Sum of all values in the column(s). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#MIN"><code>MIN</code></a>: Minimum value of the column(s). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#MAX"><code>MAX</code></a>: Maximum value of the column(s). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#WEIGHTED_AVERAGE"><code>WEIGHTED\_AVERAGE</code></a>: Weighted arithmetic mean (using the option <a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Options#WEIGHT_COLUMN_NAME"><code>WEIGHT\_COLUMN\_NAME</code></a> as the weighting column). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#CARDINALITY"><code>CARDINALITY</code></a>: Number of unique values in the column(s). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#ESTIMATED_CARDINALITY"><code>ESTIMATED\_CARDINALITY</code></a>: Estimate (via hyperloglog technique) of the number of unique values in the column(s). </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#PERCENTILE"><code>PERCENTILE</code></a>: Estimate (via t-digest) of the given percentile of the column(s) (percentile(50.0) will be an approximation of the median). Add a second, comma-separated value to calculate percentile resolution, e.g., 'percentile(75,150)'. </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Stats#PERCENTILE_RANK"><code>PERCENTILE\_RANK</code></a>: Estimate (via t-digest) of the percentile rank of the given value in the column(s) (if the given value is the median of the column(s), percentile\_rank(&lt;median&gt;) will return approximately 50.0). </li></ul></div>
+<div className="dl notes">
+<div className="dt">Parameters:</div>
+<div className="dd"><code>stats</code> - The new value for <code>stats</code>.</div>
+<div className="dt">Returns:</div>
+<div className="dd"><code>this</code> to mimic the builder pattern.</div>
+</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="getOptions()">
+<h3>getOptions</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html" title="class or interface in java.util" className="external-link">Map</a>&lt;<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>,<wbr /><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&gt;</span>&nbsp;<span className="element-name">getOptions</span>()</div>
+<div className="block">Optional parameters. <ul> <li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Options#ADDITIONAL_COLUMN_NAMES"><code>ADDITIONAL\_COLUMN\_NAMES</code></a>: A list of comma separated column names over which statistics can be accumulated along with the primary column. All columns listed and <a href="#getColumnName()"><code>columnName</code></a> must be of the same type. Must not include the column specified in <a href="#getColumnName()"><code>columnName</code></a> and no column can be listed twice. </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Options#WEIGHT_COLUMN_NAME"><code>WEIGHT\_COLUMN\_NAME</code></a>: Name of column used as weighting attribute for the weighted average statistic. </li></ul> The default value is an empty <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html" title="class or interface in java.util" className="external-link"><code>Map</code></a>.</div>
+<div className="dl notes">
+<div className="dt">Returns:</div>
+<div className="dd">The current value of <code>options</code>.</div>
+</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="setOptions(java.util.Map)">
+<h3>setOptions</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type"><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest" title="class in com.gpudb.protocol">AggregateStatisticsRequest</a></span>&nbsp;<span className="element-name">setOptions</span><wbr /><span className="parameters">(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html" title="class or interface in java.util" className="external-link">Map</a>&lt;<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>,<wbr /><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&gt;&nbsp;options)</span></div>
+<div className="block">Optional parameters. <ul> <li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Options#ADDITIONAL_COLUMN_NAMES"><code>ADDITIONAL\_COLUMN\_NAMES</code></a>: A list of comma separated column names over which statistics can be accumulated along with the primary column. All columns listed and <a href="#getColumnName()"><code>columnName</code></a> must be of the same type. Must not include the column specified in <a href="#getColumnName()"><code>columnName</code></a> and no column can be listed twice. </li><li><a href="/content/api/java/com/gpudb/protocol/AggregateStatisticsRequest.Options#WEIGHT_COLUMN_NAME"><code>WEIGHT\_COLUMN\_NAME</code></a>: Name of column used as weighting attribute for the weighted average statistic. </li></ul> The default value is an empty <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html" title="class or interface in java.util" className="external-link"><code>Map</code></a>.</div>
+<div className="dl notes">
+<div className="dt">Parameters:</div>
+<div className="dd"><code>options</code> - The new value for <code>options</code>.</div>
+<div className="dt">Returns:</div>
+<div className="dd"><code>this</code> to mimic the builder pattern.</div>
+</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="getSchema()">
+<h3>getSchema</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type">org.apache.avro.Schema</span>&nbsp;<span className="element-name">getSchema</span>()</div>
+<div className="block">This method supports the Avro framework and is not intended to be called directly by the user.</div>
+<div className="dl notes">
+<div className="dt">Specified by:</div>
+<div className="dd"><code>getSchema</code>&nbsp;in interface&nbsp;<code>org.apache.avro.generic.GenericContainer</code></div>
+<div className="dt">Returns:</div>
+<div className="dd">The schema object describing this class.</div>
+</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="get(int)">
+<h3>get</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" className="external-link">Object</a></span>&nbsp;<span className="element-name">get</span><wbr /><span className="parameters">(int&nbsp;index)</span></div>
+<div className="block">This method supports the Avro framework and is not intended to be called directly by the user.</div>
+<div className="dl notes">
+<div className="dt">Specified by:</div>
+<div className="dd"><code>get</code>&nbsp;in interface&nbsp;<code>org.apache.avro.generic.IndexedRecord</code></div>
+<div className="dt">Parameters:</div>
+<div className="dd"><code>index</code> - the position of the field to get</div>
+<div className="dt">Returns:</div>
+<div className="dd">value of the field with the given index.</div>
+<div className="dt">Throws:</div>
+<div className="dd"><code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/IndexOutOfBoundsException.html" title="class or interface in java.lang" className="external-link">IndexOutOfBoundsException</a></code></div>
+</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="put(int,java.lang.Object)">
+<h3>put</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type">void</span>&nbsp;<span className="element-name">put</span><wbr /><span className="parameters">(int&nbsp;index, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" className="external-link">Object</a>&nbsp;value)</span></div>
+<div className="block">This method supports the Avro framework and is not intended to be called directly by the user.</div>
+<div className="dl notes">
+<div className="dt">Specified by:</div>
+<div className="dd"><code>put</code>&nbsp;in interface&nbsp;<code>org.apache.avro.generic.IndexedRecord</code></div>
+<div className="dt">Parameters:</div>
+<div className="dd"><code>index</code> - the position of the field to set</div>
+<div className="dd"><code>value</code> - the value to set</div>
+<div className="dt">Throws:</div>
+<div className="dd"><code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/IndexOutOfBoundsException.html" title="class or interface in java.lang" className="external-link">IndexOutOfBoundsException</a></code></div>
+</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="equals(java.lang.Object)">
+<h3>equals</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type">boolean</span>&nbsp;<span className="element-name">equals</span><wbr /><span className="parameters">(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" className="external-link">Object</a>&nbsp;obj)</span></div>
+<div className="dl notes">
+<div className="dt">Overrides:</div>
+<div className="dd"><code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#equals(java.lang.Object)" title="class or interface in java.lang" className="external-link">equals</a></code>&nbsp;in class&nbsp;<code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" className="external-link">Object</a></code></div>
+</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="toString()">
+<h3>toString</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></span>&nbsp;<span className="element-name">toString</span>()</div>
+<div className="dl notes">
+<div className="dt">Overrides:</div>
+<div className="dd"><code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#toString()" title="class or interface in java.lang" className="external-link">toString</a></code>&nbsp;in class&nbsp;<code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" className="external-link">Object</a></code></div>
+</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="hashCode()">
+<h3>hashCode</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type">int</span>&nbsp;<span className="element-name">hashCode</span>()</div>
+<div className="dl notes">
+<div className="dt">Overrides:</div>
+<div className="dd"><code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html#hashCode()" title="class or interface in java.lang" className="external-link">hashCode</a></code>&nbsp;in class&nbsp;<code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" className="external-link">Object</a></code></div>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</div>

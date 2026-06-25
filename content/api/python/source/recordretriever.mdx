@@ -1,0 +1,94 @@
+---
+title: "recordretriever"
+description: "recordretriever — Kinetica Python API"
+---
+
+<div className="kinetica-pydoc">
+<div itemprop="articleBody">
+<div id="class-recordretriever" className="section">
+<h1>Class RecordRetriever</h1>
+<div className="dl py class">
+<div className="dt sig sig-object py" id="gpudb_multihead_io.RecordRetriever"> <em className="property"><span className="k"><span className="pre">class</span></span><span className="w"> </span></em><span className="sig-prename descclassname"><span className="pre">gpudb\_multihead\_io.</span></span><span className="sig-name descname"><span className="pre">RecordRetriever</span></span><span className="sig-paren">(</span><em className="sig-param"><span className="n"><span className="pre">gpudb</span></span></em>, <em className="sig-param"><span className="n"><span className="pre">table\_name</span></span></em>, <em className="sig-param"><span className="n"><span className="pre">record\_type</span></span><span className="p"><span className="pre">:</span></span><span className="w"> </span><span className="n"><a className="reference internal" href="/content/api/python/source/gpudbrecordtype#gpudb.GPUdbRecordType" title="gpudb.GPUdbRecordType"><span className="pre">GPUdbRecordType</span></a></span></em>, <em className="sig-param"><span className="n"><span className="pre">workers</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></em>, <em className="sig-param"><span className="n"><span className="pre">is\_table\_replicated</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">False</span></span></em><span className="sig-paren">)</span></div>
+<div className="dd">
+<p>Retrieves records from all worker ranks directly. If multi-head retrieval is not set up, then automatically retrieves records from the head node.</p>
+<p>Initializes the RecordRetriever instance.</p>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div>
+<div className="dl simple">
+<div className="dt">gpudb (<a className="reference internal" href="/content/api/python/source/gpudb#gpudb.GPUdb" title="gpudb.GPUdb"><code className="xref py py-class docutils literal notranslate"><span className="pre">gpudb.GPUdb</span></code></a>) –</div>
+<div className="dd">
+<p>The client handle through which the retrieval process is to be conducted.</p>
+</div>
+<div className="dt">table\_name (<em>str</em>) –</div>
+<div className="dd">
+<p>The name of the table from which records will be fetched. Must be an existing table.</p>
+</div>
+<div className="dt">record\_type (<a className="reference internal" href="/content/api/python/source/gpudbrecordtype#gpudb.GPUdbRecordType" title="gpudb.GPUdbRecordType"><code className="xref py py-class docutils literal notranslate"><span className="pre">gpudb.GPUdbRecordType</span></code></a>) –</div>
+<div className="dd">
+<p>The type for the records which will be retrieved; must match the type of the given table.</p>
+</div>
+<div className="dt">workers (<a className="reference internal" href="/content/api/python/source/gpudbworkerlist#gpudb_multihead_io.GPUdbWorkerList" title="gpudb_multihead_io.GPUdbWorkerList"><code className="xref py py-class docutils literal notranslate"><span className="pre">GPUdbWorkerList</span></code></a>) –</div>
+<div className="dd">
+<p>Optional parameter. A list of GPUdb worker rank addresses.</p>
+</div>
+<div className="dt">is\_table\_replicated (<em>bool</em>) –</div>
+<div className="dd">
+<p>Optional boolean flag indicating whether the table is replicated; if True, then multi-head ingestion will not be used (but the head node would be used for ingestion instead). This is due to GPUdb not supporting multi-head retrieval on replicated tables which are un-sharded by design.</p>
+</div>
+</div>
+</div>
+</blockquote>
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb_multihead_io.RecordRetriever.set_logger_level"> <span className="sig-name descname"><span className="pre">set\_logger\_level</span></span><span className="sig-paren">(</span><em className="sig-param"><span className="n"><span className="pre">log\_level</span></span></em><span className="sig-paren">)</span></div>
+<div className="dd">
+<p>Set the log level for the GPUdb multi-head I/O module.</p>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div>
+<div className="dl simple">
+<div className="dt">log\_level (<em>int, long, or str</em>) –</div>
+<div className="dd">
+<p>A valid log level for the logging module</p>
+</div>
+</div>
+</div>
+</blockquote>
+</div>
+</div>
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb_multihead_io.RecordRetriever.get_records_by_key"> <span className="sig-name descname"><span className="pre">get\_records\_by\_key</span></span><span className="sig-paren">(</span><em className="sig-param"><span className="n"><span className="pre">key\_values</span></span></em>, <em className="sig-param"><span className="n"><span className="pre">expression</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">''</span></span></em>, <em className="sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></em><span className="sig-paren">)</span></div>
+<div className="dd">
+<p>Fetches the record(s) from the appropriate worker rank directly (or, if multi-head record retrieval is not set up, then from the head node) that map to the given shard key.</p>
+<p><strong>Parameters</strong></p>
+<blockquote>
+<div>
+<div className="dl simple">
+<div className="dt">key\_values (<em>list or dict</em>) –</div>
+<div className="dd">
+<p>Values for the sharding columns of the record to fetch either in a list (then it is assumed to be in the order of the sharding keys in the record type) or a dict. Must not have any missing sharding/primary column value or any extra column values.</p>
+</div>
+<div className="dt">expression (<em>str</em>) –</div>
+<div className="dd">
+<p>Optional parameter. If given, it is passed to <code className="docutils literal notranslate"><span className="pre">/get/records</span></code> as a filter expression.</p>
+</div>
+<div className="dt">options (<em>dict of str to str or None</em>) –</div>
+<div className="dd">
+<p>Any <code className="docutils literal notranslate"><span className="pre">/get/records</span></code> options to be passed onto the GPUdb server. Optional parameter.</p>
+</div>
+</div>
+</div>
+</blockquote>
+<p><strong>Returns</strong></p>
+<blockquote>
+<div>
+<p>The decoded records.</p>
+</div>
+</blockquote>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

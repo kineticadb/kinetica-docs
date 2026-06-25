@@ -1,0 +1,95 @@
+/*
+ * Kinetica API reference styling for the Mintlify site.
+ *
+ * Installed as the site's root `style.css` (Mintlify auto-loads it globally).
+ * The language API pages converted by the *_to_mdx.py steps wrap their content
+ * in `<div className="kinetica-javadoc|kinetica-jsdoc|kinetica-pydoc">` and keep
+ * the original tool CSS class names on the inner elements.  Rather than vendor
+ * each tool's full stylesheet (100s of KB, prone to clashing with Mintlify),
+ * these compact rules — scoped under the wrapper classes so they can't leak —
+ * restore the readability that matters: signatures, member/parameter tables,
+ * definition lists, and inheritance trees.  Everything else falls back to
+ * Mintlify's native styling.
+ */
+
+.kinetica-javadoc,
+.kinetica-jsdoc,
+.kinetica-pydoc {
+  /* generated reference is dense; tighten the default prose rhythm a touch */
+  line-height: 1.5;
+}
+
+/* --- signatures & inline code ------------------------------------------- */
+.kinetica-javadoc .type-signature,
+.kinetica-javadoc .member-signature,
+.kinetica-jsdoc .signature,
+.kinetica-jsdoc .type-signature,
+.kinetica-pydoc .sig {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  white-space: pre-wrap;       /* wrap long generic signatures instead of overflowing */
+  word-break: break-word;
+}
+
+/* --- member / parameter tables ------------------------------------------ */
+.kinetica-javadoc table,
+.kinetica-jsdoc table,
+.kinetica-pydoc table.docutils {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+}
+.kinetica-javadoc th, .kinetica-javadoc td,
+.kinetica-jsdoc th, .kinetica-jsdoc td,
+.kinetica-pydoc table.docutils th, .kinetica-pydoc table.docutils td {
+  border: 1px solid var(--border-color, #e5e7eb);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+/* Javadoc renders method summaries as a CSS grid of .col-* divs, not a table */
+.kinetica-javadoc .summary-table {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.3fr) minmax(0, 0.7fr);
+  border: 1px solid var(--border-color, #e5e7eb);
+}
+.kinetica-javadoc .summary-table > div {
+  padding: 0.4rem 0.6rem;
+  border-top: 1px solid var(--border-color, #e5e7eb);
+}
+.kinetica-javadoc .table-header { font-weight: 600; }
+
+/* The interactive method-summary tab strip is inert without its script; the
+ * default "All Methods" panel shows everything, so hide the dead tab buttons. */
+.kinetica-javadoc button[role="tab"],
+.kinetica-javadoc .table-tabs { display: none; }
+
+/* --- definition lists (parameters, returns, throws, fields) -------------
+ * Mintlify drops <dl>/<dt>/<dd> (undefined components), so the converters emit
+ * them as <div> carrying the original tag name as a class (`.dl`/`.dt`/`.dd`)
+ * — these rules restore the definition-list look: bold terms, indented defs. */
+.kinetica-javadoc .dl,
+.kinetica-jsdoc .dl,
+.kinetica-pydoc .dl { margin: 0.5rem 0; }
+.kinetica-javadoc .dt,
+.kinetica-jsdoc .dt,
+.kinetica-pydoc .dt {
+  font-weight: 600;
+  margin-top: 0.6rem;
+}
+.kinetica-javadoc .dd,
+.kinetica-jsdoc .dd,
+.kinetica-pydoc .dd { margin-left: 1.25rem; }
+
+/* --- inheritance / class hierarchy -------------------------------------- */
+.kinetica-javadoc .inheritance { margin-left: 1rem; }
+.kinetica-javadoc .inheritance .inheritance { margin-left: 1rem; }
+
+/* --- deprecation / note blocks ------------------------------------------ */
+.kinetica-javadoc .deprecation-block,
+.kinetica-pydoc .deprecated {
+  border-left: 3px solid #f59e0b;
+  padding: 0.25rem 0.75rem;
+  margin: 0.5rem 0;
+}
