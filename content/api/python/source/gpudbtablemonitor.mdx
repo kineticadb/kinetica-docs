@@ -80,10 +80,14 @@ description: "gpudbtablemonitor — Kinetica Python API"
 </ul>
 <p>Example usage:</p>
 <div className="highlight-default notranslate">
-<div className="highlight">
-<pre><span></span><span className="n">options</span> <span className="o">=</span> <span className="n">GPUdbTableMonitor</span><span className="o">.</span><span className="n">Options</span><span className="p">(</span><span className="n">\_dict</span><span className="o">=</span><span className="nb">dict</span><span className="p">(</span><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">inactivity\_timeout</span><span className="o">=</span><span className="mf">0.1</span><br /><span className="p">))</span></pre>
-</div>
-</div>
+
+```
+options = GPUdbTableMonitor.Options(_dict=dict(
+    inactivity_timeout=0.1
+))
+```
+
+ </div>
 <p>Constructor for <a className="reference internal" href="#gpudb_table_monitor.GPUdbTableMonitor.Options" title="gpudb_table_monitor.GPUdbTableMonitor.Options"><code className="xref py py-class docutils literal notranslate"><span className="pre">GPUdbTableMonitor.Options</span></code></a> class</p>
 <p><strong>Parameters</strong></p>
 <blockquote>
@@ -150,10 +154,40 @@ description: "gpudbtablemonitor — Kinetica Python API"
 <p>If the list of callbacks is empty or the list does not contain at least one of the callbacks of types (<a className="reference internal" href="#gpudb_table_monitor.GPUdbTableMonitor.Callback.Type" title="gpudb_table_monitor.GPUdbTableMonitor.Callback.Type"><code className="xref py py-class docutils literal notranslate"><span className="pre">Callback.Type</span></code></a>) <code className="docutils literal notranslate"><span className="pre">INSERT\_DECODED</span></code>, <code className="docutils literal notranslate"><span className="pre">INSERT\_RAW</span></code>, <code className="docutils literal notranslate"><span className="pre">DELETED</span></code>, or <code className="docutils literal notranslate"><span className="pre">UPDATED</span></code>, no table monitor would be created internally and the program would raise a <a className="reference internal" href="/content/api/python/source/gpudbexception#gpudb.GPUdbException" title="gpudb.GPUdbException"><code className="xref py py-class docutils literal notranslate"><span className="pre">gpudb.GPUdbException</span></code></a> and exit. So, a list of objects of this class is mandatory for the table monitor to function.</p>
 <p>An example of using this class and passing on to the constructor of <a className="reference internal" href="#gpudb_table_monitor.GPUdbTableMonitor.Client" title="gpudb_table_monitor.GPUdbTableMonitor.Client"><code className="xref py py-class docutils literal notranslate"><span className="pre">Client</span></code></a> is as follows:</p>
 <div className="highlight-default notranslate">
-<div className="highlight">
-<pre><span></span><span className="k">class</span><span className="w"> </span><span className="nc">GPUdbTableMonitorExample</span><span className="p">(</span><span className="n">GPUdbTableMonitor</span><span className="o">.</span><span className="n">Client</span><span className="p">):</span><br /><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="k">def</span><span className="w"> </span><span className="fm">\_\_init\_\_</span><span className="p">(</span><span className="bp">self</span><span className="p">,</span> <span className="n">db</span><span className="p">,</span> <span className="n">table\_name</span><span className="p">,</span> <span className="n">options</span><span className="o">=</span><span className="kc">None</span><span className="p">):</span><br /><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="c1"># Create the list of callbacks objects which are to be passed to the</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="c1"># GPUdbTableMonitor.Client class constructor</span><br /><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="c1"># This example shows only two callbacks being created so</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="c1"># only an insert type table monitor will be created. For other</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="c1"># types callback objects could be created similarly to receive</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="c1"># notifications about other events.</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">callbacks</span> <span className="o">=</span> <span className="p">\[</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">GPUdbTableMonitor</span><span className="o">.</span><span className="n">Callback</span><span className="p">(</span><span className="n">GPUdbTableMonitor</span><span className="o">.</span><span className="n">Callback</span><span className="o">.</span><span className="n">Type</span><span className="o">.</span><span className="n">INSERT\_RAW</span><span className="p">,</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="bp">self</span><span className="o">.</span><span className="n">on\_insert\_raw</span><span className="p">,</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="bp">self</span><span className="o">.</span><span className="n">on\_error</span><span className="p">),</span><br /><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">GPUdbTableMonitor</span><span className="o">.</span><span className="n">Callback</span><span className="p">(</span><span className="n">GPUdbTableMonitor</span><span className="o">.</span><span className="n">Callback</span><span className="o">.</span><span className="n">Type</span><span className="o">.</span><span className="n">INSERT\_DECODED</span><span className="p">,</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="bp">self</span><span className="o">.</span><span className="n">on\_insert\_decoded</span><span className="p">,</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="bp">self</span><span className="o">.</span><span className="n">on\_error</span><span className="p">,</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">GPUdbTableMonitor</span><span className="o">.</span><span className="n">Callback</span><span className="o">.</span><span className="n">InsertDecodedOptions</span><span className="p">(</span> <span className="n">GPUdbTableMonitor</span><span className="o">.</span><span className="n">Callback</span><span className="o">.</span><span className="n">InsertDecodedOptions</span><span className="o">.</span><span className="n">DecodeFailureMode</span><span className="o">.</span><span className="n">ABORT</span> <span className="p">))</span><br /><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="p">\]</span><br /><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="c1"># Invoke the base class constructor and pass in the list of callback</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="c1"># objects created earlier.  This invocation is mandatory for the table</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="c1"># monitor to be actually functional.</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="nb">super</span><span className="p">(</span><span className="n">GPUdbTableMonitorExample</span><span className="p">,</span> <span className="bp">self</span><span className="p">)</span><span className="o">.</span><span className="fm">\_\_init\_\_</span><span className="p">(</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">db</span><span className="p">,</span> <span className="n">table\_name</span><span className="p">,</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">callbacks</span><span className="p">,</span> <span className="n">options</span><span className="o">=</span><span className="n">options</span><span className="p">)</span></pre>
-</div>
-</div>
+
+```
+class GPUdbTableMonitorExample(GPUdbTableMonitor.Client):
+
+    def __init__(self, db, table_name, options=None):
+
+        # Create the list of callbacks objects which are to be passed to the
+        # GPUdbTableMonitor.Client class constructor
+
+        # This example shows only two callbacks being created so
+        # only an insert type table monitor will be created. For other
+        # types callback objects could be created similarly to receive
+        # notifications about other events.
+        callbacks = [
+            GPUdbTableMonitor.Callback(GPUdbTableMonitor.Callback.Type.INSERT_RAW,
+                                      self.on_insert_raw,
+                                      self.on_error),
+
+            GPUdbTableMonitor.Callback(GPUdbTableMonitor.Callback.Type.INSERT_DECODED,
+                                      self.on_insert_decoded,
+                                      self.on_error,
+                                      GPUdbTableMonitor.Callback.InsertDecodedOptions( GPUdbTableMonitor.Callback.InsertDecodedOptions.DecodeFailureMode.ABORT ))
+
+        ]
+
+        # Invoke the base class constructor and pass in the list of callback
+        # objects created earlier.  This invocation is mandatory for the table
+        # monitor to be actually functional.
+        super(GPUdbTableMonitorExample, self).__init__(
+            db, table_name,
+            callbacks, options=options)
+```
+
+ </div>
 <p>Constructor for this class.</p>
 <p><strong>Parameters</strong></p>
 <blockquote>
@@ -168,10 +202,15 @@ description: "gpudbtablemonitor — Kinetica Python API"
 <p>This is to be called for any event related to an operation on a table like insert, update, delete etc. As soon as such an event is observed this method will be called.</p>
 <p>This method can have only one parameter. For each table monitor event (<cite>callback\_type</cite>), the parameter would be different. The method name has got no significance as long as the signature is as given below:</p>
 <div className="highlight-default notranslate">
-<div className="highlight">
-<pre><span></span><span className="k">def</span><span className="w"> </span><span className="nf">method\_name</span><span className="p">(</span><span className="n">param</span><span className="p">):</span><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="c1"># param - Could be a (dict|bytes|int|str)</span><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="c1"># depending on the :attr:\`callback\_type\`</span><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="c1"># Processing Code follows ....</span></pre>
-</div>
-</div>
+
+```
+def method_name(param):
+    # param - Could be a (dict|bytes|int|str)
+    # depending on the :attr:`callback_type`
+    # Processing Code follows ....
+```
+
+ </div>
 <p>The method thus defined does not return anything.</p>
 <p>The following table describes the parameter types which correspond to each of the <cite>callback\_type</cite>:</p>
 <table className="docutils align-default">
@@ -265,10 +304,14 @@ description: "gpudbtablemonitor — Kinetica Python API"
 <p>The name of the method does not matter. It must have only one argument of type <code className="docutils literal notranslate"><span className="pre">str</span></code>. The argument to this method will contain information related to the error that occurred; often details about any exception that was raised.</p>
 <p>The signature of this method has to be:</p>
 <div className="highlight-default notranslate">
-<div className="highlight">
-<pre><span></span><span className="k">def</span><span className="w"> </span><span className="nf">method\_name</span><span className="p">(</span><span className="n">param</span><span className="p">):</span><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="c1"># param - str</span><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="c1"># code here ...</span></pre>
-</div>
-</div>
+
+```
+def method_name(param):
+    # param - str
+    # code here ...
+```
+
+ </div>
 </div>
 <div className="dt">event\_options (<a className="reference internal" href="#gpudb_table_monitor.GPUdbTableMonitor.Callback.Options" title="gpudb_table_monitor.GPUdbTableMonitor.Callback.Options"><code className="xref py py-class docutils literal notranslate"><span className="pre">Callback.Options</span></code></a>) –</div>
 <div className="dd">

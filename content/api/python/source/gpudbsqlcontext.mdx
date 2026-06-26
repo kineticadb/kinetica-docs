@@ -13,10 +13,17 @@ description: "gpudbsqlcontext — Kinetica Python API"
 <p>Represents a collection of clauses that comprise a SQL-GPT context.</p>
 <p>Example:</p>
 <div className="highlight-default notranslate">
-<div className="highlight">
-<pre><span></span><span className="n">sql\_context</span> <span className="o">=</span> <span className="n">GPUdbSqlContext</span><span className="p">(</span><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">name</span> <span className="o">=</span> <span className="s2">&quot;sa\_quickstart.nyc\_ctx&quot;</span><span className="p">,</span><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">tables</span> <span className="o">=</span> <span className="p">\[</span><span className="n">table\_ctx</span><span className="p">\],</span><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">samples</span> <span className="o">=</span> <span className="n">samples\_ctx</span><span className="p">)</span><br /><span className="n">create\_context\_sql</span> <span className="o">=</span> <span className="n">sql\_context</span><span className="o">.</span><span className="n">build\_sql</span><span className="p">()</span><br /><span className="n">db</span><span className="o">.</span><span className="n">execute</span><span className="p">(</span><span className="n">create\_context\_sql</span><span className="p">)</span></pre>
-</div>
-</div>
+
+```
+sql_context = GPUdbSqlContext(
+    name = "sa_quickstart.nyc_ctx",
+    tables = [table_ctx],
+    samples = samples_ctx)
+create_context_sql = sql_context.build_sql()
+db.execute(create_context_sql)
+```
+
+ </div>
 <p><strong>Parameters</strong></p>
 <blockquote>
 <div>
@@ -56,10 +63,20 @@ description: "gpudbsqlcontext — Kinetica Python API"
 <p>A <a className="reference internal" href="#gpudb.GPUdbTableClause" title="gpudb.GPUdbTableClause"><code className="xref py py-class docutils literal notranslate"><span className="pre">GPUdbTableClause</span></code></a> represents the table clause of a SQL-GPT context and can convert its contents to the SQL form expected by a <code className="docutils literal notranslate"><span className="pre">CREATE</span> <span className="pre">CONTEXT</span></code> statement.</p>
 <p>Example:</p>
 <div className="highlight-default notranslate">
-<div className="highlight">
-<pre><span></span><span className="n">table\_ctx</span> <span className="o">=</span> <span className="n">GPUdbTableClause</span><span className="p">(</span><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">table</span> <span className="o">=</span> <span className="s2">&quot;sa\_quickstart.nyct2020&quot;</span><span className="p">,</span><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">comment</span> <span className="o">=</span> <span className="s2">&quot;This table contains spatial boundaries and attributes of the New York City.&quot;</span><span className="p">,</span><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">col\_comments</span> <span className="o">=</span> <span className="nb">dict</span><span className="p">(</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">gid</span> <span className="o">=</span> <span className="s2">&quot;This is the unique identifier for each record in the table.&quot;</span><span className="p">,</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">geom</span> <span className="o">=</span> <span className="s2">&quot;The spatial boundary in WKT format of each NTA neighborhood.&quot;</span><span className="p">,</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">BoroCode</span> <span className="o">=</span> <span className="s2">&quot;The code of the borough to which the neighborhood belongs to.&quot;</span><span className="p">),</span><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="n">rules</span> <span className="o">=</span> <span className="p">\[</span><span className="s2">&quot;Join this table using STXY\_WITHIN() = 1&quot;</span><span className="p">,</span><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="s2">&quot;Another rule here&quot;</span><span className="p">\])</span></pre>
-</div>
-</div>
+
+```
+table_ctx = GPUdbTableClause(
+    table = "sa_quickstart.nyct2020",
+    comment = "This table contains spatial boundaries and attributes of the New York City.",
+    col_comments = dict(
+        gid = "This is the unique identifier for each record in the table.",
+        geom = "The spatial boundary in WKT format of each NTA neighborhood.",
+        BoroCode = "The code of the borough to which the neighborhood belongs to."),
+    rules = ["Join this table using STXY_WITHIN() = 1",
+            "Another rule here"])
+```
+
+ </div>
 <p><strong>Parameters</strong></p>
 <blockquote>
 <div>
@@ -97,10 +114,34 @@ description: "gpudbsqlcontext — Kinetica Python API"
 <p>A <a className="reference internal" href="#gpudb.GPUdbSamplesClause" title="gpudb.GPUdbSamplesClause"><code className="xref py py-class docutils literal notranslate"><span className="pre">GPUdbSamplesClause</span></code></a> represents the samples clause of a SQL-GPT context and can convert its contents to the SQL form expected by a <code className="docutils literal notranslate"><span className="pre">CREATE</span> <span className="pre">CONTEXT</span></code> statement.</p>
 <p>Example:</p>
 <div className="highlight-default notranslate">
-<div className="highlight">
-<pre><span></span><span className="n">samples\_ctx</span> <span className="o">=</span> <span className="n">GPUdbSamplesClause</span><span className="p">(</span><span className="n">samples</span> <span className="o">=</span> <span className="p">\[</span><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="p">(</span><span className="s2">&quot;What are the shortest, average, and longest trip lengths for each taxi vendor?&quot;</span><span className="p">,</span><br /><span className="w">    </span><span className="sd">&quot;&quot;&quot;</span><br /><span className="sd">    SELECT</span><br /><span className="sd">        th.vendor\_id,</span><br /><span className="sd">        MIN(th.trip\_distance) AS shortest\_trip\_length,</span><br /><span className="sd">        AVG(th.h.trip\_distance) AS average\_trip\_length,</span><br /><span className="sd">        MAX(th.trip\_distance) AS longest\_trip\_length</span><br /><span className="sd">    FROM sa\_quickstart.taxi\_data\_historical AS th</span><br /><span className="sd">    GROUP BY th.vendor\_id;</span><br /><span className="sd">    &quot;&quot;&quot;</span><span className="p">),</span><br /><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="p">(</span><span className="s2">&quot;How many trips did each taxi vendor make to JFK International Airport?&quot;</span><span className="p">,</span><br /><span className="w">    </span><span className="sd">&quot;&quot;&quot;</span><br /><span className="sd">    SELECT</span><br /><span className="sd">        th.vendor\_id,</span><br /><span className="sd">        COUNT(\*) AS trip\_count</span><br /><span className="sd">    FROM sa\_quickstart.taxi\_data\_historical AS th</span><br /><span className="sd">    JOIN sa\_quickstart.nyct2020 AS n\_dropoff ON KI\_FN.STXY\_WITHIN(th.dropoff\_longitude, th.dropoff\_latitude, n\_dropoff.geom)</span><br /><span className="sd">    AND n\_dropoff.NTAName = &#39;John F. Kennedy International Airport&#39;</span><br /><span className="sd">    GROUP BY th.vendor\_id;</span><br /><span className="sd">    &quot;&quot;&quot;</span><span className="p">),</span><br />&nbsp;&nbsp;&nbsp;&nbsp;<span className="p">\])</span></pre>
-</div>
-</div>
+
+```
+samples_ctx = GPUdbSamplesClause(samples = [
+    ("What are the shortest, average, and longest trip lengths for each taxi vendor?",
+    """
+    SELECT
+        th.vendor_id,
+        MIN(th.trip_distance) AS shortest_trip_length,
+        AVG(th.h.trip_distance) AS average_trip_length,
+        MAX(th.trip_distance) AS longest_trip_length
+    FROM sa_quickstart.taxi_data_historical AS th
+    GROUP BY th.vendor_id;
+    """),
+
+    ("How many trips did each taxi vendor make to JFK International Airport?",
+    """
+    SELECT
+        th.vendor_id,
+        COUNT(*) AS trip_count
+    FROM sa_quickstart.taxi_data_historical AS th
+    JOIN sa_quickstart.nyct2020 AS n_dropoff ON KI_FN.STXY_WITHIN(th.dropoff_longitude, th.dropoff_latitude, n_dropoff.geom)
+    AND n_dropoff.NTAName = 'John F. Kennedy International Airport'
+    GROUP BY th.vendor_id;
+    """),
+    ])
+```
+
+ </div>
 <p><strong>Parameters</strong></p>
 <blockquote>
 <div>
