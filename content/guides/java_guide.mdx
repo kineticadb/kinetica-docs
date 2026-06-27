@@ -214,7 +214,7 @@ constructors can be added, as necessary
 </Info>
 
 Once defined, the *type* needs to be created with a call to
-[createType()](/content/api/java/com/gpudb/RecordObject#createType-java.lang.Class-com.gpudb.GPUdb-):
+[createType()](/content/api/java/com/gpudb/RecordObject#createType(java.lang.Class,com.gpudb.GPUdb)):
 
 {/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 218) */}
 ```java Create a Type
@@ -226,13 +226,13 @@ String vendorTypeId = RecordObject.createType(Vendor.class, kdb);
 
 
 The returned object from the
-[createType()](/content/api/java/com/gpudb/RecordObject#createType-java.lang.Class-com.gpudb.GPUdb-)
+[createType()](/content/api/java/com/gpudb/RecordObject#createType(java.lang.Class,com.gpudb.GPUdb))
 call contains a unique *type* identifier assigned by the system.  This
 identifier can then be used in the request to create a corresponding *table*.
 The examples below outline creating a *table* with either a
-[single request object](/content/api/java/com/gpudb/GPUdb#createTable-com.gpudb.protocol.CreateTableRequest-)
+[single request object](/content/api/java/com/gpudb/GPUdb#createTable(com.gpudb.protocol.CreateTableRequest))
 (`vendor` *table*) or a
-[parameterized call](/content/api/java/com/gpudb/GPUdb#createTable-java.lang.String-java.lang.String-java.util.Map-)
+[parameterized call](/content/api/java/com/gpudb/GPUdb#createTable(java.lang.String,java.lang.String,java.util.Map))
 (`payment` *table*):
 
 {/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 221-224 226) */}
@@ -258,7 +258,7 @@ class called [BulkInserter](/content/api/java/com/gpudb/BulkInserter),
 which facilitates inserting records into a table in batches; see
 [Distributed Ingest](/content/tuning/multihead/multihead_ingest) for details.  For this
 tutorial, only the native Java API call
-[insertRecords()](/content/api/java/com/gpudb/GPUdb#insertRecords-java.lang.String-java.util.List-java.util.Map-)
+[insertRecords()](/content/api/java/com/gpudb/GPUdb#insertRecords(java.lang.String,java.util.List,java.util.Map))
 will be used.
 
 
@@ -335,9 +335,9 @@ numInserted = kdb.insertRecords(TABLE_VENDOR, vendorRecords, null).getCountInser
 CSV and other data files can be loaded into Kinetica via
 [KiFS](/content/tools/kifs) using the
 [GPUdbFileHandler](/content/api/java/com/gpudb/GPUdbFileHandler).  This can
-[upload](/content/api/java/com/gpudb/filesystem/GPUdbFileHandler#upload-java.lang.String-java.lang.String-)
+[upload](/content/api/java/com/gpudb/filesystem/GPUdbFileHandler#upload(java.lang.String,java.lang.String))
 files into *KiFS* for later ingestion or stage them temporarily and
-[ingest](/content/api/java/com/gpudb/filesystem/GPUdbFileHandler#ingest-java.util.List-java.lang.String-com.gpudb.filesystem.ingest.IngestOptions-com.gpudb.filesystem.ingest.TableCreationOptions-)
+[ingest](/content/api/java/com/gpudb/filesystem/GPUdbFileHandler#ingest(java.util.List,java.lang.String,com.gpudb.filesystem.ingest.IngestOptions,com.gpudb.filesystem.ingest.TableCreationOptions))
 them all at once.
 
 {/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 335-336) */}
@@ -352,7 +352,7 @@ fh.ingest(Arrays.asList(CSV_FILE_PATH), TABLE_TAXI, null, null);
 
 Once the *table* is populated with data, the data can be retrieved from the
 system by a call to
-[getRecords(tableName, offset, limit, options)](/content/api/java/com/gpudb/GPUdb#getRecords-java.lang.String-long-long-java.util.Map-)
+[getRecords(tableName, offset, limit, options)](/content/api/java/com/gpudb/GPUdb#getRecords(java.lang.String,long,long,java.util.Map))
 using in-line parameter-passing.
 
 {/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 346-367) */}
@@ -382,7 +382,7 @@ for (Payment p : getPaymentRecordsResp.getData())
 ```
 
 One can also invoke
-[getRecords(request)](/content/api/java/com/gpudb/GPUdb#getRecords-com.gpudb.protocol.GetRecordsRequest-)
+[getRecords(request)](/content/api/java/com/gpudb/GPUdb#getRecords(com.gpudb.protocol.GetRecordsRequest))
 using the
 [GetRecordsRequest](/content/api/java/com/gpudb/protocol/GetRecordsRequest)
 request class.  This object contains all the parameters for the method call, and
@@ -425,7 +425,7 @@ request object and with the parameters passed directly to the method.
 
 
 Use
-[updateRecords()](/content/api/java/com/gpudb/GPUdb#updateRecords-java.lang.String-java.util.List-java.util.List-java.util.List-java.util.Map-)
+[updateRecords()](/content/api/java/com/gpudb/GPUdb#updateRecords(java.lang.String,java.util.List,java.util.List,java.util.List,java.util.Map))
 to update matching key values for any records in a *table*.
 
 {/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 399-415) */}
@@ -454,7 +454,7 @@ kdb.updateRecords(
 
 
 Use
-[deleteRecords()](/content/api/java/com/gpudb/GPUdb#deleteRecords-java.lang.String-java.util.List-java.util.Map-)
+[deleteRecords()](/content/api/java/com/gpudb/GPUdb#deleteRecords(java.lang.String,java.util.List,java.util.Map))
 to delete records from a *table*. A list can be used to specify which records to
 delete based on matching expressions.  Set
 [DELETE_ALL_RECORDS](/content/api/java/com/gpudb/protocol/DeleteRecordsRequest.Options#DELETE_ALL_RECORDS) to
@@ -473,7 +473,7 @@ kdb.deleteRecords(TABLE_PAYMENT, Arrays.asList(delExpr), null);
 
 
 Some properties can be altered or added after *table* creation, using
-[alterTable()](/content/api/java/com/gpudb/GPUdb#alterTable-java.lang.String-java.lang.String-java.lang.String-java.util.Map-),
+[alterTable()](/content/api/java/com/gpudb/GPUdb#alterTable(java.lang.String,java.lang.String,java.lang.String,java.util.Map)),
 including [indexes](/content/concepts/indexes) and
 [dictionary encoding](/content/concepts/dictionary_encoding).
 
@@ -482,7 +482,7 @@ including [indexes](/content/concepts/indexes) and
 
 
 Using the
-[alterTable()](/content/api/java/com/gpudb/GPUdb#alterTable-java.lang.String-java.lang.String-java.lang.String-java.util.Map-)
+[alterTable()](/content/api/java/com/gpudb/GPUdb#alterTable(java.lang.String,java.lang.String,java.lang.String,java.util.Map))
 method, you can create *indexes* on columns using the
 [CREATE_INDEX](/content/api/java/com/gpudb/protocol/AlterTableRequest.Action#CREATE_INDEX)
 *action* paired with a column name.
@@ -502,7 +502,7 @@ kdb.alterTable(TABLE_TAXI, AlterTableRequest.Action.CREATE_INDEX, "passenger_cou
 
 
 Applying *dictionary encoding* via
-[alterTable()](/content/api/java/com/gpudb/GPUdb#alterTable-java.lang.String-java.lang.String-java.lang.String-java.util.Map-)
+[alterTable()](/content/api/java/com/gpudb/GPUdb#alterTable(java.lang.String,java.lang.String,java.lang.String,java.util.Map))
 involves adding a new property to a column using the
 [CHANGE_COLUMN](/content/api/java/com/gpudb/protocol/AlterTableRequest.Action#CHANGE_COLUMN)
 *action* paired with a column name & definition.
@@ -651,7 +651,7 @@ along their relations, retrieving associated information from any or all of
 them.  Tables can only be *joined* if they're [sharded](/content/concepts/tables#sharded)
 similarly or [replicated](/content/concepts/tables#replicated).  All join types can be
 performed using the
-[createJoinTable()](../../java/?com/gpudb/GPUdb.html#createJoinTable-java.lang.String-java.util.List-java.util.List-java.util.List-java.util.Map-)
+[createJoinTable()](/content/api/java/com/gpudb/GPUdb#createJoinTable(java.lang.String,java.util.List,java.util.List,java.util.List,java.util.Map))
 method.
 
 An *inner join* returns only records that have matching values in both *tables*.
@@ -705,7 +705,7 @@ their shard keys. Set merges that perform deduplication of records, like
 ensure the correct results, so a replicated version of the taxi
 (`taxi_trip_data_replicated`) *table* is created at this point in the
 tutorial using
-[createProjection()](/content/api/java/com/gpudb/GPUdb#createProjection-java.lang.String-java.lang.String-java.util.List-java.util.Map-).
+[createProjection()](/content/api/java/com/gpudb/GPUdb#createProjection(java.lang.String,java.lang.String,java.util.List,java.util.Map)).
 </Info>
 
 {/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 720-737) */}
@@ -756,7 +756,7 @@ kdb.createJoinTable(
 
 
 You can create [projections](/content/concepts/projections) using the
-[createProjection()](/content/api/java/com/gpudb/GPUdb#createProjection-java.lang.String-java.lang.String-java.util.List-java.util.Map-)
+[createProjection()](/content/api/java/com/gpudb/GPUdb#createProjection(java.lang.String,java.lang.String,java.util.List,java.util.Map))
 method.
 
 {/* Source: /examples/java/java_tutorial/src/main/java/Tutorial.java (lines 788-798) */}
@@ -804,7 +804,7 @@ kdb.createProjection(
 
 [Union](/content/concepts/unions) can be used to combine homogeneous data
 sets into one larger data set.  When calling the
-[createUnion()](/content/api/java/com/gpudb/GPUdb#createUnion-java.lang.String-java.util.List-java.util.List-java.util.List-java.util.Map-)
+[createUnion()](/content/api/java/com/gpudb/GPUdb#createUnion(java.lang.String,java.util.List,java.util.List,java.util.List,java.util.Map))
 method, a
 [MODE](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options#MODE)
 of [UNION](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options#UNION)
@@ -882,7 +882,7 @@ kdb.createUnion(
 ```
 
 Calling the
-[createUnion()](/content/api/java/com/gpudb/GPUdb#createUnion-java.lang.String-java.util.List-java.util.List-java.util.List-java.util.Map-)
+[createUnion()](/content/api/java/com/gpudb/GPUdb#createUnion(java.lang.String,java.util.List,java.util.List,java.util.List,java.util.Map))
 method with a
 [MODE](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options#MODE)
 of [INTERSECT](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options#INTERSECT)
@@ -910,7 +910,7 @@ kdb.createUnion(
 ```
 
 Calling the
-[createUnion()](/content/api/java/com/gpudb/GPUdb#createUnion-java.lang.String-java.util.List-java.util.List-java.util.List-java.util.Map-)
+[createUnion()](/content/api/java/com/gpudb/GPUdb#createUnion(java.lang.String,java.util.List,java.util.List,java.util.List,java.util.Map))
 method with a
 [MODE](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options#MODE)
 of [EXCEPT](/content/api/java/com/gpudb/protocol/CreateUnionRequest.Options#EXCEPT)
