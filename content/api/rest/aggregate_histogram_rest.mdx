@@ -5,9 +5,6 @@ title: /aggregate/histogram
 {/* RST directive: role h2_style */}
 
 
-<a id="aggregate-histogram-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/aggregate/histogram
 ```
@@ -24,29 +21,135 @@ instead.  The total number of bins requested cannot exceed 10,000.
 NOTE:  The Kinetica instance being accessed must be running a CUDA (GPU-based)
 build to service a request that specifies a *value_column*.
 
-
 ## Input Parameter Description
 
+<ParamField body="table_name" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| table_name | string | Name of the table on which the operation will be performed. Must be an existing table, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). |
-| column_name | string | Name of a column or an expression of one or more column names over which the histogram will be calculated. |
-| start | double | Lower end value of the histogram interval, inclusive. |
-| end | double | Upper end value of the histogram interval, inclusive. |
-| interval | double | The size of each bin within the start and end parameters. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> value_column: The name of the column to use when calculating the bin values (values are summed). The column must be a numerical type (int, double, long, float). <br/> <br/> start: The start parameter for char types. <br/> <br/> end: The end parameter for char types. <br/> <br/> interval: The interval parameter for char types. |
+Name of the table on which the operation will be performed. Must be an existing table, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution).
+
+</ParamField>
+
+<ParamField body="column_name" type="string">
+
+Name of a column or an expression of one or more column names over which the histogram will be calculated.
+
+</ParamField>
+
+<ParamField body="start" type="double">
+
+Lower end value of the histogram interval, inclusive.
+
+</ParamField>
+
+<ParamField body="end" type="double">
+
+Upper end value of the histogram interval, inclusive.
+
+</ParamField>
+
+<ParamField body="interval" type="double">
+
+The size of each bin within the start and end parameters.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="value_column">
+
+The name of the column to use when calculating the bin values (values are summed).  The column must be a numerical type (int, double, long, float).
+
+</ParamField>
+
+<ParamField body="start">
+
+The start parameter for char types.
+
+</ParamField>
+
+<ParamField body="end">
+
+The end parameter for char types.
+
+</ParamField>
+
+<ParamField body="interval">
+
+The interval parameter for char types.
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'aggregate_histogram_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /aggregate/histogram endpoint: <br/> <br/> counts: [array of doubles] The array of calculated values that represents the histogram data points. <br/> <br/> start: [double] Value of input parameter *start*. <br/> <br/> end: [double] Value of input parameter *end*. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'aggregate_histogram_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /aggregate/histogram endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="counts" type="array of doubles">
+
+The array of calculated values that represents the histogram data points.
+
+</ResponseField>
+
+<ResponseField name="start" type="double">
+
+Value of input parameter *start*.
+
+</ResponseField>
+
+<ResponseField name="end" type="double">
+
+Value of input parameter *end*.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

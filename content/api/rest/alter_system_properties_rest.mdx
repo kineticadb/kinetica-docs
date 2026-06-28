@@ -5,38 +5,440 @@ title: /alter/system/properties
 {/* RST directive: role h2_style */}
 
 
-<a id="alter-system-properties-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/alter/system/properties
 ```
-The [/alter/system/properties](/content/api/rest/alter_system_properties_rest#alter-system-properties-rest)
+The [/alter/system/properties](/content/api/rest/alter_system_properties_rest)
 endpoint is primarily used to simplify the testing of the system and is not
 expected to be used during normal execution.  Commands are given through the
 input parameter *property_updates_map* whose keys are commands and values are
 strings representing integer values (for example '8000') or boolean values
 ('true' or 'false').
 
-
 ## Input Parameter Description
 
+<ParamField body="property_updates_map" type="map of string to strings">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| property_updates_map | map of string to strings | Map containing the properties of the system to be updated. Error if empty. <br/> <br/> concurrent_kernel_execution: Enables concurrent kernel execution if the value is *true* and disables it if the value is *false*. The supported values are: * true * false <br/> <br/> subtask_concurrency_limit: Sets the maximum number of simultaneous threads allocated to a given request, on each rank. Note that thread allocation may also be limited by resource group limits and/or system load. <br/> <br/> chunk_size: Sets the number of records per chunk to be used for all new tables. <br/> <br/> chunk_column_max_memory: Sets the target maximum data size for each column in a chunk to be used for all new tables. <br/> <br/> chunk_max_memory: Indicates the target maximum data size for all columns in a chunk to be used for all new tables. <br/> <br/> execution_mode: Sets the execution_mode for kernel executions to the specified string value. Possible values are host, device, default (engine decides) or an integer value that indicates max chunk size to exec on host. <br/> <br/> external_files_directory: Sets the root directory path where external table data files are accessed from. Path must exist on the head node. <br/> <br/> request_timeout: Number of minutes after which filtering (e.g., [/filter](/content/api/rest/filter_rest#filter-rest) ) and aggregating (e.g., [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest#aggregate-groupby-rest) ) queries will timeout. The default value is `20`. The minimum allowed value is `0`. The maximum allowed value is `1440`. <br/> <br/> max_get_records_size: The maximum number of records the database will serve for a given data retrieval call. The default value is `20000`. The minimum allowed value is `0`. The maximum allowed value is `1000000`. <br/> <br/> enable_audit: Enable or disable auditing. <br/> <br/> audit_headers: Enable or disable auditing of request headers. <br/> <br/> audit_body: Enable or disable auditing of request bodies. <br/> <br/> audit_data: Enable or disable auditing of request data. <br/> <br/> audit_response: Enable or disable auditing of response information. <br/> <br/> shadow_agg_size: Size of the shadow aggregate chunk cache in bytes. The default value is `10000000`. The minimum allowed value is `0`. The maximum allowed value is `2147483647`. <br/> <br/> shadow_filter_size: Size of the shadow filter chunk cache in bytes. The default value is `10000000`. The minimum allowed value is `0`. The maximum allowed value is `2147483647`. <br/> <br/> enable_overlapped_equi_join: Enable overlapped-equi-join filter. The default value is `true`. <br/> <br/> enable_one_step_compound_equi_join: Enable the one_step compound-equi-join algorithm. The default value is `true`. <br/> <br/> kafka_batch_size: Maximum number of records to be ingested in a single batch. The default value is `1000`. The minimum allowed value is `1`. The maximum allowed value is `10000000`. <br/> <br/> kafka_poll_timeout: Maximum time (milliseconds) for each poll to get records from Kafka. The default value is `0`. The minimum allowed value is `0`. The maximum allowed value is `1000`. <br/> <br/> kafka_wait_time: Maximum time (seconds) to buffer records received from Kafka before ingestion. The default value is `30`. The minimum allowed value is `1`. The maximum allowed value is `120`. <br/> <br/> egress_parquet_compression: Parquet file compression type. The default value is `snappy`. The supported values are: * uncompressed * snappy * gzip <br/> <br/> egress_single_file_max_size: Max file size (in MB) to allow saving to a single file. May be overridden by target limitations. The default value is `10000`. The minimum allowed value is `1`. The maximum allowed value is `200000`. <br/> <br/> max_concurrent_kernels: Sets the max_concurrent_kernels value of the conf. The minimum allowed value is `0`. The maximum allowed value is `256`. <br/> <br/> system_metadata_retention_period: Sets the system_metadata.retention_period value of the conf. The minimum allowed value is `1`. <br/> <br/> tcs_per_tom: Size of the worker rank data calculation thread pool. This is primarily used for computation-based operations such as aggregates and record retrieval. The minimum allowed value is `2`. The maximum allowed value is `8192`. <br/> <br/> tps_per_tom: Size of the worker rank data processing thread pool. This includes operations such as inserts, updates, and deletes on table data. Multi-head inserts are not affected by this limit. The minimum allowed value is `2`. The maximum allowed value is `8192`. <br/> <br/> background_worker_threads: Size of the worker rank background thread pool. This includes background operations such as watermark evictions catalog table updates. The minimum allowed value is `1`. The maximum allowed value is `8192`. <br/> <br/> log_debug_job_info: Outputs various job-related information to the rank logs. Used for troubleshooting. <br/> <br/> enable_thread_hang_logging: Log a stack trace for any thread that runs longer than a defined threshold. Used for troubleshooting. The default value is `true`. <br/> <br/> ai_enable_rag: Enable RAG. The default value is `false`. <br/> <br/> ai_api_provider: AI API provider type. <br/> <br/> ai_api_url: AI API URL. <br/> <br/> ai_api_key: AI API key. <br/> <br/> ai_api_connection_timeout: AI API connection timeout in seconds. <br/> <br/> ai_api_embeddings_model: AI API model name. <br/> <br/> telm_persist_query_metrics: Enable or disable persisting of query metrics. <br/> <br/> telm_force_metrics_duration: Capture metrics for any query exceeding this duration in seconds. <br/> <br/> postgres_proxy_idle_connection_timeout: Idle connection timeout in seconds. <br/> <br/> postgres_proxy_keep_alive: Enable postgres proxy keep alive. The default value is `false`. <br/> <br/> kifs_directory_data_limit: The default maximum capacity to apply when creating a KiFS directory (bytes). The minimum allowed value is `-1`. <br/> <br/> compression_codec: The default [compression algorithm](../../concepts/column_compression/) applied to any column without a column-level or table-level default compression specified at the time it was created. <br/> <br/> disk_auto_optimize_timeout: Time interval in seconds after which the database will apply optimizations/transformations to persisted data, such as compression. The minimum allowed value is `0`. <br/> <br/> ha_consumer_replay_offset: Initializes HA replay from the given timestamp (as milliseconds since unix epoch). The minimum allowed value is `-1`. <br/> <br/> admin_access_only: Restricts access to system admin users only. The default value is `false`. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> evict_to_cold: If *true* and evict_columns is specified, the given objects will be evicted to cold storage (if such a tier exists). The supported values are: * true * false <br/> <br/> persist: If *true* the system configuration will be written to disk upon successful application of this request. This will commit the changes from this request and any additional in-memory modifications. The default value is `true`. The supported values are: * true * false |
+Map containing the properties of the system to be updated. Error if empty.
+
+<Expandable title="property_updates_map">
+
+<ParamField body="concurrent_kernel_execution">
+
+Enables concurrent kernel execution if the value is *true* and disables it if the value is *false*.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="subtask_concurrency_limit">
+
+Sets the maximum number of simultaneous threads allocated to a given request, on each rank. Note that thread allocation may also be limited by resource group limits and/or system load.
+
+</ParamField>
+
+<ParamField body="chunk_size">
+
+Sets the number of records per chunk to be used for all new tables.
+
+</ParamField>
+
+<ParamField body="chunk_column_max_memory">
+
+Sets the target maximum data size for each column in a chunk to be used for all new tables.
+
+</ParamField>
+
+<ParamField body="chunk_max_memory">
+
+Indicates the target maximum data size for all columns in a chunk to be used for all new tables.
+
+</ParamField>
+
+<ParamField body="execution_mode">
+
+Sets the execution_mode for kernel executions to the specified string value. Possible values are host, device, default (engine decides) or an integer value that indicates max chunk size to exec on host.
+
+</ParamField>
+
+<ParamField body="external_files_directory">
+
+Sets the root directory path where external table data files are accessed from.  Path must exist on the head node.
+
+</ParamField>
+
+<ParamField body="request_timeout">
+
+Number of minutes after which filtering (e.g., [/filter](/content/api/rest/filter_rest)) and aggregating (e.g., [/aggregate/groupby](/content/api/rest/aggregate_groupby_rest)) queries will timeout.
+
+The default value is `20`. The minimum allowed value is `0`. The maximum allowed value is `1440`.
+
+</ParamField>
+
+<ParamField body="max_get_records_size">
+
+The maximum number of records the database will serve for a given data retrieval call.
+
+The default value is `20000`. The minimum allowed value is `0`. The maximum allowed value is `1000000`.
+
+</ParamField>
+
+<ParamField body="enable_audit">
+
+Enable or disable auditing.
+
+</ParamField>
+
+<ParamField body="audit_headers">
+
+Enable or disable auditing of request headers.
+
+</ParamField>
+
+<ParamField body="audit_body">
+
+Enable or disable auditing of request bodies.
+
+</ParamField>
+
+<ParamField body="audit_data">
+
+Enable or disable auditing of request data.
+
+</ParamField>
+
+<ParamField body="audit_response">
+
+Enable or disable auditing of response information.
+
+</ParamField>
+
+<ParamField body="shadow_agg_size">
+
+Size of the shadow aggregate chunk cache in bytes.
+
+The default value is `10000000`. The minimum allowed value is `0`. The maximum allowed value is `2147483647`.
+
+</ParamField>
+
+<ParamField body="shadow_filter_size">
+
+Size of the shadow filter chunk cache in bytes.
+
+The default value is `10000000`. The minimum allowed value is `0`. The maximum allowed value is `2147483647`.
+
+</ParamField>
+
+<ParamField body="enable_overlapped_equi_join">
+
+Enable overlapped-equi-join filter.
+
+The default value is `true`.
+
+</ParamField>
+
+<ParamField body="enable_one_step_compound_equi_join">
+
+Enable the one_step compound-equi-join algorithm.
+
+The default value is `true`.
+
+</ParamField>
+
+<ParamField body="kafka_batch_size">
+
+Maximum number of records to be ingested in a single batch.
+
+The default value is `1000`. The minimum allowed value is `1`. The maximum allowed value is `10000000`.
+
+</ParamField>
+
+<ParamField body="kafka_poll_timeout">
+
+Maximum time (milliseconds) for each poll to get records from Kafka.
+
+The default value is `0`. The minimum allowed value is `0`. The maximum allowed value is `1000`.
+
+</ParamField>
+
+<ParamField body="kafka_wait_time">
+
+Maximum time (seconds) to buffer records received from Kafka before ingestion.
+
+The default value is `30`. The minimum allowed value is `1`. The maximum allowed value is `120`.
+
+</ParamField>
+
+<ParamField body="egress_parquet_compression">
+
+Parquet file compression type.
+
+The default value is `snappy`.
+
+The supported values are:
+
+- uncompressed
+- snappy
+- gzip
+
+</ParamField>
+
+<ParamField body="egress_single_file_max_size">
+
+Max file size (in MB) to allow saving to a single file. May be overridden by target limitations.
+
+The default value is `10000`. The minimum allowed value is `1`. The maximum allowed value is `200000`.
+
+</ParamField>
+
+<ParamField body="max_concurrent_kernels">
+
+Sets the max_concurrent_kernels value of the conf.
+
+The minimum allowed value is `0`. The maximum allowed value is `256`.
+
+</ParamField>
+
+<ParamField body="system_metadata_retention_period">
+
+Sets the system_metadata.retention_period value of the conf.
+
+The minimum allowed value is `1`.
+
+</ParamField>
+
+<ParamField body="tcs_per_tom">
+
+Size of the worker rank data calculation thread pool.  This is primarily used for computation-based operations such as aggregates and record retrieval.
+
+The minimum allowed value is `2`. The maximum allowed value is `8192`.
+
+</ParamField>
+
+<ParamField body="tps_per_tom">
+
+Size of the worker rank data processing thread pool.  This includes operations such as inserts, updates, and deletes on table data.  Multi-head inserts are not affected by this limit.
+
+The minimum allowed value is `2`. The maximum allowed value is `8192`.
+
+</ParamField>
+
+<ParamField body="background_worker_threads">
+
+Size of the worker rank background thread pool. This includes background operations such as watermark evictions catalog table updates.
+
+The minimum allowed value is `1`. The maximum allowed value is `8192`.
+
+</ParamField>
+
+<ParamField body="log_debug_job_info">
+
+Outputs various job-related information to the rank logs. Used for troubleshooting.
+
+</ParamField>
+
+<ParamField body="enable_thread_hang_logging">
+
+Log a stack trace for any thread that runs longer than a defined threshold. Used for troubleshooting.
+
+The default value is `true`.
+
+</ParamField>
+
+<ParamField body="ai_enable_rag">
+
+Enable RAG.
+
+The default value is `false`.
+
+</ParamField>
+
+<ParamField body="ai_api_provider">
+
+AI API provider type.
+
+</ParamField>
+
+<ParamField body="ai_api_url">
+
+AI API URL.
+
+</ParamField>
+
+<ParamField body="ai_api_key">
+
+AI API key.
+
+</ParamField>
+
+<ParamField body="ai_api_connection_timeout">
+
+AI API connection timeout in seconds.
+
+</ParamField>
+
+<ParamField body="ai_api_embeddings_model">
+
+AI API model name.
+
+</ParamField>
+
+<ParamField body="telm_persist_query_metrics">
+
+Enable or disable persisting of query metrics.
+
+</ParamField>
+
+<ParamField body="telm_force_metrics_duration">
+
+Capture metrics for any query exceeding this duration in seconds.
+
+</ParamField>
+
+<ParamField body="postgres_proxy_idle_connection_timeout">
+
+Idle connection timeout in seconds.
+
+</ParamField>
+
+<ParamField body="postgres_proxy_keep_alive">
+
+Enable postgres proxy keep alive.
+
+The default value is `false`.
+
+</ParamField>
+
+<ParamField body="kifs_directory_data_limit">
+
+The default maximum capacity to apply when creating a KiFS directory (bytes).
+
+The minimum allowed value is `-1`.
+
+</ParamField>
+
+<ParamField body="compression_codec">
+
+The default [compression algorithm](../../concepts/column_compression/) applied to any column without a column-level or table-level default compression specified at the time it was created.
+
+</ParamField>
+
+<ParamField body="disk_auto_optimize_timeout">
+
+Time interval in seconds after which the database will apply optimizations/transformations to persisted data, such as compression.
+
+The minimum allowed value is `0`.
+
+</ParamField>
+
+<ParamField body="ha_consumer_replay_offset">
+
+Initializes HA replay from the given timestamp (as milliseconds since unix epoch).
+
+The minimum allowed value is `-1`.
+
+</ParamField>
+
+<ParamField body="admin_access_only">
+
+Restricts access to system admin users only.
+
+The default value is `false`.
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="evict_to_cold">
+
+If *true* and evict_columns is specified, the given objects will be evicted to cold storage (if such a tier exists).
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="persist">
+
+If *true* the system configuration will be written to disk upon successful application of this request. This will commit the changes from this request and any additional in-memory modifications.
+
+The default value is `true`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'alter_system_properties_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /alter/system/properties endpoint: <br/> <br/> updated_properties_map: [map of string to strings] Map of values updated; for speed tests, a map of values measured to the measurement. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'alter_system_properties_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /alter/system/properties endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="updated_properties_map" type="map of string to strings">
+
+Map of values updated; for speed tests, a map of values measured to the measurement.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

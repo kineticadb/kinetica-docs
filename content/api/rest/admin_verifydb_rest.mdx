@@ -5,9 +5,6 @@ title: /admin/verifydb
 {/* RST directive: role h2_style */}
 
 
-<a id="admin-verifydb-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/admin/verifydb
 ```
@@ -15,24 +12,188 @@ Verify database is in a consistent state.  When inconsistencies or errors are
 found, the verified_ok flag in the response is set to false and the list of
 errors found is provided in the error_list.
 
-
 ## Input Parameter Description
 
+<ParamField body="options" type="map of string to strings">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> rebuild_on_error: [DEPRECATED] Use the Rebuild DB feature of GAdmin instead. The default value is `false`. The supported values are: * true * false <br/> <br/> verify_nulls: When *true*, verifies that null values are set to zero. The default value is `false`. The supported values are: * true * false <br/> <br/> verify_persist: When *true*, persistent objects will be compared against their state in memory and workers will be checked for orphaned table data in persist. To check for orphaned worker data, either set *concurrent_safe* in input parameter *options* to *true* or place the database offline. The default value is `false`. The supported values are: * true * false <br/> <br/> concurrent_safe: When *true*, allows this endpoint to be run safely with other concurrent database operations. Other operations may be slower while this is running. The default value is `true`. The supported values are: * true * false <br/> <br/> verify_rank0: If *true*, compare rank0 table metadata against workers' metadata. The default value is `false`. The supported values are: * true * false <br/> <br/> delete_orphaned_tables: If *true*, orphaned table directories found on workers for which there is no corresponding metadata will be deleted. It is recommended to run this while the database is offline OR set *concurrent_safe* in input parameter *options* to *true*. The default value is `false`. The supported values are: * true <br/> * false <br/> <br/> verify_orphaned_tables_only: If *true*, only the presence of orphaned table directories will be checked, all persistence and table consistency checks will be skipped. The default value is `false`. The supported values are: * true * false <br/> <br/> table_includes: Comma-separated list of table names to include when verifying table consistency on wokers. Cannot be used simultaneously with *table_excludes*. <br/> <br/> table_excludes: Comma-separated list of table names to exclude when verifying table consistency on wokers. Cannot be used simultaneously with *table_includes*. |
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="rebuild_on_error">
+
+[DEPRECATED]  Use the Rebuild DB feature of GAdmin instead.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="verify_nulls">
+
+When *true*, verifies that null values are set to zero.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="verify_persist">
+
+When *true*, persistent objects will be compared against their state in memory and workers will be checked for orphaned table data in persist. To check for orphaned worker data, either set *concurrent_safe* in input parameter *options* to *true* or place the database offline.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="concurrent_safe">
+
+When *true*, allows this endpoint to be run safely with other concurrent database operations. Other operations may be slower while this is running.
+
+The default value is `true`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="verify_rank0">
+
+If *true*, compare rank0 table metadata against workers' metadata.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="delete_orphaned_tables">
+
+If *true*, orphaned table directories found on workers for which there is no corresponding metadata will be deleted. It is recommended to run this while the database is offline OR set *concurrent_safe* in input parameter *options* to *true*.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="verify_orphaned_tables_only">
+
+If *true*, only the presence of orphaned table directories will be checked, all persistence and table consistency checks will be skipped.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="table_includes">
+
+Comma-separated list of table names to include when verifying table consistency on wokers. Cannot be used simultaneously with *table_excludes*.
+
+</ParamField>
+
+<ParamField body="table_excludes">
+
+Comma-separated list of table names to exclude when verifying table consistency on wokers. Cannot be used simultaneously with *table_includes*.
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'admin_verify_db_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /admin/verifydb endpoint: <br/> <br/> verified_ok: [boolean] True if no errors were found, false otherwise. The default value is `false`. <br/> <br/> error_list: [array of strings] List of errors found while validating the database internal state. The default value is an empty array ( [] ). <br/> <br/> orphaned_tables_total_size: [long] If *verify_persist* is *true*, *verify_orphaned_tables_only* is *true* or *delete_orphaned_tables* is *true*, this is the sum in bytes of all orphaned tables found. Otherwise, -1. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'admin_verify_db_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /admin/verifydb endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="verified_ok" type="boolean">
+
+True if no errors were found, false otherwise.
+
+The default value is `false`.
+
+</ResponseField>
+
+<ResponseField name="error_list" type="array of strings">
+
+List of errors found while validating the database internal state.
+
+The default value is an empty array ( [] ).
+
+</ResponseField>
+
+<ResponseField name="orphaned_tables_total_size" type="long">
+
+If *verify_persist* is *true*, *verify_orphaned_tables_only* is *true* or *delete_orphaned_tables* is *true*, this is the sum in bytes of all orphaned tables found.  Otherwise, -1.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

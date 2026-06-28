@@ -5,39 +5,133 @@ title: /create/job
 {/* RST directive: role h2_style */}
 
 
-<a id="create-job-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/create/job
 ```
 Create a job which will run asynchronously. The response returns a job ID,
 which can be used to query the status and result of the job. The status and the
 result of the job upon completion can be requested by
-[/get/job](/content/api/rest/get_job_rest#get-job-rest).
-
+[/get/job](/content/api/rest/get_job_rest).
 
 ## Input Parameter Description
 
+<ParamField body="endpoint" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| endpoint | string | Indicates which endpoint to execute, e.g. '/alter/table'. |
-| request_encoding | string | The encoding of the request payload for the job. <br/> <br/> The default value is `binary`. <br/> <br/> The supported values are: <br/> <br/> * binary <br/> * json <br/> * snappy |
-| data | bytes | Binary-encoded payload for the job to be run asynchronously.  The payload must contain the relevant input parameters for the endpoint indicated in input parameter *endpoint*.  Please see the documentation for the appropriate endpoint to see what values must (or can) be specified.  If this parameter is used, then input parameter *request_encoding* must be *binary* or *snappy*. |
-| data_str | string | JSON-encoded payload for the job to be run asynchronously.  The payload must contain the relevant input parameters for the endpoint indicated in input parameter *endpoint*.  Please see the documentation for the appropriate endpoint to see what values must (or can) be specified.  If this parameter is used, then input parameter *request_encoding* must be *json*. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> job_tag: Tag to use for submitted job. The same tag could be used on backup cluster to retrieve response for the job. Tags can use letter, numbers, '_' and '-'. |
+Indicates which endpoint to execute, e.g. '/alter/table'.
+
+</ParamField>
+
+<ParamField body="request_encoding" type="string">
+
+The encoding of the request payload for the job.
+
+The default value is `binary`.
+
+The supported values are:
+
+- binary
+- json
+- snappy
+
+</ParamField>
+
+<ParamField body="data" type="bytes">
+
+Binary-encoded payload for the job to be run asynchronously.  The payload must contain the relevant input parameters for the endpoint indicated in input parameter *endpoint*.  Please see the documentation for the appropriate endpoint to see what values must (or can) be specified.  If this parameter is used, then input parameter *request_encoding* must be *binary* or *snappy*.
+
+</ParamField>
+
+<ParamField body="data_str" type="string">
+
+JSON-encoded payload for the job to be run asynchronously.  The payload must contain the relevant input parameters for the endpoint indicated in input parameter *endpoint*.  Please see the documentation for the appropriate endpoint to see what values must (or can) be specified.  If this parameter is used, then input parameter *request_encoding* must be *json*.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="job_tag">
+
+Tag to use for submitted job. The same tag could be used on backup cluster to retrieve response for the job. Tags can use letter, numbers, '_' and '-'.
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'create_job_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /create/job endpoint: <br/> <br/> job_id: [long] An identifier for the job created by this call. <br/> <br/> info: [map of string to strings] Additional information. The default value is an empty map ( \{\} ). +----------+------------------------------------------------------------------------------------------------------+ \|Supported \|Parameter Description \| \|Parameters\| \| \|(keys) \| \| +==========+======================================================================================================+ \|job_tag \|The job tag specified by the user or if unspecified by user, a unique identifier generated internally.\| \| \| \| +----------+------------------------------------------------------------------------------------------------------+ \|query_id \|A unique identifier for this job generated for use in tracing telemetry data. \| \| \| \| +----------+------------------------------------------------------------------------------------------------------+ <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'create_job_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /create/job endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="job_id" type="long">
+
+An identifier for the job created by this call.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="info">
+
+<ResponseField name="job_tag">
+
+The job tag specified by the user or if unspecified by user, a unique identifier generated internally.
+
+</ResponseField>
+
+<ResponseField name="query_id">
+
+A unique identifier for this job generated for use in tracing telemetry data.
+
+</ResponseField>
+
+</Expandable>
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

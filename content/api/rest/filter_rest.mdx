@@ -5,9 +5,6 @@ title: /filter
 {/* RST directive: role h2_style */}
 
 
-<a id="filter-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/filter
 ```
@@ -20,27 +17,134 @@ For details see [Expressions](../../concepts/expressions/).
 The response message contains the number of points for which the expression
 evaluated to be true, which is equivalent to the size of the result view.
 
-
 ## Input Parameter Description
 
+<ParamField body="table_name" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| table_name | string | Name of the table to filter, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). This may be the name of a table or a view (when chaining queries). |
-| view_name | string | If provided, then this will be the name of the view containing the results, in [schema_name.]view_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution) and meeting [table naming criteria](../../concepts/tables/#table-naming-criteria). Must not be an already existing table or view. <br/> <br/> The default value is ''. |
-| expression | string | The select expression to filter the specified table.  For details see [Expressions](../../concepts/expressions/). |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> create_temp_table: If *true*, a unique temporary table name will be generated in the sys_temp schema and used in place of input parameter *view_name*. This is always allowed even if the caller does not have permission to create tables. The generated name is returned in *qualified_view_name*. The default value is `false`. The supported values are: * true * false <br/> <br/> collection_name: [DEPRECATED--please specify the containing schema for the view as part of input parameter *view_name* and use [/create/schema](/content/api/rest/create_schema_rest#create-schema-rest) to create the schema if non-existent] Name of a schema for the newly created view. If the schema is non-existent, it will be automatically created. <br/> <br/> view_id: View this filtered-view is part of. The default value is ''. <br/> <br/> ttl: Sets the [TTL](../../concepts/ttl/) of the view specified in input parameter *view_name*. |
+Name of the table to filter, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). This may be the name of a table or a view (when chaining queries).
+
+</ParamField>
+
+<ParamField body="view_name" type="string">
+
+If provided, then this will be the name of the view containing the results, in [schema_name.]view_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution) and meeting [table naming criteria](../../concepts/tables/#table-naming-criteria). Must not be an already existing table or view.
+
+The default value is ''.
+
+</ParamField>
+
+<ParamField body="expression" type="string">
+
+The select expression to filter the specified table.  For details see [Expressions](../../concepts/expressions/).
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="create_temp_table">
+
+If *true*, a unique temporary table name will be generated in the sys_temp schema and used in place of input parameter *view_name*. This is always allowed even if the caller does not have permission to create tables. The generated name is returned in *qualified_view_name*.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="collection_name">
+
+[DEPRECATED--please specify the containing schema for the view as part of input parameter *view_name* and use [/create/schema](/content/api/rest/create_schema_rest) to create the schema if non-existent]  Name of a schema for the newly created view. If the schema is non-existent, it will be automatically created.
+
+</ParamField>
+
+<ParamField body="view_id">
+
+View this filtered-view is part of.
+
+The default value is ''.
+
+</ParamField>
+
+<ParamField body="ttl">
+
+Sets the [TTL](../../concepts/ttl/) of the view specified in input parameter *view_name*.
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'filter_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /filter endpoint: <br/> <br/> count: [long] The number of records that matched the given select expression. <br/> <br/> info: [map of string to strings] Additional information. The default value is an empty map ( \{\} ). +-------------------+-----------------------------------------------------------------+ \|Supported \|Parameter Description \| \|Parameters (keys) \| \| +===================+=================================================================+ \|qualified_view_name\|The fully qualified name of the view (i.e. including the schema).\| \| \| \| +-------------------+-----------------------------------------------------------------+ <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'filter_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /filter endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="count" type="long">
+
+The number of records that matched the given select expression.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="info">
+
+<ResponseField name="qualified_view_name">
+
+The fully qualified name of the view (i.e. including the schema).
+
+</ResponseField>
+
+</Expandable>
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

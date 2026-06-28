@@ -5,41 +5,176 @@ title: /create/video
 {/* RST directive: role h2_style */}
 
 
-<a id="create-video-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/create/video
 ```
 Creates a job to generate a sequence of raster images that visualize data over
 a specified time.
 
-
 ## Input Parameter Description
 
+<ParamField body="attribute" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| attribute | string | The animated attribute to map to the video's frames. Must be present in the LAYERS specified for the visualization. This is often a time-related field but may be any numeric type. |
-| begin | string | The start point for the video. Accepts an expression evaluable over the input parameter *attribute*. |
-| duration_seconds | double | Seconds of video to produce. |
-| end | string | The end point for the video. Accepts an expression evaluable over the input parameter *attribute*. |
-| frames_per_second | double | The presentation frame rate of the encoded video in frames per second. |
-| style | string | The name of the visualize mode; should correspond to the schema used for the input parameter *style_parameters* field. <br/> <br/> The supported values are: <br/> <br/> * chart <br/> * raster <br/> * classbreak <br/> * contour <br/> * heatmap <br/> * labels |
-| path | string | Fully-qualified [KiFS](../../tools/kifs/) path. Write access is required. A file must not exist at that path, unless *replace_if_exists* is *true*. |
-| style_parameters | string | A string containing the JSON-encoded visualize request.  Must correspond to the visualize mode specified in the input parameter *style* field. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> ttl: Sets the [TTL](../../concepts/ttl) of the video. <br/> <br/> window: Specified using the data-type corresponding to the input parameter *attribute*. For a window of size W, a video frame rendered for time t will visualize data in the interval [t-W,t]. The minimum window size is the interval between successive frames. The minimum value is the default. If a value less than the minimum value is specified, it is replaced with the minimum window size. Larger values will make changes throughout the video appear more smooth while smaller values will capture fast variations in the data. <br/> <br/> no_error_if_exists: If *true*, does not return an error if the video already exists. Ignored if *replace_if_exists* is *true*. The default value is `false`. The supported values are: * false <br/> * true <br/> <br/> replace_if_exists: If *true*, deletes any existing video with the same path before creating a new video. The default value is `false`. The supported values are: * false * true |
+The animated attribute to map to the video's frames. Must be present in the LAYERS specified for the visualization. This is often a time-related field but may be any numeric type.
+
+</ParamField>
+
+<ParamField body="begin" type="string">
+
+The start point for the video. Accepts an expression evaluable over the input parameter *attribute*.
+
+</ParamField>
+
+<ParamField body="duration_seconds" type="double">
+
+Seconds of video to produce.
+
+</ParamField>
+
+<ParamField body="end" type="string">
+
+The end point for the video. Accepts an expression evaluable over the input parameter *attribute*.
+
+</ParamField>
+
+<ParamField body="frames_per_second" type="double">
+
+The presentation frame rate of the encoded video in frames per second.
+
+</ParamField>
+
+<ParamField body="style" type="string">
+
+The name of the visualize mode; should correspond to the schema used for the input parameter *style_parameters* field.
+
+The supported values are:
+
+- chart
+- raster
+- classbreak
+- contour
+- heatmap
+- labels
+
+</ParamField>
+
+<ParamField body="path" type="string">
+
+Fully-qualified [KiFS](../../tools/kifs/) path. Write access is required. A file must not exist at that path, unless *replace_if_exists* is *true*.
+
+</ParamField>
+
+<ParamField body="style_parameters" type="string">
+
+A string containing the JSON-encoded visualize request.  Must correspond to the visualize mode specified in the input parameter *style* field.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="ttl">
+
+Sets the [TTL](../../concepts/ttl) of the video.
+
+</ParamField>
+
+<ParamField body="window">
+
+Specified using the data-type corresponding to the input parameter *attribute*. For a window of size W, a video frame rendered for time t will visualize data in the interval [t-W,t]. The minimum window size is the interval between successive frames. The minimum value is the default.  If a value less than the minimum value is specified, it is replaced with the minimum window size.  Larger values will make changes throughout the video appear more smooth while smaller values will capture fast variations in the data.
+
+</ParamField>
+
+<ParamField body="no_error_if_exists">
+
+If *true*, does not return an error if the video already exists.  Ignored if *replace_if_exists* is *true*.
+
+The default value is `false`.
+
+The supported values are:
+
+- false
+- true
+
+</ParamField>
+
+<ParamField body="replace_if_exists">
+
+If *true*, deletes any existing video with the same path before creating a new video.
+
+The default value is `false`.
+
+The supported values are:
+
+- false
+- true
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'create_video_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /create/video endpoint: <br/> <br/> job_id: [long] An identifier for the created job. <br/> <br/> path: [string] Fully qualified KIFS path to the video file. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'create_video_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /create/video endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="job_id" type="long">
+
+An identifier for the created job.
+
+</ResponseField>
+
+<ResponseField name="path" type="string">
+
+Fully qualified KIFS path to the video file.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

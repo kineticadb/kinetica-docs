@@ -5,9 +5,6 @@ title: /admin/show/cluster/operations
 {/* RST directive: role h2_style */}
 
 
-<a id="admin-show-cluster-operations-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/admin/show/cluster/operations
 ```
@@ -18,25 +15,322 @@ on the requested cluster operation.
 The response will also indicate how many cluster operations are stored in the
 history.
 
-
 ## Input Parameter Description
 
+<ParamField body="history_index" type="int">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| history_index | int | Indicates which cluster operation to retrieve. Use 0 for the most recent. <br/> <br/> The default value is 0. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). |
+Indicates which cluster operation to retrieve. Use 0 for the most recent.
+
+The default value is 0.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'admin_show_cluster_operations_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /admin/show/cluster/operations endpoint: <br/> <br/> history_index: [int] The index of this cluster operation in the reverse-chronologically sorted list of operations, where 0 is the most recent operation. <br/> <br/> history_size: [int] Number of cluster operations executed to date. <br/> <br/> in_progress: [boolean] Whether this cluster operation is currently in progress or not. The supported values are: * true * false <br/> <br/> start_time: [string] The start time of the cluster operation. <br/> <br/> end_time: [string] The end time of the cluster operation, if completed. <br/> <br/> endpoint: [string] The endpoint that initiated the cluster operation. <br/> <br/> endpoint_schema: [string] The schema for the original request. <br/> <br/> overall_status: [string] Overall success status of the operation. +---------+-------------------------------------------------------------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+===========================================================================================+ \|OK \|The operation was successful, or, if still in progress, the operation is successful so far.\| \| \| \| +---------+-------------------------------------------------------------------------------------------+ \|ERROR \|An error occurred executing the operation. \| \| \| \| +---------+-------------------------------------------------------------------------------------------+ <br/> <br/> user_stopped: [boolean] Whether a user stopped this operation at any point while in progress. The supported values are: * true * false <br/> <br/> percent_complete: [int] Percent complete of this entire operation. <br/> <br/> dry_run: [boolean] Whether this operation was a dry run. The supported values are: * true * false <br/> <br/> messages: [array of strings] Updates and error messages if any. <br/> <br/> add_ranks: [boolean] Whether adding ranks is (or was) part of this operation. The supported values are: * true * false <br/> <br/> add_ranks_status: [string] If this was a rank-adding operation, the add-specific status of the operation. The supported values are: * NOT_STARTED * IN_PROGRESS * INTERRUPTED * COMPLETED_OK * ERROR <br/> <br/> ranks_being_added: [array of ints] The rank numbers of the ranks currently being added, or the rank numbers that were added if the operation is complete. <br/> <br/> rank_hosts: [array of strings] The host IP addresses of the ranks being added, in the same order as the output parameter *ranks_being_added* list. <br/> <br/> add_ranks_percent_complete: [int] Current percent complete of the add ranks operation. <br/> <br/> remove_ranks: [boolean] Whether removing ranks is (or was) part of this operation. The supported values are: * true * false <br/> <br/> remove_ranks_status: [string] If this was a rank-removing operation, the removal-specific status of the operation. The supported values are: * NOT_STARTED * IN_PROGRESS * INTERRUPTED * COMPLETED_OK * ERROR <br/> <br/> ranks_being_removed: [array of ints] The ranks being removed, or that have been removed if the operation is completed. <br/> <br/> remove_ranks_percent_complete: [int] Current percent complete of the remove ranks operation. <br/> <br/> rebalance: [boolean] Whether data and/or shard rebalancing is (or was) part of this operation. The supported values are: * true * false <br/> <br/> rebalance_unsharded_data: [boolean] Whether rebalancing of unsharded data is (or was) part of this operation. The supported values are: * true * false <br/> <br/> rebalance_unsharded_data_status: [string] If this was an operation that included rebalancing unsharded data, the rebalancing-specific status of the operation. The supported values are: * NOT_STARTED * IN_PROGRESS * INTERRUPTED * COMPLETED_OK * ERROR <br/> <br/> unsharded_rebalance_percent_complete: [int] Percentage of unsharded tables that completed rebalancing, out of all unsharded tables to rebalance. <br/> <br/> rebalance_sharded_data: [boolean] Whether rebalancing of sharded data is (or was) part of this operation. The supported values are: * true * false <br/> <br/> shard_array_version: [long] Version of the shard array that is (or was) being rebalanced to. Each change to the shard array results in the version number incrementing. <br/> <br/> rebalance_sharded_data_status: [string] If this was an operation that included rebalancing sharded data, the rebalancing-specific status of the operation. The supported values are: * NOT_STARTED * IN_PROGRESS * INTERRUPTED * COMPLETED_OK * ERROR <br/> <br/> num_shards_changing: [int] Number of shards that will change as part of rebalance. <br/> <br/> sharded_rebalance_percent_complete: [int] Percentage of shard keys, and their associated data if applicable, that have completed rebalancing. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'admin_show_cluster_operations_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /admin/show/cluster/operations endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="history_index" type="int">
+
+The index of this cluster operation in the reverse-chronologically sorted list of operations, where 0 is the most recent operation.
+
+</ResponseField>
+
+<ResponseField name="history_size" type="int">
+
+Number of cluster operations executed to date.
+
+</ResponseField>
+
+<ResponseField name="in_progress" type="boolean">
+
+Whether this cluster operation is currently in progress or not.
+
+The supported values are:
+
+- true
+- false
+
+</ResponseField>
+
+<ResponseField name="start_time" type="string">
+
+The start time of the cluster operation.
+
+</ResponseField>
+
+<ResponseField name="end_time" type="string">
+
+The end time of the cluster operation, if completed.
+
+</ResponseField>
+
+<ResponseField name="endpoint" type="string">
+
+The endpoint that initiated the cluster operation.
+
+</ResponseField>
+
+<ResponseField name="endpoint_schema" type="string">
+
+The schema for the original request.
+
+</ResponseField>
+
+<ResponseField name="overall_status" type="string">
+
+Overall success status of the operation.
+
+- **OK**: The operation was successful, or, if still in progress, the operation is successful so far.
+- **ERROR**: An error occurred executing the operation.
+
+</ResponseField>
+
+<ResponseField name="user_stopped" type="boolean">
+
+Whether a user stopped this operation at any point while in progress.
+
+The supported values are:
+
+- true
+- false
+
+</ResponseField>
+
+<ResponseField name="percent_complete" type="int">
+
+Percent complete of this entire operation.
+
+</ResponseField>
+
+<ResponseField name="dry_run" type="boolean">
+
+Whether this operation was a dry run.
+
+The supported values are:
+
+- true
+- false
+
+</ResponseField>
+
+<ResponseField name="messages" type="array of strings">
+
+Updates and error messages if any.
+
+</ResponseField>
+
+<ResponseField name="add_ranks" type="boolean">
+
+Whether adding ranks is (or was) part of this operation.
+
+The supported values are:
+
+- true
+- false
+
+</ResponseField>
+
+<ResponseField name="add_ranks_status" type="string">
+
+If this was a rank-adding operation, the add-specific status of the operation.
+
+The supported values are:
+
+- NOT_STARTED
+- IN_PROGRESS
+- INTERRUPTED
+- COMPLETED_OK
+- ERROR
+
+</ResponseField>
+
+<ResponseField name="ranks_being_added" type="array of ints">
+
+The rank numbers of the ranks currently being added, or the rank numbers that were added if the operation is complete.
+
+</ResponseField>
+
+<ResponseField name="rank_hosts" type="array of strings">
+
+The host IP addresses of the ranks being added, in the same order as the output parameter *ranks_being_added* list.
+
+</ResponseField>
+
+<ResponseField name="add_ranks_percent_complete" type="int">
+
+Current percent complete of the add ranks operation.
+
+</ResponseField>
+
+<ResponseField name="remove_ranks" type="boolean">
+
+Whether removing ranks is (or was) part of this operation.
+
+The supported values are:
+
+- true
+- false
+
+</ResponseField>
+
+<ResponseField name="remove_ranks_status" type="string">
+
+If this was a rank-removing operation, the removal-specific status of the operation.
+
+The supported values are:
+
+- NOT_STARTED
+- IN_PROGRESS
+- INTERRUPTED
+- COMPLETED_OK
+- ERROR
+
+</ResponseField>
+
+<ResponseField name="ranks_being_removed" type="array of ints">
+
+The ranks being removed, or that have been removed if the operation is completed.
+
+</ResponseField>
+
+<ResponseField name="remove_ranks_percent_complete" type="int">
+
+Current percent complete of the remove ranks operation.
+
+</ResponseField>
+
+<ResponseField name="rebalance" type="boolean">
+
+Whether data and/or shard rebalancing is (or was) part of this operation.
+
+The supported values are:
+
+- true
+- false
+
+</ResponseField>
+
+<ResponseField name="rebalance_unsharded_data" type="boolean">
+
+Whether rebalancing of unsharded data is (or was) part of this operation.
+
+The supported values are:
+
+- true
+- false
+
+</ResponseField>
+
+<ResponseField name="rebalance_unsharded_data_status" type="string">
+
+If this was an operation that included rebalancing unsharded data, the rebalancing-specific status of the operation.
+
+The supported values are:
+
+- NOT_STARTED
+- IN_PROGRESS
+- INTERRUPTED
+- COMPLETED_OK
+- ERROR
+
+</ResponseField>
+
+<ResponseField name="unsharded_rebalance_percent_complete" type="int">
+
+Percentage of unsharded tables that completed rebalancing, out of all unsharded tables to rebalance.
+
+</ResponseField>
+
+<ResponseField name="rebalance_sharded_data" type="boolean">
+
+Whether rebalancing of sharded data is (or was) part of this operation.
+
+The supported values are:
+
+- true
+- false
+
+</ResponseField>
+
+<ResponseField name="shard_array_version" type="long">
+
+Version of the shard array that is (or was) being rebalanced to. Each change to the shard array results in the version number incrementing.
+
+</ResponseField>
+
+<ResponseField name="rebalance_sharded_data_status" type="string">
+
+If this was an operation that included rebalancing sharded data, the rebalancing-specific status of the operation.
+
+The supported values are:
+
+- NOT_STARTED
+- IN_PROGRESS
+- INTERRUPTED
+- COMPLETED_OK
+- ERROR
+
+</ResponseField>
+
+<ResponseField name="num_shards_changing" type="int">
+
+Number of shards that will change as part of rebalance.
+
+</ResponseField>
+
+<ResponseField name="sharded_rebalance_percent_complete" type="int">
+
+Percentage of shard keys, and their associated data if applicable, that have completed rebalancing.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

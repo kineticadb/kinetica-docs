@@ -5,33 +5,210 @@ title: /show/graph
 {/* RST directive: role h2_style */}
 
 
-<a id="show-graph-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/show/graph
 ```
 Shows information and characteristics of graphs that exist on the graph server.
 
-
 ## Input Parameter Description
 
+<ParamField body="graph_name" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| graph_name | string | Name of the graph on which to retrieve information. If left as the default value, information about all graphs is returned. <br/> <br/> The default value is ''. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> show_original_request: If set to *true*, the request that was originally used to create the graph is also returned as JSON. The default value is `true`. The supported values are: * true * false <br/> <br/> server_id: Indicates which graph server(s) to send the request to. Default is to send to get information about all the servers. <br/> <br/> export_graph_schema: If true, generates the graph ontology (schema) as a DOT format string in the response info field under the key 'dot'. The default value is `false`. The supported values are: * true * false |
+Name of the graph on which to retrieve information. If left as the default value, information about all graphs is returned.
+
+The default value is ''.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="show_original_request">
+
+If set to *true*, the request that was originally used to create the graph is also returned as JSON.
+
+The default value is `true`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="server_id">
+
+Indicates which graph server(s) to send the request to. Default is to send to get information about all the servers.
+
+</ParamField>
+
+<ParamField body="export_graph_schema">
+
+If true, generates the graph ontology (schema) as a DOT format string in the response info field under the key 'dot'.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'show_graph_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /show/graph endpoint: <br/> <br/> result: [boolean] Indicates a success. This call will fail if the graph specified in the request does not exist. <br/> <br/> load: [array of ints] A percentage approximating the current computational load on the server. <br/> <br/> memory: [array of longs] Available memory. <br/> <br/> graph_names: [array of strings] Name(s) of the graph(s). <br/> <br/> graph_server_ids: [array of ints] Id(s) of the graph(s). <br/> <br/> graph_owner_user_names: [array of strings] Owner of the graph(s) and associated solution table(s). <br/> <br/> graph_owner_resource_groups: [array of strings] Owner of the resource groups(s) of the graph(s). <br/> <br/> directed: [array of booleans] Whether or not the edges of the graph have directions (bi-directional edges can still exist in directed graphs). Consult [Directed Graphs](../../graph_solver/network_graph_solver/#directed-graphs) for more details. <br/> <br/> num_nodes: [array of longs] Total number of nodes in the graph. <br/> <br/> num_edges: [array of longs] Total number of edges in the graph. <br/> <br/> num_bytes: [array of longs] Memory this graph uses in bytes. <br/> <br/> resource_capacity: [array of longs] Memory this graph uses in bytes. <br/> <br/> is_persisted: [array of booleans] Shows whether or not the graph is persisted (saved and loaded on launch). <br/> <br/> is_partitioned: [array of booleans] Indicates if the graph data is distributed across all available servers. <br/> <br/> is_sync_db: [array of booleans] Shows whether or not the graph is linked to the original tables that created it, and will potentially be re-created instead loaded from persist on launch. <br/> <br/> has_insert_table_monitor: [array of booleans] Shows whether or not the graph has an insert table monitor attached to it. <br/> <br/> original_request: [array of strings] The original client request used to create the graph (before any expression evaluation or separator processing). <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'show_graph_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /show/graph endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="result" type="boolean">
+
+Indicates a success. This call will fail if the graph specified in the request does not exist.
+
+</ResponseField>
+
+<ResponseField name="load" type="array of ints">
+
+A percentage approximating the current computational load on the server.
+
+</ResponseField>
+
+<ResponseField name="memory" type="array of longs">
+
+Available memory.
+
+</ResponseField>
+
+<ResponseField name="graph_names" type="array of strings">
+
+Name(s) of the graph(s).
+
+</ResponseField>
+
+<ResponseField name="graph_server_ids" type="array of ints">
+
+Id(s) of the graph(s).
+
+</ResponseField>
+
+<ResponseField name="graph_owner_user_names" type="array of strings">
+
+Owner of the graph(s) and associated solution table(s).
+
+</ResponseField>
+
+<ResponseField name="graph_owner_resource_groups" type="array of strings">
+
+Owner of the resource groups(s) of the graph(s).
+
+</ResponseField>
+
+<ResponseField name="directed" type="array of booleans">
+
+Whether or not the edges of the graph have directions (bi-directional edges can still exist in directed graphs). Consult [Directed Graphs](../../graph_solver/network_graph_solver/#directed-graphs) for more details.
+
+</ResponseField>
+
+<ResponseField name="num_nodes" type="array of longs">
+
+Total number of nodes in the graph.
+
+</ResponseField>
+
+<ResponseField name="num_edges" type="array of longs">
+
+Total number of edges in the graph.
+
+</ResponseField>
+
+<ResponseField name="num_bytes" type="array of longs">
+
+Memory this graph uses in bytes.
+
+</ResponseField>
+
+<ResponseField name="resource_capacity" type="array of longs">
+
+Memory this graph uses in bytes.
+
+</ResponseField>
+
+<ResponseField name="is_persisted" type="array of booleans">
+
+Shows whether or not the graph is persisted (saved and loaded on launch).
+
+</ResponseField>
+
+<ResponseField name="is_partitioned" type="array of booleans">
+
+Indicates if the graph data is distributed across all available servers.
+
+</ResponseField>
+
+<ResponseField name="is_sync_db" type="array of booleans">
+
+Shows whether or not the graph is linked to the original tables that created it, and will potentially be re-created instead loaded from persist on launch.
+
+</ResponseField>
+
+<ResponseField name="has_insert_table_monitor" type="array of booleans">
+
+Shows whether or not the graph has an insert table monitor attached to it.
+
+</ResponseField>
+
+<ResponseField name="original_request" type="array of strings">
+
+The original client request used to create the graph (before any expression evaluation or separator processing).
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

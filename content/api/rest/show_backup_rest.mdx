@@ -5,9 +5,6 @@ title: /show/backup
 {/* RST directive: role h2_style */}
 
 
-<a id="show-backup-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/show/backup
 ```
@@ -16,26 +13,153 @@ Shows information about one or more
 [data source](../../concepts/data_sources/) specified by input parameter
 *datasource_name*.
 
-
 ## Input Parameter Description
 
+<ParamField body="backup_name" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| backup_name | string | Name of the backup. An empty string or '*' will show all existing backups. Any text followed by a '*' will show backups whose name starts with that text. <br/> <br/> The default value is ''. |
-| datasource_name | string | Data source through which the backup is accessible. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> backup_id: ID of the snapshot to show. Leave empty to show information from the most recent snapshot in the backup. The default value is ''. <br/> <br/> backup_type: Show backups by type. This option is ignored if *backup_id* is non-empty. The default value is `all`. +------------+-------------------------------+ \|Supported \|Description \| \|Values \| \| +============+===============================+ \|all \|Show all backup types. \| \| \| \| +------------+-------------------------------+ \|full \|Show full backups only. \| \| \| \| +------------+-------------------------------+ \|incremental \|Show incremental backups only. \| \| \| \| +------------+-------------------------------+ \|differential\|Show differential backups only.\| \| \| \| +------------+-------------------------------+ <br/> <br/> show_contents: Show the contents of the backed-up snapshots. The default value is `none`. +------------+--------------------------------------------+ \|Supported \|Description \| \|Values \| \| +============+============================================+ \|none \|Don't show snapshot contents. \| \| \| \| +------------+--------------------------------------------+ \|object_names\|Show backed-up object names, and for tables,\| \| \|sizing detail. \| \| \| \| +------------+--------------------------------------------+ \|object_files\|Show backed-up object names, and for tables,\| \| \|sizing detail and associated files. \| \| \| \| +------------+--------------------------------------------+ <br/> <br/> no_error_if_not_exists: Whether or not to suppress the error if the specified backup does not exist. The default value is `false`. The supported values are: * true * false |
+Name of the backup. An empty string or '*' will show all existing backups. Any text followed by a '*' will show backups whose name starts with that text.
+
+The default value is ''.
+
+</ParamField>
+
+<ParamField body="datasource_name" type="string">
+
+Data source through which the backup is accessible.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="backup_id">
+
+ID of the snapshot to show. Leave empty to show information from the most recent snapshot in the backup.
+
+The default value is ''.
+
+</ParamField>
+
+<ParamField body="backup_type">
+
+Show backups by type. This option is ignored if *backup_id* is non-empty.
+
+The default value is `all`.
+
+- **all**: Show all backup types.
+- **full**: Show full backups only.
+- **incremental**: Show incremental backups only.
+- **differential**: Show differential backups only.
+
+</ParamField>
+
+<ParamField body="show_contents">
+
+Show the contents of the backed-up snapshots.
+
+The default value is `none`.
+
+- **none**: Don't show snapshot contents.
+- **object_names**: Show backed-up object names, and for tables, sizing detail.
+- **object_files**: Show backed-up object names, and for tables, sizing detail and associated files.
+
+</ParamField>
+
+<ParamField body="no_error_if_not_exists">
+
+Whether or not to suppress the error if the specified backup does not exist.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'show_backup_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /show/backup endpoint: <br/> <br/> backup_name: [string] Value of input parameter *backup_name*. <br/> <br/> backup_description: [array of maps of string to strings] Details about the overall backup(s). <br/> <br/> backup_ids: [array of maps of string to strings] Details about the individual snapshots contained within the backup(s). <br/> <br/> backup_contents: [array of maps of string to strings] When *show_contents* is *object_names*, the names of the backed-up objects as well as sizing detail of any backed-up tables; when *object_files*, the names of the backed-up objects as well as sizing detail and associated data files of any backed-up tables. <br/> <br/> deleted_backup_ids: [array of maps of string to strings] IDs of any snapshots that have been deleted from the containing backup(s). <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'show_backup_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /show/backup endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="backup_name" type="string">
+
+Value of input parameter *backup_name*.
+
+</ResponseField>
+
+<ResponseField name="backup_description" type="array of maps of string to strings">
+
+Details about the overall backup(s).
+
+</ResponseField>
+
+<ResponseField name="backup_ids" type="array of maps of string to strings">
+
+Details about the individual snapshots contained within the backup(s).
+
+</ResponseField>
+
+<ResponseField name="backup_contents" type="array of maps of string to strings">
+
+When *show_contents* is *object_names*, the names of the backed-up objects as well as sizing detail of any backed-up tables; when *object_files*, the names of the backed-up objects as well as sizing detail and associated data files of any backed-up tables.
+
+</ResponseField>
+
+<ResponseField name="deleted_backup_ids" type="array of maps of string to strings">
+
+IDs of any snapshots that have been deleted from the containing backup(s).
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

@@ -5,37 +5,180 @@ title: /alter/resourcegroup
 {/* RST directive: role h2_style */}
 
 
-<a id="alter-resourcegroup-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/alter/resourcegroup
 ```
 Alters the properties of an existing resource group to facilitate resource
 management.
 
-
 ## Input Parameter Description
 
+<ParamField body="name" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| name | string | Name of the group to be altered. Must be an existing resource group name or an empty string when used in conjunction with *is_default_group*. |
-| tier_attributes | map of string to maps of string to strings | Optional map containing tier names and their respective attribute group limits. The only valid attribute limit that can be set is max_memory (in bytes) for the VRAM and RAM tiers. <br/> <br/> For instance, to set max VRAM capacity to 1GB per rank per GPU and max RAM capacity to 10GB per rank, use: \{'VRAM':\{'max_memory':'1000000000'\}, 'RAM':\{'max_memory':'10000000000'\}\}. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> max_memory: Maximum amount of memory usable at one time, per rank, per GPU, for the VRAM tier; or maximum amount of memory usable at one time, per rank, for the RAM tier. |
-| ranking | string | If the resource group ranking is to be updated, this indicates the relative ranking among existing resource groups where this resource group will be placed. <br/> <br/> The default value is ''. <br/> <br/> : Don't change the ranking. <br/> <br/> first: Make this resource group the new first one in the ordering. <br/> <br/> last: Make this resource group the new last one in the ordering. <br/> <br/> before: Place this resource group before the one specified by input parameter *adjoining_resource_group* in the ordering. <br/> <br/> after: Place this resource group after the one specified by input parameter *adjoining_resource_group* in the ordering. |
-| adjoining_resource_group | string | If input parameter *ranking* is *before* or *after*, this field indicates the resource group before or after which the current group will be placed; otherwise, leave blank. <br/> <br/> The default value is ''. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> max_cpu_concurrency: Maximum number of simultaneous threads that will be used to execute a request, per rank, for this group. The minimum allowed value is `4`. <br/> <br/> max_data: Maximum amount of data, per rank, in bytes, that can be used by all database objects within this group. Set to -1 to indicate no upper limit. The minimum allowed value is `-1`. <br/> <br/> max_scheduling_priority: Maximum priority of a scheduled task for this group. The minimum allowed value is `1`. The maximum allowed value is `100`. <br/> <br/> max_tier_priority: Maximum priority of a tiered object for this group. The minimum allowed value is `1`. The maximum allowed value is `10`. <br/> <br/> is_default_group: If *true*, this request applies to the global default resource group. It is an error for this field to be *true* when the input parameter *name* field is also populated. The default value is `false`. The supported values are: * true * false <br/> <br/> persist: If *true* and a system-level change was requested, the system configuration will be written to disk upon successful application of this request. This will commit the changes from this request and any additional in-memory modifications. The default value is `true`. The supported values are: * true * false |
+Name of the group to be altered. Must be an existing resource group name or an empty string when used in conjunction with *is_default_group*.
+
+</ParamField>
+
+<ParamField body="tier_attributes" type="map of string to maps of string to strings">
+
+Optional map containing tier names and their respective attribute group limits. The only valid attribute limit that can be set is max_memory (in bytes) for the VRAM and RAM tiers.
+
+For instance, to set max VRAM capacity to 1GB per rank per GPU and max RAM capacity to 10GB per rank, use: \{'VRAM':\{'max_memory':'1000000000'\}, 'RAM':\{'max_memory':'10000000000'\}\}.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="tier_attributes">
+
+<ParamField body="max_memory">
+
+Maximum amount of memory usable at one time, per rank, per GPU, for the VRAM tier; or maximum amount of memory usable at one time, per rank, for the RAM tier.
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
+
+<ParamField body="ranking" type="string">
+
+If the resource group ranking is to be updated, this indicates the relative ranking among existing resource groups where this resource group will be placed.
+
+The default value is ''.
+
+- **first**: Make this resource group the new first one in the ordering.
+- **last**: Make this resource group the new last one in the ordering.
+- **before**: Place this resource group before the one specified by input parameter *adjoining_resource_group* in the ordering.
+- **after**: Place this resource group after the one specified by input parameter *adjoining_resource_group* in the ordering.
+
+</ParamField>
+
+<ParamField body="adjoining_resource_group" type="string">
+
+If input parameter *ranking* is *before* or *after*, this field indicates the resource group before or after which the current group will be placed; otherwise, leave blank.
+
+The default value is ''.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="max_cpu_concurrency">
+
+Maximum number of simultaneous threads that will be used to execute a request, per rank, for this group.
+
+The minimum allowed value is `4`.
+
+</ParamField>
+
+<ParamField body="max_data">
+
+Maximum amount of data, per rank, in bytes, that can be used by all database objects within this group.  Set to -1 to indicate no upper limit.
+
+The minimum allowed value is `-1`.
+
+</ParamField>
+
+<ParamField body="max_scheduling_priority">
+
+Maximum priority of a scheduled task for this group.
+
+The minimum allowed value is `1`. The maximum allowed value is `100`.
+
+</ParamField>
+
+<ParamField body="max_tier_priority">
+
+Maximum priority of a tiered object for this group.
+
+The minimum allowed value is `1`. The maximum allowed value is `10`.
+
+</ParamField>
+
+<ParamField body="is_default_group">
+
+If *true*, this request applies to the global default resource group. It is an error for this field to be *true* when the input parameter *name* field is also populated.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="persist">
+
+If *true* and a system-level change was requested, the system configuration will be written to disk upon successful application of this request. This will commit the changes from this request and any additional in-memory modifications.
+
+The default value is `true`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'alter_resource_group_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /alter/resourcegroup endpoint: <br/> <br/> name: [string] Value of input parameter *name*. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'alter_resource_group_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /alter/resourcegroup endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="name" type="string">
+
+Value of input parameter *name*.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

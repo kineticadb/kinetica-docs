@@ -5,16 +5,13 @@ title: /upload/files/fromurl
 {/* RST directive: role h2_style */}
 
 
-<a id="upload-files-fromurl-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/upload/files/fromurl
 ```
 Uploads one or more files to [KiFS](../../tools/kifs/).
 
 Each file path must reside in a top-level KiFS directory, i.e. one of the
-directories listed in [/show/directories](/content/api/rest/show_directories_rest#show-directories-rest).
+directories listed in [/show/directories](/content/api/rest/show_directories_rest).
 The user must have write permission on the directory. Nested directories are
 permitted in file name paths. Directories are delineated with the directory
 separator of '/'.  For example, given the file path '/a/b/c/d.txt', 'a' must be
@@ -23,26 +20,83 @@ a KiFS directory.
 These characters are allowed in file name paths: letters, numbers, spaces, the
 path delimiter of '/', and the characters: '.' '-' ':' '[' ']' '(' ')' '#' '='.
 
-
 ## Input Parameter Description
 
+<ParamField body="file_names" type="array of strings">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| file_names | array of strings | An array of full file name paths to be used for the files uploaded to KiFS. File names may have any number of nested directories in their paths, but the top-level directory must be an existing KiFS directory. Each file must reside in or under a top-level directory. A full file name path cannot be larger than 1024 characters. |
-| urls | array of strings | List of URLs to upload, for each respective file in input parameter *file_names*. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). |
+An array of full file name paths to be used for the files uploaded to KiFS. File names may have any number of nested directories in their paths, but the top-level directory must be an existing KiFS directory. Each file must reside in or under a top-level directory. A full file name path cannot be larger than 1024 characters.
+
+</ParamField>
+
+<ParamField body="urls" type="array of strings">
+
+List of URLs to upload, for each respective file in input parameter *file_names*.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'upload_files_fromurl_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /upload/files/fromurl endpoint: <br/> <br/> successful_file_names: [array of strings] List of input parameter *file_names* that were successfully uploaded. <br/> <br/> successful_urls: [array of strings] List of input parameter *urls* that were successfully uploaded. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'upload_files_fromurl_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /upload/files/fromurl endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="successful_file_names" type="array of strings">
+
+List of input parameter *file_names* that were successfully uploaded.
+
+</ResponseField>
+
+<ResponseField name="successful_urls" type="array of strings">
+
+List of input parameter *urls* that were successfully uploaded.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

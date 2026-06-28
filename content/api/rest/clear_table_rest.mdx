@@ -5,9 +5,6 @@ title: /clear/table
 {/* RST directive: role h2_style */}
 
 
-<a id="clear-table-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/clear/table
 ```
@@ -16,26 +13,98 @@ synchronous meaning that the table will be cleared before the function returns.
 The response payload returns the status of the operation along with the name of
 the table that was cleared.
 
-
 ## Input Parameter Description
 
+<ParamField body="table_name" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| table_name | string | Name of the table to be cleared, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). Must be an existing table. Empty string clears all available tables, though this behavior is be prevented by default via gpudb.conf parameter 'disable_clear_all'. <br/> <br/> The default value is ''. |
-| authorization | string | No longer used. User can pass an empty string. <br/> <br/> The default value is ''. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> no_error_if_not_exists: If *true* and if the table specified in input parameter *table_name* does not exist no error is returned. If *false* and if the table specified in input parameter *table_name* does not exist then an error is returned. The default value is `false`. The supported values are: * true * false |
+Name of the table to be cleared, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). Must be an existing table. Empty string clears all available tables, though this behavior is be prevented by default via gpudb.conf parameter 'disable_clear_all'.
+
+The default value is ''.
+
+</ParamField>
+
+<ParamField body="authorization" type="string">
+
+No longer used. User can pass an empty string.
+
+The default value is ''.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="no_error_if_not_exists">
+
+If *true* and if the table specified in input parameter *table_name* does not exist no error is returned. If *false* and if the table specified in input parameter *table_name* does not exist then an error is returned.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'clear_table_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /clear/table endpoint: <br/> <br/> table_name: [string] Value of input parameter *table_name* for a given table, or 'ALL CLEARED' in case of clearing all tables. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'clear_table_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /clear/table endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="table_name" type="string">
+
+Value of input parameter *table_name* for a given table, or 'ALL CLEARED' in case of clearing all tables.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

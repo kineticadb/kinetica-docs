@@ -5,9 +5,6 @@ title: /delete/records
 {/* RST directive: role h2_style */}
 
 
-<a id="delete-records-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/delete/records
 ```
@@ -20,26 +17,114 @@ run on a view.  The operation is synchronous meaning that a response will not
 be available until the request is completely processed and all the matching
 records are deleted.
 
-
 ## Input Parameter Description
 
+<ParamField body="table_name" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| table_name | string | Name of the table from which to delete records, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). Must contain the name of an existing table; not applicable to views. |
-| expressions | array of strings | A list of the actual predicates, one for each select; format should follow the guidelines provided [here](../../concepts/expressions/). Specifying one or more input parameter *expressions* is mutually exclusive to specifying *record_id* in the input parameter *options*. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> global_expression: An optional global expression to reduce the search space of the input parameter *expressions*. The default value is ''. <br/> <br/> record_id: A record ID identifying a single record, obtained at the time of [insertion of the record](/content/api/rest/insert_records_rest#insert-records-rest) or by calling [/get/records/fromcollection](/content/api/rest/get_records_fromcollection_rest#get-records-fromcollection-rest) with the *return_record_ids* option. This option cannot be used to delete records from [replicated](../../concepts/tables/#replication) tables. <br/> <br/> delete_all_records: If set to *true*, all records in the table will be deleted. If set to *false*, then the option is effectively ignored. The default value is `false`. The supported values are: * true * false |
+Name of the table from which to delete records, in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). Must contain the name of an existing table; not applicable to views.
+
+</ParamField>
+
+<ParamField body="expressions" type="array of strings">
+
+A list of the actual predicates, one for each select; format should follow the guidelines provided [here](../../concepts/expressions/). Specifying one or more input parameter *expressions* is mutually exclusive to specifying *record_id* in the input parameter *options*.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="global_expression">
+
+An optional global expression to reduce the search space of the input parameter *expressions*.
+
+The default value is ''.
+
+</ParamField>
+
+<ParamField body="record_id">
+
+A record ID identifying a single record, obtained at the time of [insertion of the record](/content/api/rest/insert_records_rest) or by calling [/get/records/fromcollection](/content/api/rest/get_records_fromcollection_rest) with the *return_record_ids* option. This option cannot be used to delete records from [replicated](../../concepts/tables/#replication) tables.
+
+</ParamField>
+
+<ParamField body="delete_all_records">
+
+If set to *true*, all records in the table will be deleted. If set to *false*, then the option is effectively ignored.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'delete_records_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /delete/records endpoint: <br/> <br/> count_deleted: [long] Total number of records deleted across all expressions. <br/> <br/> counts_deleted: [array of longs] Total number of records deleted per expression. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'delete_records_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /delete/records endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="count_deleted" type="long">
+
+Total number of records deleted across all expressions.
+
+</ResponseField>
+
+<ResponseField name="counts_deleted" type="array of longs">
+
+Total number of records deleted per expression.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

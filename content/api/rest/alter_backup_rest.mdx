@@ -5,9 +5,6 @@ title: /alter/backup
 {/* RST directive: role h2_style */}
 
 
-<a id="alter-backup-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/alter/backup
 ```
@@ -16,28 +13,136 @@ Alters an existing database
 [data sink](../../concepts/data_sinks/) specified by input parameter
 *datasink_name*.
 
-
 ## Input Parameter Description
 
+<ParamField body="backup_name" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| backup_name | string | Name of the backup to be altered. |
-| action | string | Operation to be applied. <br/> <br/> checksum: Calculate checksum for backed-up files. <br/> <br/> ddl_only: Whether or not to only save DDL and not back up table data, when taking future snapshots; set input parameter *value* to 'true' or 'false' for DDL only or DDL and table data, respectively. <br/> <br/> max_incremental_backups_to_keep: Maximum number of incremental snapshots to keep, when taking future snapshots; set input parameter *value* to the number of snapshots to keep. <br/> <br/> merge: Merges all snapshots within a backup and creates a single full snapshot. <br/> <br/> purge: Deletes a snapshot from a backup; set input parameter *value* to the snapshot ID to purge. |
-| value | string | Value of the modification, depending on input parameter *action*. |
-| datasink_name | string | Data sink through which the backup is accessible. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> comment: Comments to store with the backup. <br/> <br/> dry_run: Whether or not to perform a dry run of a backup alteration. The default value is `false`. The supported values are: * true * false |
+Name of the backup to be altered.
+
+</ParamField>
+
+<ParamField body="action" type="string">
+
+Operation to be applied.
+
+- **checksum**: Calculate checksum for backed-up files.
+- **ddl_only**: Whether or not to only save DDL and not back up table data, when taking future snapshots; set input parameter *value* to 'true' or 'false' for DDL only or DDL and table data, respectively.
+- **max_incremental_backups_to_keep**: Maximum number of incremental snapshots to keep, when taking future snapshots; set input parameter *value* to the number of snapshots to keep.
+- **merge**: Merges all snapshots within a backup and creates a single full snapshot.
+- **purge**: Deletes a snapshot from a backup; set input parameter *value* to the snapshot ID to purge.
+
+</ParamField>
+
+<ParamField body="value" type="string">
+
+Value of the modification, depending on input parameter *action*.
+
+</ParamField>
+
+<ParamField body="datasink_name" type="string">
+
+Data sink through which the backup is accessible.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="comment">
+
+Comments to store with the backup.
+
+</ParamField>
+
+<ParamField body="dry_run">
+
+Whether or not to perform a dry run of a backup alteration.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'alter_backup_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /alter/backup endpoint: <br/> <br/> backup_name: [string] Value of input parameter *backup_name*. <br/> <br/> backup_id: [long] ID of the snapshot affected by the alter operation, if any. <br/> <br/> total_bytes: [long] Total size of files affected by the alter operation. <br/> <br/> total_number_of_records: [long] Total number of records affected by the alter operation. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'alter_backup_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /alter/backup endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="backup_name" type="string">
+
+Value of input parameter *backup_name*.
+
+</ResponseField>
+
+<ResponseField name="backup_id" type="long">
+
+ID of the snapshot affected by the alter operation, if any.
+
+</ResponseField>
+
+<ResponseField name="total_bytes" type="long">
+
+Total size of files affected by the alter operation.
+
+</ResponseField>
+
+<ResponseField name="total_number_of_records" type="long">
+
+Total number of records affected by the alter operation.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

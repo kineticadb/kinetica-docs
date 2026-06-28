@@ -5,9 +5,6 @@ title: /admin/add/host
 {/* RST directive: role h2_style */}
 
 
-<a id="admin-add-host-rest"></a>
-
-
 ```
 URL: http://<db.host>:<hm.port>/admin/add/host
 ```
@@ -17,25 +14,125 @@ Adds a host to an existing cluster.
 
 **NOTE:** This endpoint should be used for on-premise deployments only.
 
-
 ## Input Parameter Description
 
+<ParamField body="host_address" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| host_address | string | IP address of the host that will be added to the cluster. This host must have installed the same version of Kinetica as the cluster to which it is being added. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> dry_run: If set to *true*, only validation checks will be performed. No host is added. The default value is `false`. The supported values are: * true * false <br/> <br/> accepts_failover: If set to *true*, the host will accept processes (ranks, graph server, etc.) in the event of a failover on another node in the cluster. The default value is `false`. The supported values are: * true * false <br/> <br/> public_address: The publicly-accessible IP address for the host being added, typically specified for clients using multi-head operations. This setting is required if any other host(s) in the cluster specify a public address. <br/> <br/> host_manager_public_url: The publicly-accessible full path URL to the host manager on the host being added, e.g., 'http://172.123.45.67:9300'. The default host manager port can be found in the [list of ports](../../install/shared/ports/) used by Kinetica. <br/> <br/> ram_limit: The desired RAM limit for the host being added, i.e. the sum of RAM usage for all processes on the host will not be able to exceed this value. Supported units: K (thousand), KB (kilobytes), M (million), MB (megabytes), G (billion), GB (gigabytes); if no unit is provided, the value is assumed to be in bytes. For example, if *ram_limit* is set to 10M, the resulting RAM limit is 10 million bytes. Set *ram_limit* to -1 to have no RAM limit. <br/> <br/> gpus: Comma-delimited list of GPU indices (starting at 1) that are eligible for running worker processes. If left blank, all GPUs on the host being added will be eligible. |
+IP address of the host that will be added to the cluster. This host must have installed the same version of Kinetica as the cluster to which it is being added.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="dry_run">
+
+If set to *true*, only validation checks will be performed. No host is added.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="accepts_failover">
+
+If set to *true*, the host will accept processes (ranks, graph server, etc.) in the event of a failover on another node in the cluster.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="public_address">
+
+The publicly-accessible IP address for the host being added, typically specified for clients using multi-head operations. This setting is required if any other host(s) in the cluster specify a public address.
+
+</ParamField>
+
+<ParamField body="host_manager_public_url">
+
+The publicly-accessible full path URL to the host manager on the host being added, e.g., 'http://172.123.45.67:9300'. The default host manager port can be found in the [list of ports](../../install/shared/ports/) used by Kinetica.
+
+</ParamField>
+
+<ParamField body="ram_limit">
+
+The desired RAM limit for the host being added, i.e. the sum of RAM usage for all processes on the host will not be able to exceed this value. Supported units: K (thousand), KB (kilobytes), M (million), MB (megabytes), G (billion), GB (gigabytes); if no unit is provided, the value is assumed to be in bytes. For example, if *ram_limit* is set to 10M, the resulting RAM limit is 10 million bytes. Set *ram_limit* to -1 to have no RAM limit.
+
+</ParamField>
+
+<ParamField body="gpus">
+
+Comma-delimited list of GPU indices (starting at 1) that are eligible for running worker processes. If left blank, all GPUs on the host being added will be eligible.
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'admin_add_host_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /admin/add/host endpoint: <br/> <br/> added_host: [string] Identifier for the newly added host, of the format 'hostN' where N is the integer identifier of that host. Note that the host identifier is transient, i.e. it may change in the future if other hosts are removed. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'admin_add_host_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /admin/add/host endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="added_host" type="string">
+
+Identifier for the newly added host, of the format 'hostN' where N is the integer identifier of that host. Note that the host identifier is transient, i.e. it may change in the future if other hosts are removed.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

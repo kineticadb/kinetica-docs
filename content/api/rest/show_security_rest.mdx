@@ -5,9 +5,6 @@ title: /show/security
 {/* RST directive: role h2_style */}
 
 
-<a id="show-security-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/show/security
 ```
@@ -15,25 +12,110 @@ Shows security information relating to users and/or roles. If the caller is not
 a system administrator, only information relating to the caller and their roles
 is returned.
 
-
 ## Input Parameter Description
 
+<ParamField body="names" type="array of strings">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| names | array of strings | A list of names of users and/or roles about which security information is requested. If none are provided, information about all users and roles will be returned. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> show_current_user: If *true*, returns only security information for the current user. The default value is `false`. The supported values are: * true * false |
+A list of names of users and/or roles about which security information is requested. If none are provided, information about all users and roles will be returned.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="show_current_user">
+
+If *true*, returns only security information for the current user.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'show_security_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /show/security endpoint: <br/> <br/> types: [map of string to strings] Map of user/role name to the type of that user/role. +-------------+------------------------------------------------------------+ \|Supported \|Description \| \|Values \| \| +=============+============================================================+ \|internal_user\|A user whose credentials are managed by the database system.\| \| \| \| +-------------+------------------------------------------------------------+ \|external_user\|A user whose credentials are managed by an external LDAP. \| \| \| \| +-------------+------------------------------------------------------------+ \|role \|A role. \| \| \| \| +-------------+------------------------------------------------------------+ <br/> <br/> roles: [map of string to arrays of strings] Map of user/role name to a list of names of roles of which that user/role is a member. <br/> <br/> permissions: [map of string to arrays of maps of string to strings] Map of user/role name to a list of permissions directly granted to that user/role. <br/> <br/> resource_groups: [map of string to strings] Map of user name to resource group name. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'show_security_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /show/security endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="types" type="map of string to strings">
+
+Map of user/role name to the type of that user/role.
+
+- **internal_user**: A user whose credentials are managed by the database system.
+- **external_user**: A user whose credentials are managed by an external LDAP.
+- **role**: A role.
+
+</ResponseField>
+
+<ResponseField name="roles" type="map of string to arrays of strings">
+
+Map of user/role name to a list of names of roles of which that user/role is a member.
+
+</ResponseField>
+
+<ResponseField name="permissions" type="map of string to arrays of maps of string to strings">
+
+Map of user/role name to a list of permissions directly granted to that user/role.
+
+</ResponseField>
+
+<ResponseField name="resource_groups" type="map of string to strings">
+
+Map of user name to resource group name.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

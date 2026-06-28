@@ -5,34 +5,116 @@ title: /admin/repair/table
 {/* RST directive: role h2_style */}
 
 
-<a id="admin-repair-table-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/admin/repair/table
 ```
 Manually repair a corrupted table. Returns information about affected tables.
 
-
 ## Input Parameter Description
 
+<ParamField body="table_names" type="array of strings">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| table_names | array of strings | List of tables to query. An asterisk returns all tables. |
-| table_types | map of string to strings | ID of the type per table. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> repair_policy: Corrective action to take. +--------------+-------------------------------------------------+ \|Supported \|Description \| \|Values \| \| +==============+=================================================+ \|delete_chunks \|Deletes any corrupted chunks. \| \| \| \| +--------------+-------------------------------------------------+ \|shrink_columns\|Shrinks corrupted chunks to the shortest column. \| \| \| \| +--------------+-------------------------------------------------+ \|replay_wal \|Manually invokes write-ahead log (WAL) replay on \| \| \|the table. \| \| \| \| +--------------+-------------------------------------------------+ \|alter_table \|Reset columns modification after incomplete alter\| \| \|column. \| \| \| \| +--------------+-------------------------------------------------+ <br/> <br/> verify_all: If *false* only table chunk data already known to be corrupted will be repaired. Otherwise the database will perform a full table scan to check for correctness. The default value is `false`. The supported values are: * true * false |
+List of tables to query. An asterisk returns all tables.
+
+</ParamField>
+
+<ParamField body="table_types" type="map of string to strings">
+
+ID of the type per table.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="repair_policy">
+
+Corrective action to take.
+
+- **delete_chunks**: Deletes any corrupted chunks.
+- **shrink_columns**: Shrinks corrupted chunks to the shortest column.
+- **replay_wal**: Manually invokes write-ahead log (WAL) replay on the table.
+- **alter_table**: Reset columns modification after incomplete alter column.
+
+</ParamField>
+
+<ParamField body="verify_all">
+
+If *false* only table chunk data already known to be corrupted will be repaired. Otherwise the database will perform a full table scan to check for correctness.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'admin_repair_table_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /admin/repair/table endpoint: <br/> <br/> table_names: [array of strings] List of repaired tables. <br/> <br/> repair_status: [array of strings] List of repair status by table. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'admin_repair_table_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /admin/repair/table endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="table_names" type="array of strings">
+
+List of repaired tables.
+
+</ResponseField>
+
+<ResponseField name="repair_status" type="array of strings">
+
+List of repair status by table.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

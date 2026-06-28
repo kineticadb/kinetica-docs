@@ -5,9 +5,6 @@ title: /create/backup
 {/* RST directive: role h2_style */}
 
 
-<a id="create-backup-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/create/backup
 ```
@@ -16,28 +13,300 @@ containing a snapshot of existing objects, at the remote file store accessible
 via the [data sink](../../concepts/data_sinks/) specified by input
 parameter *datasink_name*.
 
-
 ## Input Parameter Description
 
+<ParamField body="backup_name" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| backup_name | string | Name for this backup. If the backup already exists, only an incremental or differential backup can be made, unless *recreate* is set to *true*. |
-| backup_type | string | Type of snapshot to create. <br/> <br/> differential: Snapshot of changes in the database objects and data since the last full snapshot. <br/> <br/> full: Snapshot of the given database objects and data. <br/> <br/> incremental: Snapshot of changes in the database objects and data since the last snapshot of any kind. |
-| backup_objects_map | map of string to strings | Map of objects to be captured in the backup; must be specified when creating a full snapshot and left unspecified when creating an incremental or differential snapshot. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> all: All object types and data contained in the given [schema(s)](../../concepts/schemas/). <br/> <br/> catalog: Data Lake catalog that is external to the database. <br/> <br/> context: [Context(s)](../../sql-gpt/concepts/#sql-gpt-context). <br/> <br/> credential: [Credential(s)](../../concepts/credentials/). <br/> <br/> datasink: [Data sink(s)](../../concepts/data_sinks/). <br/> <br/> datasource: [Data source(s)](../../concepts/data_sources/). <br/> <br/> function_environment: [Python UDF function environment(s)](../../udf/python/writing/#udf-python-func-env). <br/> <br/> graph: [Graph(s)](../../graph_solver/network_graph_solver/) definition. <br/> <br/> monitor: [Table monitor(s)](../../concepts/table_monitors/) / [SQL stream(s)](../../sql/ddl/#create-stream). <br/> <br/> resource_group: [Resource group(s)](../../rm/concepts/#resource-groups). <br/> <br/> role: [Role(s)](../../security/sec_concepts/#roles), role members (roles or users, recursively), and associated permissions. <br/> <br/> stored_procedure: [SQL procedure(s)](../../sql/procedure/). <br/> <br/> table: [Table(s)](../../concepts/tables/) and [SQL view(s)](../../sql/ddl/#create-view). Active subscriptions on any tables to be backed up will be temporarily suspended while the backup is active. <br/> <br/> user: [User(s)](../../security/sec_concepts/#security-concepts-users) (internal and external) and associated permissions. <br/> <br/> user_defined_function: [UDF(s)](../../udf_overview). |
-| datasink_name | string | Data sink through which the backup will be stored. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> checksum: Whether or not to calculate checksums for backup files. The default value is `false`. The supported values are: * true * false <br/> <br/> comment: Comments to store with this backup. <br/> <br/> ddl_only: Whether or not, for tables, to only backup DDL and not table data. The default value is `false`. +---------+---------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+=======================================+ \|true \|For tables, only back up DDL, not data.\| \| \| \| +---------+---------------------------------------+ \|false \|For tables, back up DDL and data. \| \| \| \| +---------+---------------------------------------+ <br/> <br/> delete_intermediate_backups: Whether or not to delete any intermediate snapshots when the input parameter *backup_type* is set to *differential*. The default value is `false`. The supported values are: * true * false <br/> <br/> dry_run: Whether or not to perform a dry run of a backup operation. The default value is `false`. The supported values are: * true * false <br/> <br/> max_incremental_backups_to_keep: Maximum number of incremental snapshots to keep. The default value is `-1`. <br/> <br/> recreate: Whether or not to replace an existing backup object with a new backup with a full snapshot, if one already exists. The default value is `false`. The supported values are: * true * false |
+Name for this backup. If the backup already exists, only an incremental or differential backup can be made, unless *recreate* is set to *true*.
+
+</ParamField>
+
+<ParamField body="backup_type" type="string">
+
+Type of snapshot to create.
+
+- **differential**: Snapshot of changes in the database objects and data since the last full snapshot.
+- **full**: Snapshot of the given database objects and data.
+- **incremental**: Snapshot of changes in the database objects and data since the last snapshot of any kind.
+
+</ParamField>
+
+<ParamField body="backup_objects_map" type="map of string to strings">
+
+Map of objects to be captured in the backup; must be specified when creating a full snapshot and left unspecified when creating an incremental or differential snapshot.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="backup_objects_map">
+
+<ParamField body="all">
+
+All object types and data contained in the given [schema(s)](../../concepts/schemas/).
+
+</ParamField>
+
+<ParamField body="catalog">
+
+Data Lake catalog that is external to the database.
+
+</ParamField>
+
+<ParamField body="context">
+
+[Context(s)](../../sql-gpt/concepts/#sql-gpt-context).
+
+</ParamField>
+
+<ParamField body="credential">
+
+[Credential(s)](../../concepts/credentials/).
+
+</ParamField>
+
+<ParamField body="datasink">
+
+[Data sink(s)](../../concepts/data_sinks/).
+
+</ParamField>
+
+<ParamField body="datasource">
+
+[Data source(s)](../../concepts/data_sources/).
+
+</ParamField>
+
+<ParamField body="function_environment">
+
+[Python UDF function environment(s)](../../udf/python/writing/#udf-python-func-env).
+
+</ParamField>
+
+<ParamField body="graph">
+
+[Graph(s)](../../graph_solver/network_graph_solver/) definition.
+
+</ParamField>
+
+<ParamField body="monitor">
+
+[Table monitor(s)](../../concepts/table_monitors/) / [SQL stream(s)](../../sql/ddl/#create-stream).
+
+</ParamField>
+
+<ParamField body="resource_group">
+
+[Resource group(s)](../../rm/concepts/#resource-groups).
+
+</ParamField>
+
+<ParamField body="role">
+
+[Role(s)](../../security/sec_concepts/#roles), role members (roles or users, recursively), and associated permissions.
+
+</ParamField>
+
+<ParamField body="stored_procedure">
+
+[SQL procedure(s)](../../sql/procedure/).
+
+</ParamField>
+
+<ParamField body="table">
+
+[Table(s)](../../concepts/tables/) and [SQL view(s)](../../sql/ddl/#create-view). Active subscriptions on any tables to be backed up will be temporarily suspended while the backup is active.
+
+</ParamField>
+
+<ParamField body="user">
+
+[User(s)](../../security/sec_concepts/#security-concepts-users) (internal and external) and associated permissions.
+
+</ParamField>
+
+<ParamField body="user_defined_function">
+
+[UDF(s)](../../udf_overview).
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
+
+<ParamField body="datasink_name" type="string">
+
+Data sink through which the backup will be stored.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="checksum">
+
+Whether or not to calculate checksums for backup files.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="comment">
+
+Comments to store with this backup.
+
+</ParamField>
+
+<ParamField body="ddl_only">
+
+Whether or not, for tables, to only backup DDL and not table data.
+
+The default value is `false`.
+
+- **true**: For tables, only back up DDL, not data.
+- **false**: For tables, back up DDL and data.
+
+</ParamField>
+
+<ParamField body="delete_intermediate_backups">
+
+Whether or not to delete any intermediate snapshots when the input parameter *backup_type* is set to *differential*.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="dry_run">
+
+Whether or not to perform a dry run of a backup operation.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="max_incremental_backups_to_keep">
+
+Maximum number of incremental snapshots to keep.
+
+The default value is `-1`.
+
+</ParamField>
+
+<ParamField body="recreate">
+
+Whether or not to replace an existing backup object with a new backup with a full snapshot, if one already exists.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'create_backup_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /create/backup endpoint: <br/> <br/> backup_name: [string] Value of input parameter *backup_name*. <br/> <br/> backup_id: [long] ID of the snapshot created. <br/> <br/> copied_bytes: [long] Total size of all files copied for this snapshot. <br/> <br/> copied_files: [long] Total number of files copied for this snapshot. <br/> <br/> copied_records: [long] Total number of records in all files copied for this snapshot. <br/> <br/> total_number_of_records: [long] Total number of records that can be restored from this snapshot. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'create_backup_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /create/backup endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="backup_name" type="string">
+
+Value of input parameter *backup_name*.
+
+</ResponseField>
+
+<ResponseField name="backup_id" type="long">
+
+ID of the snapshot created.
+
+</ResponseField>
+
+<ResponseField name="copied_bytes" type="long">
+
+Total size of all files copied for this snapshot.
+
+</ResponseField>
+
+<ResponseField name="copied_files" type="long">
+
+Total number of files copied for this snapshot.
+
+</ResponseField>
+
+<ResponseField name="copied_records" type="long">
+
+Total number of records in all files copied for this snapshot.
+
+</ResponseField>
+
+<ResponseField name="total_number_of_records" type="long">
+
+Total number of records that can be restored from this snapshot.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

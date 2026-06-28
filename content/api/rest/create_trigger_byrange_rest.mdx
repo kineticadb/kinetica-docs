@@ -5,49 +5,112 @@ title: /create/trigger/byrange
 {/* RST directive: role h2_style */}
 
 
-<a id="create-trigger-byrange-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/create/trigger/byrange
 ```
 Sets up a simple range trigger for a column_name for one or more tables. Once
 the trigger has been activated, any record added to the listed tables(s) via
-[/insert/records](/content/api/rest/insert_records_rest#insert-records-rest) with the chosen
+[/insert/records](/content/api/rest/insert_records_rest) with the chosen
 column_name's value falling within the specified range will trip the trigger.
 All such records will be queued at the trigger port (by default '9001' but able
 to be retrieved via
-[/show/system/status](/content/api/rest/show_system_status_rest#show-system-status-rest)) for any listening
+[/show/system/status](/content/api/rest/show_system_status_rest)) for any listening
 client to collect. Active triggers can be cancelled by using the
-[/clear/trigger](/content/api/rest/clear_trigger_rest#clear-trigger-rest) endpoint or by clearing all
+[/clear/trigger](/content/api/rest/clear_trigger_rest) endpoint or by clearing all
 relevant tables.
 
 The output returns the trigger handle as well as indicating success or failure
 of the trigger activation.
 
-
 ## Input Parameter Description
 
+<ParamField body="request_id" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| request_id | string | User-created ID for the trigger. The ID can be alphanumeric, contain symbols, and must contain at least one character. |
-| table_names | array of strings | Tables on which the trigger will be active, each in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution). |
-| column_name | string | Name of a numeric column_name on which the trigger is activated. |
-| min | double | The lower bound (inclusive) for the trigger range. |
-| max | double | The upper bound (inclusive) for the trigger range. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). |
+User-created ID for the trigger. The ID can be alphanumeric, contain symbols, and must contain at least one character.
+
+</ParamField>
+
+<ParamField body="table_names" type="array of strings">
+
+Tables on which the trigger will be active, each in [schema_name.]table_name format, using standard [name resolution rules](../../concepts/tables/#table-name-resolution).
+
+</ParamField>
+
+<ParamField body="column_name" type="string">
+
+Name of a numeric column_name on which the trigger is activated.
+
+</ParamField>
+
+<ParamField body="min" type="double">
+
+The lower bound (inclusive) for the trigger range.
+
+</ParamField>
+
+<ParamField body="max" type="double">
+
+The upper bound (inclusive) for the trigger range.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'create_trigger_by_range_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /create/trigger/byrange endpoint: <br/> <br/> trigger_id: [string] Value of input parameter *request_id*. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'create_trigger_by_range_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /create/trigger/byrange endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="trigger_id" type="string">
+
+Value of input parameter *request_id*.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

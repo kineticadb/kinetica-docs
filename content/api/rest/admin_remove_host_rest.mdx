@@ -5,44 +5,98 @@ title: /admin/remove/host
 {/* RST directive: role h2_style */}
 
 
-<a id="admin-remove-host-rest"></a>
-
-
 ```
 URL: http://<db.host>:<hm.port>/admin/remove/host
 ```
 Removes a host from an existing cluster. If the host to be removed has any
 ranks running on it, the ranks must be removed using
-[/admin/remove/ranks](/content/api/rest/admin_remove_ranks_rest#admin-remove-ranks-rest) or manually
+[/admin/remove/ranks](/content/api/rest/admin_remove_ranks_rest) or manually
 switched over to a new host using
-[/admin/switchover](/content/api/rest/admin_switchover_rest#admin-switchover-rest) prior to host removal.
+[/admin/switchover](/content/api/rest/admin_switchover_rest) prior to host removal.
 If the host to be removed has the graph server or SQL planner running on it,
 these must be manually switched over to a new host using
-[/admin/switchover](/content/api/rest/admin_switchover_rest#admin-switchover-rest).
+[/admin/switchover](/content/api/rest/admin_switchover_rest).
 
 **NOTE:** This endpoint is serviced by the host manager, not the database cluster itself, so the port specified needs to be the host manager port instead. The default host manager port can be found under [Default Ports](../../install/shared/ports). For more information on the host manager, see [Host Manager](../../admin/host_manager/).
 
 **NOTE:** This endpoint should be used for on-premise deployments only.
 
-
 ## Input Parameter Description
 
+<ParamField body="host" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| host | string | Identifies the host this applies to. Can be the host address, or formatted as 'hostN' where N is the host number as specified in gpudb.conf. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> dry_run: If set to *true*, only validation checks will be performed. No host is removed. The default value is `false`. The supported values are: * true * false |
+Identifies the host this applies to. Can be the host address, or formatted as 'hostN' where N is the host number as specified in gpudb.conf.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="dry_run">
+
+If set to *true*, only validation checks will be performed. No host is removed.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'admin_remove_host_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /admin/remove/host endpoint: <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'admin_remove_host_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /admin/remove/host endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

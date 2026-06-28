@@ -5,36 +5,110 @@ title: /alter/environment
 {/* RST directive: role h2_style */}
 
 
-<a id="alter-environment-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/alter/environment
 ```
 Alters an existing environment which can be referenced by a
 [user-defined function](../../concepts/udf/) (UDF).
 
-
 ## Input Parameter Description
 
+<ParamField body="environment_name" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| environment_name | string | Name of the environment to be altered. |
-| action | string | Modification operation to be applied. <br/> <br/> install_package: Install a python package from PyPI, an external data source or KiFS. <br/> <br/> install_requirements: Install packages from a requirements file. <br/> <br/> uninstall_package: Uninstall a python package. <br/> <br/> uninstall_requirements: Uninstall packages from a requirements file. <br/> <br/> reset: Uninstalls all packages in the environment and resets it to the original state at time of creation. <br/> <br/> rebuild: Recreates the environment and re-installs all packages, upgrades the packages if necessary based on dependencies. |
-| value | string | The value of the modification, depending on input parameter *action*.  For example, if input parameter *action* is *install_package*, this would be the python package name. <br/> <br/> If input parameter *action* is *install_requirements*, this would be the path of a requirements file from which to install packages. <br/> <br/> If an external data source is specified in *datasource_name*, this can be the path to a wheel file or source archive. Alternatively, if installing from a file (wheel or source archive), the value may be a reference to a file in [KiFS](../../tools/kifs/). |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> datasource_name: Name of an existing external data source from which packages specified in input parameter *value* can be loaded. |
+Name of the environment to be altered.
+
+</ParamField>
+
+<ParamField body="action" type="string">
+
+Modification operation to be applied.
+
+- **install_package**: Install a python package from PyPI, an external data source or KiFS.
+- **install_requirements**: Install packages from a requirements file.
+- **uninstall_package**: Uninstall a python package.
+- **uninstall_requirements**: Uninstall packages from a requirements file.
+- **reset**: Uninstalls all packages in the environment and resets it to the original state at time of creation.
+- **rebuild**: Recreates the environment and re-installs all packages, upgrades the packages if necessary based on dependencies.
+
+</ParamField>
+
+<ParamField body="value" type="string">
+
+The value of the modification, depending on input parameter *action*.  For example, if input parameter *action* is *install_package*, this would be the python package name.
+
+If input parameter *action* is *install_requirements*, this would be the path of a requirements file from which to install packages.
+
+If an external data source is specified in *datasource_name*, this can be the path to a wheel file or source archive. Alternatively, if installing from a file (wheel or source archive), the value may be a reference to a file in [KiFS](../../tools/kifs/).
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="datasource_name">
+
+Name of an existing external data source from which packages specified in input parameter *value* can be loaded.
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'alter_environment_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /alter/environment endpoint: <br/> <br/> environment_name: [string] Value of input parameter *environment_name*. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'alter_environment_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /alter/environment endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="environment_name" type="string">
+
+Value of input parameter *environment_name*.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

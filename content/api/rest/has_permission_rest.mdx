@@ -5,37 +5,174 @@ title: /has/permission
 {/* RST directive: role h2_style */}
 
 
-<a id="has-permission-rest"></a>
-
-
 ```
 URL: http://<db.host>:<db.port>/has/permission
 ```
 Checks if the specified user has the specified permission on the specified
 object.
 
-
 ## Input Parameter Description
 
+<ParamField body="principal" type="string">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| principal | string | Name of the user for which the permission is being checked. Must be an existing user. If blank, will use the current user. <br/> <br/> The default value is ''. |
-| object | string | Name of object to check for the requested permission.  It is recommended to use a fully-qualified name when possible. |
-| object_type | string | The type of object being checked. <br/> <br/> catalog: External Catalog <br/> <br/> context: Context <br/> <br/> credential: Credential <br/> <br/> datasink: Data Sink <br/> <br/> datasource: Data Source <br/> <br/> directory: KiFS File Directory <br/> <br/> graph: A Graph object <br/> <br/> proc: UDF Procedure <br/> <br/> schema: Schema <br/> <br/> sql_proc: SQL Procedure <br/> <br/> system: System-level access <br/> <br/> table: Database Table <br/> <br/> table_monitor: Table monitor |
-| permission | string | Permission to check for. <br/> <br/> admin: Full read/write and administrative access on the object. <br/> <br/> connect: Connect access on the given data source or data sink. <br/> <br/> create: Ability to create new objects of this type. <br/> <br/> delete: Delete rows from tables. <br/> <br/> execute: Ability to Execute the Procedure object. <br/> <br/> insert: Insert access to tables. <br/> <br/> monitor: Monitor logs and statistics. <br/> <br/> read: Ability to read, list and use the object. <br/> <br/> send_alert: Ability to send system alerts. <br/> <br/> update: Update access to the table. <br/> <br/> user_admin: Access to administer users and roles that do not have system_admin permission. <br/> <br/> write: Access to write, change and delete objects. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). <br/> <br/> no_error_if_not_exists: If *false* will return an error if the provided input parameter *object* does not exist or is blank. If *true* then it will return *false* for output parameter *has_permission*. The default value is `false`. The supported values are: * true * false |
+Name of the user for which the permission is being checked. Must be an existing user. If blank, will use the current user.
+
+The default value is ''.
+
+</ParamField>
+
+<ParamField body="object" type="string">
+
+Name of object to check for the requested permission.  It is recommended to use a fully-qualified name when possible.
+
+</ParamField>
+
+<ParamField body="object_type" type="string">
+
+The type of object being checked.
+
+- **catalog**: External Catalog
+- **context**: Context
+- **credential**: Credential
+- **datasink**: Data Sink
+- **datasource**: Data Source
+- **directory**: KiFS File Directory
+- **graph**: A Graph object
+- **proc**: UDF Procedure
+- **schema**: Schema
+- **sql_proc**: SQL Procedure
+- **system**: System-level access
+- **table**: Database Table
+- **table_monitor**: Table monitor
+
+</ParamField>
+
+<ParamField body="permission" type="string">
+
+Permission to check for.
+
+- **admin**: Full read/write and administrative access on the object.
+- **connect**: Connect access on the given data source or data sink.
+- **create**: Ability to create new objects of this type.
+- **delete**: Delete rows from tables.
+- **execute**: Ability to Execute the Procedure object.
+- **insert**: Insert access to tables.
+- **monitor**: Monitor logs and statistics.
+- **read**: Ability to read, list and use the object.
+- **send_alert**: Ability to send system alerts.
+- **update**: Update access to the table.
+- **user_admin**: Access to administer users and roles that do not have system_admin permission.
+- **write**: Access to write, change and delete objects.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+<Expandable title="options">
+
+<ParamField body="no_error_if_not_exists">
+
+If *false* will return an error if the provided input parameter *object* does not exist or is blank. If *true* then it will return *false* for output parameter *has_permission*.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+</Expandable>
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'has_permission_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /has/permission endpoint: <br/> <br/> principal: [string] Value of input parameter *principal*. <br/> <br/> object: [string] Fully-qualified value of input parameter *object*. <br/> <br/> object_type: [string] Value of input parameter *object_type*. <br/> <br/> permission: [string] Value of input parameter *permission*. <br/> <br/> has_permission: [boolean] Indicates whether the specified user has the specified permission on the specified target. +---------+------------------------------------------+ \|Supported\|Description \| \|Values \| \| +=========+==========================================+ \|true \|User has the effective queried permission.\| \| \| \| +---------+------------------------------------------+ \|false \|User does not have the queried permission.\| \| \| \| +---------+------------------------------------------+ <br/> <br/> filters: [map of string to strings] Map of column/filters that have been granted. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'has_permission_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /has/permission endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="principal" type="string">
+
+Value of input parameter *principal*.
+
+</ResponseField>
+
+<ResponseField name="object" type="string">
+
+Fully-qualified value of input parameter *object*.
+
+</ResponseField>
+
+<ResponseField name="object_type" type="string">
+
+Value of input parameter *object_type*.
+
+</ResponseField>
+
+<ResponseField name="permission" type="string">
+
+Value of input parameter *permission*.
+
+</ResponseField>
+
+<ResponseField name="has_permission" type="boolean">
+
+Indicates whether the specified user has the specified permission on the specified target.
+
+- **true**: User has the effective queried permission.
+- **false**: User does not have the queried permission.
+
+</ResponseField>
+
+<ResponseField name="filters" type="map of string to strings">
+
+Map of column/filters that have been granted.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>

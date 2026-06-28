@@ -5,9 +5,6 @@ title: /admin/show/alerts
 {/* RST directive: role h2_style */}
 
 
-<a id="admin-show-alerts-rest"></a>
-
-
 ```
 URL: http://<db.host>:<hm.port>/admin/show/alerts
 ```
@@ -16,25 +13,83 @@ including timestamp and type.
 
 **NOTE:** This endpoint is serviced by the host manager, not the database cluster itself, so the port specified needs to be the host manager port instead. The default host manager port can be found under [Default Ports](../../install/shared/ports). For more information on the host manager, see [Host Manager](../../admin/host_manager/).
 
-
 ## Input Parameter Description
 
+<ParamField body="num_alerts" type="int">
 
-| Name | Type | Description |
-| --- | --- | --- |
-| num_alerts | int | Number of most recent alerts to request. The response will include up to input parameter *num_alerts* depending on how many alerts there are in the system. A value of 0 returns all stored alerts. |
-| options | map of string to strings | Optional parameters. <br/> <br/> The default value is an empty map ( \{\} ). |
+Number of most recent alerts to request. The response will include up to input parameter *num_alerts* depending on how many alerts there are in the system. A value of 0 returns all stored alerts.
+
+</ParamField>
+
+<ParamField body="options" type="map of string to strings">
+
+Optional parameters.
+
+The default value is an empty map ( \{\} ).
+
+</ParamField>
 
 
 ## Output Parameter Description
 
-
 The Kinetica server embeds the endpoint response inside a standard response structure which contains status information and the actual response to the query.  Here is a description of the various fields of the wrapper:
 
-| Name | Type | Description |
-| --- | --- | --- |
-| status | String | 'OK' or 'ERROR' |
-| message | String | Empty if success or an error message |
-| data_type | String | 'admin_show_alerts_response' or 'none' in case of an error |
-| data | String | Empty string |
-| data_str | JSON or String | This embedded JSON represents the result of the /admin/show/alerts endpoint: <br/> <br/> timestamps: [array of strings] Timestamp for when the alert occurred, sorted from most recent to least recent. Each array entry corresponds with the entries at the same index in output parameter *types* and output parameter *params*. <br/> <br/> types: [array of strings] Type of system alert, sorted from most recent to least recent. Each array entry corresponds with the entries at the same index in output parameter *timestamps* and output parameter *params*. <br/> <br/> params: [array of maps of string to strings] Parameters for each alert, sorted from most recent to least recent. Each array entry corresponds with the entries at the same index in output parameter *timestamps* and output parameter *types*. <br/> <br/> info: [map of string to strings] Additional information. <br/> <br/> Empty string in case of an error. |
+<ResponseField name="status" type="String">
+
+'OK' or 'ERROR'
+
+</ResponseField>
+
+<ResponseField name="message" type="String">
+
+Empty if success or an error message
+
+</ResponseField>
+
+<ResponseField name="data_type" type="String">
+
+'admin_show_alerts_response' or 'none' in case of an error
+
+</ResponseField>
+
+<ResponseField name="data" type="String">
+
+Empty string
+
+</ResponseField>
+
+<ResponseField name="data_str" type="JSON or String">
+
+This embedded JSON represents the result of the /admin/show/alerts endpoint:
+
+<Expandable title="data_str">
+
+<ResponseField name="timestamps" type="array of strings">
+
+Timestamp for when the alert occurred, sorted from most recent to least recent. Each array entry corresponds with the entries at the same index in output parameter *types* and output parameter *params*.
+
+</ResponseField>
+
+<ResponseField name="types" type="array of strings">
+
+Type of system alert, sorted from most recent to least recent. Each array entry corresponds with the entries at the same index in output parameter *timestamps* and output parameter *params*.
+
+</ResponseField>
+
+<ResponseField name="params" type="array of maps of string to strings">
+
+Parameters for each alert, sorted from most recent to least recent. Each array entry corresponds with the entries at the same index in output parameter *timestamps* and output parameter *types*.
+
+</ResponseField>
+
+<ResponseField name="info" type="map of string to strings">
+
+Additional information.
+
+</ResponseField>
+
+</Expandable>
+
+Empty string in case of an error.
+
+</ResponseField>
