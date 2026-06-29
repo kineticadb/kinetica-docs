@@ -73,8 +73,6 @@ Modification operation to be applied.
 - **add_column**: Adds the column specified in input parameter *value* to the table specified in input parameter *table_name*. Use *column_type* and *column_properties* in input parameter *options* to set the column's type and properties, respectively.
 - **change_column**: Changes type and properties of the column specified in input parameter *value*. Use *column_type* and *column_properties* in input parameter *options* to set the column's type and properties, respectively. Note that primary key and/or shard key columns cannot be changed. All unchanging column properties must be listed for the change to take place, e.g., to add dictionary encoding to an existing 'char4' column, both 'char4' and 'dict' must be specified in the input parameter *options* map.
 - **delete_column**: Deletes the column specified in input parameter *value* from the table specified in input parameter *table_name*.
-- **set_default**: Sets or replaces the default value expression for the column specified in input parameter *value*. The new default is taken from *add_column_expression*.  Existing properties on the column are preserved.
-- **delete_default**: Removes the default value expression from the column specified in input parameter *value*. Other column properties are preserved.
 - **create_foreign_key**: Creates a [foreign key](../../concepts/tables/#foreign-key) specified in input parameter *value* using the format '(source_column_name [, ...]) references target_table_name(primary_key_column_name [, ...]) [as foreign_key_name]'.
 - **delete_foreign_key**: Deletes a [foreign key](../../concepts/tables/#foreign-key). The input parameter *value* should be the foreign_key_name specified when creating the key or the complete string used to define it.
 - **add_partition**: Adds the partition specified in input parameter *value*, to either a [range-partitioned](../../concepts/tables/#partitioning-by-range) or [manual list-partitioned](../../concepts/tables/#partitioning-by-list-manual) table.
@@ -133,7 +131,7 @@ The default value is an empty map ( \{\} ).
 
 <ParamField body="column_default_value">
 
-When adding a column, set a literal default value for existing records.  For nullable columns, the default value will be null, regardless of data type.  Also persisted as the column's default for future inserts that omit the column.
+When adding a column, set a default value for existing records.  For nullable columns, the default value will be null, regardless of data type.
 
 </ParamField>
 
@@ -185,13 +183,7 @@ The default value is `true`.
 
 <ParamField body="add_column_expression">
 
-When adding a column or setting a new default with input parameter *action* set to *set_default*, the new default expression (GPUdb-syntax) for the column.  Any valid expression may be used, including one containing references to existing columns in the same table.  Persisted as the column's default for future inserts that omit the column; for add_column, also used to backfill existing rows.
-
-</ParamField>
-
-<ParamField body="add_column_expression_sql">
-
-Optional SQL-syntax form of *add_column_expression*, used only when the SQL syntax differs from the GPUdb syntax.  Persisted alongside the GPUdb form so SHOW CREATE TABLE / information_schema can reproduce the original SQL.
+When adding a column, an optional expression to use for the new column's values. Any valid expression may be used, including one containing references to existing columns in the same table.
 
 </ParamField>
 

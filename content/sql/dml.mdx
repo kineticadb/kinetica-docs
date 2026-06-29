@@ -48,6 +48,20 @@ Records with literal values can be inserted into the database.
 ```sql title="INSERT INTO ... VALUES Syntax"
 INSERT INTO [<schema name>.]<table name> [(<column list>)]
 VALUES (<column value list>)[,...]
+[ON CONFLICT (<conflict column list>)
+<
+    DO NOTHING
+    |
+    DO UPDATE SET
+    <
+        <column 1> = <expression 1>,
+        ...
+        <column n> = <expression n>
+        |
+        (<column list>) = (<sub-select statement>)
+    >
+>
+]
 [WITH OPTIONS (<insert option name> = '<insert option value>'[,...])]
 ```
 
@@ -123,6 +137,40 @@ following modes.  The default mode is `ABORT`.
 </AccordionGroup>
 
 
+<a id="sql-insert-values-on-conflict"></a>
+
+
+#### ON CONFLICT
+
+
+The `ON CONFLICT` clause controls the behavior when an inserted record
+conflicts with an existing record on the specified columns.  Use
+`DO NOTHING` to silently discard the conflicting record, or `DO UPDATE SET`
+to update the existing record with new values.
+
+
+<Info>
+The `ON CONFLICT` clause is only valid when used within an
+`/execute/sql` call.
+</Info>
+
+Within the `DO UPDATE SET` clause, the special `EXCLUDED` reference
+provides access to the values of the record that was proposed for insertion.
+
+```sql title="INSERT INTO ... VALUES ... ON CONFLICT Example"
+INSERT INTO example.employee (id, dept_id, manager_id, first_name, last_name, sal, hire_date)
+VALUES
+    (6, 4, 1, 'Frank', 'Furt', 24680.50, '2000-06-01'),
+    (7, 3, 3, 'George', 'Towne', 103050, '2000-03-02')
+ON CONFLICT (id)
+DO UPDATE SET
+    last_name = EXCLUDED.last_name,
+    dept_id = EXCLUDED.dept_id,
+    manager_id = EXCLUDED.manager_id,
+    sal = EXCLUDED.sal
+```
+
+
 <a id="sql-dml-insert-select"></a>
 
 <a id="sql-insert-select"></a>
@@ -136,6 +184,20 @@ Records that are the result set of a query can be inserted into the database.
 ```sql title="INSERT INTO ... SELECT Syntax"
 INSERT INTO [<schema name>.]<table name> [(<column list>)]
 <select statement>
+[ON CONFLICT (<conflict column list>)
+<
+    DO NOTHING
+    |
+    DO UPDATE SET
+    <
+        <column 1> = <expression 1>,
+        ...
+        <column n> = <expression n>
+        |
+        (<column list>) = (<sub-select statement>)
+    >
+>
+]
 ```
 
 {/* Source: /examples/sql/dml/insert.kisql (lines 72-75) */}
@@ -146,12 +208,49 @@ FROM example.employee
 WHERE hire_date >= '2000-04-01'
 ```
 
+The `ON CONFLICT` clause can also be used with `INSERT INTO ... SELECT`.
+See [ON CONFLICT](/content/sql/dml#sql-insert-select-on-conflict) for details.
+
+
+<a id="sql-insert-select-on-conflict"></a>
+
+
+#### ON CONFLICT
+
+
+The `ON CONFLICT` clause controls the behavior when an inserted record
+conflicts with an existing record on the specified columns.  Use
+`DO NOTHING` to silently discard the conflicting record, or `DO UPDATE SET`
+to update the existing record with new values.
+
+
+<Info>
+The `ON CONFLICT` clause is only valid when used within an
+`/execute/sql` call.
+</Info>
+
+Within the `DO UPDATE SET` clause, the special `EXCLUDED` reference
+provides access to the values of the record that was proposed for insertion.
+
+```sql title="INSERT INTO ... SELECT ... ON CONFLICT Example"
+INSERT INTO example.employee_backup (id, dept_id, manager_id, first_name, last_name, sal, hire_date)
+SELECT id, dept_id, manager_id, first_name, last_name, sal, hire_date
+FROM example.employee
+WHERE hire_date >= '2000-04-01'
+ON CONFLICT (id)
+DO UPDATE SET
+    last_name = EXCLUDED.last_name,
+    dept_id = EXCLUDED.dept_id,
+    manager_id = EXCLUDED.manager_id,
+    sal = EXCLUDED.sal
+```
+
 
 <a id="sql-dml-upsert"></a>
 
 <a id="sql-upsert"></a>
 
-<a id="sql-insert-upsert"></a>
+<a id="sql-insert-select-upsert"></a>
 
 
 ### Upserting
@@ -185,7 +284,7 @@ and the existing record will remain unchanged.  The
 source records over the target ones.
 </Note>
 
-<a id="sql-insert-ignore"></a>
+<a id="sql-insert-select-ignore"></a>
 
 
 ### Ignoring Duplicates
@@ -372,6 +471,70 @@ These hints can be specified as connection options
 UPDATE example.employee /* KI_HINT_IGNORE_EXISTING_PK */
 SET id = 1, sal = 123000
 WHERE id = 6
+```
+
+
+<a id="sql-dml-merge"></a>
+
+<a id="sql-dml-merge-into"></a>
+
+<a id="sql-merge"></a>
+
+<a id="sql-merge-into"></a>
+
+
+## MERGE INTO
+
+
+Merges records from a source table or query into a target table.  When a
+record in the source matches one in the target (based on the `ON` condition),
+the target record can be updated; when there is no match, a new record can be
+inserted.  At least one of the `WHEN MATCHED` or `WHEN NOT MATCHED` clauses
+must be specified.
+
+```sql title="MERGE INTO Syntax"
+MERGE INTO [<target schema name>.]<target table name> [[AS] <alias>]
+USING
+(
+    [<source schema name>.]<source table name>
+    | <source select statement>
+)
+ON <expression list>
+[WHEN MATCHED THEN UPDATE SET
+    <column 1> = <expression 1>,
+    ...
+    <column n> = <expression n>
+]
+[WHEN NOT MATCHED THEN INSERT [(<column list>)] VALUES (<column value list>)]
+```
+
+The `USING` clause specifies the source of the data to merge, which can be
+either a table or a `SELECT` statement.
+
+The `ON` clause specifies the condition(s) used to determine whether a source
+record matches a target record.
+
+The `WHEN MATCHED` clause specifies the `UPDATE` to apply to matching target
+records.
+
+The `WHEN NOT MATCHED` clause specifies the `INSERT` to apply for source
+records that have no match in the target table.
+
+For example, to merge a source table into a target table, updating existing
+records and inserting new ones:
+
+```sql title="MERGE INTO Example"
+MERGE INTO target t
+USING source s
+ON t.id = s.id
+WHEN MATCHED THEN
+    UPDATE SET
+        name = s.name,
+        quantity = s.quantity,
+        updated_at = CURRENT_TIMESTAMP
+WHEN NOT MATCHED THEN
+    INSERT (id, name, quantity, updated_at)
+    VALUES (s.id, s.name, s.quantity, CURRENT_TIMESTAMP)
 ```
 
 
