@@ -1,0 +1,841 @@
+---
+title: Web Map Service
+---
+
+{/* RST directive: role h2_style */}
+
+
+<a id="wms-feature-overview"></a>
+
+
+## Overview
+
+
+*Kinetica* provides a *Web Map Service* (*WMS*) for generating image tiles from
+the geospatial data contained in it.  The type of image tiles returned, the data
+used to generate the tiles, and the graphical styles in the tiles are specified
+in the query string of the *WMS* call.  These would typically be used as
+overlays on top of a map.  Examples of this can be seen in the demo that comes
+bundled with *Kinetica* at `http://<host>:8080/gaiademo`.  Any table with x,y
+coordinates or *WKT* shapes can be used as the source for generating images.
+
+Note that the `cb_raster` and `raster` styles have a `GEO_ATTR` parameter
+that allows specifying the name of a geometry (WKT) column or column expression
+to use during rendering. This parameter is optional, and if not specified,
+*Kinetica* will automatically try to find a geometry column.  If there are
+multiple geometry columns to choose from and a specific column needs to be used,
+`GEO_ATTR` will need to be specified. If the `GEO_ATTR` column reference or
+expression corresponds to a valid geometry column or expression, *Kinetica* will
+continue with rendering. If not, *Kinetica* will try to process the column or
+expression as point or track data instead.
+
+The requested image is then returned in the *HTTP* response message body.
+
+As the *isochrones* mode utilizes some of the *contour* and *labels* modes'
+parameters as well as some of the
+[/solve/graph](/content/api/rest/solve_graph_rest) endpoint's parameters, the
+same usage guidelines apply. Review [Contour](#contour), [Labels](#labels), and
+[Solving a Graph](/content/graph_solver/network_graph_solver)
+for more information.
+
+
+<a id="fo-wms-downloads"></a>
+
+
+## Downloads
+
+
+The examples below use the following tables:
+
+* [nyc_neighborhood](/examples/data/nyc_neighborhood.csv)
+  (referenced in the examples as if it were in the caller's
+  [default schema](/content/concepts/schemas#schema-default))
+* `demo.flights` (downloadable as [flights.csv](http://s3.amazonaws.com/kinetica-ce-data/7.1/flights.csv.zip))
+* `demo.nyctaxi` (downloadable as [nyctaxi.csv](http://s3.amazonaws.com/kinetica-ce-data/7.1/nyctaxi.csv.zip))
+
+
+<a id="fo-wms-usage"></a>
+
+
+## Usage
+
+
+Base *WMS* URI:
+
+```
+http://<db.host>:<db.port>/wms?REQUEST=GetMap&SRS=<ref_sys>&BBOX=<coords>&WIDTH=<w_pixels>&HEIGHT=<h_pixels>[&...]
+```
+<a id="fo-wms-required-params"></a>
+
+
+## Required Parameters
+
+
+The following parameters are required in all *WMS* calls:
+
+| Name | Description | Allowable Values |
+| --- | --- | --- |
+| `REQUEST` | WMS Request | * `GetMap` for getting an image <br/> * `GetCapabilities` is also supported |
+| `SRS` | Spatial Reference System (i.e. *EPSG* code) | * *Plate Carree* projection codes: `PLATE_CARREE`, `EPSG:4326` <br/> * *Web Mercator* projection codes: `WEB_MERCATOR`, `900913`, `EPSG:900913`, `102100`, `EPSG:102100`, `3857`, `EPSG:3857` |
+| `LAYERS` | The requested image layer(s) | One or more comma-separated table names, each in `[schema_name.]table_name` format, using standard [name resolution rules](/content/concepts/tables#table-name-resolution) |
+| `BBOX` | Geographic bounding box as a comma-separated list of: min_longitude, min_latitude, max_longitude, max_latitude | Four comma-separated numerics |
+| `WIDTH` | Image width, in pixels | `1` - `<conf.max_heatmap_size>` <br/> <br/> For details on the system-configured `max_heatmap_size`, see: [Visualization](/content/config#config-main-visualization). |
+| `HEIGHT` | Image height, in pixels | `1` - `<conf.max_heatmap_size>` <br/> <br/> For details on the system-configured `max_heatmap_size`, see: [Visualization](/content/config#config-main-visualization). |
+
+<a id="fo-wms-optional-params"></a>
+
+
+## Optional Parameters
+
+
+The following parameters are optional for *WMS* calls:
+
+| Name | Description | Allowable Values | Default Value |
+| --- | --- | --- | --- |
+| `VERSION` | WMS Version--only *v1.1.1* is supported | `1.1.1` | `1.1.1` |
+| `STYLES` | The mode of image requested | * `raster` <br/> * `cb_raster` <br/> * `heatmap` <br/> * `contour` <br/> * `labels` <br/> * `isochrones` | `raster` |
+| `FORMAT` | Output image format--only PNG is supported | `image/png` | `image/png` |
+| `TRANSPARENT` | Controls background transparency of the generated image | * `TRUE` for transparent background <br/> * `FALSE` for opaque background | `TRUE` |
+| `X_ATTR` | Name of the column or expression to be used as the longitude | Numeric column or column expression referencing the `LAYERS` source table list; must be of int, double, float, or long [type](/content/concepts/types) | Column `x` |
+| `Y_ATTR` | Name of the column or expression to be used as the latitude | Numeric column or column expression referencing the `LAYERS` source table list; must be of int, double, float, or long [type](/content/concepts/types) | Column `y` |
+| `GEO_ATTR` | The WKT column or expression used to render the raster/cb_raster (particularly if you have more than one WKT column in the table) | A WKT column name or expression |  |
+| `SYMBOL_ATTR` | The symbol attribute used to render symbols in lieu of the default `SYMBOLCODE` column. See `DOSYMBOLOGY`. Supports expressions, e.g., `if()`, `case()`, etc. | A string column or expression containing symbol IDs | Column `SYMBOLCODE` |
+| `JOB_USER_DATA` | User-defined tag that will be associated with this request | String value not containing '&' |  |
+
+
+<a id="fo-wms-modes"></a>
+
+
+## Modes
+
+
+The following modes are supported, as specified by the `STYLES` parameter:
+
+* [raster](#raster)
+* [cb_raster](#cb-raster)
+* [heatmap](#heatmap)
+* [contour](#contour)
+* [labels](#labels)
+* [isochrones](#isochrones)
+
+Descriptions of each mode along with the mode-specific parameters can be found
+below.
+
+
+<a id="fo-wms-raster"></a>
+
+
+### RASTER
+
+
+The *raster* mode is used to rasterize points, shapes, symbols, and/or tracks
+from one or more tables. Available parameters are:
+
+| Name | Description | Allowable Values | Default Value |
+| --- | --- | --- | --- |
+| `ANTIALIASING` | Set to `TRUE` to enable anti-aliasing, which will smoothen WKT LINESTRING and POLYGON outlines | `TRUE` or `FALSE` | `FALSE` |
+| `DOPOINTS` | Rasterize point data toggle | `TRUE` or `FALSE` | `TRUE` |
+| `DOSHAPES` | Rasterize shapes toggle | `TRUE` or `FALSE` | `TRUE` |
+| `DOSYMBOLOGY` | Rasterize symbols toggle. When set to `TRUE`, Kinetica will automatically look for a `SYMBOLCODE` column in the specified table that contains strings that match inserted symbols | `TRUE` or `FALSE` | `FALSE` |
+| `DOTRACKS` | Rasterize tracks | `TRUE` or `FALSE` | `TRUE` |
+| `HASHLINEANGLES` | Clockwise rotation angle from a perpendicular hash line in degree | Real numbers | `0` |
+| `HASHLINECOLORS` | RBG color values in hex for the hash lines | Hex color (or `-1` for same color as shapeline) | `SHAPELINECOLOR` value |
+| `HASHLINEINTERVALS` | Distance between the center points of hash lines in pixels | Positive integers | `20` |
+| `HASHLINELENS` | Length of hash lines in pixels. Inputting a `0` disables hash lines | Non-negative integers | `0` |
+| `HASHLINEWIDTHS` | Width of hash lines in pixels | Positive integers | `3` |
+| `ORDER_LAYERS` | Enables layers to be rendered in the order they were specified in | `true` or `false` |  |
+| `POINTCOLORS` | Color of points | Hex color | `FF0000` *(red)* |
+| `POINTOFFSET_X` | Horizontal offset for point location in pixels | Signed integers | `0` |
+| `POINTOFFSET_Y` | Vertical offset for point location in pixels | Signed integers | `0` |
+| `POINTSHAPES` | Shape of points | * `none` <br/> * `circle` <br/> * `dash` <br/> * `diamond` <br/> * `dot` <br/> * `hollowcircle` <br/> * `hollowdiamond` <br/> * `hollowsquare` <br/> * `hollowsquarewithplus` <br/> * `pipe` <br/> * `plus` <br/> * `square` |  |
+| `POINTSIZES` | Size of points | `0` - `20` | `3` |
+| `SHAPEFILLCOLORS` | Fill color for closed shapes (i.e. polygons) | Hex color (or `-1` for no fill) | `-1` *(no fill)* |
+| `SHAPELINECOLORS` | Line colors for shapes | Hex color | `FFFF00` *(yellow)* |
+| `SHAPELINEPATTERNLENS` | Lengths of dashed-line patterns in number of bits | `1` - `64` | `0` |
+| `SHAPELINEPATTERNS` | Bitmaps representing dashed-line patterns; bits of `1` enable the pixels associated with them, but if all bits are `0`, dashed-line drawing is disabled, i.e. solid lines are drawn | Unsigned 64-bit (hexadecimal) integers | `0` |
+| `SHAPELINEWIDTHS` | Line widths of shapes | `0` - `20` | `3` |
+| `SYMBOLROTATIONS` | Angle in degree for clockwise symbol rotation | Numeric constants or expressions (including column names) |  |
+| `TRACKHEADCOLORS` | Color of track head markers | Hex color | `FFFFFF` *(white)* |
+| `TRACKHEADSHAPES` | Shape of track head markers | * `none` <br/> * `circle` <br/> * `dash` <br/> * `diamond` <br/> * `dot` <br/> * `hollowcircle` <br/> * `hollowdiamond` <br/> * `hollowsquare` <br/> * `hollowsquarewithplus` <br/> * `pipe` <br/> * `plus` <br/> * `square` | `circle` |
+| `TRACKHEADSIZES` | Size of track head markers | `0` - `20` | `10` |
+| `TRACKLINECOLORS` | Line colors for tracks | Hex color | `00FF00` *(green)* |
+| `TRACKLINEWIDTHS` | Line widths of tracks | `0` - `20` (`0`: don't draw the track lines) | `3` |
+| `TRACKMARKERCOLORS` | Color of track point markers | Hex color | `0000FF` *(blue)* |
+| `TRACKMARKERSHAPES` | Shape of track point markers | * `none` <br/> * `circle` <br/> * `dash` <br/> * `diamond` <br/> * `dot` <br/> * `hollowcircle` <br/> * `hollowdiamond` <br/> * `hollowsquare` <br/> * `hollowsquarewithplus` <br/> * `pipe` <br/> * `plus` <br/> * `square` <br/> * `SYMBOLCODE` (to specify a symbol) | `none` |
+| `TRACKMARKERSIZES` | Size of track point markers | `0` - `20` | `2` |
+| `TRACK_ID_ATTR` | Name of the track ID column or expression | Column or column expression referencing the `LAYERS` source table  list; must be of string or date type | `TRACKID` |
+| `TRACK_ORDER_ATTR` | Name of the track ordering column or expression | Column or column expression referencing the `LAYERS` source table list; must be of numeric or date type | `TIMESTAMP` |
+| `WORLDLAYERS` | Supplemental track layer(s); actual points will be pulled from the `WORLDLAYERS` table(s), though only the unique track IDs in the `LAYERS` table(s) will be identified on the map. <br/> <br/> Ideally, the `WORLDLAYERS` table(s) should be a superset of the data in the `LAYERS` table(s). | One or more comma-separated table names, each in `[schema_name.]table_name` format, using standard [name resolution rules](/content/concepts/tables#table-name-resolution) |  |
+
+Styling parameters must be specified for each table provided in the `LAYERS`
+parameter. For instance, if `LAYERS=LAYER1,LAYER2` then to set different point
+colors for each layer the syntax would be: `POINTCOLORS=FF0000,0000FF`. In
+this case points from `LAYER1` would be rendered as red while points from
+`LAYER2` would be rendered as blue. If styling parameters are not provided for
+a layer, the default value is applied.
+
+All colors must be provided in hex notation in the format `RRGGBB` or
+`AARRGGBB` (to specify the alpha value). For example, opaque red may be given
+as `FF0000` or `FFFF0000`.
+
+To use symbols rather than points, the source table(s) must have a string *type*
+column named `SYMBOLCODE`, which contains the desired symbol's identifier. All
+necessary symbols need to be added via the [Insert Symbol](/content/api/rest/insert_symbol_rest)
+endpoint.  The IDs in the `SYMBOLCODE` column must match up with the IDs of the
+inserted symbols. To use a non-default column for symbols or to change a symbol
+conditionally, use the `SYMBOL_ATTR` parameter. For example, you can change
+the displayed symbol conditionally depending on a record's `vendor_id` using
+the following `SYMBOL_ATTR` statement:
+
+```
+SYMBOL_ATTR=case(vendor_id,{'YCAB','NYC'},{'taxi_blue','taxi_green'},'taxi_black')
+```
+
+<Info>
+Labels (using the [labels](#labels) style) and WKT shapes cannot be rendered
+in the same *WMS* call.  Both can be shown on the same map by creating
+separate map layers, each with its own *WMS* call.
+</Info>
+
+For example, to generate a raster image from a table
+[nyc_neighborhood](/examples/data/nyc_neighborhood.csv) with the
+following characteristics:
+
+* The geometry data is extracted from the `nyc_neighborhood` table's `geom`
+  column
+* *SRS* is `EPSG:4326`
+* Bounding box *longitude* is from `-74.1` to `-73.9` and *latitude* is from
+  `40.6` to `40.9`
+* Image size is `1024` x `1024`
+* The raster image will render shapes because `DOSHAPES` is set to `TRUE`
+
+{/* Source: /examples/bash/wms_examples.sh (lines 82-90) */}
+```
+${KINETICA_URL}/wms?REQUEST=GetMap
+&STYLES=raster
+&LAYERS=example_geospatial.nyc_neighborhood
+&GEO_ATTR=geom
+&SRS=EPSG:4326
+&BBOX=-74.1,40.6,-73.9,40.9
+&WIDTH=1024
+&HEIGHT=1024
+&DOSHAPES=TRUE
+```
+
+To generate a raster image from a table `flights` with the following
+characteristics:
+
+* The track data is extracted, by default, from the `flights` table's
+  `TRACKID`, `x`, `y`, & `TIMESTAMP` columns
+* *SRS* is `EPSG:4326`
+* Bounding box *longitude* is from `-180` to `180` and *latitude* is from
+  `-90` to `90`
+* Image size is `512` by `512`
+* Track rendering is enabled
+* Track headers are diamond-shaped
+* Track line color is set to `80858E`
+* Track marker color is set to `006BBB`
+* Track markers are square-shaped
+
+{/* Source: /examples/bash/wms_examples.sh (lines 98-109) */}
+```
+${KINETICA_URL}/wms?REQUEST=GetMap
+&STYLES=raster
+&LAYERS=demo.flights
+&SRS=EPSG:4326
+&BBOX=-180,-90,180,90
+&WIDTH=512
+&HEIGHT=512
+&DOTRACKS=1
+&TRACKHEADSHAPES=diamond
+&TRACKLINECOLORS=80858E
+&TRACKMARKERCOLORS=006BBB
+&TRACKMARKERSHAPES=square
+```
+
+To generate a raster image with the following characteristics using information
+from a table `nyctaxi` and symbols generated from a taxi icon SVG file:
+
+* X-axis position is extracted from the `nyctaxi` table's
+  `dropoff_longitude` column
+* Y-axis position is extracted from the `nyctaxi` table's
+  `dropoff_latitude` column
+* The *symbol attribute* is set using a series of `if` statements:
+
+  * If `total_amount` is less than or equal to 20 but greater than 10, set the
+    symbol to `taxi_green`
+  * If `total_amount` is greater than 20, set the symbol to `taxi_blue`
+  * If `total_amount` is less than 10, set the symbol to `taxi_default`
+
+* *SRS* is `PLATE_CARREE`
+* Bounding box *longitude* is from `-73.99120` to `-73.99115` and
+  *latitude* is from `40.750300` to `40.750350`
+* Image size is `512` by `512`
+* Symbology rendering is enabled
+
+{/* Source: /examples/bash/wms_examples.sh (lines 133-144) */}
+```
+${KINETICA_URL}/wms?REQUEST=GetMap
+&STYLES=raster
+&LAYERS=demo.nyctaxi
+&X_ATTR=dropoff_longitude
+&Y_ATTR=dropoff_latitude
+&SYMBOL_ATTR=if(total_amount%3C=20%20and%20total_amount%3E10,'taxi_green',if(total_amount%3E20,'taxi_blue','taxi_default'))
+&SRS=PLATE_CARREE
+&BBOX=-73.99120,40.750300,-73.99115,40.750350
+&WIDTH=512
+&HEIGHT=512
+&DOSYMBOLOGY=TRUE
+&TRACKMARKERSHAPES=SYMBOLCODE
+```
+
+
+<Note>
+The `SYMBOL_ATTR` statement above references three symbols: `taxi_green`,
+`taxi_blue`, and `taxi_default`. Symbols are created in Kinetica using
+an SVG path or raw bytes reprsenting an SVG file via
+[Insert Symbol](/content/api/rest/insert_symbol_rest). In the example, the symbols are
+created using an SVG path extracted from the
+[taxi.svg](/examples/images/taxi.svg) file which is then placed
+in the `SVG_PATH` variable.
+
+   {/* Source: /examples/bash/wms_examples.sh (lines 117-120) */}
+```
+curl -sS -X POST ${KINETICA_URL}/insert/symbol \
+--header "Content-Type: application/json" \
+--user ${USERNAME}:${PASSWORD} \
+--data '{"symbol_id":"taxi_green", "symbol_format":"svg_path", "symbol_data":"'${SVG_PATH}'", "options":{"color":"00FF00"}}'
+```
+
+   {/* Source: /examples/bash/wms_examples.sh (lines 122-125) */}
+```
+curl -sS -X POST ${KINETICA_URL}/insert/symbol \
+--header "Content-Type: application/json" \
+--user ${USERNAME}:${PASSWORD} \
+--data '{"symbol_id":"taxi_blue", "symbol_format":"svg_path", "symbol_data":"'${SVG_PATH}'", "options":{"color":"FF0000"}}'
+```
+
+   {/* Source: /examples/bash/wms_examples.sh (lines 127-130) */}
+```
+curl -sS -X POST ${KINETICA_URL}/insert/symbol \
+--header "Content-Type: application/json" \
+--user ${USERNAME}:${PASSWORD} \
+--data '{"symbol_id":"taxi_default", "symbol_format":"svg_path", "symbol_data":"'${SVG_PATH}'", "options":{"color":"0000FF"}}'
+```
+</Note>
+
+
+<a id="fo-wms-cbraster"></a>
+
+
+### CB_RASTER
+
+
+The *class break raster* mode is for generating *class break* renderings. A
+class break rendering is the rasterization of the data from one or more tables
+with styling applied on a per-class basis.  Distinct values (for strings) or
+ranges (for numeric columns) must be provided in the `CB_VALS` parameter.
+
+
+<Note>
+All `RASTER` mode parameters except `SYMBOLROTATIONS` and
+`ORDER_LAYERS` can be used with the `CB_RASTER` mode in
+addition to the parameters listed below
+</Note>
+
+| Name | Description | Allowable Values | Default Value |
+| --- | --- | --- | --- |
+| `CB_ATTR` | Class break attribute | Any column or column expression referencing the `LAYERS` source table list | *&lt;Required&gt;* |
+| `CB_VALS` | Values or ranges to apply for the class break | List of values or ranges separated by `CB_DELIMITER` (e.g., `0:5,5:10,15:30`) <br/> <br/> This specifies three ranges: <br/> <br/> `0  up to but not including 5 5  up to but not including 10 15 up to but not including 30` <br/> | *&lt;Required&gt;* |
+| `CB_DELIMITER` | A group of characters which separate values or ranges in `CB_VALS`. | Alpha-numeric or special characters | `,` |
+| `ORDER_CLASSES` | Enables classes to be rendered in the order they were specified | `TRUE` or `FALSE` | `FALSE` |
+| `USE_POINT_RENDERER` | Set to `TRUE` to render points larger than 1 pixel; if `FALSE`, all points will be 1 pixel. <br/> <br/> **NOTE**:  Only used when OpenGL rendering is disabled | `TRUE` or `FALSE` | `FALSE` |
+| `CB_POINTALPHA_ATTR` | Class break attribute applied to only the point alpha. | Any column or column expression referencing the `LAYERS` source table list |  |
+| `CB_POINTALPHA_VALS` | Values or ranges to apply for the `CB_POINTALPHA_ATTR` class break | List of values or ranges separated by `CB_DELIMITER` (e.g., `0:5,5:10,15:30`) <br/> <br/> This specifies three ranges: <br/> <br/> `0  up to but not including 5 5  up to but not including 10 15 up to but not including 30` <br/> |  |
+| `CB_POINTALPHAS` | Comma-separated list of alpha (opacity) in the range 0-255 apply to each class defined by `CB_POINTALPHA_VALS`. Use `0` for transparent and `255` for opaque | Comma-separated list of values in the range 0-255 |  |
+| `CB_POINTCOLOR_ATTR` | Class break attribute applied to only the point color. Overrides `CB_ATTR` when applied | Any column or column expression referencing the `LAYERS` source table list |  |
+| `CB_POINTCOLOR_VALS` | Values or ranges to apply for the `CB_POINTCOLOR_ATTR` class break | List of values or ranges separated by `CB_DELIMITER` (e.g., `0:5,5:10,15:30`) <br/> <br/> This specifies three ranges: <br/> <br/> `0  up to but not including 5 5  up to but not including 10 15 up to but not including 30` <br/> |  |
+| `CB_POINTSIZE_ATTR` | Class break attribute applied to only the point size. Overrides `CB_ATTR` when applied | Any column or column expression referencing the `LAYERS` source table list |  |
+| `CB_POINTSIZE_VALS` | Values or ranges to apply for the `CB_POINTSIZE_ATTR` class break | List of values or ranges separated by `CB_DELIMITER` (e.g., `0:5,5:10,15:30`) <br/> <br/> This specifies three ranges: <br/> <br/> `0  up to but not including 5 5  up to but not including 10 15 up to but not including 30` <br/> |  |
+| `CB_POINTSHAPE_ATTR` | Class break attribute applied to only the point shape. Overrides `CB_ATTR` when applied | Any column or column expression referencing the `LAYERS` source table list |  |
+| `CB_POINTSHAPE_VALS` | Values or ranges to apply for the `CB_POINTSHAPE_ATTR` class break | List of values or ranges separated by `CB_DELIMITER` (e.g., `0:5,5:10,15:30`) <br/> <br/> This specifies three ranges: <br/> <br/> `0  up to but not including 5 5  up to but not including 10 15 up to but not including 30` <br/> |  |
+| `ALPHA_BLENDING` | Set to `TRUE` to enable alpha blending of semi-transparent colors for better rendering of colors when `ORDER_CLASSES` is set to `TRUE`. When enabled, alpha blending may affect performance. | `TRUE` or `FALSE` | `FALSE` |
+| `TRACK_ID_ATTR` | Name of the track id column | Column or column expression referencing the `LAYERS` source table list; must be of string or date type | `TRACKID` |
+| `TRACK_ORDER_ATTR` | Name of the track ordering column | Column or column expression referencing the `LAYERS` source table list; must be of numeric or date type | `TIMESTAMP` |
+
+
+All of the `RASTER`-mode styling parameters are valid for `CB_RASTER`
+(except `SYMBOLROTATIONS`); however, there must be styling parameters
+specified for each class.  Each entry in `CB_VALS` connotes an individual
+class to which styling is applied. If styling parameters are not provided for a
+class, the default value is applied.
+
+The per-style class break parameters (`CB_POINTCOLOR...`, `CB_POINTSIZE...`,
+and `CB_POINTSHAPE...`) can be used to override attribute color, size, or
+shapes if the given data falls into the given range, e.g., enlarge a point's
+size if its total sales amount was greater than some amount.
+
+The keyword `<other>` can be used as a value in `CB_VALS` instead of a
+class name to render all non-matching classes as specified by corresponding
+style options. The length of the style options must match the number of classes
+specified (including `<other>`).
+
+For example, to generate a category-based class-break raster image from a table
+`nyctaxi` with the following characteristics:
+
+* X-axis position is extracted from the `nyctaxi` table's `pickup_longitude`
+  column
+* Y-axis position is extracted from the `nyctaxi` table's `pickup_latitude`
+  column
+* Passenger count is extracted from the `nyctaxi` table's `passenger_count`
+  column
+* Classes are:
+
+  1. Between 1 and 2 passengers -- `diamonds` colored *yellow* (`999900`)
+  2. Between 3 and 5 passengers -- `circles` colored *orange* (`CC6600`)
+  3. Anything else (as designated by the `<other>` keyword) -- `squares`
+     colored *red* (`FF0000`)
+
+* *SRS* is `PLATE_CARREE`
+* Bounding box *longitude* is from `-74.1` to `-73.9` and *latitude* is from
+  `40.6` to `40.9`
+* Image size is `1024` x `1024`
+* `ORDER_CLASSES` is enabled, so `999900` will be rendered first, `CC6600`
+  will be rendered below that, and `FF0000` below that
+* Points have a size of `2`
+
+{/* Source: /examples/bash/wms_examples.sh (lines 154-168) */}
+```
+${KINETICA_URL}/wms?REQUEST=GetMap
+&STYLES=cb_raster
+&LAYERS=demo.nyctaxi
+&X_ATTR=pickup_longitude
+&Y_ATTR=pickup_latitude
+&CB_ATTR=passenger_count
+&CB_VALS=1:3,3:5,%3Cother%3E
+&POINTCOLORS=999900,CC6600,FF0000
+&POINTSHAPES=diamond,circle,square
+&SRS=PLATE_CARREE
+&BBOX=-74.1,40.6,-73.9,40.9
+&WIDTH=1024
+&HEIGHT=1024
+&ORDER_CLASSES=true
+&POINTSIZES=2
+```
+
+
+<a id="fo-wms-heatmap"></a>
+
+
+### HEATMAP
+
+
+The *heatmap* mode is used to generate a heat map image of one or more tables.
+Heatmaps are a visual representation of the information contained in the given
+tables.
+
+Available parameters are:
+
+| Name | Description | Allowable Values | Default Value |
+| --- | --- | --- | --- |
+| `VAL_ATTR` | Attribute to use to calculate the data points for the heat map | Column or expression referencing the `LAYERS` source table list; must be of int, double, float, long, or decimal [type](/content/concepts/types). Can invoke several "behaviors". <br/> <br/> See below for more information. | *(none)* |
+| `BLUR_RADIUS` | Blurring radius for the heat map | `1` - `32` | `5` |
+| `COLORMAP` | Colormap for the heat map | * *Perceptually-Uniform* - `viridis`, `inferno`, `plasma`, `magma` <br/> * *Sequential I* - `Blues`, `BuGn`, `BuPu`, `GnBu`, `Greens`, `Greys`, `Oranges`, `OrRd`, `PuBu`, `PuBuGn`, `PuRd`, `Purples`, `RdPu`, `Reds`, `YlGn`, `YlGnBu`, `YlOrBr`, `YlOrRd` <br/> * *Sequential II* - `afmhot`, `autumn`, `bone`, `cool`, `copper`, `gist_heat`, `gray`, `gist_gray`, `gist_yarg`, `binary`, `hot`, `pink`, `spring`, `summer`, `winter` <br/> * *Diverging* - `BrBG`, `bwr`, `coolwarm`, `PiYG`, `PRGn`, `PuOr`, `RdBu`, `RdGy`, `RdYlBu`, `RdYlGn`, `Spectral`, `seismic` <br/> * *Qualitative* - `Accent`, `Dark2`, `Paired`, `Pastel1`, `Pastel2`, `Set1`, `Set2`, `Set3` <br/> * *Misc* - `gist_earth`, `terrain`, `ocean`, `gist_stern`, `brg`, `CMRmap`, `cubehelix`, `gnuplot`, `gnuplot2`, `gist_ncar`, `spectral`, `nipy_spectral`, `jet`, `rainbow`, `gist_rainbow`, `hsv`, `flag`, `prism` | `jet` |
+| `GRADIENT_START_COLOR` | Gradient start color for the heat map | Hex color | `000000` *(black)* |
+| `GRADIENT_END_COLOR` | Gradient end color for the heat map | Hex color | `000000` *(black)* |
+| `REVERSE_COLORMAP` | Controls whether the `COLORMAP` should be reversed or not | * `TRUE` reverses the colormap <br/> * `FALSE` keeps the colormap as is | `FALSE` |
+
+For the Heatmap mode in particular, the `BBOX` parameter defines the
+geographic area while the `WIDTH` and `HEIGHT` parameters define the pixel
+grid resolution over which the heatmap will be calculated.
+
+If `COLORMAP` is specified, it will be used regardless of whether
+`GRADIENT_START_COLOR`/`GRADIENT_END_COLOR` are specified.  If the given
+*colormap* is invalid, an error will be returned.  If `COLORMAP` is blank
+or unspecified, `GRADIENT_START_COLOR`/`GRADIENT_END_COLOR` are used, if
+specified.  If none of these is specified, the `jet` *colormap* will be used.
+
+`VAL_ATTR` can be used to enable special behaviors. A description of the
+behavior as well as how to enable the behavior can be found below.
+
+* Count - the number of records at each pixel is used to generate the heatmap
+
+  * If no `VAL_ATTR` is specified or `VAL_ATTR=`
+  * `VAL_ATTR=count(column_name)`
+
+* Sum - the sum of column_name within each pixel is used to generate the
+  heatmap
+
+  * `VAL_ATTR=column_name`
+  * `VAL_ATTR=sum(column_name)`
+
+* Average - the average of column_name within each pixel is used to generate
+  the heatmap
+
+  * `VAL_ATTR=avg(column_name)`
+  * `VAL_ATTR=mean(column_name)`
+
+* Minimum - the minimum of column_name within each pixel is used to generate
+  the heatmap
+
+  * `VAL_ATTR=min(column_name)`
+
+* Maximum - the maximum of column_name within each pixel is used to generate
+  the heatmap
+
+  * `VAL_ATTR=max(column_name)`
+
+In addition the `log` function can be applied within `VAL_ATTR`. This can
+be helpful when the data values span a very large range. To apply this, wrap
+the `VAL_ATTR` with `log`. For example:
+
+* `VAL_ATTR=log(sum(column_name))`
+* `VAL_ATTR=log(avg(column_name))`
+* `VAL_ATTR=log(min(column_name))`
+* `VAL_ATTR=log(max(column_name))`
+
+For example, to generate a heatmap image from a table `nyctaxi` with the
+following characteristics:
+
+* X-axis position is extracted from the `nyctaxi` table's `pickup_longitude`
+  column
+* Y-axis position is extracted from the `nyctaxi` table's `pickup_latitude`
+  column
+* *SRS* is `PLATE_CARREE`
+* Bounding box *longitude* is from `-80` to `-70` and *latitude* is from
+  `35` to `45`
+* Image size is `512` x `512`
+* A blur radius of `5`
+* A *plasma* colormap
+
+{/* Source: /examples/bash/wms_examples.sh (lines 177-187) */}
+```
+${KINETICA_URL}/wms?REQUEST=GetMap
+&STYLES=heatmap
+&LAYERS=demo.nyctaxi
+&X_ATTR=pickup_longitude
+&Y_ATTR=pickup_latitude
+&SRS=PLATE_CARREE
+&BBOX=-80,35,-70,45
+&WIDTH=512
+&HEIGHT=512
+&BLUR_RADIUS=5
+&COLORMAP=plasma
+```
+
+
+<a id="fo-wms-contour"></a>
+
+
+### CONTOUR
+
+
+The *contour* mode is used to generate a contour plot image of one or more
+tables. A contour plot is a plane section of the three-dimensional graph of the
+function `z = f(x, y)` parallel to the `x, y` plane. Contour plots contain
+isolines, which show the location(s) where the data has the same `z` value.
+
+
+<Info>
+*Contour* mode only supports direct column references for `X_ATTR`,
+`Y_ATTR`, & `VAL_ATTR` parameters; column expressions are not
+supported.
+</Info>
+
+Available parameters are:
+
+| Name | Description | Allowable Values | Default Value |
+| --- | --- | --- | --- |
+| `GRIDDING_METHOD` | Method to produce a regularly-spaced, rectangular array of values from potentially irregularly-spaced XY-val data. See below for more information. | * `INV_DST_POW` -- *Inverse Distance to a Power*; a weighted average interpolator that can either be an exact or a smoothing interpolator | *&lt;Required&gt;* |
+| `VAL_ATTR` | Attribute to use to calculate the isolines. | Column from the `LAYERS` source table list; must be of int, double, float, long, or decimal [type](/content/concepts/types) | *&lt;Required&gt;* |
+| `BG_COLOR` | Background color | Hex notation in the format `RRGGBB` or `AARRGGBB` (to specify the alpha value) | `00000000` *(transparent)* |
+| `COLOR` | Isoline color to be used when flooded contours are enabled; otherwise isolines will follow the colormap | Hex notation in the format `RRGGBB` or `AARRGGBB`, in which case the alpha value is used for the transparency of the flooded contours. The line itself is always opaque. | `FF000000` |
+| `COLORMAP` | Colormap for the contour or contour grid. | * *Perceptually-Uniform* - `viridis`, `inferno`, `plasma`, `magma` <br/> * *Sequential I* - `Blues`, `BuGn`, `BuPu`, `GnBu`, `Greens`, `Greys`, `Oranges`, `OrRd`, `PuBu`, `PuBuGn`, `PuRd`, `Purples`, `RdPu`,  `Reds`, `YlGn`, `YlGnBu`, `YlOrBr`, `YlOrRd` <br/> * *Sequential II* - `afmhot`, `autumn`, `bone`, `cool`, `copper`, `gist_heat`, `gray`, `gist_gray`, `gist_yarg`, `binary`, `hot`, `pink`, `spring`, `summer`, `winter` <br/> * *Diverging* - `BrBG`, `bwr`, `coolwarm`, `PiYG`, `PRGn`, `PuOr`, `RdBu`, `RdGy`, `RdYlBu`, `RdYlGn`, `Spectral`, `seismic` <br/> * *Qualitative* - `Accent`, `Dark2`, `Paired`, `Pastel1`, `Pastel2`, `Set1`, `Set2`, `Set3` <br/> * *Misc* - `gist_earth`, `terrain`, `ocean`, `gist_stern`, `brg`, `CMRmap`, `cubehelix`, `gnuplot`, `gnuplot2`, `gist_ncar`, `spectral`, `nipy_spectral`, `jet`, `rainbow`, `gist_rainbow`, `hsv`, `flag`, `prism` | `jet` |
+| `ADJUST_LEVELS` | Recompute the minimum and maximum levels based on the current data in the viewport. Setting this will ignore the values of `MIN_LEVEL` and `MAX_LEVEL`. | `true` or `false` | `true` |
+| `ADD_LABELS` | Add label contour lines with the value of their level. | `true` or `false` | `false` |
+| `ADJUST_GRID` | Allows the grid size and search radius to be automatically varied based on the current data in the viewport. | `true` or `false` | `false` |
+| `ADJUST_GRID_SIZE` | Size of the sampling grid used to compute the fill and clustering ratios when `ADJUST_GRID` is set to `1`. | Number | `20` |
+| `GRID_SIZE` | Number of subdivisions along the x axis when building the grid. The y axis will be set according to the aspect ratio. | Number | `100` |
+| `LABELS_FONT_FAMILY` | Name of the font to use for labels. The font must be on the system. | Any font codes available on all database servers | `Sans` |
+| `LABELS_FONT_SIZE` | Size of the font to use for labels. | Number between `4` and `48` | `12` |
+| `LABELS_INTERLEVEL_SEPARATION` | When `ADD_LABELS` is set to `true`, more than one label can placed on the same isoline. This setting specifies the distance to use when separating labels of the same value (in percent of the total window size). | Number between `0` and `50` | `25` |
+| `LABELS_INTRALEVEL_SEPARATION` | When `ADD_LABELS` is set to `true`, labels are automatically separated to avoid overlap. This setting specifies the distance to use when separating labels of different values (in multiples of the font size). | Number between `1` and `8` | `4` |
+| `LABELS_MAX_ANGLE` | Maximum angle, in degrees, from the vertical to use when displaying labels. | Number between `0` and `90` | `60` |
+| `LABELS_SEARCH_WINDOW` | When `ADD_LABELS` is set to `true`, a search window is used to rate the local quality of each isoline. Smooth, continuous, long stretches with relatively flat angles are favored. This setting is multiplied by the font size to set the final window size. | Number between `1` and `8` | `4` |
+| `LINE_SIZE` | Thickness of the isolines to be shown. Set to `0` to disable isoline drawing. | Number | `2` |
+| `MAX_GRID_SIZE` | Upper limit (in cells) of the grid size when `ADJUST_GRID` is set to `1` | Number | `500` |
+| `MAX_LEVEL` | Maximum isoline value to be shown. <br/> <br/> .. note::  If `ADJUST_LEVELS` is `true` (default) this .. note::  If `ADJUST_LEVELS` is `true` (default) this .. note::  If `ADJUST_LEVELS` is `true` (default) this .. note::  If `ADJUST_LEVELS` is `true` (default) this .. note::  If `ADJUST_LEVELS` is `true` (default) this .. note::  If `ADJUST_LEVELS` is `true` (default) this .. note::  If `ADJUST_LEVELS` is `true` (default) this value will be calculated automatically. | Number | `-1` <br/> <Info> If `ADJUST_LEVELS` is `true` (default) this \| \| </Info> |
+| `MAX_SEARCH_CELLS` | Maximum number of cells to use once the `SEARCH_RADIUS` has been converted from percentage to cells. The higher the number, the higher the quality of the contour plot. | Number | `100` |
+| `MIN_GRID_SIZE` | Lower limit (in cells) of the grid size when `ADJUST_GRID` is set to `1` | Number | `10` |
+| `MIN_LEVEL` | Minimum isoline value to be shown. <br/> <br/> .. note::  If `ADJUST_LEVELS` is `true` (default) this .. note::  If `ADJUST_LEVELS` is `true` (default) this .. note::  If `ADJUST_LEVELS` is `true` (default) this .. note::  If `ADJUST_LEVELS` is `true` (default) this .. note::  If `ADJUST_LEVELS` is `true` (default) this .. note::  If `ADJUST_LEVELS` is `true` (default) this .. note::  If `ADJUST_LEVELS` is `true` (default) this value will be calculated automatically. | Number | `-1` <br/> <Info> If `ADJUST_LEVELS` is `true` (default) this \| \| </Info> |
+| `NUM_LEVELS` | Number of equally-separated isolines to be shown. | `10` or greater | `10` |
+| `RENDER_OUTPUT_GRID` | Show the grid used to build the contour plot, which is equivalent to generating a flooded-contour. This affects the labels by clipping the area around them. The opacity of the flooded-contours is specified in `COLOR`. | `true` or `false` | `false` |
+| `SEARCH_RADIUS` | Neighborhood of influence of sample data (in percent of the image/grid). See below for more information. | Number | `10` |
+| `SMOOTHING_FACTOR` | Amount of smoothing of the contribution of neighboring points. | Number between `0` and `1` | `0.000001` |
+| `TEXT_COLOR` | Color of labels text | Hex notation in the format `RRGGBB` or `AARRGGBB` (to specify the alpha value) | `FF000000` |
+
+
+To be able to construct a contour plot, we first need to grid the data in
+a regularly-spaced XY array. This is achieved using the `GRIDDING_METHOD`
+parameter, which is the most influential parameter of the contour plot. The
+`GRIDDING_METHOD` determines how the data is interpolated/extrapolated
+and will also impact the speed at which the plot can be generated.  The only
+method supported at this time is `INV_DST_POW`
+(*Inverse Distance to a Power*), though `GRIDDING_METHOD` is a required
+parameter.
+
+The `SEARCH_RADIUS` heavily influences both the quality and speed of the
+contour plot. It is method dependent and should be adjusted based on the
+quantity and quality of the input data.
+
+Once the grid is obtained, a marching squares algorithm is used to obtain
+the isolines. The grid can be visualized by setting `RENDER_OUTPUT_GRID`
+to `1` (true).
+
+Additionally, we can set `ADJUST_GRID` to `1` (true) if the density of the
+data in the current viewport is so low that the resulting grid is not filled
+properly when using the user-specified grid size and search radius. This
+option will automatically adapt the grid size and/or search radius to get a
+better interpolation of the data by first running a coarse gridding pass, then
+collecting data about density and sparsity, and finally choosing the latter
+value accordingly before re-running the contour lines generation.
+
+Finally, labels can be added to the isolines by setting `ADD_LABELS` to
+`true`. Label font size, font family, angle, and separation are the main
+parameters to control how the labels are displayed.
+
+For example, to generate a contour plot image from a table `nyctaxi`, first
+aggregate the taxi trip data, counting the number dropoffs at the same location:
+
+{/* Source: /examples/bash/wms_examples.sh (lines 200-212) */}
+```
+curl -sS -X POST ${KINETICA_URL}/aggregate/groupby \
+--header "Content-Type: application/json" \
+--user ${USERNAME}:${PASSWORD} \
+--data @- <<PARAMS
+{
+	"table_name": "demo.nyctaxi",
+	"column_names": ["dropoff_longitude", "dropoff_latitude", "float(count(*)) as dropoff_point_count"],
+	"offset":0,
+	"limit":-9999,
+	"encoding":"json",
+	"options": {"result_table":"contour_source", "expression":"dropoff_latitude > 0", "having":"count(*) > 1"}
+}
+PARAMS
+```
+
+
+<Info>
+This result filters out bad GPS data with a *0,0* location and limits
+the data set to locations where more than one dropoff occurred.  It stores
+the results in a table named `contour_source`.
+</Info>
+
+Then, generate the contour plot from the `contour_source` table using the
+number of dropoffs at a given location as the "z" axis for the contour, and the
+following additional characteristics:
+
+* X-axis position is extracted from the `contour_source` table's
+  `dropoff_longitude` column
+* Y-axis position is extracted from the `contour_source` table's
+  `dropoff_latitude` column
+* Z value for the contour plot isolines is extracted from the `contour_source`
+  table's `dropoff_point_count` column
+* *SRS* is `PLATE_CARREE`
+* Bounding box *longitude* is from `-75` to `-73` and *latitude* is from
+  `40` to `42`
+* Image size is `512` x `512`
+* Labels are added; labels of different values are separated by a space worth
+  `5` times the font size (default font size is `12`)
+* Grid size and search radius are automatically adjusted based on the viewport
+* A *terrain* colormap
+* Grid cell width is `100` times smaller than the image width
+* Number of individually-separated isolines is set to `50`
+* Search radius for the isolines is 15% of the grid
+* Minimum & maximum isoline level values are automatically adjusted based on the
+  viewport (default)
+
+{/* Source: /examples/bash/wms_examples.sh (lines 215-233) */}
+```
+${KINETICA_URL}/wms?REQUEST=GetMap
+&STYLES=contour
+&LAYERS=contour_source
+&X_ATTR=dropoff_longitude
+&Y_ATTR=dropoff_latitude
+&VAL_ATTR=dropoff_point_count
+&GRIDDING_METHOD=INV_DST_POW
+&SRS=PLATE_CARREE
+&BBOX=-75,40,-73,42
+&WIDTH=512
+&HEIGHT=512
+&FORMAT=image/png
+&ADD_LABELS=1
+&ADJUST_GRID=1
+&COLORMAP=terrain
+&GRID_SIZE=100
+&LABELS_INTRALEVEL_SEPARATION=5
+&NUM_LEVELS=50
+&SEARCH_RADIUS=15
+```
+
+
+<a id="fo-wms-labels"></a>
+
+
+### LABELS
+
+
+The *labels* mode is used to show labels on the map rather than points.
+Available parameters are:
+
+| Name | Description | Allowable Values | Default Value |
+| --- | --- | --- | --- |
+| `LABEL_LAYER` | Name of table to render | Valid table, in `[schema_name.]table_name` format, using standard [name resolution rules](/content/concepts/tables#table-name-resolution) | *&lt;Required&gt;* |
+| `LABEL_X_ATTR` | Name of column or expression containing label's position on the x-axis | Numeric column or expression referencing the `LABEL_LAYER` source table list; must be of int, double, float, or long [type](/content/concepts/types) | Column `x` |
+| `LABEL_Y_ATTR` | Name of column or expression containing label's position on the y-axis | Numeric column or expression referencing the `LABEL_LAYER` source table list; must be of int, double, float, or long [type](/content/concepts/types) | Column `y` |
+| `LABEL_DRAW_BOX` | Draw a box around the label | `0` (false) or `1` (true) | `0` |
+| `LABEL_DRAW_LEADER` | Draw a leader line from each label to its x,y point specified by `LABEL_LEADER_X_ATTR` & `LABEL_LEADER_Y_ATTR` columns | `0` (false) or `1` (true) | `0` |
+| `LABEL_FILL_COLOR` | Color of fill for box | Hex color (with or without alpha values) or `-1` (full transparency) | `FF000000` |
+| `LABEL_FILTER` | Boolean expression used to filter which labels are included from `LABEL_LAYER` |  | *N/A* |
+| `LABEL_FONT` | Font in the format of Name Style(s) Size (e.g. `Arial Bold 8`) | Any font codes available on all database servers | *(default* *server font)* |
+| `LABEL_LEADER_X_ATTR` | Name of column or expression containing leader line's terminating position on the x-axis (the end opposite the label) | Numeric column or expression referencing the `LABEL_LAYER` source table list; must be of int, double, float, or long [type](/content/concepts/types) | *N/A* |
+| `LABEL_LEADER_Y_ATTR` | Name of column or expression containing leader line's terminating position on the y-axis (the end opposite the label) | Numeric column or expression referencing the `LABEL_LAYER` source table list; must be of int, double, float, or long [type](/content/concepts/types) | *N/A* |
+| `LABEL_LINE_COLOR` | Color of line for box & leader line | Hex color (with or without alpha values) or `-1` (full transparency) | `FF000000` |
+| `LABEL_LINE_WIDTH` | Width of line for box & leader line | Number | `1` |
+| `LABEL_TEXT_ANGLE` | Number of degrees clockwise to rotate the label | Number | `0` |
+| `LABEL_TEXT_COLOR` | Text color | Hex color (with or without alpha values) or `-1` (full transparency) | `FF000000` |
+| `LABEL_TEXT_SCALE` | Text scaling factor | Number | `1` |
+| `LABEL_TEXT_STRING` | Text of label to render | All printable characters | *(no text)* |
+| `LABEL_X_OFFSET` | Horizontally offset the label rendering from the actual coordinate using the given value | Number | *N/A* |
+| `LABEL_Y_OFFSET` | Vertically offset the label rendering from the actual coordinate using the given value | Number | *N/A* |
+
+
+<Note>
+When using the *labels* mode, `LABEL_LAYER` is required.
+</Note>
+
+All `LABELS` parameters can use expressions. To read more about the different
+types of expressions, see [expressions](/content/concepts/expressions).
+Strings inside expressions must be enclosed in single or double quotes.
+Expressions inside the `LABEL_TEXT_COLOR`, `LABEL_LINE_COLOR`, and
+`LABEL_FILL_COLOR` parameters must resolve to 6 or 8 hex digits or the color
+won't work. Note that if the expression resolves to 6 hex digits, an alpha
+value of `FF` is automatically added.
+
+To use labels, the requested *TrueType* fonts must be loaded on all servers in
+the *Kinetica* cluster, in the <Badge color="gray">/usr/share/fonts</Badge> directory.
+*Kinetica* must be restarted to see any new fonts placed in this directory.
+
+Labels and shapes cannot be rendered in the same *WMS* call.  Both can be shown
+on the same map by creating separate map layers, each with its own *WMS* call.
+When making the *WMS* call for the labels to be generated, the `LAYERS`
+parameter (geospatial source table containing the shapes) can be left blank.
+
+`LABEL_DRAW_BOX` and `LABEL_DRAW_LEADER` will only take values that
+are castable to boolean values (e.g., `1` and `0`). "TRUE" and "FALSE"
+are not valid.
+
+All colors must be provided in hex notation in the format `RRGGBB` or
+`AARRGGBB` (to specify the alpha value). For example, partially transparent
+red may be given as `B3FF0000`.
+
+Parameters other than the following can be either literals of the appropriate
+parameter type or column names containing values of the appropriate type:
+
+* `LABEL_LAYER`
+* `LABEL_X_ATTR`
+* `LABEL_Y_ATTR`
+* `LABEL_LEADER_X_ATTR`
+* `LABEL_LEADER_Y_ATTR`
+
+For example, to generate a label image overlay from a table `nyctaxi` with the
+following characteristics:
+
+* X-axis position is extracted from the `nyctaxi` table's
+  `dropoff_longitude` column
+* Y-axis position is extracted from the `nyctaxi` table's `dropoff_latitude`
+  column
+* Labels are only drawn for dropoff points where the passenger count was
+  greater than 5
+* *SRS* is `EPSG:4326`
+* Bounding box *longitude* is from `-74.1` to `-73.9` and *latitude* is from
+  `40.6` to `40.9`
+* Image size is `512` x `512`
+* A *blue-filled* (`B3006BBB`) box is drawn around each label
+* Label text is `dropoff`, is  *white* (`FFFFFF`), scaled to 40% smaller
+  (`0.6` x) than normal, rotated `15` degrees clockwise
+
+{/* Source: /examples/bash/wms_examples.sh (lines 242-257) */}
+```
+${KINETICA_URL}/wms?REQUEST=GetMap
+&STYLES=labels
+&LABEL_LAYER=demo.nyctaxi
+&LABEL_X_ATTR=dropoff_longitude
+&LABEL_Y_ATTR=dropoff_latitude
+&LABEL_FILTER=passenger_count%3E5
+&SRS=EPSG:4326
+&BBOX=-74.1,40.6,-73.9,40.9
+&WIDTH=512
+&HEIGHT=512
+&LABEL_DRAW_BOX=1
+&LABEL_FILL_COLOR=B3006BBB
+&LABEL_TEXT_ANGLE=15
+&LABEL_TEXT_COLOR=FFFFFF
+&LABEL_TEXT_STRING='dropoff'
+&LABEL_TEXT_SCALE=0.6
+```
+
+
+<a id="fo-wms-isochrones"></a>
+
+
+### ISOCHRONES
+
+
+The *isochrones* mode is used to generate an image containing isolines for
+travel results using an existing
+[graph](/content/graph_solver/network_graph_solver). Isolines represent curves
+of equal cost, with cost typically referring to the time or distance assigned as
+the weights of the underlying graph.
+
+Available parameters are:
+
+| Name | Description | Allowable Values | Default Value |
+| --- | --- | --- | --- |
+| `ADD_LABELS` | Add labels to isolines with the value of their level. | `true` or `false` | `false` |
+| `BG_COLOR` | Background color of the generated image. | Hex notation in the format `RRGGBB` or `AARRGGBB` (to specify the alpha value) | `00000000` *(transparent)* |
+| `COLOR` | Isoline color to be used when flooded contours are enabled; otherwise, isolines will follow the colormap. | Hex notation in the format `RRGGBB` or `AARRGGBB`, in which case the alpha value is used for the transparency of the flooded contours. The line itself is always opaque. | `FF000000` |
+| `COLORMAP` | Colormap for the isochrones | * *Perceptually-Uniform* - `viridis`, `inferno`, `plasma`, `magma` <br/> * *Sequential I* - `Blues`, `BuGn`, `BuPu`, `GnBu`, `Greens`, `Greys`, `Oranges`, `OrRd`, `PuBu`, `PuBuGn`, `PuRd`, `Purples`, `RdPu`, `Reds`, `YlGn`, `YlGnBu`, `YlOrBr`, `YlOrRd` <br/> * *Sequential II* - `afmhot`, `autumn`, `bone`, `cool`, `copper`, `gist_heat`, `gray`, `gist_gray`, `gist_yarg`, `binary`, `hot`, `pink`, `spring`, `summer`, `winter` <br/> * *Diverging* - `BrBG`, `bwr`, `coolwarm`, `PiYG`, `PRGn`, `PuOr`, `RdBu`, `RdGy`, `RdYlBu`, `RdYlGn`, `Spectral`, `seismic` <br/> * *Qualitative* - `Accent`, `Dark2`, `Paired`, `Pastel1`, `Pastel2`, `Set1`, `Set2`, `Set3` <br/> * *Misc* - `gist_earth`, `terrain`, `ocean`, `gist_stern`, `brg`, `CMRmap`, `cubehelix`, `gnuplot`, `gnuplot2`, `gist_ncar`, `spectral`, `nipy_spectral`, `jet`, `rainbow`, `gist_rainbow`, `hsv`, `flag`, `prism` | `jet` |
+| `COLOR_ISOLINES` | Color each isoline according to the colormap; otherwise, use the foreground color. | `true` or `false` | `true` |
+| `CONCAVITY_LEVEL` | Factor to qualify the concavity of the isochrone curves. The lower the value, the more convex (with `0` being completely convex and `1` being the most concave). | Values (inclusive) between `0` and `1` | `0.5` |
+| `DATA_MAX_X` | Upper bound for the `x` values. If not provided, it will be computed from the bounds of the input data. | Number |  |
+| `DATA_MAX_Y` | Upper bound for the `y` values. If not provided, it will be computed from the bounds of the input data. | Number |  |
+| `DATA_MIN_X` | Lower bound for the `x` values. If not provided, it will be computed from the bounds of the input data. | Number |  |
+| `DATA_MIN_Y` | Lower bound for the `y` values. If not provided, it will be computed from the bounds of the input data. | Number |  |
+| `GENERATE_IMAGE` | Generates a PNG image of the isochrones in the response. | `true` or `false` | `true` |
+| `GRAPH_NAME` | Name of the graph on which the isochrone is to be computed. | A valid graph name |  |
+| `GRID_SIZE` | When interpolating the graph solution to generate the isochrone, `GRID_SIZE` represents by the number of subdivisions along the x axis when building the grid (the y is computed using the aspect ratio of the output image). | Positive integers | `100` |
+| `HEIGHT` | Height of the generated image (if applicable). If not provided, the aspect ratio multiplied by `WIDTH` is used. | Number | `-1` |
+| `IS_REPLICATED` | Replicate the `SOLVE_TABLE`. | `true` or `false` | `true` |
+| `LABELS_FONT_FAMILY` | When `ADD_LABELS` is set to `true`, name of the font to use for labels. The font must be on the system. | Any font codes available on all database servers | `Sans` |
+| `LABELS_FONT_SIZE` | When `ADD_LABELS` is set to `true`, size of the font to use for labels. | Number between `4` and `48` | `12` |
+| `LABELS_INTRALEVEL_SEPARATION` | When `ADD_LABELS` is set to `true`, labels are automatically separated to avoid overlap. This setting specifies the distance to use when separating labels of different values (in multiples of the font size). | Number between `1` and `8` | `4` |
+| `LABELS_INTERLEVEL_SEPARATION` | When `ADD_LABELS` is set to `true`, more than one label can placed on the same isoline. This setting specifies the distance to use when separating labels of the same value (in percent of the total window size). | Number between `0` and `50` | `25` |
+| `LABELS_MAX_ANGLE` | When `ADD_LABELS` is set to `true`, maximum angle, in degrees, from the vertical to use when displaying labels. | Number between `0` and `90` | `60` |
+| `LABELS_SEARCH_WINDOW` | When `ADD_LABELS` is set to `true`, a search window is used to rate the local quality of each isoline. Smooth, continuous, long stretches with relatively flat angles are favored. This setting is multiplied by the font size to set the final window size. | Number between `1` and `8` | `4` |
+| `LEVELS_TABLE` | Name of the table to output the isochrones, containing levels and their corresponding WKT geometry. If no value is provided, the table is not generated. | A valid table name, in `[schema_name.]table_name` format, using standard [name resolution rules](/content/concepts/tables#table-name-resolution) |  |
+| `LINE_SIZE` | The width of the contour lines in pixels. | Number between `0` and `20` | `3` |
+| `MAX_SOLUTION_RADIUS` | Extent of the search around `SOURCE_NODE`. Set to `-1.0` for unrestricted search. | Number | `-1.0` |
+| `NUM_LEVELS` | Number of equally-separated isochrones to compute. | Positive integer | `1` |
+| `PROJECTION` | Spatial Reference System (i.e. *EPSG* code) | * *Plate Carree* projection codes: `PLATE_CARREE`, `EPSG:4326` <br/> * *Web Mercator* projection codes: `WEB_MERCATOR`, `900913`, `EPSG:900913`, `102100`, `EPSG:102100`, `3857`, `EPSG:3857` |  |
+| `REMOVE_PREVIOUS_RESTRICTIONS` | Ignore the restrictions applied to the graph during the creation stage and only use the restrictions specified in this request. | `true` or `false` | `false` |
+| `RESTRICTIONS` | Additional restrictions to apply to the nodes/edges of an existing graph. Restrictions must be specified using [identifiers](/content/graph_solver/network_graph_solver#identifiers); identifiers are grouped as [combinations](/content/graph_solver/network_graph_solver#id-combos). Identifiers can be used with existing column names, e.g., 'table.column AS RESTRICTIONS_EDGE_ID', expressions, e.g., 'column/2 AS RESTRICTIONS_VALUECOMPARED', or raw values, e.g., '\{0, 0, 0, 1\} AS RESTRICTIONS_ONOFFCOMPARED'. If using raw values in an identifier combination, the number of values specified must match across the combination. If `REMOVE_PREVIOUS_RESTRICTIONS` is set to `true` any provided restrictions will replace the existing restrictions. If `REMOVE_PREVIOUS_RESTRICTIONS` is set to `false`, any provided restrictions will be added (in the case of 'RESTRICTIONS_VALUECOMPARED') to or replaced (in the case of 'RESTRICTIONS_ONOFFCOMPARED') | Valid restrictions |  |
+| `RESTRICTION_THRESHOLD_VALUE` | Value-based restriction comparison. Any node or edge with a 'RESTRICTIONS_VALUECOMPARED' value greater than their `RESTRICTION_THRESHOLD_VALUE` will not be included in the solution. |  |  |
+| `SEARCH_RADIUS` | When interpolating the graph solution to generate the isochrone, the `SEARCH_RADIUS` is the neighborhood of influence of sample data (in percent of the image/grid). | Positive integer | `20` |
+| `SOLVE_DIRECTION` | Specify the direction of the isochrones solution: either toward the `SOURCE_NODE` or leading away from it. | `from_source` or `to_source` |  |
+| `SOLVE_TABLE` | Name of the table to host intermediate solve results containing the position and cost for each vertex in the underlying graph. | A valid table name, in `[schema_name.]table_name` format, using standard [name resolution rules](/content/concepts/tables#table-name-resolution) | `""` |
+| `SOURCE_NODE` | Starting vertex on the underlying graph from/to which the isochrones are created. |  |  |
+| `TEXT_COLOR` | When `ADD_LABELS` is set to `true`, color for the labels. | Hex notation in the format `RRGGBB` or `AARRGGBB` (to specify the alpha values) or `-1` (full transparency) | `FF000000` |
+| `UNIFORM_WEIGHTS` | When specified, assigns the given value to all the edges in the graph. Note that weights provided in `WEIGHTS_ON_EDGES` will override this value. |  |  |
+| `WEIGHTS_ON_EDGES` | Additional weights to apply to the edges of an existing graph. Weights must be specified using [identifiers](/content/graph_solver/network_graph_solver#identifiers); identifiers are grouped as [combinations](/content/graph_solver/network_graph_solver#id-combos). Identifiers can be used with existing column names, e.g., 'table.column AS WEIGHTS_EDGE_ID', expressions, e.g., 'ST_LENGTH(wkt) AS WEIGHTS_VALUESPECIFIED', or raw values, e.g., '\{4, 15, 2\} AS WEIGHTS_VALUESPECIFIED'.  Any provided weights will be added (in the case of 'WEIGHTS_VALUESPECIFIED') to or multiplied with (in the case of 'WEIGHTS_FACTORSPECIFIED') the existing weight(s). If using raw values in an identifier combination, the number of values specified must match across the combination. | Valid weights |  |
+| `WIDTH` | Width of the generated image (if applicable). | Positive integer | `512` |
