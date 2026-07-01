@@ -1,0 +1,335 @@
+
+-- SQL Property Graph Examples - Cinema
+
+
+
+-- Drop objects created in this suite
+
+DROP TABLE IF EXISTS qsgs_cinema_graph_table_nodes;
+
+Rows affected: 0
+
+DROP TABLE IF EXISTS qsgs_cinema_graph_table;
+
+Rows affected: 0
+
+DROP GRAPH qsgs_cinema;
+
+[GPUdb]executeSql: Error in Job process; ok
+
+DROP TABLE IF EXISTS qsgs_person;
+
+Rows affected: 0
+
+DROP TABLE IF EXISTS qsgs_show;
+
+Rows affected: 0
+
+DROP TABLE IF EXISTS qsgs_role;
+
+Rows affected: 0
+
+-- Create objects for this suite
+
+CREATE TABLE qsgs_person
+(
+	name VARCHAR(32, TEXT_SEARCH),
+	profession VARCHAR(32),
+	dob DATE
+)
+;
+
+Rows affected: 1
+
+INSERT INTO qsgs_person (name, profession, dob)
+VALUES
+	('Robert De Niro',  'actor:director', '1943-08-07'),
+	('Jean Reno',       'actor:director', '1948-07-30'),
+	('Al Pacino',       'actor:producer', '1940-04-25'),
+	('Michael Douglas', 'actor:producer', '1944-09-25'),
+	('James Spader',    'actor',          '1960-02-07'),
+	('Katarina Witt',   'actor',          '1965-12-03'),
+	('Oliver Stone',    'director',       '1946-09-15'),
+	('Joe Carnahan',    'director',       '1969-05-09')
+;
+
+Rows affected: 8
+
+CREATE TABLE qsgs_show
+(
+	title VARCHAR(32),
+	show_type VARCHAR(8),
+	score REAL,
+	genre VARCHAR(32),
+	released INT
+)
+;
+
+Rows affected: 1
+
+INSERT INTO qsgs_show (title, show_type, score, genre, released)
+VALUES
+	('Wall Street',   'movie',  8.4, 'thriller',                1987),
+	('Ronin',         'movie',  7.2, 'action',                  1998),
+	('The Godfather', 'movie',  9.2, 'drama:thriller',          1972),
+	('Salome',        'movie',  6.3, 'drama',                   2013),
+	('The Blacklist', 'series', 8.2, 'drama::mystery:thriller', 1972)
+;
+
+Rows affected: 5
+
+CREATE TABLE qsgs_role
+(
+	person VARCHAR(32),
+	film VARCHAR(32),
+	participation VARCHAR(32)
+)
+;
+
+Rows affected: 1
+
+INSERT INTO qsgs_role (person, film, participation)
+VALUES
+	('Robert De Niro',  'The Godfather', 'acted'),
+	('Robert De Niro',  'Ronin',         'acted'),
+	('Jean Reno',       'Ronin',         'acted'),
+	('Al Pacino',       'The Godfather', 'acted'),
+	('Michael Douglas', 'Wall Street',   'acted'),
+	('James Spader',    'Wall Street',   'acted'),
+	('Katarina Witt',   'Ronin',         'acted'),
+	('Al Pacino',       'Salome',        'acted:directed'),
+	('Oliver Stone',    'Wall Street',   'directed'),
+	('James Spader',    'The Blacklist', 'acted'),
+	('Joe Carnahan',    'The Blacklist', 'directed')
+;
+
+Rows affected: 11
+
+-- Create graph
+
+CREATE DIRECTED GRAPH qsgs_cinema
+(
+	NODES => INPUT_TABLES
+	(
+		(SELECT title AS NAME, show_type || ':' || genre AS LABEL FROM qsgs_show),
+		(SELECT DISTINCT CHAR4(released) AS NAME, 'year' AS LABEL FROM qsgs_show),
+
+		(SELECT name AS NAME, 'person:' || profession AS LABEL FROM qsgs_person),
+		(SELECT DISTINCT CHAR4(YEAR(DOB)) AS NAME, 'year' AS LABEL FROM qsgs_person)
+	),
+	EDGES => INPUT_TABLES
+	(
+		(SELECT person AS NODE1_NAME, film AS NODE2_NAME, participation AS LABEL FROM qsgs_role),
+		(SELECT title AS NODE1_NAME, CHAR4(released) AS NODE2_NAME, 'released' AS LABEL FROM qsgs_show),
+		(SELECT name AS NODE1_NAME, CHAR4(YEAR(dob)) AS NODE2_NAME, 'born' AS LABEL FROM qsgs_person)
+	),
+	OPTIONS => KV_PAIRS(label_delimiter = ':', graph_table = 'qsgs_cinema_graph_table')
+)
+;
+
+Rows affected: 1
+
+-- Alter graph
+
+ALTER GRAPH qsgs_cinema MODIFY
+(
+	NODES => INPUT_TABLES
+	(
+		(SELECT 'Stargate' AS NAME, 'movie:scifi' AS LABEL),
+		(SELECT '1994' AS NAME, 'year' AS LABEL),
+
+		(SELECT 'Roland Emmerich' AS NAME, 'person:director' AS LABEL)
+	),
+	EDGES => INPUT_TABLES
+	(
+		(SELECT 'James Spader' AS NODE1_NAME, 'Stargate' AS NODE2_NAME, 'acted' AS LABEL),
+		(SELECT 'Roland Emmerich' AS NODE1_NAME, 'Stargate' AS NODE2_NAME, 'directed' AS LABEL),
+
+		(SELECT 'Stargate' AS NODE1_NAME, '1994' AS NODE2_NAME, 'released' AS LABEL)
+	),
+	OPTIONS => KV_PAIRS(label_delimiter = ':', graph_table = 'qsgs_cinema_graph_table')
+)
+;
+
+Rows affected: 1
+
+-- Insert backing values for the movie Stargate to allow future supplemental
+-- queries to be run
+
+INSERT INTO qsgs_show (title, show_type, score, genre, released)
+VALUES ('Stargate', 'movie', 7.6, 'scifi', 1994)
+;
+
+Rows affected: 1
+
+-- Query graph by hops
+--
+-- Find the directors and titles of movies (no TV series) in which James Spader
+-- has acted; TARGET_NODE_LABEL aligns the edge in movie<-director order
+
+SELECT
+	QUERY_NODE2_NAME AS Director,
+	QUERY_NODE1_NAME AS Movie
+FROM TABLE
+(
+	QUERY_GRAPH
+	(
+		GRAPH => 'qsgs_cinema',
+		QUERIES => INPUT_TABLES
+		(
+			(SELECT 'James Spader'           AS NODE_NAME),
+			(SELECT  1 AS HOP_ID, 'acted'    AS EDGE_LABEL),
+			(SELECT  1 AS HOP_ID, 'movie'    AS NODE_LABEL),
+			(SELECT -2 AS HOP_ID, 'directed' AS EDGE_LABEL),
+			(SELECT 'director'               AS TARGET_NODE_LABEL)
+		),
+		RINGS => 2
+	)
+)
+WHERE RING_ID = 2
+ORDER BY 1, 2
+;
+
++-------------------+---------------+
+| Director          | Movie         |
++-------------------+---------------+
+| Oliver Stone      | Wall Street   |
+| Roland Emmerich   | Stargate      |
++-------------------+---------------+
+Rows read: 2
+
+-- Query graph with fuzzy search
+--
+-- Same hop query as above, but use Kinetica to do a fuzzy search on James
+-- Spader's name
+
+SELECT
+	QUERY_NODE2_NAME AS Director,
+	QUERY_NODE1_NAME AS Movie
+FROM TABLE
+(
+	QUERY_GRAPH
+	(
+		GRAPH => 'qsgs_cinema',
+		QUERIES => INPUT_TABLES
+		(
+			(
+				SELECT name AS NODE_NAME
+				FROM TABLE
+				(
+					FILTER_BY_STRING
+					(
+						TABLE_NAME => INPUT_TABLE(qsgs_person),
+						MODE => 'search',
+						EXPRESSION => 'James Spdar'
+					)
+				)
+			),
+			(SELECT  1 AS HOP_ID, 'acted'    AS EDGE_LABEL),
+			(SELECT  1 AS HOP_ID, 'movie'    AS NODE_LABEL),
+			(SELECT -2 AS HOP_ID, 'directed' AS EDGE_LABEL),
+			(SELECT 'director'               AS TARGET_NODE_LABEL)
+		),
+		RINGS => 2
+	)
+)
+WHERE RING_ID = 2
+ORDER BY 1, 2
+;
+
++-------------------+---------------+
+| Director          | Movie         |
++-------------------+---------------+
+| Oliver Stone      | Wall Street   |
+| Roland Emmerich   | Stargate      |
++-------------------+---------------+
+Rows read: 2
+
+-- Query graph with supplemental data
+--
+-- Same hop query as above, but use a Kinetica table to supplement results with
+-- movie scores
+
+SELECT
+	QUERY_NODE2_NAME AS Director,
+	QUERY_NODE1_NAME AS Movie,
+	s.score AS Score
+FROM TABLE
+(
+	QUERY_GRAPH
+	(
+		GRAPH => 'qsgs_cinema',
+		QUERIES => INPUT_TABLES
+		(
+			(SELECT 'James Spader'           AS NODE_NAME),
+			(SELECT  1 AS HOP_ID, 'acted'    AS EDGE_LABEL),
+			(SELECT  1 AS HOP_ID, 'movie'    AS NODE_LABEL),
+			(SELECT -2 AS HOP_ID, 'directed' AS EDGE_LABEL),
+			(SELECT 'director'               AS TARGET_NODE_LABEL)
+		),
+		RINGS => 2
+	)
+)
+JOIN qsgs_show s ON s.title = QUERY_NODE1_NAME
+WHERE RING_ID = 2
+ORDER BY 1, 2
+;
+
++-------------------+---------------+------------+
+| Director          | Movie         |      Score |
++-------------------+---------------+------------+
+| Oliver Stone      | Wall Street   |   8.4      |
+| Roland Emmerich   | Stargate      |   7.6      |
++-------------------+---------------+------------+
+Rows read: 2
+
+-- Query graph with a nested graph query
+--
+-- Find the titles and release years of shows directed by directors of James
+-- Spader movies
+
+SELECT
+	QUERY_NODE1_NAME AS "Show",
+	QUERY_NODE2_NAME AS Release_Year
+FROM TABLE
+(
+	QUERY_GRAPH
+	(
+		GRAPH => 'qsgs_cinema',
+		QUERIES => INPUT_TABLES
+		(
+			(
+				SELECT DISTINCT QUERY_NODE2_NAME as NODE_NAME
+				FROM TABLE
+				(
+					QUERY_GRAPH
+					(
+						GRAPH => 'qsgs_cinema',
+						QUERIES => INPUT_TABLES
+						(
+							(SELECT 'James Spader'           AS NODE_NAME),
+							(SELECT  1 AS HOP_ID, 'acted'    AS EDGE_LABEL),
+							(SELECT  1 AS HOP_ID, 'movie'    AS NODE_LABEL),
+							(SELECT -2 AS HOP_ID, 'directed' AS EDGE_LABEL),
+							(SELECT  3 AS HOP_ID, 'directed' AS EDGE_LABEL),
+							(SELECT 'movie'                  AS TARGET_NODE_LABEL)
+						),
+						RINGS => 3
+					)
+				)
+			),
+			(SELECT 'year' AS TARGET_NODE_LABEL)
+		),
+		RINGS => 1
+	)
+)
+ORDER BY 1
+;
+
++---------------+----------------+
+| Show          | Release_Year   |
++---------------+----------------+
+| Stargate      | 1994           |
+| Wall Street   | 1987           |
++---------------+----------------+
+Rows read: 2

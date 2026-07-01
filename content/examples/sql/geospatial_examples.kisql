@@ -1,0 +1,145 @@
+-- ==========================
+-- Geospatial Examples Output
+-- ==========================
+
+
+-- Creating a table and inserting WKT data --
+-- ======================================= --
+
+-- Create a table to use for the WKT examples
+
+CREATE OR REPLACE TABLE example_geospatial.points_of_interest
+(
+  src1_poi WKT NOT NULL,
+  src2_poi WKT NOT NULL
+)
+;
+
+-- Insert data into the points_of_interest table using shorthand syntax
+
+INSERT INTO example_geospatial.points_of_interest
+VALUES
+  ('POINT(-73.8455003 40.7577272)','POINT(-73.84550029 40.75772724)'),
+  ('POLYGON((-73.9258506 40.8287493, -73.9258292 40.828723, -73.9257795 40.8287387, -73.925801 40.8287635,-73.9258506 40.8287493))','POLYGON((-73.9257795 40.8287387, -73.925801 40.8287635, -73.9258506 40.8287493, -73.9258506 40.8287493,-73.9258292 40.828723))'),
+  ('LINESTRING(-73.9942208 40.7504289, -73.993856 40.7500753, -73.9932525 40.7499941)','LINESTRING(-70.9942208 42.7504289, -72.993856 43.7500753, -73.9932525 44.7499941)'),
+  ('LINESTRING(-73.9760944 40.6833433, -73.9764404 40.6830626, -73.9763761 40.6828897)','LINESTRING(-70.9761 41.6834, -72.9765 39.6831, -76.9764 38.6829)')
+;
+
+-- Verify the records were inserted successfully
+
+SELECT *
+FROM example_geospatial.points_of_interest
+ORDER BY ST_GEOHASH(src1_poi)
+;
+
+
+-- Scalar Functions --
+-- ================ --
+
+-- Scalar Example 1
+
+-- Using GEODIST(), calculate the distance between pickup and dropoff points to
+-- see where the calculated distance is less than the recorded trip distance
+
+SELECT *
+FROM example_geospatial.taxi_trip_data
+WHERE GEODIST(pickup_longitude, pickup_latitude, dropoff_longitude, dropoff_latitude) < trip_distance
+ORDER BY transaction_id
+;
+
+-- Scalar Example 2
+
+-- Calculate the area of each taxi zone and find the five largest zones
+
+SELECT TOP 5
+  objectid AS "Zone_ID",
+  zone AS "Zone_Name",
+  DECIMAL(ST_AREA(geom, 1) / 1000000) AS "Zone_Area_in_Square_Kilometers"
+FROM example_geospatial.taxi_zone
+ORDER BY 3 DESC
+;
+
+
+-- Geospatial Aggregations --
+-- ======================= --
+
+-- Dissolve the boundaries between Queens neighborhood tabulation areas to
+-- create a single borough boundary
+
+SELECT
+  ST_DISSOLVE(geom) AS neighborhoods
+FROM example_geospatial.nyc_neighborhood
+WHERE BoroName = 'Queens'
+;
+
+
+-- Geospatial Joins --
+-- ================ --
+
+-- Join Example 1
+
+-- Locate at which borough and neighborhood taxi pickups occurred, and display a
+-- subset of those mappings
+
+SELECT TOP 25
+  vendor_id AS "Pickup_Vendor_ID",
+  passenger_count AS "Total_Passengers",
+  pickup_longitude AS "Pickup_Longitude",
+  pickup_latitude AS "Pickup_Latitude",
+  BoroName AS "Pickup_Borough",
+  NTAName AS "Pickup_NTA"
+FROM example_geospatial.taxi_trip_data, example_geospatial.nyc_neighborhood
+WHERE STXY_CONTAINS(geom, pickup_longitude, pickup_latitude) = 1
+ORDER BY pickup_longitude, vendor_id
+;
+
+-- Join Example 2
+
+-- Find the top 10 neighborhood pickup locations
+
+SELECT TOP 10
+  ntaname AS "Pickup_NTA",
+  COUNT(*) AS "Total_Pickups"
+FROM
+  example_geospatial.taxi_trip_data
+  JOIN example_geospatial.nyc_neighborhood
+    ON STXY_INTERSECTS(pickup_longitude, pickup_latitude, geom) = 1
+GROUP BY
+  ntaname
+ORDER BY
+  "Total_Pickups" DESC
+;
+
+-- Join Example 3
+
+-- Find the geospatial objects representing the top 10 neighborhoods,
+-- measured by distance covered over all taxi trips originating in them
+
+SELECT TOP 10
+  SUM(trip_distance) AS "Total_Trip_Distance",
+  geom AS "Pickup_Geo"
+FROM
+  example_geospatial.taxi_trip_data
+  JOIN example_geospatial.nyc_neighborhood
+    ON STXY_INTERSECTS(pickup_longitude, pickup_latitude, geom) = 1
+GROUP BY
+  geom
+ORDER BY
+  "Total_Trip_Distance" DESC
+;
+
+
+-- Geospatial Equality --
+-- =================== --
+
+-- Calculate types of geospatial equality for differing sources of geometry
+
+SELECT
+  ST_GEOMETRYTYPE(src1_poi) AS "Source_1_Type",
+  ST_GEOMETRYTYPE(src2_poi) AS "Source_2_Type",
+  ST_ALMOSTEQUALS(src1_poi, src2_poi, 7) AS "Almost_Equals",
+  ST_EQUALS(src1_poi, src2_poi) AS "Equals",
+  ST_EQUALSEXACT(src1_poi, src2_poi, 4) AS "Equals_Exact"
+FROM example_geospatial.points_of_interest
+ORDER BY 1
+;

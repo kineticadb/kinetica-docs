@@ -1,0 +1,112 @@
+-- ------------------------------------------- --
+-- SQL-Managed Semantic Search Python UDF/UDTF --
+-- ------------------------------------------- --
+
+-- Create sentence baseline & scoring tables
+CREATE TABLE udf_st_in
+(
+    id SMALLINT NOT NULL,
+    sentence VARCHAR,
+    PRIMARY KEY (id)
+)
+;
+
+CREATE TABLE udf_st_out
+(
+    id SMALLINT NOT NULL,
+    score REAL,
+    PRIMARY KEY (id)
+)
+;
+
+
+-- Create directory for data file and Python UDF script
+CREATE DIRECTORY 'udf'
+;
+
+-- Upload UDF File
+UPLOAD FILE 'udf_st.py' INTO 'udf'
+;
+
+-- Upload data file
+UPLOAD FILE 'sentences.txt' INTO 'udf'
+;
+
+-- Insert test data
+-- Note that QUOTE is set to |, because the default is " and there are double
+--   quotes in the data; changing QUOTE to something not in the data effectively
+--   gets rid of quote parsing.
+LOAD INTO udf_st_in
+FROM FILE PATHS 'kifs://udf/sentences.txt'
+FORMAT TEXT (DELIMITER = '\t', INCLUDES HEADER = FALSE, QUOTE = '|')
+;
+
+
+-- Create UDF environment
+CREATE FUNCTION ENVIRONMENT udfe_st
+;
+
+-- Install sentence-transformers library into the UDF environment
+ALTER FUNCTION ENVIRONMENT udfe_st
+INSTALL PACKAGE 'sentence-transformers'
+;
+
+
+-- Create UDF
+CREATE FUNCTION udf_st
+MODE = 'distributed'
+RUN_COMMAND = 'python'
+RUN_COMMAND_ARGS = 'udf/udf_st.py'
+FILE PATHS 'kifs://udf/udf_st.py'
+WITH OPTIONS (SET_ENVIRONMENT = 'udfe_st')
+;
+
+-- Create UDTF
+CREATE FUNCTION UDTF_ST
+RETURNS TABLE
+(
+	id SMALLINT NOT NULL,
+	score REAL
+)
+MODE = 'distributed'
+RUN_COMMAND = 'python'
+RUN_COMMAND_ARGS = 'udf/udf_st.py'
+FILE PATHS 'kifs://udf/udf_st.py'
+WITH OPTIONS (SET_ENVIRONMENT = 'udfe_st')
+;
+
+
+-- Execute UDF
+EXECUTE FUNCTION udf_st
+(
+    INPUT_TABLE_NAMES => INPUT_TABLE(udf_st_in),
+    OUTPUT_TABLE_NAMES => OUTPUT_TABLES('udf_st_out'),
+    PARAMS => KV_PAIRS(sentence = 'I live in a neighborhood in a small town.')
+)
+;
+
+-- Show top 5 scores from EXECUTE FUNCTION output table
+SELECT TOP 5 score, sentence
+FROM
+	udf_st_in i,
+	udf_st_out o
+WHERE i.id = o.id
+ORDER BY score DESC
+;
+
+
+-- Execute UDF as table function and output top 5 scores
+SELECT TOP 5 score, sentence
+FROM
+	udf_st_in i,
+	TABLE
+	(
+	    UDTF_ST
+	    (
+	        INPUT_TABLE_NAMES => INPUT_TABLE(udf_st_in),
+	        PARAMS => KV_PAIRS(sentence = 'I live in a neighborhood in a small town.')
+	    )
+	) o
+WHERE i.id = o.id
+ORDER BY score DESC
+;

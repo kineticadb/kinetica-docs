@@ -1,0 +1,893 @@
+
+-- SQL TUTORIAL
+-- ============
+
+-- NOTE:  The output file for this script is generated as follows:
+--
+--    kisql --echoSql true --showTime false --file sql_tutorial.kisql > sql_tutorial.out
+--
+-- The taxi_trip_data.csv file is assumed to be in a peer directory to the one
+-- containing this script.  Adjust the path needed, updating the UPLOAD FILE
+-- statement in the INSERTING DATA section below.
+
+
+-- CREATING TYPES & TABLES
+-- -----------------------
+
+-- Tutorial Schema
+-- ***************
+
+DROP SCHEMA IF EXISTS tutorial_sql CASCADE;
+
+Rows affected: 0
+
+CREATE SCHEMA tutorial_sql
+;
+
+Rows affected: 1
+
+-- Vendor Table
+-- ************
+
+CREATE OR REPLACE REPLICATED TABLE tutorial_sql.vendor
+(
+  vendor_id VARCHAR(4) NOT NULL,
+  vendor_name VARCHAR(32) NOT NULL,
+  phone VARCHAR(10),
+  email VARCHAR(32),
+  hq_street VARCHAR(32) NOT NULL,
+  hq_city VARCHAR(8) NOT NULL,
+  hq_state VARCHAR(2) NOT NULL,
+  hq_zip INT NOT NULL,
+  num_emps INT NOT NULL,
+  num_cabs INT NOT NULL,
+  PRIMARY KEY (vendor_id)
+)
+;
+
+WARNING: Unsupported string size: 10.  Using char16.
+Rows affected: 1
+
+-- Payment Table
+-- *************
+
+CREATE OR REPLACE TABLE tutorial_sql.payment
+(
+  payment_id LONG NOT NULL,
+  payment_type VARCHAR(16),
+  credit_type VARCHAR(16),
+  payment_timestamp TYPE_TIMESTAMP,
+  fare_amount DECIMAL(7,2),
+  surcharge DECIMAL(7,2),
+  mta_tax DECIMAL(5,2),
+  tip_amount DECIMAL(7,2),
+  tolls_amount DECIMAL(7,2),
+  total_amount DECIMAL(7,2),
+  PRIMARY KEY (payment_id)
+)
+;
+
+Rows affected: 1
+
+-- Taxi Table
+-- **********
+
+CREATE OR REPLACE TABLE tutorial_sql.taxi_trip_data
+(
+  transaction_id LONG NOT NULL,
+  payment_id LONG(SHARD_KEY) NOT NULL,
+  vendor_id VARCHAR(4) NOT NULL,
+  pickup_datetime TYPE_TIMESTAMP,
+  dropoff_datetime TYPE_TIMESTAMP,
+  passenger_count TINYINT,
+  trip_distance REAL,
+  pickup_longitude REAL,
+  pickup_latitude REAL,
+  dropoff_longitude REAL,
+  dropoff_latitude REAL,
+  PRIMARY KEY (transaction_id, payment_id)
+)
+;
+
+Rows affected: 1
+
+-- INSERTING DATA
+-- --------------
+
+-- Use explicit column name syntax when the ordering of values for the set of
+-- records doesn't match the natural ordering of all of the columns defined
+-- within the Vendor table; here, num_emps and num_cabs are reversed
+INSERT INTO tutorial_sql.vendor (vendor_id, vendor_name, phone, email, hq_street, hq_city, hq_state, hq_zip, num_cabs, num_emps)
+VALUES
+  ('VTS','Vine Taxi Service','9998880001','admin@vtstaxi.com','26 Summit St.','Flushing','NY',11354,450,400),
+  ('YCAB','Yes Cab','7895444321',null,'97 Edgemont St.','Brooklyn','NY',11223,445,425),
+  ('NYC','New York City Cabs',null,'support@nyc-taxis.com','9669 East Bayport St.','Bronx','NY',10453,505,500),
+  ('DDS','Dependable Driver Service',null,null,'8554 North Homestead St.','Bronx','NY',10472,200,124),
+  ('CMT','Crazy Manhattan Taxi','9778896500','admin@crazymanhattantaxi.com','950 4th Road Suite 78','Brooklyn','NY',11210,500,468),
+  ('TNY','Taxi New York',null,null,'725 Squaw Creek St.','Bronx','NY',10458,315,305),
+  ('NYMT','New York Metro Taxi',null,null,'4 East Jennings St.','Brooklyn','NY',11228,166,150),
+  ('5BTC','Five Boroughs Taxi Co.','4566541278','mgmt@5btc.com','9128 Lantern Street','Brooklyn','NY',11229,193,175)
+;
+
+Rows affected: 8
+
+-- Use shorthand syntax, where each record of values matches the natural
+-- ordering of all of the columns defined within the Payment table
+INSERT INTO tutorial_sql.payment
+VALUES
+  (136,'Cash',null,'2015-04-11 01:42:01',4,0.5,0.5,1,0,6.3),
+  (148,'Cash',null,'2015-04-27 08:49:41',9.5,0,0.5,1,0,11.3),
+  (114,'Cash',null,'2015-04-05 18:47:53',5.5,0,0.5,1.89,0,8.19),
+  (180,'Cash',null,'2015-04-13 22:57:03',6.5,0.5,0.5,1,0,8.8),
+  (109,'Cash',null,'2015-04-13 18:08:33',22.5,0.5,0.5,4.75,0,28.55),
+  (132,'Cash',null,'2015-04-19 19:46:19',6.5,0.5,0.5,1.55,0,9.35),
+  (134,'Cash',null,'2015-04-19 19:44:28',33.5,0.5,0.5,0,0,34.8),
+  (176,'Cash',null,'2015-04-07 10:52:42',9,0.5,0.5,2.06,0,12.36),
+  (100,'Cash',null,null,9,0,0.5,2.9,0,12.7),
+  (193,'Cash',null,null,3.5,1,0.5,1.59,0,6.89),
+  (140,'Credit','Visa',null,28,0,0.5,0,0,28.8),
+  (161,'Credit','Visa',null,7,0,0.5,0,0,7.8),
+  (199,'Credit','Visa',null,6,1,0.5,1,0,8.5),
+  (159,'Credit','Visa','2015-04-10 14:01:27',7,0,0.5,0,0,7.8),
+  (156,'Credit','MasterCard','2015-04-10 13:32:33',12.5,0.5,0.5,0,0,13.8),
+  (198,'Credit','MasterCard','2015-04-19 19:43:56',9,0,0.5,0,0,9.8),
+  (107,'Credit','MasterCard','2015-04-11 01:56:17',5,0.5,0.5,0,0,6.3),
+  (166,'Credit','American Express','2015-04-12 03:18:43',17.5,0,0.5,0,0,18.3),
+  (187,'Credit','American Express','2015-04-10 12:49:41',14,0,0.5,0,0,14.8),
+  (125,'Credit','Discover','2015-04-24 10:01:13',8.5,0.5,0.5,0,0,9.8),
+  (119,null,null,'2015-04-30 22:04:31',9.5,0,0.5,0,0,10.3),
+  (150,null,null,'2015-04-30 22:20:47',7.5,0,0.5,0,0,8.3),
+  (170,'No Charge',null,'2015-04-30 22:05:02',28.6,0,0.5,0,0,28.6),
+  (123,'No Charge',null,'2015-04-27 12:10:49',20,0.5,0.5,0,0,21.3),
+  (181,null,null,'2015-04-27 11:51:01',6.5,0.5,0.5,0,0,7.8),
+  (189,'No Charge',null,null,6.5,0,0.5,0,0,7)
+;
+
+Rows affected: 26
+
+-- Upload a CSV file to KiFS
+UPLOAD FILE '../data/taxi_trip_data.csv'
+INTO 'data'
+;
+
+Rows affected: 1
+
+-- Insert records from CSV file in KiFS into the Taxi table
+LOAD INTO tutorial_sql.taxi_trip_data
+FROM FILE PATHS 'kifs://data/taxi_trip_data.csv'
+;
+
+Rows affected: 1081
+
+  
+  
+-- RETRIEVING DATA
+-- ---------------
+
+-- Retrieve no more than 10 records from the Payment table
+SELECT TOP 10 *
+FROM tutorial_sql.payment
+ORDER BY payment_id
+;
+
++--------------+----------------+---------------+---------------------------+---------------+-------------+-----------+--------------+----------------+----------------+
+|   payment_id | payment_type   | credit_type   |         payment_timestamp |   fare_amount |   surcharge |   mta_tax |   tip_amount |   tolls_amount |   total_amount |
++--------------+----------------+---------------+---------------------------+---------------+-------------+-----------+--------------+----------------+----------------+
+|          100 | Cash           |               |                           |          9.00 |        0.00 |      0.50 |         2.90 |           0.00 |          12.70 |
+|          107 | Credit         | MasterCard    |   2015-04-11 01:56:17.000 |          5.00 |        0.50 |      0.50 |         0.00 |           0.00 |           6.30 |
+|          109 | Cash           |               |   2015-04-13 18:08:33.000 |         22.50 |        0.50 |      0.50 |         4.75 |           0.00 |          28.55 |
+|          114 | Cash           |               |   2015-04-05 18:47:53.000 |          5.50 |        0.00 |      0.50 |         1.89 |           0.00 |           8.19 |
+|          119 |                |               |   2015-04-30 22:04:31.000 |          9.50 |        0.00 |      0.50 |         0.00 |           0.00 |          10.30 |
+|          123 | No Charge      |               |   2015-04-27 12:10:49.000 |         20.00 |        0.50 |      0.50 |         0.00 |           0.00 |          21.30 |
+|          125 | Credit         | Discover      |   2015-04-24 10:01:13.000 |          8.50 |        0.50 |      0.50 |         0.00 |           0.00 |           9.80 |
+|          132 | Cash           |               |   2015-04-19 19:46:19.000 |          6.50 |        0.50 |      0.50 |         1.55 |           0.00 |           9.35 |
+|          134 | Cash           |               |   2015-04-19 19:44:28.000 |         33.50 |        0.50 |      0.50 |         0.00 |           0.00 |          34.80 |
+|          136 | Cash           |               |   2015-04-11 01:42:01.000 |          4.00 |        0.50 |      0.50 |         1.00 |           0.00 |           6.30 |
++--------------+----------------+---------------+---------------------------+---------------+-------------+-----------+--------------+----------------+----------------+
+Rows read: 10
+
+-- Retrieve all records from the Vendor table
+SELECT *
+FROM tutorial_sql.vendor
+ORDER BY vendor_id
+;
+
++-------------+-----------------------------+--------------+--------------------------------+----------------------------+------------+------------+----------+------------+------------+
+| vendor_id   | vendor_name                 | phone        | email                          | hq_street                  | hq_city    | hq_state   |   hq_zip |   num_emps |   num_cabs |
++-------------+-----------------------------+--------------+--------------------------------+----------------------------+------------+------------+----------+------------+------------+
+| 5BTC        | Five Boroughs Taxi Co.      | 4566541278   | mgmt@5btc.com                  | 9128 Lantern Street        | Brooklyn   | NY         |    11229 |        175 |        193 |
+| CMT         | Crazy Manhattan Taxi        | 9778896500   | admin@crazymanhattantaxi.com   | 950 4th Road Suite 78      | Brooklyn   | NY         |    11210 |        468 |        500 |
+| DDS         | Dependable Driver Service   |              |                                | 8554 North Homestead St.   | Bronx      | NY         |    10472 |        124 |        200 |
+| NYC         | New York City Cabs          |              | support@nyc-taxis.com          | 9669 East Bayport St.      | Bronx      | NY         |    10453 |        500 |        505 |
+| NYMT        | New York Metro Taxi         |              |                                | 4 East Jennings St.        | Brooklyn   | NY         |    11228 |        150 |        166 |
+| TNY         | Taxi New York               |              |                                | 725 Squaw Creek St.        | Bronx      | NY         |    10458 |        305 |        315 |
+| VTS         | Vine Taxi Service           | 9998880001   | admin@vtstaxi.com              | 26 Summit St.              | Flushing   | NY         |    11354 |        400 |        450 |
+| YCAB        | Yes Cab                     | 7895444321   |                                | 97 Edgemont St.            | Brooklyn   | NY         |    11223 |        425 |        445 |
++-------------+-----------------------------+--------------+--------------------------------+----------------------------+------------+------------+----------+------------+------------+
+Rows read: 8
+
+-- UPDATING RECORDS
+-- ----------------
+
+-- Update the e-mail of, and add two employees and one cab to, the DDS vendor
+UPDATE tutorial_sql.vendor
+SET
+  email = 'management@ddstaxico.com',
+  num_emps = num_emps + 2,
+  num_cabs = num_cabs + 1
+WHERE vendor_id = 'DDS'
+;
+
+Rows affected: 1
+
+-- Verify the modification was applied successfully.
+SELECT *
+FROM tutorial_sql.vendor
+ORDER BY vendor_id
+;
+
++-------------+-----------------------------+--------------+--------------------------------+----------------------------+------------+------------+----------+------------+------------+
+| vendor_id   | vendor_name                 | phone        | email                          | hq_street                  | hq_city    | hq_state   |   hq_zip |   num_emps |   num_cabs |
++-------------+-----------------------------+--------------+--------------------------------+----------------------------+------------+------------+----------+------------+------------+
+| 5BTC        | Five Boroughs Taxi Co.      | 4566541278   | mgmt@5btc.com                  | 9128 Lantern Street        | Brooklyn   | NY         |    11229 |        175 |        193 |
+| CMT         | Crazy Manhattan Taxi        | 9778896500   | admin@crazymanhattantaxi.com   | 950 4th Road Suite 78      | Brooklyn   | NY         |    11210 |        468 |        500 |
+| DDS         | Dependable Driver Service   |              | management@ddstaxico.com       | 8554 North Homestead St.   | Bronx      | NY         |    10472 |        126 |        201 |
+| NYC         | New York City Cabs          |              | support@nyc-taxis.com          | 9669 East Bayport St.      | Bronx      | NY         |    10453 |        500 |        505 |
+| NYMT        | New York Metro Taxi         |              |                                | 4 East Jennings St.        | Brooklyn   | NY         |    11228 |        150 |        166 |
+| TNY         | Taxi New York               |              |                                | 725 Squaw Creek St.        | Bronx      | NY         |    10458 |        305 |        315 |
+| VTS         | Vine Taxi Service           | 9998880001   | admin@vtstaxi.com              | 26 Summit St.              | Flushing   | NY         |    11354 |        400 |        450 |
+| YCAB        | Yes Cab                     | 7895444321   |                                | 97 Edgemont St.            | Brooklyn   | NY         |    11223 |        425 |        445 |
++-------------+-----------------------------+--------------+--------------------------------+----------------------------+------------+------------+----------+------------+------------+
+Rows read: 8
+
+-- DELETING RECORDS
+-- ----------------
+
+-- Delete payment 189
+DELETE
+FROM tutorial_sql.payment
+WHERE payment_id = 189
+;
+
+Rows affected: 1
+
+-- Verify the deletion was applied successfully.
+SELECT *
+FROM tutorial_sql.payment
+ORDER BY payment_id
+;
+
++--------------+----------------+--------------------+---------------------------+---------------+-------------+-----------+--------------+----------------+----------------+
+|   payment_id | payment_type   | credit_type        |         payment_timestamp |   fare_amount |   surcharge |   mta_tax |   tip_amount |   tolls_amount |   total_amount |
++--------------+----------------+--------------------+---------------------------+---------------+-------------+-----------+--------------+----------------+----------------+
+|          100 | Cash           |                    |                           |          9.00 |        0.00 |      0.50 |         2.90 |           0.00 |          12.70 |
+|          107 | Credit         | MasterCard         |   2015-04-11 01:56:17.000 |          5.00 |        0.50 |      0.50 |         0.00 |           0.00 |           6.30 |
+|          109 | Cash           |                    |   2015-04-13 18:08:33.000 |         22.50 |        0.50 |      0.50 |         4.75 |           0.00 |          28.55 |
+|          114 | Cash           |                    |   2015-04-05 18:47:53.000 |          5.50 |        0.00 |      0.50 |         1.89 |           0.00 |           8.19 |
+|          119 |                |                    |   2015-04-30 22:04:31.000 |          9.50 |        0.00 |      0.50 |         0.00 |           0.00 |          10.30 |
+|          123 | No Charge      |                    |   2015-04-27 12:10:49.000 |         20.00 |        0.50 |      0.50 |         0.00 |           0.00 |          21.30 |
+|          125 | Credit         | Discover           |   2015-04-24 10:01:13.000 |          8.50 |        0.50 |      0.50 |         0.00 |           0.00 |           9.80 |
+|          132 | Cash           |                    |   2015-04-19 19:46:19.000 |          6.50 |        0.50 |      0.50 |         1.55 |           0.00 |           9.35 |
+|          134 | Cash           |                    |   2015-04-19 19:44:28.000 |         33.50 |        0.50 |      0.50 |         0.00 |           0.00 |          34.80 |
+|          136 | Cash           |                    |   2015-04-11 01:42:01.000 |          4.00 |        0.50 |      0.50 |         1.00 |           0.00 |           6.30 |
+|          140 | Credit         | Visa               |                           |         28.00 |        0.00 |      0.50 |         0.00 |           0.00 |          28.80 |
+|          148 | Cash           |                    |   2015-04-27 08:49:41.000 |          9.50 |        0.00 |      0.50 |         1.00 |           0.00 |          11.30 |
+|          150 |                |                    |   2015-04-30 22:20:47.000 |          7.50 |        0.00 |      0.50 |         0.00 |           0.00 |           8.30 |
+|          156 | Credit         | MasterCard         |   2015-04-10 13:32:33.000 |         12.50 |        0.50 |      0.50 |         0.00 |           0.00 |          13.80 |
+|          159 | Credit         | Visa               |   2015-04-10 14:01:27.000 |          7.00 |        0.00 |      0.50 |         0.00 |           0.00 |           7.80 |
+|          161 | Credit         | Visa               |                           |          7.00 |        0.00 |      0.50 |         0.00 |           0.00 |           7.80 |
+|          166 | Credit         | American Express   |   2015-04-12 03:18:43.000 |         17.50 |        0.00 |      0.50 |         0.00 |           0.00 |          18.30 |
+|          170 | No Charge      |                    |   2015-04-30 22:05:02.000 |         28.60 |        0.00 |      0.50 |         0.00 |           0.00 |          28.60 |
+|          176 | Cash           |                    |   2015-04-07 10:52:42.000 |          9.00 |        0.50 |      0.50 |         2.06 |           0.00 |          12.36 |
+|          180 | Cash           |                    |   2015-04-13 22:57:03.000 |          6.50 |        0.50 |      0.50 |         1.00 |           0.00 |           8.80 |
+|          181 |                |                    |   2015-04-27 11:51:01.000 |          6.50 |        0.50 |      0.50 |         0.00 |           0.00 |           7.80 |
+|          187 | Credit         | American Express   |   2015-04-10 12:49:41.000 |         14.00 |        0.00 |      0.50 |         0.00 |           0.00 |          14.80 |
+|          193 | Cash           |                    |                           |          3.50 |        1.00 |      0.50 |         1.59 |           0.00 |           6.89 |
+|          198 | Credit         | MasterCard         |   2015-04-19 19:43:56.000 |          9.00 |        0.00 |      0.50 |         0.00 |           0.00 |           9.80 |
+|          199 | Credit         | Visa               |                           |          6.00 |        1.00 |      0.50 |         1.00 |           0.00 |           8.50 |
++--------------+----------------+--------------------+---------------------------+---------------+-------------+-----------+--------------+----------------+----------------+
+Rows read: 25
+
+-- ALTER TABLE
+-- -----------
+
+-- Indexes
+-- *******
+
+-- Add column index on:
+--   - payment table, fare_amount (for filter example)
+ALTER TABLE tutorial_sql.payment
+ADD INDEX (fare_amount)
+;
+
+Rows affected: 1
+
+-- Add column index on:
+--   - taxi table, vendor_id (for left join example)
+ALTER TABLE tutorial_sql.taxi_trip_data
+ADD INDEX (vendor_id)
+;
+
+Rows affected: 1
+
+-- Dictionary Encoding
+-- *******************
+
+-- Add the dictionary encoding column property to the taxi table vendor ID column
+ALTER TABLE tutorial_sql.taxi_trip_data
+ALTER COLUMN vendor_id VARCHAR(4, DICT) NOT NULL
+;
+
+Rows affected: 1
+
+-- FILTERING & AGGREGATES
+-- ----------------------
+
+-- Select all payments with a fare amount greater than 8
+SELECT payment_id, fare_amount
+FROM tutorial_sql.payment
+WHERE fare_amount > 8 
+ORDER BY payment_id
+;
+
++--------------+---------------+
+|   payment_id |   fare_amount |
++--------------+---------------+
+|          100 |          9.00 |
+|          109 |         22.50 |
+|          119 |          9.50 |
+|          123 |         20.00 |
+|          125 |          8.50 |
+|          134 |         33.50 |
+|          140 |         28.00 |
+|          148 |          9.50 |
+|          156 |         12.50 |
+|          166 |         17.50 |
+|          170 |         28.60 |
+|          176 |          9.00 |
+|          187 |         14.00 |
+|          198 |          9.00 |
++--------------+---------------+
+Rows read: 14
+
+-- Select trips with passenger counts between 6 and 10
+SELECT pickup_datetime, dropoff_datetime, trip_distance, passenger_count
+FROM tutorial_sql.taxi_trip_data
+WHERE passenger_count BETWEEN 6 AND 10
+ORDER BY pickup_datetime
+;
+
++---------------------------+---------------------------+-----------------+-------------------+
+|           pickup_datetime |          dropoff_datetime |   trip_distance |   passenger_count |
++---------------------------+---------------------------+-----------------+-------------------+
+|   2009-01-10 00:06:00.000 |   2009-01-10 00:07:00.000 |        0.02     |                 6 |
+|   2015-04-03 16:20:03.000 |   2015-04-03 16:22:22.000 |        0.64     |                 6 |
+|   2015-04-03 23:48:46.000 |   2015-04-04 00:03:23.000 |        1.96     |                 6 |
+|   2015-04-05 07:50:31.000 |   2015-04-05 07:52:43.000 |        0.65     |                 6 |
+|   2015-04-14 08:32:07.000 |   2015-04-14 08:42:46.000 |        1.03     |                 6 |
+|   2015-04-15 18:05:44.000 |   2015-04-15 18:23:21.000 |        1.64     |                 6 |
+|   2015-04-16 10:18:49.000 |   2015-04-16 10:29:37.000 |        0.65     |                 6 |
+|   2015-04-18 14:14:02.000 |   2015-04-18 14:33:10.000 |        9.02     |                 6 |
+|   2015-04-21 14:13:30.000 |   2015-04-21 14:21:01.000 |        1.07     |                 6 |
+|   2015-04-25 02:27:09.000 |   2015-04-25 02:34:13.000 |        1.04     |                 6 |
+|   2015-04-27 08:42:04.000 |   2015-04-27 08:49:41.000 |        1.17     |                 6 |
+|   2015-04-27 15:04:04.000 |   2015-04-27 15:58:12.000 |       16.58     |                 6 |
++---------------------------+---------------------------+-----------------+-------------------+
+Rows read: 12
+
+-- Select the top 30 records where the pickup is between April 20th and
+-- April 26th, then order them from longest trip to shortest trip.  A trip
+-- description will also be returned, designating any trip of over six miles as
+-- a "long trip", between three and six miles as a "medium trip", and three or
+-- shorter as a "short trip".
+SELECT TOP 30
+  vendor_id,
+  pickup_datetime,
+  dropoff_datetime,
+  passenger_count,
+  CASE
+    WHEN trip_distance > 6 THEN 'long trip'
+    WHEN trip_distance > 3 THEN 'medium trip'
+    ELSE 'short trip'
+  END AS trip_description
+FROM tutorial_sql.taxi_trip_data
+WHERE pickup_datetime BETWEEN '2015-04-20 00:00:00.000' AND '2015-04-27 00:00:00.000'
+ORDER BY trip_distance DESC
+;
+
++-------------+---------------------------+---------------------------+-------------------+--------------------+
+| vendor_id   |           pickup_datetime |          dropoff_datetime |   passenger_count | trip_description   |
++-------------+---------------------------+---------------------------+-------------------+--------------------+
+| YCAB        |   2015-04-21 01:37:55.000 |   2015-04-21 02:03:39.000 |                 2 | long trip          |
+| YCAB        |   2015-04-26 08:09:43.000 |   2015-04-26 08:34:35.000 |                 2 | long trip          |
+| NYC         |   2015-04-24 18:30:19.000 |   2015-04-24 19:14:33.000 |                 2 | long trip          |
+| NYC         |   2015-04-26 01:45:33.000 |   2015-04-26 02:09:16.000 |                 1 | long trip          |
+| NYC         |   2015-04-23 18:59:48.000 |   2015-04-23 19:33:17.000 |                 1 | long trip          |
+| NYC         |   2015-04-21 02:54:33.000 |   2015-04-21 03:35:27.000 |                 1 | long trip          |
+| NYC         |   2015-04-26 02:45:54.000 |   2015-04-26 03:10:33.000 |                 1 | long trip          |
+| NYC         |   2015-04-24 14:02:27.000 |   2015-04-24 14:47:39.000 |                 1 | long trip          |
+| YCAB        |   2015-04-22 22:02:09.000 |   2015-04-22 22:21:22.000 |                 1 | long trip          |
+| YCAB        |   2015-04-21 23:17:28.000 |   2015-04-21 23:41:01.000 |                 1 | long trip          |
+| NYC         |   2015-04-24 18:03:13.000 |   2015-04-24 18:27:51.000 |                 5 | long trip          |
+| NYC         |   2015-04-21 08:20:57.000 |   2015-04-21 08:53:34.000 |                 1 | long trip          |
+| NYC         |   2015-04-20 11:19:38.000 |   2015-04-20 12:06:36.000 |                 5 | long trip          |
+| YCAB        |   2015-04-22 00:56:59.000 |   2015-04-22 01:25:54.000 |                 1 | long trip          |
+| NYC         |   2015-04-26 22:31:23.000 |   2015-04-26 22:45:48.000 |                 1 | long trip          |
+| NYC         |   2015-04-21 02:55:20.000 |   2015-04-21 03:13:14.000 |                 2 | long trip          |
+| YCAB        |   2015-04-26 01:46:07.000 |   2015-04-26 02:08:32.000 |                 1 | long trip          |
+| YCAB        |   2015-04-23 02:58:19.000 |   2015-04-23 03:24:53.000 |                 4 | long trip          |
+| YCAB        |   2015-04-22 02:38:49.000 |   2015-04-22 02:55:51.000 |                 1 | long trip          |
+| NYC         |   2015-04-24 14:02:29.000 |   2015-04-24 14:19:19.000 |                 3 | medium trip        |
+| YCAB        |   2015-04-26 20:34:38.000 |   2015-04-26 20:59:56.000 |                 1 | medium trip        |
+| NYC         |   2015-04-26 17:42:09.000 |   2015-04-26 18:00:47.000 |                 1 | medium trip        |
+| YCAB        |   2015-04-23 06:37:29.000 |   2015-04-23 06:53:52.000 |                 2 | medium trip        |
+| NYC         |   2015-04-23 19:54:33.000 |   2015-04-23 20:17:32.000 |                 1 | medium trip        |
+| NYC         |   2015-04-24 23:15:57.000 |   2015-04-24 23:31:37.000 |                 3 | medium trip        |
+| NYC         |   2015-04-25 18:18:38.000 |   2015-04-25 18:36:45.000 |                 1 | medium trip        |
+| NYC         |   2015-04-24 04:42:00.000 |   2015-04-24 04:54:27.000 |                 1 | medium trip        |
+| NYC         |   2015-04-21 14:07:42.000 |   2015-04-21 14:23:24.000 |                 5 | medium trip        |
+| NYC         |   2015-04-21 21:26:39.000 |   2015-04-21 21:37:19.000 |                 2 | medium trip        |
+| YCAB        |   2015-04-20 23:12:32.000 |   2015-04-20 23:26:45.000 |                 1 | short trip         |
++-------------+---------------------------+---------------------------+-------------------+--------------------+
+Rows read: 30
+
+-- Select the longest, shortest, and average trip distance & passenger count for
+-- each vendor whose average passenger count is higher than 1.4
+SELECT
+  vendor_id,
+  MAX(trip_distance) max_trip,
+  MIN(trip_distance) min_trip,
+  ROUND(AVG(trip_distance),2) avg_trip,
+  INT(AVG(passenger_count)) avg_passenger_count
+FROM tutorial_sql.taxi_trip_data
+GROUP BY vendor_id
+HAVING AVG(passenger_count) > 1.4
+ORDER BY vendor_id
+;
+
++-------------+-------------+------------+----------------------+-----------------------+
+| vendor_id   |    max_trip |   min_trip |             avg_trip |   avg_passenger_count |
++-------------+-------------+------------+----------------------+-----------------------+
+| DDS         |   19.6      |   0.0      |   2.77               |                     1 |
+| LYFT        |    6.1      |   0.18     |   2.59               |                     2 |
+| NYC         |   21.879999 |   0.27     |   3.36               |                     2 |
+| UBER        |    3.03     |   1.53     |   2.19               |                     2 |
+| VTS         |   17.82     |   0.0      |   2.61               |                     2 |
++-------------+-------------+------------+----------------------+-----------------------+
+Rows read: 5
+
+-- SUBQUERIES
+-- ----------
+
+-- Show how tips compare between cash and credit card payments: retrieve unique
+-- paid-by-cash fare & tip combinations and calculate the relationship between
+-- the cash tip percentage and the average credit tip percentage, across all
+-- cash fares that were at least as much as the lowest credit card fare.  The
+-- tip factor will be the size of the cash tip in terms of the average credit
+-- tip; e.g., "10" indicates the cash tip percentage is 10 times higher than the	
+-- average credit tip
+SELECT
+  fare_amount,
+  tip_amount,
+  DECIMAL
+  (
+    (tip_amount / fare_amount) * 100 /
+    (
+      SELECT AVG(tip_amount / fare_amount) * 100 as avg_credit_tip_pct
+      FROM tutorial_sql.payment
+      WHERE payment_type = 'Credit'
+    )
+  ) as tip_factor_cash_vs_credit_pct
+FROM
+(
+  SELECT DISTINCT
+    fare_amount,
+    tip_amount
+  FROM tutorial_sql.payment
+  WHERE payment_type = 'Cash'
+) cash_fare_tip
+WHERE fare_amount >=
+(
+  SELECT MIN(fare_amount)
+  FROM tutorial_sql.payment
+  WHERE payment_type = 'Credit'
+)
+ORDER BY fare_amount
+;
+
++---------------+--------------+---------------------------------+
+|   fare_amount |   tip_amount |   tip_factor_cash_vs_credit_pct |
++---------------+--------------+---------------------------------+
+|          5.50 |         1.89 |                         20.6181 |
+|          6.50 |         1.00 |                          9.2307 |
+|          6.50 |         1.55 |                         14.3077 |
+|          9.00 |         2.06 |                         13.7333 |
+|          9.00 |         2.90 |                         19.3333 |
+|          9.50 |         1.00 |                          6.3158 |
+|         22.50 |         4.75 |                         12.6666 |
+|         33.50 |         0.00 |                          0.0000 |
++---------------+--------------+---------------------------------+
+Rows read: 8
+
+-- CTEs & WITH
+-- -----------
+
+-- Retrieve the set of cash payments that fall within the timestamp range of
+-- recorded credit payments
+WITH credit_pay_ts_min_max (min_pay_ts, max_pay_ts) AS
+(
+  SELECT
+    MIN(payment_timestamp) AS min_pay_ts,
+    MAX(payment_timestamp) AS max_pay_ts
+  FROM tutorial_sql.payment
+  WHERE payment_type = 'Credit'
+)
+SELECT
+  payment_id,
+  payment_timestamp,
+  total_amount
+FROM tutorial_sql.payment
+WHERE
+  payment_type = 'Cash' AND
+  payment_timestamp BETWEEN
+    (SELECT min_pay_ts FROM credit_pay_ts_min_max) AND
+    (SELECT max_pay_ts FROM credit_pay_ts_min_max)
+ORDER BY payment_timestamp
+;
+
++--------------+---------------------------+----------------+
+|   payment_id |         payment_timestamp |   total_amount |
++--------------+---------------------------+----------------+
+|          136 |   2015-04-11 01:42:01.000 |           6.30 |
+|          109 |   2015-04-13 18:08:33.000 |          28.55 |
+|          180 |   2015-04-13 22:57:03.000 |           8.80 |
+|          134 |   2015-04-19 19:44:28.000 |          34.80 |
+|          132 |   2015-04-19 19:46:19.000 |           9.35 |
++--------------+---------------------------+----------------+
+Rows read: 5
+
+-- JOINS
+-- -----
+
+-- Join Example 1 (Inner Join)
+-- Retrieve payment information for rides having more than three passengers
+SELECT
+  t.payment_id,
+  payment_type,
+  total_amount,
+  passenger_count,
+  vendor_id,
+  trip_distance
+FROM tutorial_sql.taxi_trip_data t
+INNER JOIN tutorial_sql.payment p ON t.payment_id = p.payment_id
+WHERE
+  passenger_count > 3
+ORDER BY payment_id
+;
+
++--------------+----------------+----------------+-------------------+-------------+-----------------+
+|   payment_id | payment_type   |   total_amount |   passenger_count | vendor_id   |   trip_distance |
++--------------+----------------+----------------+-------------------+-------------+-----------------+
+|          136 | Cash           |           6.30 |                 5 | NYC         |        2.31     |
+|          148 | Cash           |          11.30 |                 6 | NYC         |        1.17     |
+|          176 | Cash           |          12.36 |                 5 | NYC         |        1.22     |
++--------------+----------------+----------------+-------------------+-------------+-----------------+
+Rows read: 3
+
+-- Join Example 2 (Left Join)
+-- Retrieve cab ride transactions and the full name of the associated vendor (if
+-- available--blank if vendor name is unknown) for transactions with associated
+-- payment data, sorting by increasing values of transaction ID.
+SELECT
+  transaction_id,
+  pickup_datetime,
+  trip_distance,
+  t.vendor_id,
+  vendor_name
+FROM tutorial_sql.taxi_trip_data t
+LEFT JOIN tutorial_sql.vendor v ON t.vendor_id = v.vendor_id
+WHERE payment_id != 0
+ORDER BY transaction_id
+;
+
++------------------+---------------------------+-----------------+-------------+----------------------+
+|   transaction_id |           pickup_datetime |   trip_distance | vendor_id   | vendor_name          |
++------------------+---------------------------+-----------------+-------------+----------------------+
+|        104118718 |   2015-04-11 01:34:18.000 |        1.53     | UBER        |                      |
+|        104506140 |   2015-04-10 13:54:37.000 |        1.4      | YCAB        | Yes Cab              |
+|        106041671 |   2015-04-24 09:55:46.000 |        0.79     | NYC         | New York City Cabs   |
+|        107008976 |   2015-04-12 23:09:58.000 |        1.66     | NYC         | New York City Cabs   |
+|        109329823 |   2015-04-30 21:58:35.000 |        1.2      | YCAB        | Yes Cab              |
+|        111998195 |   2015-04-05 18:39:27.000 |        2.1      | YCAB        | Yes Cab              |
+|        112901023 |   2015-04-23 14:36:57.000 |        2.37     | NYC         | New York City Cabs   |
+|        128530951 |   2015-04-10 13:28:02.000 |        1.0      | YCAB        | Yes Cab              |
+|        129891539 |   2015-04-13 18:07:01.000 |        0.51     | NYC         | New York City Cabs   |
+|        132706957 |   2015-04-14 18:21:56.000 |        1.02     | NYC         | New York City Cabs   |
+|        132760909 |   2015-04-27 08:42:04.000 |        1.17     | NYC         | New York City Cabs   |
+|        139294057 |   2015-04-12 04:39:45.000 |        4.3      | YCAB        | Yes Cab              |
+|        149211614 |   2015-04-02 13:29:46.000 |        1.5      | YCAB        | Yes Cab              |
+|        155194734 |   2015-04-27 11:43:25.000 |        1.08     | NYC         | New York City Cabs   |
+|        160856304 |   2015-04-11 01:34:22.000 |        2.31     | NYC         | New York City Cabs   |
+|        161650444 |   2015-04-13 22:44:14.000 |        3.09     | NYC         | New York City Cabs   |
+|        163836875 |   2015-04-08 19:14:50.000 |        0.18     | LYFT        |                      |
+|        164839979 |   2015-04-19 19:31:33.000 |        1.02     | NYC         | New York City Cabs   |
+|        169677687 |   2015-04-30 21:58:32.000 |        6.5      | YCAB        | Yes Cab              |
+|        170101359 |   2015-04-13 10:59:43.000 |        0.99     | NYC         | New York City Cabs   |
+|        174019433 |   2015-04-19 19:31:30.000 |        2.56     | NYC         | New York City Cabs   |
+|        174771463 |   2015-04-19 19:31:31.000 |        2.01     | NYC         | New York City Cabs   |
+|        177106037 |   2015-04-30 21:58:32.000 |        1.2      | YCAB        | Yes Cab              |
+|        178732586 |   2015-04-27 11:43:25.000 |        8.39     | NYC         | New York City Cabs   |
+|        181667689 |   2015-04-27 11:43:25.000 |        3.03     | UBER        |                      |
+|        186246812 |   2015-04-19 03:12:46.000 |        6.1      | LYFT        |                      |
+|        190120416 |   2015-04-19 03:12:43.000 |        1.49     | LYFT        |                      |
+|        191386113 |   2015-04-10 12:36:01.000 |        1.3      | YCAB        | Yes Cab              |
+|        192545327 |   2015-04-07 10:37:34.000 |        1.22     | NYC         | New York City Cabs   |
+|        195905599 |   2015-04-11 01:34:18.000 |       12.03     | NYC         | New York City Cabs   |
+|        197243309 |   2015-04-27 11:43:25.000 |        2.0      | UBER        |                      |
+|        199751611 |   2015-04-12 03:15:59.000 |        0.5      | YCAB        | Yes Cab              |
++------------------+---------------------------+-----------------+-------------+----------------------+
+Rows read: 32
+
+-- Full outer joins may require both tables to be replicated. Set
+-- merges like Union Distinct, Intersect, and Except need to use replicated
+-- tables to ensure the correct results. Create a replicated copy of the Taxi
+-- table and copy the records from the non-replicated table to the replicated
+-- one
+CREATE OR REPLACE REPLICATED TABLE tutorial_sql.taxi_trip_data_replicated (
+  transaction_id LONG NOT NULL,
+  payment_id LONG NOT NULL,
+  vendor_id VARCHAR(4) NOT NULL,
+  pickup_datetime TYPE_TIMESTAMP,
+  dropoff_datetime TYPE_TIMESTAMP,
+  passenger_count DECIMAL(2),
+  trip_distance FLOAT,
+  pickup_longitude FLOAT,
+  pickup_latitude FLOAT,
+  dropoff_longitude FLOAT,
+  dropoff_latitude FLOAT
+)
+;
+
+Rows affected: 1
+
+INSERT INTO tutorial_sql.taxi_trip_data_replicated
+SELECT *
+FROM tutorial_sql.taxi_trip_data
+;
+
+Rows affected: 1081
+
+-- Join Example 3 (Full Outer Join)
+-- Retrieve the vendor IDs of known vendors with no recorded cab ride
+-- transactions, as well as the vendor ID and number of transactions for unknown
+-- vendors with recorded cab ride transactions
+SELECT
+  v.vendor_id vend_table_vendors,
+  t.vendor_id taxi_table_vendors,
+  COUNT(*) as total_records
+FROM tutorial_sql.taxi_trip_data_replicated t
+FULL OUTER JOIN tutorial_sql.vendor v ON v.vendor_id = t.vendor_id
+WHERE
+  v.vendor_id IS null OR
+  t.vendor_id IS null
+GROUP BY
+  v.vendor_id,
+  t.vendor_id
+ORDER BY 1, 2
+;
+
++----------------------+----------------------+-----------------+
+| vend_table_vendors   | taxi_table_vendors   |   total_records |
++----------------------+----------------------+-----------------+
+|                      | LYFT                 |               3 |
+|                      | UBER                 |               3 |
+| 5BTC                 |                      |               1 |
+| NYMT                 |                      |               1 |
+| TNY                  |                      |               1 |
++----------------------+----------------------+-----------------+
+Rows read: 5
+
+-- CTAs
+-- ----
+
+-- Create a memory-only table containing all payments by credit card
+CREATE OR REPLACE TEMP TABLE tutorial_sql.credit_payment AS (
+  SELECT *
+  FROM tutorial_sql.payment
+  WHERE payment_type = 'Credit'
+)
+;
+
+Rows affected: 10
+
+-- Verify the table was created successfully
+SELECT *
+FROM tutorial_sql.credit_payment
+ORDER BY payment_id
+;
+
++--------------+----------------+--------------------+---------------------------+---------------+-------------+-----------+--------------+----------------+----------------+
+|   payment_id | payment_type   | credit_type        |         payment_timestamp |   fare_amount |   surcharge |   mta_tax |   tip_amount |   tolls_amount |   total_amount |
++--------------+----------------+--------------------+---------------------------+---------------+-------------+-----------+--------------+----------------+----------------+
+|          107 | Credit         | MasterCard         |   2015-04-11 01:56:17.000 |          5.00 |        0.50 |      0.50 |         0.00 |           0.00 |           6.30 |
+|          125 | Credit         | Discover           |   2015-04-24 10:01:13.000 |          8.50 |        0.50 |      0.50 |         0.00 |           0.00 |           9.80 |
+|          140 | Credit         | Visa               |                           |         28.00 |        0.00 |      0.50 |         0.00 |           0.00 |          28.80 |
+|          156 | Credit         | MasterCard         |   2015-04-10 13:32:33.000 |         12.50 |        0.50 |      0.50 |         0.00 |           0.00 |          13.80 |
+|          159 | Credit         | Visa               |   2015-04-10 14:01:27.000 |          7.00 |        0.00 |      0.50 |         0.00 |           0.00 |           7.80 |
+|          161 | Credit         | Visa               |                           |          7.00 |        0.00 |      0.50 |         0.00 |           0.00 |           7.80 |
+|          166 | Credit         | American Express   |   2015-04-12 03:18:43.000 |         17.50 |        0.00 |      0.50 |         0.00 |           0.00 |          18.30 |
+|          187 | Credit         | American Express   |   2015-04-10 12:49:41.000 |         14.00 |        0.00 |      0.50 |         0.00 |           0.00 |          14.80 |
+|          198 | Credit         | MasterCard         |   2015-04-19 19:43:56.000 |          9.00 |        0.00 |      0.50 |         0.00 |           0.00 |           9.80 |
+|          199 | Credit         | Visa               |                           |          6.00 |        1.00 |      0.50 |         1.00 |           0.00 |           8.50 |
++--------------+----------------+--------------------+---------------------------+---------------+-------------+-----------+--------------+----------------+----------------+
+Rows read: 10
+
+-- Create a persisted table with cab ride transactions greater than 5 miles
+-- whose trip started during lunch hours
+CREATE OR REPLACE TABLE tutorial_sql.lunch_time_rides AS (
+  SELECT
+    HOUR(pickup_datetime) hour_of_day,
+    vendor_id,
+    passenger_count,
+    trip_distance
+  FROM tutorial_sql.taxi_trip_data
+  WHERE
+    HOUR(pickup_datetime) BETWEEN '11' AND '14' AND
+    trip_distance > 5
+)
+;
+
+Rows affected: 27
+
+-- Verify the table was created successfully
+SELECT *
+FROM tutorial_sql.lunch_time_rides
+ORDER BY 1, 2, 3, 4
+;
+
++---------------+-------------+-------------------+-----------------+
+|   hour_of_day | vendor_id   |   passenger_count |   trip_distance |
++---------------+-------------+-------------------+-----------------+
+|            11 | CMT         |                 1 |       16.700001 |
+|            11 | NYC         |                 1 |        8.39     |
+|            11 | NYC         |                 5 |        7.26     |
+|            11 | VTS         |                 1 |        6.33     |
+|            11 | VTS         |                 2 |       11.43     |
+|            11 | YCAB        |                 1 |        6.0      |
+|            12 | CMT         |                 1 |        9.5      |
+|            12 | CMT         |                 1 |        9.8      |
+|            12 | NYC         |                 1 |        5.07     |
+|            12 | NYC         |                 2 |        5.7      |
+|            12 | NYC         |                 3 |       12.01     |
+|            12 | VTS         |                 1 |        9.65     |
+|            13 | DDS         |                 1 |       12.5      |
+|            13 | NYC         |                 1 |        5.38     |
+|            13 | NYC         |                 1 |       21.879999 |
+|            13 | VTS         |                 3 |       12.56     |
+|            13 | YCAB        |                 1 |        7.1      |
+|            13 | YCAB        |                 1 |       20.700001 |
+|            14 | CMT         |                 1 |        8.2      |
+|            14 | CMT         |                 1 |        9.9      |
+|            14 | NYC         |                 1 |        9.72     |
+|            14 | NYC         |                 3 |        5.96     |
+|            14 | NYC         |                 5 |       16.92     |
+|            14 | NYC         |                 6 |        9.02     |
+|            14 | YCAB        |                 1 |        8.6      |
+|            14 | YCAB        |                 1 |       18.0      |
+|            14 | YCAB        |                 2 |       17.0      |
++---------------+-------------+-------------------+-----------------+
+Rows read: 27
+
+-- UNION, INTERSECT, & EXCEPT
+-- --------------------------
+
+-- Set Union Example (Union All)
+-- Calculate the average number of passengers, as well as the shortest, average,
+-- and longest trips for all trips in each of the two time periods--from April
+-- 1st through the 15th, 2015 and from April 16th through the 23rd, 2015--and
+-- return those two sets of statistics in a single result set
+SELECT
+  '2015-04-01 - 2015-04-15' pickup_window_range,
+  INT(AVG(passenger_count)) avg_pass_count,
+  ROUND(AVG(trip_distance),2) avg_trip,
+  MIN(trip_distance) min_trip,
+  MAX(trip_distance) max_trip
+FROM tutorial_sql.taxi_trip_data
+WHERE pickup_datetime BETWEEN '2015-04-01' AND '2015-04-15 23:59:59.999'
+UNION ALL
+SELECT
+  '2015-04-16 - 2015-04-23',
+  INT(AVG(passenger_count)),
+  ROUND(AVG(trip_distance),2),
+  MIN(trip_distance),
+  MAX(trip_distance)
+FROM tutorial_sql.taxi_trip_data
+WHERE pickup_datetime BETWEEN '2015-04-16' AND '2015-04-23 23:59:59.999'
+;
+
++---------------------------+------------------+----------------------+------------+-------------+
+| pickup_window_range       |   avg_pass_count |             avg_trip |   min_trip |    max_trip |
++---------------------------+------------------+----------------------+------------+-------------+
+| 2015-04-01 - 2015-04-15   |                2 |   3.05               |   0.0      |   21.879999 |
+| 2015-04-16 - 2015-04-23   |                2 |   3.13               |   0.38     |   19.4      |
++---------------------------+------------------+----------------------+------------+-------------+
+Rows read: 2
+
+-- Set Intersection Example
+-- Retrieve locations (as lat/lon pairs) that were both pick-up and drop-off
+-- points
+SELECT
+  pickup_latitude AS latitude,
+  pickup_longitude AS longitude
+FROM tutorial_sql.taxi_trip_data_replicated
+WHERE
+  pickup_latitude <> 0 AND
+  pickup_longitude <> 0
+INTERSECT
+SELECT
+  dropoff_latitude,
+  dropoff_longitude
+FROM tutorial_sql.taxi_trip_data_replicated
+ORDER BY latitude, longitude
+;
+
++-------------+--------------+
+|    latitude |    longitude |
++-------------+--------------+
+|   40.649235 |   -74.255341 |
+|   40.657375 |   -73.793678 |
+|   40.714535 |   -73.9422   |
+|   40.714912 |   -74.007492 |
+|   40.721016 |   -74.005386 |
+|   40.725803 |   -73.725014 |
+|   40.750412 |   -73.990669 |
+|   40.751312 |   -73.975052 |
+|   40.75819  |   -73.937347 |
+|   40.760818 |   -73.980057 |
+|   40.763927 |   -73.901993 |
+|   40.764065 |   -73.961861 |
+|   40.773392 |   -73.981064 |
+|   41.366138 |   -73.13739  |
++-------------+--------------+
+Rows read: 14
+
+-- Set Subtraction Example (Except)
+-- Show vendors that operate before noon, but not after noon:  retrieve the
+-- unique list of IDs of vendors who provided cab rides between midnight and
+-- noon, and remove from that list the IDs of any vendors who provided cab rides
+-- between noon and midnight
+SELECT vendor_id
+FROM tutorial_sql.taxi_trip_data_replicated
+WHERE HOUR(pickup_datetime) BETWEEN 0 AND 11
+EXCEPT
+SELECT vendor_id
+FROM tutorial_sql.taxi_trip_data_replicated
+WHERE HOUR(pickup_datetime) BETWEEN 12 AND 23
+;
+
++-------------+
+| vendor_id   |
++-------------+
+| UBER        |
++-------------+
+Rows read: 1
+
+-- TRUNCATING DATA
+-- ---------------
+
+-- Remove all records from the given table
+TRUNCATE TABLE tutorial_sql.credit_payment
+;
+
+Rows affected: 10
+
+-- Verify the table was truncated successfully
+SELECT *
+FROM tutorial_sql.credit_payment
+;
+
++--------------+----------------+---------------+---------------------+---------------+-------------+-----------+--------------+----------------+----------------+
+|   payment_id | payment_type   | credit_type   |   payment_timestamp |   fare_amount |   surcharge |   mta_tax |   tip_amount |   tolls_amount |   total_amount |
++--------------+----------------+---------------+---------------------+---------------+-------------+-----------+--------------+----------------+----------------+
++--------------+----------------+---------------+---------------------+---------------+-------------+-----------+--------------+----------------+----------------+
+Rows read: 0
