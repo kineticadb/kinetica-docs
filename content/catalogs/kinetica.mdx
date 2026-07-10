@@ -65,7 +65,7 @@ The *Kinetica Virtual Catalog* tables reside in the `ki_catalog` schema.
 | [ki_schema_registry](#ki-schema-registry) | Schema encountered in Kafka data source subscriptions. |
 | [ki_schemas](#ki-schemas) | Schemas, containing all database objects. |
 | [ki_streams](#ki-streams) | Streams (table monitors), their containing schemas, and configuration. |
-| [ki_tiered_objects](#ki-tiered-objects) | Tiered objects and their size within those tiers. <br/> <br/> To retrieve the tiering information for a particular object, the object must be queried by fully-qualified name using the pseudo-column `outer_object`. |
+| [ki_tiered_objects](#ki-tiered-objects) | Tiered objects and their size within those tiers. <br/> <Tip> To retrieve the tiering information for a particular object, the object must be queried by fully-qualified name using the pseudo-column `outer_object`. </Tip> |
 | [ki_users_and_roles](#ki-users-and-roles) | Users & user roles. |
 
 
@@ -92,8 +92,8 @@ event.  It will include all types of backups and restorations from them.
 | `objects` | `VARCHAR` | Names of the backed up/restored objects. |
 | `user_name` | `VARCHAR(256)` | Name of the user who initiated the back up/restoration. |
 | `job_id` | `BIGINT` | Unique identifier of the system job responsible for the back up/restoration. |
-| `backup_kind` | `VARCHAR(64)` | Type of backup this is. <br/> <br/> ========================== ==================================================== Type                       Description ========================== ==================================================== `full`                   Backup of all data, system-wide. `differential`           Backup of all new or modified data since the last full back up. `incremental`            Backup of all new or modified data since the last back up of any type. ========================== ==================================================== |
-| `status` | `VARCHAR(32)` | Current status of the back up/restoration processing. <br/> <br/> ========================== ==================================================== Status                     Description ========================== ==================================================== `backup_complete`        Back up complete. `backup_in_progress`     Back up in progress. `backup_failed`          Back up failed. `restore_complete`       Restoration complete. `restore_in_progress`    Restoration in progress. `restore_failed`         Restoration failed. `unknown`                Back up/restoration in unknown state. `validated`              Back up/restoration request validated, but not started yet. ========================== ==================================================== |
+| `backup_kind` | `VARCHAR(64)` | Type of backup this is. <br/> <br/> `full`: Backup of all data, system-wide. <br/> <br/> `differential`: Backup of all new or modified data since the last full back up. <br/> <br/> `incremental`: Backup of all new or modified data since the last back up of any type. |
+| `status` | `VARCHAR(32)` | Current status of the back up/restoration processing. <br/> <br/> `backup_complete`: Back up complete. <br/> <br/> `backup_in_progress`: Back up in progress. <br/> <br/> `backup_failed`: Back up failed. <br/> <br/> `restore_complete`: Restoration complete. <br/> <br/> `restore_in_progress`: Restoration in progress. <br/> <br/> `restore_failed`: Restoration failed. <br/> <br/> `unknown`: Back up/restoration in unknown state. <br/> <br/> `validated`: Back up/restoration request validated, but not started yet. |
 | `datasink_oid` | `BIGINT` | Unique identifier associated with the data sink used in this back up.  See [ki_datasinks](#ki-datasinks). |
 | `datasource_oid` | `BIGINT` | Unique identifier associated with the data source used in this restoration.  See [ki_datasources](#ki-datasources). |
 | `start_time` | `TIMESTAMP` | Timestamp of back up/restoration processing start. |
@@ -154,7 +154,7 @@ of the following:
 | `context_name` | `VARCHAR(256)` | Name of the *SQL-GPT context* containing this context object. |
 | `schema_oid` | `BIGINT` | Unique identifier associated with the schema containing the parent *SQL-GPT context*.  See [ki_schemas](#ki-schemas). |
 | `schema_name` | `VARCHAR(256)` | Name of the schema containing the parent *SQL-GPT context*. |
-| `object_name` | `VARCHAR(256)` | Name of this *SQL-GPT context* object, denoting the type of context object it is. <br/> <br/> ========================== ========================================= Name                       Description ========================== ========================================= `rules`                  Rules Definition `samples`                Samples Definition *&lt;schema_name.table_name&gt;* Table Definition for the given table name ========================== ========================================= |
+| `object_name` | `VARCHAR(256)` | Name of this *SQL-GPT context* object, denoting the type of context object it is. <br/> <br/> `rules`: Rules Definition <br/> <br/> `samples`: Samples Definition <br/> <br/> *&lt;schema_name.table_name&gt;*: Table Definition for the given table name |
 | `object_description` | `VARCHAR` | The `COMMENT` associated with the table, if context object is a *table definition*. |
 | `object_rules` | `VARCHAR[]` | The `RULES` associated with the table, if context object is a *table definition*; or the global rules associated with the overall context, if a *rules definition*. |
 | `object_comments` | `JSON` | The `COMMENTS` associated with the table, if context object is a *table definition*--essentially, the column definitions for the table. |
@@ -253,9 +253,9 @@ depend on all of the *tables* & *views* referenced in its corresponding query.
 | Column Name | Column Type | Description |
 | --- | --- | --- |
 | `src_obj_oid` | `BIGINT` | Unique identifier associated with the source object depended on.  See [ki_objects](#ki-objects). |
-| `src_obj_kind` | `VARCHAR(1)` | Type of the source object depended on. <br/> <br/> ==== ===================== Code Description ==== ===================== E    External table H    Partitioned table I    Materialized view intermediate table M    Materialized view P    SQL procedure R    Regular (local) table V    Logical view ==== ===================== |
+| `src_obj_kind` | `VARCHAR(1)` | Type of the source object depended on. <br/> <br/> E: External table <br/> <br/> H: Partitioned table <br/> <br/> I: Materialized view intermediate table <br/> <br/> M: Materialized view <br/> <br/> P: SQL procedure <br/> <br/> R: Regular (local) table <br/> <br/> V: Logical view |
 | `dep_obj_oid` | `BIGINT` | Unique identifier associated with the dependent object.  See [ki_objects](#ki-objects). |
-| `dep_obj_kind` | `VARCHAR(1)` | Type of the dependent object. <br/> <br/> ==== ===================== Code Description ==== ===================== I    Materialized view intermediate table M    Materialized view P    SQL procedure R    Regular (local) table V    Logical view ==== ===================== |
+| `dep_obj_kind` | `VARCHAR(1)` | Type of the dependent object. <br/> <br/> I: Materialized view intermediate table <br/> <br/> M: Materialized view <br/> <br/> P: SQL procedure <br/> <br/> R: Regular (local) table <br/> <br/> V: Logical view |
 | `mv_oid` | `BIGINT` | Unique identifier of the associated materialized view (for materialized view components).  See [ki_objects](#ki-objects). |
 | `dep_kind` | `VARCHAR(1)` | Not used. |
 
@@ -288,7 +288,7 @@ column relation.
 | `created_by` | `VARCHAR(256)` | Username of user who created the constraint. |
 | `creation_time` | `TIMESTAMP` | Timestamp of constraint creation. |
 | `last_alter_time` | `TIMESTAMP` | Timestamp of the most recent constraint update (initially, time of creation). |
-| `is_enforced` | `INTEGER` | Whether the constraint is enforced. <br/> <br/> ==== =================================================== Code Description ==== =================================================== 0    Ignored (all foreign key constraints are ignored) 1    Enforced (all primary key constraints are enforced) ==== =================================================== |
+| `is_enforced` | `INTEGER` | Whether the constraint is enforced. <br/> <br/> 0: Ignored (all foreign key constraints are ignored) <br/> <br/> 1: Enforced (all primary key constraints are enforced) |
 | `fk_column_count` | `INTEGER` | Number of columns in the associated key (for *foreign key* constraints). |
 | `fk_column_name` | `VARCHAR(256)` | Name of this constrained column referencing the *primary key* column of the foreign table (for *foreign key* constraints). |
 | `fk_column_pos` | `INTEGER` | 0-based index of the position of this constrained column among all columns in the foreign table referenced by this constraint (for *foreign key* constraints). |
@@ -320,7 +320,7 @@ function, a [UDF/UDTF](/content/sql/udf), or a
 | `name` | `VARCHAR(256)` | Name of this function. |
 | `lang` | `VARCHAR(256)` | Language in which this SQL procedure was written (for SQL procedures; always `SQL`). |
 | `variadic` | `INTEGER` | Not used. |
-| `kind` | `VARCHAR(256)` | Function type. <br/> <br/> ==== ===================== Code Description ==== ===================== A    Aggregate function C    Cast function P    SQL procedure S    Scalar function U    User-defined function ==== ===================== |
+| `kind` | `VARCHAR(256)` | Function type. <br/> <br/> A: Aggregate function <br/> <br/> C: Cast function <br/> <br/> P: SQL procedure <br/> <br/> S: Scalar function <br/> <br/> U: User-defined function |
 | `volatile` | `VARCHAR(256)` | Not used. |
 | `nargs` | `INTEGER` | Number of parameters accepted by this function. |
 | `default_arg_count` | `INTEGER` | Number of parameters accepted by this function with default values. |
@@ -365,7 +365,7 @@ Each record in `ki_indexes` represents a single index of a table with
 | `oid` | `BIGINT` | Unique identifier associated with this index's table. |
 | `object_name` | `VARCHAR(256)` | Name of this index's table. |
 | `schema_name` | `VARCHAR(256)` | Name of the schema containing this index's table. |
-| `index_type` | `VARCHAR(32)` | Type of index: <br/> <br/> ========================== ==================================================== Type                       Description ========================== ==================================================== `cagra`                  [CAGRA index](/content/concepts/indexes#cagra-index) `chunk_skip`             [Chunk skip index](/content/concepts/indexes#chunk-skip-index) `column`                 [Column index](/content/concepts/indexes#column-index) `geospatial`             [Geospatial index](/content/concepts/indexes#geospatial-index) `hnsw`                   [HNSW index](/content/concepts/indexes#hnsw-index) ========================== ==================================================== |
+| `index_type` | `VARCHAR(32)` | Type of index: <br/> <br/> `cagra`: [CAGRA index](/content/concepts/indexes#cagra-index) <br/> <br/> `chunk_skip`: [Chunk skip index](/content/concepts/indexes#chunk-skip-index) <br/> <br/> `column`: [Column index](/content/concepts/indexes#column-index) <br/> <br/> `geospatial`: [Geospatial index](/content/concepts/indexes#geospatial-index) <br/> <br/> `hnsw`: [HNSW index](/content/concepts/indexes#hnsw-index) |
 | `index_columns` | `VARCHAR` | Names of columns used in this index. |
 
 
@@ -424,7 +424,7 @@ invoked for a single data processing task.
 | `jobid` | `BIGINT` | Unique identifier of the system job responsible for the load. |
 | `rank_num` | `INTEGER` | Index of the rank responsible for processing this segment of the load. |
 | `tom` | `INTEGER` | Index of the TOM responsible for processing this segment of the load. |
-| `load_kind` | `VARCHAR(1)` | Type of load. <br/> <br/> ==== =========================================================== Code Description ==== =========================================================== E    Export local table to remote table via data sink. I    Ingest from KiFS file or remote data via data source. X    Export local table to remote file via data sink. ==== =========================================================== |
+| `load_kind` | `VARCHAR(1)` | Type of load. <br/> <br/> E: Export local table to remote table via data sink. <br/> <br/> I: Ingest from KiFS file or remote data via data source. <br/> <br/> X: Export local table to remote file via data sink. |
 | `start_time` | `TIMESTAMP` | Timestamp of loading process start. |
 | `end_time` | `TIMESTAMP` | Timestamp of loading process end. |
 | `file_oid` | `BIGINT` | Unique identifier associated with the file imported from or exported into (for loads that make use of files).  See [ki_ingest_file_info](#ki-ingest-file-info). |
@@ -435,7 +435,7 @@ invoked for a single data processing task.
 | `rows_skipped` | `BIGINT` | Number of records processed for this import that were skipped due to errors in the data (for imports). |
 | `event_message` | `VARCHAR` | System messages relevant to the load process, including: <br/> <br/> * error message relating to skipped records or other, if applicable (for imports) <br/> * `Cancelled`, denoting a data load process was terminated <br/> * `pause`, denoting a data load subscription was stopped temporarily <br/> * `resume`, denoting a data load subscription was resumed after being paused <br/> * `subscribe`, denoting subscription-based data loads <br/> * `unsubscribe`, denoting a data load subscription was cancelled |
 | `num_errors` | `BIGINT` | Number of errors encountered during processing. |
-| `additional_info` | `VARCHAR` | Extra information about the load, depending on load type. <br/> <br/> ================= =========================================================== Load Type         Additional Info ================= =========================================================== Import from file  Indicator of which import load process this was. Import from query Remote query used to pull data from remote database. Export to table   How the export query was split across the local table. ================= =========================================================== |
+| `additional_info` | `VARCHAR` | Extra information about the load, depending on load type. <br/> <br/> Import from file: Indicator of which import load process this was. <br/> <br/> Import from query: Remote query used to pull data from remote database. <br/> <br/> Export to table: How the export query was split across the local table. |
 
 
 <a id="ki-obj-stat"></a>
@@ -472,7 +472,7 @@ Each record in `ki_object_permissions` represents the mapping of a
 | `role_oid` | `BIGINT` | Unique identifier of the user or role associated with this mapping.  See [ki_users_and_roles](#ki-users-and-roles). |
 | `role_name` | `VARCHAR(256)` | Name of the user or role associated with this mapping. |
 | `permission_type` | `VARCHAR(256)` | Type of permission grant this mapping represents. |
-| `object_type` | `VARCHAR(256)` | Type of object grant this mapping represents (for object-level permissions). <br/> <br/> ========================== ==================================================== Type                       Description ========================== ==================================================== `proc`                   [SQL procedure](/content/sql/procedure) or [UDF/UDTF](/content/sql/udf) `datasink`               [Data sink](/content/concepts/data_sinks) `datasource`             [Data source](/content/concepts/data_sources) `credential`             [Credential](/content/concepts/credentials) `directory`              [KiFS directory](/content/tools/kifs_api#kifs-directory) `schema`                 [Schema](/content/concepts/schemas) `graph`                  [Graph](/content/graph_solver/network_graph_solver) `context`                [SQL-GPT context](/content/sql-gpt/concepts#sql-gpt-overview-context) `table`                  Table or view `table_monitor`          [Table monitor](/content/concepts/table_monitors) ========================== ==================================================== |
+| `object_type` | `VARCHAR(256)` | Type of object grant this mapping represents (for object-level permissions). <br/> <br/> `proc`: [SQL procedure](/content/sql/procedure) or [UDF/UDTF](/content/sql/udf) <br/> <br/> `datasink`: [Data sink](/content/concepts/data_sinks) <br/> <br/> `datasource`: [Data source](/content/concepts/data_sources) <br/> <br/> `credential`: [Credential](/content/concepts/credentials) <br/> <br/> `directory`: [KiFS directory](/content/tools/kifs_api#kifs-directory) <br/> <br/> `schema`: [Schema](/content/concepts/schemas) <br/> <br/> `graph`: [Graph](/content/graph_solver/network_graph_solver) <br/> <br/> `context`: [SQL-GPT context](/content/sql-gpt/concepts#sql-gpt-overview-context) <br/> <br/> `table`: Table or view <br/> <br/> `table_monitor`: [Table monitor](/content/concepts/table_monitors) |
 | `object_schema_oid` | `BIGINT` | Unique identifier of the schema containing the granted object associated with this mapping.  See [ki_schemas](#ki-schemas). |
 | `object_schema_name` | `VARCHAR(256)` | Name of the schema containing the granted object associated with this mapping. |
 | `object_oid` | `BIGINT` | Unique identifier of the granted object associated with this mapping.  See [ki_objects](#ki-objects). |
@@ -498,12 +498,12 @@ those in the virtual catalog tables.
 | `schema_oid` | `BIGINT` | Unique identifier associated with the schema containing this object.  See [ki_schemas](#ki-schemas). |
 | `schema_name` | `VARCHAR(256)` | Name of the schema containing this object. |
 | `type_id` | `VARCHAR(128)` | Unique identifier associated with this table's definition (for tables & views). |
-| `shard_kind` | `VARCHAR(1)` | Distribution scheme (for regular tables, materialized external tables, and materialized views). <br/> <br/> ==== ===================== Code Description ==== ===================== N    Randomly sharded R    Replicated S    Sharded, by shard key ==== ===================== |
-| `persistence` | `VARCHAR(1)` | Whether the object will persist after a database restart. <br/> <br/> ==== ===================== Code Description ==== ===================== P    Persisted T    Temporary ==== ===================== |
-| `obj_kind` | `VARCHAR(1)` | Object type. <br/> <br/> ==== ===================== Code Description ==== ===================== E    External table H    Partitioned table I    Materialized view intermediate table M    Materialized view P    SQL procedure R    Regular (local) table V    Logical view ==== ===================== |
-| `virtual` | `VARCHAR(1)` | Virtual object type (for virtual objects). <br/> <br/> ==== ===================== Code Description ==== ===================== N    Not virtual F    Filtered view J    Join view U    Virtual union ==== ===================== |
-| `ext_obj_kind` | `VARCHAR(1)` | External object type (for external tables). <br/> <br/> ==== ===================== Code Description ==== ===================== N    Not external L    Logical M    Materialized ==== ===================== |
-| `refresh_kind` | `VARCHAR(1)` | Refresh scheme (for refreshable objects). <br/> <br/> ==== ===================== Code Description ==== ===================== N    Not refreshable C    On-change M    Manual P    Periodic Q    On-query S    On-start ==== ===================== |
+| `shard_kind` | `VARCHAR(1)` | Distribution scheme (for regular tables, materialized external tables, and materialized views). <br/> <br/> N: Randomly sharded <br/> <br/> R: Replicated <br/> <br/> S: Sharded, by shard key |
+| `persistence` | `VARCHAR(1)` | Whether the object will persist after a database restart. <br/> <br/> P: Persisted <br/> <br/> T: Temporary |
+| `obj_kind` | `VARCHAR(1)` | Object type. <br/> <br/> E: External table <br/> <br/> H: Partitioned table <br/> <br/> I: Materialized view intermediate table <br/> <br/> M: Materialized view <br/> <br/> P: SQL procedure <br/> <br/> R: Regular (local) table <br/> <br/> V: Logical view |
+| `virtual` | `VARCHAR(1)` | Virtual object type (for virtual objects). <br/> <br/> N: Not virtual <br/> <br/> F: Filtered view <br/> <br/> J: Join view <br/> <br/> U: Virtual union |
+| `ext_obj_kind` | `VARCHAR(1)` | External object type (for external tables). <br/> <br/> N: Not external <br/> <br/> L: Logical <br/> <br/> M: Materialized |
+| `refresh_kind` | `VARCHAR(1)` | Refresh scheme (for refreshable objects). <br/> <br/> N: Not refreshable <br/> <br/> C: On-change <br/> <br/> M: Manual <br/> <br/> P: Periodic <br/> <br/> Q: On-query <br/> <br/> S: On-start |
 | `refresh_period` | `DOUBLE` | Number of seconds between refreshes (for refreshable objects). |
 | `column_count` | `INTEGER` | Number of columns in this table (for tables & views). |
 | `has_index` | `INTEGER` | Whether this object has an index of any kind on any of its columns. |
@@ -540,7 +540,7 @@ Each record in `ki_partitions` represents a single partition of a
 | `schema_name` | `VARCHAR(256)` | Name of the schema containing this partitioned table. |
 | `rank_num` | `INTEGER` | Number of the rank hosting this partition. |
 | `tom` | `INTEGER` | Number of the TOM hosting this partition. |
-| `partition_type` | `VARCHAR(8)` | Type of partition: <br/> <br/> ========================== ==================================================== Type                       Description ========================== ==================================================== `NONE`                   Not partitioned `HASH`                   [Hash](/content/concepts/tables#partitioning-by-hash) `INTERVAL`               [Interval](/content/concepts/tables#partitioning-by-interval) `LIST`                   [List](/content/concepts/tables#partitioning-by-list) `RANGE`                  [Range](/content/concepts/tables#partitioning-by-range) `SERIES`                 [Series](/content/concepts/tables#partitioning-by-series) ========================== ==================================================== |
+| `partition_type` | `VARCHAR(8)` | Type of partition: <br/> <br/> `NONE`: Not partitioned <br/> <br/> `HASH`: [Hash](/content/concepts/tables#partitioning-by-hash) <br/> <br/> `INTERVAL`: [Interval](/content/concepts/tables#partitioning-by-interval) <br/> <br/> `LIST`: [List](/content/concepts/tables#partitioning-by-list) <br/> <br/> `RANGE`: [Range](/content/concepts/tables#partitioning-by-range) <br/> <br/> `SERIES`: [Series](/content/concepts/tables#partitioning-by-series) |
 | `partition_columns` | `VARCHAR` | Names of columns or column expressions used to partition this table. |
 | `partition_id` | `INTEGER` | 1-based ID number of this partition, unique among partitions associated with this table. |
 | `chunk_id` | `INTEGER` | 1-based ID number of the chunk associated with this partition. |
@@ -549,7 +549,7 @@ Each record in `ki_partitions` represents a single partition of a
 | `num_rows` | `BIGINT` | Number of column value records contained within this partition. |
 | `logical_bytes` | `BIGINT` | Number of bytes of column data stored within this partition, as reported by the OS. |
 | `actual_bytes` | `BIGINT` | Number of bytes of column data stored within this partition, actually. |
-| `tier` | `VARCHAR(32)` | Tier containing this partition. <br/> <br/> =========== ==================================================================== Type        Description =========== ==================================================================== `PERSIST` [Persist tier](/content/rm/concepts#rm-concepts-tiers-persist) `RAM`     [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram) =========== ==================================================================== |
+| `tier` | `VARCHAR(32)` | Tier containing this partition. <br/> <br/> `PERSIST`: [Persist tier](/content/rm/concepts#rm-concepts-tiers-persist) <br/> <br/> `RAM`: [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram) |
 
 
 <a id="ki-periodic-objects"></a>
@@ -591,7 +591,7 @@ details.
 | `resource_group` | `VARCHAR(64)` | Name of resource group governing this query's resource management. |
 | `source_ip` | `VARCHAR(64)` | IP address of user who initiated the query. |
 | `endpoint` | `VARCHAR(64)` | REST endpoint called to initiate the request (for SQL-based requests). |
-| `execution_status` | `VARCHAR(32)` | Status of the query processing. <br/> <br/> ========================== ==================================================== Status                     Description ========================== ==================================================== `none`                   Job not yet queued for processing. `async job done`         Asynchronous job completed successfully. `cancelled`              Job cancelled. `cancelling`             Job in the process of being cancelled. `dispatched`             Job sent to worker ranks for processing. `done at TOM`            Portion of job completed on worker rank. `done`                   Job completed successfully. `error`                  Job completed with errors. `initialized`            Persistent job (e.g., PostgreSQL wireline connection) established. `local cleanup`          Job artifacts being removed before completion. `running`                Job being processed on worker ranks. ========================== ==================================================== |
+| `execution_status` | `VARCHAR(32)` | Status of the query processing. <br/> <br/> `none`: Job not yet queued for processing. <br/> <br/> `async job done`: Asynchronous job completed successfully. <br/> <br/> `cancelled`: Job cancelled. <br/> <br/> `cancelling`: Job in the process of being cancelled. <br/> <br/> `dispatched`: Job sent to worker ranks for processing. <br/> <br/> `done at TOM`: Portion of job completed on worker rank. <br/> <br/> `done`: Job completed successfully. <br/> <br/> `error`: Job completed with errors. <br/> <br/> `initialized`: Persistent job (e.g., PostgreSQL wireline connection) established. <br/> <br/> `local cleanup`: Job artifacts being removed before completion. <br/> <br/> `running`: Job being processed on worker ranks. |
 | `error_message` | `VARCHAR` | Error message associated with failed query. |
 | `start_time` | `TIMESTAMP` | Timestamp of query processing start. |
 | `query_text` | `VARCHAR` | SQL command issued (for SQL-based requests). |
@@ -599,7 +599,7 @@ details.
 | `sql_step_count` | `INTEGER` | Step number in processing this SQL command (for SQL-based requests). |
 | `refresh_id` | `BIGINT` | Unique identifier of the materialized view refresh being performed (for materialized view refreshes). |
 | `is_mh` | `BOOLEAN` | Whether the job is a multi-head ingest request. |
-| `is_perpetual` | `BOOLEAN` | Whether the job has no fixed end time (e.g., Kafka streaming data feed). <br/> <br/> ===== =================================================== Code  Description ===== =================================================== false Job has a deterministic end time (fixed-size load). true  Job has no deterministic end time (Kafka feed). ===== =================================================== |
+| `is_perpetual` | `BOOLEAN` | Whether the job has no fixed end time (e.g., Kafka streaming data feed). <br/> <br/> false: Job has a deterministic end time (fixed-size load). <br/> <br/> true: Job has no deterministic end time (Kafka feed). |
 | `is_cancellable` | `BOOLEAN` | Whether the job can be cancelled by a user. |
 | `is_using_timeout` | `BOOLEAN` | Whether the job can time out or not. |
 | `source_rank` | `INTEGER` | Number of the rank associated with this job. |
@@ -630,7 +630,7 @@ calls to DML-related endpoints, like:
 | `query_id` | `UUID` | Unique identifier of the query. |
 | `user_name` | `VARCHAR(64)` | Name of the user who initiated the query. |
 | `endpoint` | `VARCHAR(64)` | REST endpoint called to initiate the request (for SQL-based requests). |
-| `execution_status` | `VARCHAR(32)` | Final status of the query processing. <br/> <br/> ========================== ==================================================== Status                     Description ========================== ==================================================== `async job done`         Asynchronous job completed successfully. `cancelled`              Job cancelled. `done`                   Job completed successfully. `error`                  Job completed with errors. ========================== ==================================================== |
+| `execution_status` | `VARCHAR(32)` | Final status of the query processing. <br/> <br/> `async job done`: Asynchronous job completed successfully. <br/> <br/> `cancelled`: Job cancelled. <br/> <br/> `done`: Job completed successfully. <br/> <br/> `error`: Job completed with errors. |
 | `error_message` | `VARCHAR` | Error message associated with failed query. |
 | `query_text` | `VARCHAR` | SQL command issued (for SQL-based requests). |
 | `user_data` | `VARCHAR` | Supplemental information about the request. |
@@ -656,8 +656,8 @@ statistics collected for that rank, per step of the SQL executed.
 | Column Name | Column Type | Description |
 | --- | --- | --- |
 | `query_id` | `UUID` | Unique identifier of the query request.  See [ki_query_active_all](#ki-query-active-all) & [ki_query_history](#ki-query-history). |
-| `span_id` | `UNSIGNED` | Unique identifier of the metric span for this query. |
-| `parent_span_id` | `UNSIGNED` | Not used. |
+| `span_id` | `UNSIGNED` `BIGINT` | Unique identifier of the metric span for this query. |
+| `parent_span_id` | `UNSIGNED` `BIGINT` | Not used. |
 | `operator` | `VARCHAR(32)` | Internal name for operation performed.  Many operators will roughly match the name of the REST endpoints they serve. |
 | `sql_step` | `INTEGER` | Step number in processing this SQL command (for SQL-based requests). |
 | `metric_data` | `JSON` | JSON block of collected metrics. |
@@ -710,7 +710,7 @@ embeddings.
 | --- | --- | --- |
 | `obj_id` | `VARCHAR` | Unique identifier associated with this [SQL-GPT context](/content/sql-gpt/concepts#sql-gpt-overview-context) table or sample definition. |
 | `context_name` | `VARCHAR(256)` | Name of the *SQL-GPT context* containing this definition. |
-| `obj_type` | `VARCHAR(8)` | Type of *SQL-GPT context* definition this is. <br/> <br/> ========== ==================================================================== Type       Description ========== ==================================================================== `SAMPLE` [Sample definition](/content/sql-gpt/concepts#sql-gpt-overview-context-clause-sample) `TABLE`  [Table definition](/content/sql-gpt/concepts#sql-gpt-overview-context-clause-table) ========== ==================================================================== |
+| `obj_type` | `VARCHAR(8)` | Type of *SQL-GPT context* definition this is. <br/> <br/> `SAMPLE`: [Sample definition](/content/sql-gpt/concepts#sql-gpt-overview-context-clause-sample) <br/> <br/> `TABLE`: [Table definition](/content/sql-gpt/concepts#sql-gpt-overview-context-clause-table) |
 | `embed_text` | `VARCHAR` | Semicolon-separated compaction of the context definition fields. |
 | `n_tokens` | `INTEGER` | Number of tokens used in generating the embedding for this context definition. |
 | `embedding` | `VECTOR(2048)` | Embedding generated for this context definition. |
@@ -794,7 +794,7 @@ Each record in `ki_streams` represents a single
 | `stream_name` | `VARCHAR(256)` | Name of this stream. |
 | `source_table_oid` | `BIGINT` | Unique identifier associated with the table being monitored.  See [ki_objects](#ki-objects). |
 | `status` | `VARCHAR(16)` | Status of this stream--one of: <br/> <br/> * `enabled` <br/> * `suspended` |
-| `event_type` | `VARCHAR(16)` | Triggering event associated with this stream. <br/> <br/> ========== ========================================================================= Event Type Description ========== ========================================================================= `insert` Send records inserted into monitored table to target table/sink. `update` Send counts of records updated in monitored table to target table/sink. `delete` Send counts of records deleted from monitored table to target table/sink. ========== ========================================================================= |
+| `event_type` | `VARCHAR(16)` | Triggering event associated with this stream. <br/> <br/> `insert`: Send records inserted into monitored table to target table/sink. <br/> <br/> `update`: Send counts of records updated in monitored table to target table/sink. <br/> <br/> `delete`: Send counts of records deleted from monitored table to target table/sink. |
 | `datasink_oid` | `BIGINT` | Unique identifier associated with the [data sink](/content/concepts/data_sinks) targeted by this stream.  See [ki_datasinks](#ki-datasinks). |
 
 
@@ -817,7 +817,7 @@ a total of four entries for that single table column of data.
 | `size` | `BIGINT` | Total number of bytes used by this object in this tier. |
 | `id` | `VARCHAR(256)` | Unique identifier of this tiered object; for tables, containing the tiered column & table name. |
 | `priority` | `INTEGER` | Eviction priority for this object in this tier. |
-| `tier` | `VARCHAR(32)` | Name of the tier associated with this object. <br/> <br/> =========== ==================================================================== Type        Description =========== ==================================================================== `PERSIST` [Persist tier](/content/rm/concepts#rm-concepts-tiers-persist) `RAM`     [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram) =========== ==================================================================== |
+| `tier` | `VARCHAR(32)` | Name of the tier associated with this object. <br/> <br/> `PERSIST`: [Persist tier](/content/rm/concepts#rm-concepts-tiers-persist) <br/> <br/> `RAM`: [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram) |
 | `evictable` | `BOOLEAN` | Whether this tiered object is evictable from this tier. |
 | `locked` | `BOOLEAN` | Whether this tiered object is being processed by the tier management system. |
 | `pin_count` | `INTEGER` | Number of operations currently using this tiered object. |
@@ -840,11 +840,11 @@ Each record in `ki_users_and_roles` represents either a
 | --- | --- | --- |
 | `oid` | `BIGINT` | Unique identifier associated with this user or role. |
 | `name` | `VARCHAR(256)` | Name of this user or role. |
-| `can_login` | `INTEGER` | Whether this user can log in to the database. <br/> <br/> ==== =============================== Code Description ==== =============================== 0    User can't log in 1    User can log in NULL Not a user (i.e., a role) ==== =============================== |
-| `is_external` | `INTEGER` | Whether this user is externally authenticated or not. <br/> <br/> ==== =============================== Code Description ==== =============================== 0    Internal user 1    External user NULL Not a user (i.e., a role) ==== =============================== |
-| `is_superuser` | `INTEGER` | Whether this user/role has [system_admin](/content/security/sec_concepts#security-concepts-permissions-system) permission. <br/> <br/> ==== =============================== Code Description ==== =============================== 0    Doesn't have system admin 1    Has system admin ==== =============================== |
-| `can_create_role` | `INTEGER` | Whether this user/role can create other users/roles; effectively, whether this user/role has [system_admin](/content/security/sec_concepts#security-concepts-permissions-system) or [system_user_admin](/content/security/sec_concepts#security-concepts-permissions-system) permission. <br/> <br/> ==== =============================== Code Description ==== =============================== 0    Can't create roles 1    Can create roles ==== =============================== |
-| `can_create_schema` | `INTEGER` | Whether this user/role can create schemas; effectively, whether this user/role has [system_admin](/content/security/sec_concepts#security-concepts-permissions-system) or [system_write](/content/security/sec_concepts#security-concepts-permissions-system) permission. <br/> <br/> ==== =============================== Code Description ==== =============================== 0    Can't create schemas 1    Can create schemas ==== =============================== |
-| `can_bypass_rls` | `INTEGER` | Whether this user/role can bypass [row-level security](/content/security/sec_concepts#sec-concepts-perm-table-row); effectively, whether this user/role has [system_admin](/content/security/sec_concepts#security-concepts-permissions-system) permission. <br/> <br/> ==== =============================== Code Description ==== =============================== 0    Can't bypass row-level security 1    Can bypass row-level security ==== =============================== |
+| `can_login` | `INTEGER` | Whether this user can log in to the database. <br/> <br/> 0: User can't log in <br/> <br/> 1: User can log in <br/> <br/> NULL: Not a user (i.e., a role) |
+| `is_external` | `INTEGER` | Whether this user is externally authenticated or not. <br/> <br/> 0: Internal user <br/> <br/> 1: External user <br/> <br/> NULL: Not a user (i.e., a role) |
+| `is_superuser` | `INTEGER` | Whether this user/role has [system_admin](/content/security/sec_concepts#security-concepts-permissions-system) permission. <br/> <br/> 0: Doesn't have system admin <br/> <br/> 1: Has system admin |
+| `can_create_role` | `INTEGER` | Whether this user/role can create other users/roles; effectively, whether this user/role has [system_admin](/content/security/sec_concepts#security-concepts-permissions-system) or [system_user_admin](/content/security/sec_concepts#security-concepts-permissions-system) permission. <br/> <br/> 0: Can't create roles <br/> <br/> 1: Can create roles |
+| `can_create_schema` | `INTEGER` | Whether this user/role can create schemas; effectively, whether this user/role has [system_admin](/content/security/sec_concepts#security-concepts-permissions-system) or [system_write](/content/security/sec_concepts#security-concepts-permissions-system) permission. <br/> <br/> 0: Can't create schemas <br/> <br/> 1: Can create schemas |
+| `can_bypass_rls` | `INTEGER` | Whether this user/role can bypass [row-level security](/content/security/sec_concepts#sec-concepts-perm-table-row); effectively, whether this user/role has [system_admin](/content/security/sec_concepts#security-concepts-permissions-system) permission. <br/> <br/> 0: Can't bypass row-level security <br/> <br/> 1: Can bypass row-level security |
 | `resource_group` | `INTEGER` | [resource group](/content/rm/concepts#rm-concepts-resource-groups) assigned to this user/role. |
 | `comments` | `VARCHAR(256)` | Not used. |
