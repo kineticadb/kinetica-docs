@@ -802,29 +802,25 @@ Each record in `ki_streams` represents a single
 ### ki_tiered_objects
 
 
-Each record in `ki_tiered_objects` represents a column of data from a given
-table, located within a given rank & [tier](/content/rm/concepts#rm-concepts-tiers).  For
-instance, the `oid` column of the `ki_objects` table will likely have one
-entry for each combination of rank and tier in the database; on a database with
-two worker ranks, the column will have one entry for the
-[RAM tier](/content/rm/concepts#rm-concepts-tiers-ram) and one for the
-[PERSIST tier](/content/rm/concepts#rm-concepts-tiers-persist) on each of the two ranks, for
-a total of four entries for that single table column of data.
+Each record in `ki_tiered_objects` represents a single tiered object residing in a
+given [tier](/content/rm/concepts#rm-concepts-tiers) on a given rank.  A tiered object may occupy
+multiple tiers simultaneously, producing one record per object, tier, and rank
+combination.  Tiered objects are not limited to table columns.
 
 
 | Column Name | Column Type | Description |
 | --- | --- | --- |
 | `size` | `BIGINT` | Total number of bytes used by this object in this tier. |
-| `id` | `VARCHAR(256)` | Unique identifier of this tiered object; for tables, containing the tiered column & table name. |
+| `id` | `VARCHAR(256)` | Human-readable string representation of this tiered object; no particular format is guaranteed. |
 | `priority` | `INTEGER` | Eviction priority for this object in this tier. |
-| `tier` | `VARCHAR(32)` | Name of the tier associated with this object. <br/> <br/> `PERSIST`: [Persist tier](/content/rm/concepts#rm-concepts-tiers-persist) <br/> <br/> `RAM`: [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram) |
+| `tier` | `VARCHAR(32)` | Name of the tier associated with this object; can be any configured tier name (e.g. [RAM](/content/rm/concepts#rm-concepts-tiers-ram), [PERSIST](/content/rm/concepts#rm-concepts-tiers-persist), VRAM, COLD0). |
 | `evictable` | `BOOLEAN` | Whether this tiered object is evictable from this tier. |
 | `locked` | `BOOLEAN` | Whether this tiered object is being processed by the tier management system. |
 | `pin_count` | `INTEGER` | Number of operations currently using this tiered object. |
 | `ram_evictions` | `INTEGER` | The number of times the tiered object has been evicted from the *RAM tier*. |
-| `owner_resource_group` | `VARCHAR(128)` | Name of resource group governing this tiered object's tier position and eviction strategy. |
+| `owner_resource_group` | `VARCHAR(128)` | Name of the resource group governing this tiered object's tier strategy; indicates which resource group this object's *data* tier usage is tracked against. |
 | `source_rank` | `INTEGER` | Number of the rank associated with this tiered object. |
-| `outer_object` | `VARCHAR(256)` | Not used. |
+| `outer_object` | `VARCHAR(256)` | Special column identifying which table this tiered object belongs to; only populated when referenced in the query predicate (e.g. `SELECT * FROM ki_tobj WHERE outer_object IN ('a', 'b')`). |
 
 
 <a id="ki-users-and-roles"></a>

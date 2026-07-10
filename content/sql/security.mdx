@@ -246,6 +246,7 @@ See [Roles](/content/security/sec_concepts#security-concepts-roles) for details 
 <a id="sql-security-role-mgmt-create"></a>
 
 
+<a id="create-role"></a>
 ### CREATE ROLE
 
 
@@ -282,6 +283,7 @@ WITH RESOURCE GROUP execution_over_memory
 ```
 
 
+<a id="alter-role"></a>
 ### ALTER ROLE
 
 
@@ -315,6 +317,7 @@ SET RESOURCE GROUP DEFAULT
 ```
 
 
+<a id="drop-role"></a>
 ### DROP ROLE
 
 
@@ -343,6 +346,7 @@ DROP ROLE analyst
 ```
 
 
+<a id="show-security-for-role"></a>
 ### SHOW SECURITY FOR Role
 
 
@@ -374,6 +378,8 @@ SHOW SECURITY FOR analyst
 ```
 
 
+<a id="sql-security-priv-mgmt-schema"></a>
+
 <a id="sql-security-priv-mgmt"></a>
 
 
@@ -385,7 +391,6 @@ following commands:
 
 * Roles ([GRANT](/content/sql/security#sql-security-priv-mgmt-role-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-role-revoke))
 * System Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-sys-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-sys-revoke))
-* Schema Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-schema-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-schema-revoke))
 * Table Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-table-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-table-revoke))
 * Credential Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-cred-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-cred-revoke))
 * Data Source Permissions ([GRANT](/content/sql/security#sql-security-priv-mgmt-ds-grant) | [REVOKE](/content/sql/security#sql-security-priv-mgmt-ds-revoke))
@@ -492,38 +497,6 @@ GRANT USER ADMIN TO <user name | role name>
 | `USER ADMIN` | [User administrator permission](/content/security/sec_concepts#user-admin) |
 
 
-<a id="sql-perm-create-dir"></a>
-
-
-#### Create Directory
-
-
-```sql title="GRANT KiFS Directory Create Permission Syntax"
-GRANT CREATE DIRECTORY TO <user name | role name> [WITH GRANT OPTION]
-```
-
-| Permission | Description |
-| --- | --- |
-| `CREATE DIRECTORY` | [Create directory permission](/content/security/sec_concepts#directory-create) |
-| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
-
-
-<a id="sql-perm-create-udf"></a>
-
-
-#### Create UDF/UDTF
-
-
-```sql title="GRANT UDF Create Permission Syntax"
-GRANT CREATE FUNCTION TO <user name | role name> [WITH GRANT OPTION]
-```
-
-| Permission | Description |
-| --- | --- |
-| `CREATE FUNCTION` | [Create UDF/UDTF permission](/content/security/sec_concepts#proc-create) |
-| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
-
-
 #### Examples
 
 
@@ -549,25 +522,38 @@ GRANT USER ADMIN TO jsmith
 ```
 
 
-<a id="sql-security-priv-mgmt-schema"></a>
+<a id="sql-security-priv-mgmt-table"></a>
 
-<a id="sql-security-priv-mgmt-schema-grant"></a>
-
-
-### GRANT Schema Permission
+<a id="sql-security-priv-mgmt-table-grant"></a>
 
 
-[Schema permissions](/content/security/sec_concepts#security-concepts-permissions-schema), which
-allow management of [schemas](/content/sql/ddl#sql-create-schema) and their
-contained objects can be granted directly to
+### GRANT Table Permission
+
+
+[Table permissions](/content/security/sec_concepts#security-concepts-permissions-table), which can
+be applied to tables and views, can be granted directly to
 [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles).
 
-```sql title="GRANT Schema Permission Syntax"
-GRANT < SELECT | INSERT | UPDATE | DELETE | CREATE <object type> | ALL > [PRIVILEGES]
-ON [SCHEMA] <schema reference>
+[Row-level security](/content/security/sec_concepts#sec-concepts-perm-table-row) can be invoked for
+`SELECT` privilege by specifying a `WHERE` clause expression.
+
+[Column-level security](/content/security/sec_concepts#sec-concepts-perm-table-col) can be invoked for
+`SELECT` privilege by specifying a list of accessible columns and/or
+[column security functions](/content/security/sec_concepts#sec-concepts-perm-table-col-func).
+
+```sql title="GRANT Table Permission Syntax"
+GRANT < SELECT | INSERT | UPDATE | DELETE | ALL > [PRIVILEGES]
+ON <ALL TABLES [IN [SCHEMA] <schema reference>] | [TABLE | SCHEMA] <object reference> [<column list>]>
 TO <user name | role name>
+[WHERE <expression>]
 [WITH GRANT OPTION]
+```
+
+```sql title="GRANT Create Table Permission Syntax"
+GRANT CREATE [PRIVILEGES] ON TABLES
+[IN [SCHEMA] <schema reference>]
+TO <user name | role name> [WITH GRANT OPTION]
 ```
 
 
@@ -582,202 +568,11 @@ Optional keyword for SQL-92 compatibility.
 
 </Accordion>
 
-<Accordion title="SCHEMA" id="schema" defaultOpen>
+<Accordion title="TABLE / SCHEMA" id="table-/-schema" defaultOpen>
 
-Optional keyword to avoid ambiguity between a grant to a schema and a grant to a
-table/view in the user's default schema.
-
-</Accordion>
-
-<Accordion title="&lt;schema reference&gt;" id="<schema-reference>" defaultOpen>
-
-Either the name of the schema to which access is being granted or a wildcard expression
-signifying the schema(s) and table(s)/views(s) to which access is being granted.
-
-
-<div>
-<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
-  <thead>
-  <tr>
-    <th>Wildcard Form</th>
-    <th>Selected Objects</th>
-  </tr>
-  </thead>
-  <tbody>
-  <tr>
-    <td><code>*</code></td>
-    <td>All schemas currently in the database</td>
-  </tr>
-  <tr>
-    <td><code>*.*</code></td>
-    <td>All schemas, tables, &amp; views currently in the database</td>
-  </tr>
-  </tbody>
-</table>
-</div>
-
-</Accordion>
-
-<Accordion title="&lt;object type&gt;" id="<object-type>" defaultOpen>
-
-For granting `CREATE` privilege, the object type to give permission to create in the
-given schema.
-
-Supported object types include:
-
-
-<div>
-<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
-  <thead>
-  <tr>
-    <th>Target Type</th>
-    <th>Description</th>
-  </tr>
-  </thead>
-  <tbody>
-  <tr>
-    <td><code>CONTEXT</code></td>
-    <td>[SQL-GPT context](/content/sql/sqlgpt#sql-gpt-create-context) object</td>
-  </tr>
-  <tr>
-    <td><code>CREDENTIAL</code></td>
-    <td>[Credential](/content/sql/ddl#sql-create-credential) object</td>
-  </tr>
-  <tr>
-    <td><code>DATA SINK</code></td>
-    <td>External [data sink](/content/sql/ddl#sql-create-data-sink)</td>
-  </tr>
-  <tr>
-    <td><code>DATA SOURCE</code></td>
-    <td>External [data source](/content/sql/ddl#sql-create-data-source)</td>
-  </tr>
-  <tr>
-    <td><code>GRAPH</code></td>
-    <td>[Graph](/content/sql/graph#sql-graph-create)</td>
-  </tr>
-  <tr>
-    <td><code>PROCEDURE</code></td>
-    <td>SQL [stored procedure](/content/sql/procedure#sql-procedures)</td>
-  </tr>
-  <tr>
-    <td><code>STREAM</code></td>
-    <td>[Stream](/content/sql/ddl#sql-create-stream)</td>
-  </tr>
-  <tr>
-    <td><code>TABLE</code></td>
-    <td>[Table](/content/sql/ddl#sql-create-table) (or view)</td>
-  </tr>
-  </tbody>
-</table>
-</div>
-
-</Accordion>
-
-<Accordion title="WITH GRANT OPTION" id="with-grant-option" defaultOpen>
-
-Grant this permission with a
-[grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others.
-
-</Accordion>
-
-</AccordionGroup>
-
-
-<Info>
-The `ALL` permission corresponds to the native
-[table_admin](/content/security/sec_concepts#security-concepts-permissions-schema) permission,
-which gives full read/write access as well as the additional permission to
-`CREATE`, `ALTER`, & `DROP` any table or view in the specified
-schema(s).
-</Info>
-
-
-#### Examples
-
-
-To grant `SELECT` access on all schemas to the **auditor** role:
-
-{/* Source: /examples/sql/security/grant_revoke.kisql (lines 79) */}
-```sql GRANT Read on Schemas to Role Example
-GRANT SELECT ON * TO auditor
-```
-
-To grant `SELECT` access on all current and future tables & views within the
-**app_schema** schema to the **app_user** role:
-
-{/* Source: /examples/sql/security/grant_revoke.kisql (lines 82) */}
-```sql GRANT Read on Schema to Role Example
-GRANT SELECT ON app_schema TO app_user
-```
-
-To grant full access on each of the schemas, tables, & views in the database
-individually to the **dbadmin** role:
-
-{/* Source: /examples/sql/security/grant_revoke.kisql (lines 88) */}
-```sql GRANT All Permissions on All Schemas/Tables/Views to Role Example
-GRANT ALL ON *.* TO dbadmin
-```
-
-
-<a id="sql-security-priv-mgmt-table"></a>
-
-<a id="sql-security-priv-mgmt-table-grant"></a>
-
-
-### GRANT Table Permission
-
-
-[Table permissions](/content/security/sec_concepts#security-concepts-permissions-table), which can
-be applied to tables and views, can be granted directly to
-[users](/content/security/sec_concepts#security-concepts-users) or
-[roles](/content/security/sec_concepts#security-concepts-roles).
-
-
-<Note>
-For granting the ability to create *tables*, see
-[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
-</Note>
-
-[Row-level security](/content/security/sec_concepts#sec-concepts-perm-table-row) can be invoked for
-`SELECT` privilege by specifying a `WHERE` clause expression.
-
-[Column-level security](/content/security/sec_concepts#sec-concepts-perm-table-col) can be invoked for
-`SELECT` privilege by specifying a list of accessible columns and/or
-[column security functions](/content/security/sec_concepts#sec-concepts-perm-table-col-func).
-
-```sql title="GRANT Table Permission Syntax"
-GRANT < SELECT | INSERT | UPDATE | DELETE | ALL > [PRIVILEGES]
-[ON [TABLE] <object reference> [<column list>]]
-TO <user name | role name>
-[WHERE <expression>]
-[WITH GRANT OPTION]
-```
-
-
-#### Parameters
-
-
-<AccordionGroup>
-
-<Accordion title="PRIVILEGES" id="privileges-2" defaultOpen>
-
-Optional keyword for SQL-92 compatibility.
-
-</Accordion>
-
-<Accordion title="ON" id="on" defaultOpen>
-
-Optional object specifier for granting permission to a specific object or set of objects.
-If not specified, then the grant will be for all tables and views
-in all schemas now and in the future
-
-</Accordion>
-
-<Accordion title="TABLE" id="table" defaultOpen>
-
-Optional keyword for SQL-92 compatibility, and to avoid ambiguity between a grant to a
-table/view in the user's default schema (when `<schema name>` is omitted) and a grant
-to a schema.
+Optional SQL-92 keywords that disambiguate the object reference: `TABLE` selects a
+table/view in the user's default schema (when the schema is omitted), while `SCHEMA`
+selects a schema.
 
 </Accordion>
 
@@ -802,7 +597,7 @@ the following forms are valid:
   </tr>
   <tr>
     <td><code>*.*</code></td>
-    <td>All existing tables &amp; views that the granting user can see across all schemas</td>
+    <td>All existing tables &amp; views that the granting user can see, across all schemas</td>
   </tr>
   <tr>
     <td><code>*</code></td>
@@ -822,6 +617,14 @@ the following forms are valid:
 
 </Accordion>
 
+<Accordion title="&lt;schema reference&gt;" id="<schema-reference>" defaultOpen>
+
+The schema the permission applies to (with the ALL or CREATE forms).  If the IN [SCHEMA]
+clause is omitted, the permission applies across all schemas, both now and in the future.
+Wildcards are not permitted with the IN keyword.
+
+</Accordion>
+
 <Accordion title="&lt;column list&gt;" id="<column-list>" defaultOpen>
 
 Optional comma-separated list of specific table columns and/or
@@ -838,7 +641,7 @@ which rows of the target table the grantee will be given access; see
 
 </Accordion>
 
-<Accordion title="WITH GRANT OPTION" id="with-grant-option-2" defaultOpen>
+<Accordion title="WITH GRANT OPTION" id="with-grant-option" defaultOpen>
 
 Grant this permission with a
 [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others.
@@ -886,6 +689,29 @@ To grant full access on each of the tables & views within the
 {/* Source: /examples/sql/security/grant_revoke.kisql (lines 85) */}
 ```sql GRANT All Permissions on Current Tables/Views in Schema to Role Example
 GRANT ALL ON example.* TO developer
+```
+
+To grant `SELECT` access on all schemas to the **auditor** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 79) */}
+```sql GRANT Read on Schemas to Role Example
+GRANT SELECT ON * TO auditor
+```
+
+To grant `SELECT` access on all current and future tables & views within the
+**app_schema** schema to the **app_user** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 82) */}
+```sql GRANT Read on Schema to Role Example
+GRANT SELECT ON app_schema TO app_user
+```
+
+To grant full access on each of the schemas, tables, & views in the database
+individually to the **dbadmin** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 88) */}
+```sql GRANT All Permissions on All Schemas/Tables/Views to Role Example
+GRANT ALL ON *.* TO dbadmin
 ```
 
 
@@ -958,20 +784,24 @@ can be granted directly to
 [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles).
 
-
-<Note>
-For granting the ability to create *credentials*, see
-[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
-</Note>
-
 ```sql title="GRANT Credential Permission Syntax"
-GRANT <READ | ADMIN> ON CREDENTIAL <credential name> TO <user name | role name> [WITH GRANT OPTION]
+GRANT <READ | ADMIN> [PRIVILEGES]
+ON <ALL CREDENTIALS [IN [SCHEMA] <schema reference>] | CREDENTIAL <credential reference>>
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+```sql title="GRANT Create Credential Permission Syntax"
+GRANT CREATE [PRIVILEGES] ON CREDENTIALS
+[IN [SCHEMA] <schema reference>]
+TO <user name | role name> [WITH GRANT OPTION]
 ```
 
 | Permission | Description |
 | --- | --- |
 | `ADMIN` | Modify or drop the given *credential* (includes `READ` access). |
 | `READ` | Use or view the configuration of the given *credential*. |
+| `<credential reference>` | The name of the credential to which access is being granted, or a wildcard expression signifying the credentials to which access is being granted.  The following forms are valid: <br/> <br/> *&lt;schema&gt;.&lt;credential&gt;*: Fully-qualified credential name in the specified schema <br/> <br/> `*.*`: All existing credentials that the granting user can see, across all schemas <br/> <br/> `*`: All existing schemas the granting user can see, which grants access to all credentials in those schemas now and in the future <br/> <br/> *&lt;schema&gt;*: All credentials in the specified schema <br/> <br/> *&lt;credential&gt;*: Credential in the default schema. If a schema exists with the same name, it will be used. To avoid this, specify the fully-qualified credential name. |
+| `<schema reference>` | The schema the permission applies to (with the `ALL` or `CREATE` forms).  If the IN [SCHEMA] clause is omitted, the permission applies across all schemas, both now and in the future.  Wildcards are not permitted with the IN keyword. |
 | `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
 
 
@@ -1006,20 +836,24 @@ can be granted directly to
 [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles).
 
-
-<Note>
-For granting the ability to create *data sources*, see
-[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
-</Note>
-
 ```sql title="GRANT Data Source Permission Syntax"
-GRANT <CONNECT | ADMIN> ON DATA SOURCE <data source name> TO <user name | role name> [WITH GRANT OPTION]
+GRANT <CONNECT | ADMIN> [PRIVILEGES]
+ON <ALL DATA SOURCES [IN [SCHEMA] <schema reference>] | DATA SOURCE <data source reference>>
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+```sql title="GRANT Create Data Source Permission Syntax"
+GRANT CREATE [PRIVILEGES] ON DATA SOURCES
+[IN [SCHEMA] <schema reference>]
+TO <user name | role name> [WITH GRANT OPTION]
 ```
 
 | Permission | Description |
 | --- | --- |
 | `ADMIN` | Modify or drop the given *data source* (includes `CONNECT` access). |
 | `CONNECT` | Connect to, load data into, or view the configuration of the given *data source*. |
+| `<data source reference>` | The name of the data source to which access is being granted, or a wildcard expression signifying the data sources to which access is being granted.  The following forms are valid: <br/> <br/> *&lt;schema&gt;.&lt;data source&gt;*: Fully-qualified data source name in the specified schema <br/> <br/> `*.*`: All existing data sources that the granting user can see, across all schemas <br/> <br/> `*`: All existing schemas the granting user can see, which grants access to all data sources in those schemas now and in the future <br/> <br/> *&lt;schema&gt;*: All data sources in the specified schema <br/> <br/> *&lt;data source&gt;*: Data source in the default schema. If a schema exists with the same name, it will be used. To avoid this, specify the fully-qualified data source name. |
+| `<schema reference>` | The schema the permission applies to (with the `ALL` or `CREATE` forms).  If the IN [SCHEMA] clause is omitted, the permission applies across all schemas, both now and in the future.  Wildcards are not permitted with the IN keyword. |
 | `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
 
 
@@ -1055,20 +889,24 @@ can be granted directly to
 [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles).
 
-
-<Note>
-For granting the ability to create *data sinks*, see
-[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
-</Note>
-
 ```sql title="GRANT Data Sink Permission Syntax"
-GRANT <CONNECT | ADMIN> ON DATA SINK <data sink name> TO <user name | role name> [WITH GRANT OPTION]
+GRANT <CONNECT | ADMIN> [PRIVILEGES]
+ON <ALL DATA SINKS [IN [SCHEMA] <schema reference>] | DATA SINK <data sink reference>>
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+```sql title="GRANT Create Data Sink Permission Syntax"
+GRANT CREATE [PRIVILEGES] ON DATA SINKS
+[IN [SCHEMA] <schema reference>]
+TO <user name | role name> [WITH GRANT OPTION]
 ```
 
 | Permission | Description |
 | --- | --- |
 | `ADMIN` | Modify or drop the given *data sink* (includes `CONNECT` access). |
 | `CONNECT` | Connect to, load data into, or view the configuration of the given *data sink*. |
+| `<data sink reference>` | The name of the data sink to which access is being granted, or a wildcard expression signifying the data sinks to which access is being granted.  The following forms are valid: <br/> <br/> *&lt;schema&gt;.&lt;data sink&gt;*: Fully-qualified data sink name in the specified schema <br/> <br/> `*.*`: All existing data sinks that the granting user can see, across all schemas <br/> <br/> `*`: All existing schemas the granting user can see, which grants access to all data sinks in those schemas now and in the future <br/> <br/> *&lt;schema&gt;*: All data sinks in the specified schema <br/> <br/> *&lt;data sink&gt;*: Data sink in the default schema. If a schema exists with the same name, it will be used. To avoid this, specify the fully-qualified data sink name. |
+| `<schema reference>` | The schema the permission applies to (with the `ALL` or `CREATE` forms).  If the IN [SCHEMA] clause is omitted, the permission applies across all schemas, both now and in the future.  Wildcards are not permitted with the IN keyword. |
 | `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
 
 
@@ -1104,20 +942,23 @@ which allow management of *files* within
 directly to [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles).
 
-
-<Note>
-For granting the ability to create *directories*, see
-[GRANT SYSTEM Permission](/content/sql/security#sql-security-priv-mgmt-sys-grant).
-</Note>
-
 ```sql title="GRANT Directory Permission Syntax"
-GRANT <READ | WRITE> ON DIRECTORY <directory name> TO <user name | role name> [WITH GRANT OPTION]
+GRANT <READ | WRITE> [PRIVILEGES]
+ON <ALL DIRECTORIES | DIRECTORY < <directory name> | * >>
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+```sql title="GRANT Create Directory Permission Syntax"
+GRANT CREATE DIRECTORY [PRIVILEGES]
+TO <user name | role name> [WITH GRANT OPTION]
 ```
 
 | Permission | Description |
 | --- | --- |
 | `READ` | List, download, or load data from *files* within the given *directory*. |
 | `WRITE` | Upload *files* to or delete *files* from the given *directory* (includes `READ` access). |
+| `<directory reference>` | The name of the directory to which access is being granted, or `*` for all directorys. The following forms are valid: <br/> <br/> *&lt;directory name&gt;*: The specified directory <br/> <br/> `*`: All directorys, both existing and future |
+| `CREATE DIRECTORY` | [Create directory permission](/content/security/sec_concepts#directory-create) |
 | `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
 
 
@@ -1151,27 +992,24 @@ which allow management of [UDFs/UDTFs](/content/sql/udf#sql-udf), can be granted
 directly to [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles).
 
+```sql title="GRANT Function (UDF/UDTF) Permission Syntax"
+GRANT <EXECUTE | ADMIN> [PRIVILEGES]
+ON <ALL FUNCTIONS | FUNCTION < <function name> | * >>
+TO <user name | role name> [WITH GRANT OPTION]
+```
 
-<Note>
-For granting the ability to create *UDFs/UDTFs*, see
-[GRANT SYSTEM Permission](/content/sql/security#sql-security-priv-mgmt-sys-grant).
-</Note>
-
-```sql title="GRANT FUNCTION (UDF) Permission Syntax"
-GRANT <EXECUTE | ADMIN> ON FUNCTION < <function name> | * > TO <user name | role name> [WITH GRANT OPTION]
+```sql title="GRANT Create Function (UDF/UDTF) Permission Syntax"
+GRANT CREATE FUNCTION [PRIVILEGES]
+TO <user name | role name> [WITH GRANT OPTION]
 ```
 
 | Permission | Description |
 | --- | --- |
 | `ADMIN` | Drop the given *UDF*, and display full configuration about it (includes `EXECUTE` access). <br/> <br/> When `*` is used instead of *function name*, gives permission to manage [Python UDF function environments](/content/sql/udf#sql-create-function-environment). |
 | `EXECUTE` | Run and terminate the given *UDF*, and display limited configuration about it. |
+| `<function reference>` | The name of the UDF/UDTF to which access is being granted, or `*` for all functions.  The following forms are valid: <br/> <br/> *&lt;function name&gt;*: The specified UDF/UDTF <br/> <br/> `*`: All functions, both existing and future |
+| `CREATE FUNCTION` | [Create UDF/UDTF permission](/content/security/sec_concepts#proc-create) |
 | `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
-
-
-<Info>
-Use `*` instead of *function name* to grant the specified permission
-to all existing & future UDFs.
-</Info>
 
 
 #### Examples
@@ -1204,14 +1042,16 @@ allow management of [graphs](/content/sql/graph), can be granted
 directly to [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles).
 
-
-<Note>
-For granting the ability to create *graphs*, see
-[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
-</Note>
-
 ```sql title="GRANT Graph Permission Syntax"
-GRANT <READ | WRITE | ADMIN> ON GRAPH <graph name> TO <user name | role name> [WITH GRANT OPTION]
+GRANT <READ | WRITE | ADMIN> [PRIVILEGES]
+ON <ALL GRAPHS [IN [SCHEMA] <schema reference>] | GRAPH <graph reference>>
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+```sql title="GRANT Create Graph Permission Syntax"
+GRANT CREATE [PRIVILEGES] ON GRAPHS
+[IN [SCHEMA] <schema reference>]
+TO <user name | role name> [WITH GRANT OPTION]
 ```
 
 | Permission | Description |
@@ -1219,6 +1059,8 @@ GRANT <READ | WRITE | ADMIN> ON GRAPH <graph name> TO <user name | role name> [W
 | `ADMIN` | Drop the given *graph* (includes `WRITE` access). |
 | `READ` | Query, match, solve, & show the given *graph*. |
 | `WRITE` | Modify the given *graph* (includes `READ` access). |
+| `<graph reference>` | The name of the graph to which access is being granted, or a wildcard expression signifying the graphs to which access is being granted.  The following forms are valid: <br/> <br/> *&lt;schema&gt;.&lt;graph&gt;*: Fully-qualified graph name in the specified schema <br/> <br/> `*.*`: All existing graphs that the granting user can see, across all schemas <br/> <br/> `*`: All existing schemas the granting user can see, which grants access to all graphs in those schemas now and in the future <br/> <br/> *&lt;schema&gt;*: All graphs in the specified schema <br/> <br/> *&lt;graph&gt;*: Graph in the default schema. If a schema exists with the same name, it will be used. To avoid this, specify the fully- qualified graph name. |
+| `<schema reference>` | The schema the permission applies to (with the `ALL` or `CREATE` forms).  If the IN [SCHEMA] clause is omitted, the permission applies across all schemas, both now and in the future.  Wildcards are not permitted with the IN keyword. |
 | `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
 
 
@@ -1245,19 +1087,23 @@ which allow execution of [SQL procedures](/content/sql/procedure#sql-procedures)
 granted directly to [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles).
 
+```sql title="GRANT Procedure Permission Syntax"
+GRANT EXECUTE [PRIVILEGES]
+ON <ALL PROCEDURES [IN [SCHEMA] <schema reference>] | PROCEDURE <procedure reference>>
+TO <user name | role name> [WITH GRANT OPTION]
+```
 
-<Note>
-For granting the ability to create *SQL procedures*, see
-[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
-</Note>
-
-```sql title="GRANT EXECUTE PROCEDURE Permission Syntax"
-GRANT EXECUTE PROCEDURE ON <procedure name> TO <user name | role name> [WITH GRANT OPTION]
+```sql title="GRANT Create Procedure Permission Syntax"
+GRANT CREATE [PRIVILEGES] ON PROCEDURES
+[IN [SCHEMA] <schema reference>]
+TO <user name | role name> [WITH GRANT OPTION]
 ```
 
 | Permission | Description |
 | --- | --- |
 | `EXECUTE` | Run the given *SQL procedure*. |
+| `<procedure reference>` | The name of the procedure to which access is being granted, or a wildcard expression signifying the procedures to which access is being granted.  The following forms are valid: <br/> <br/> *&lt;schema&gt;.&lt;procedure&gt;*: Fully-qualified procedure name in the specified schema <br/> <br/> `*.*`: All existing procedures that the granting user can see, across all schemas <br/> <br/> `*`: All existing schemas the granting user can see, which grants access to all procedures in those schemas now and in the future <br/> <br/> *&lt;schema&gt;*: All procedures in the specified schema <br/> <br/> *&lt;procedure&gt;*: Procedure in the default schema. If a schema exists with the same name, it will be used. To avoid this, specify the fully-qualified procedure name. |
+| `<schema reference>` | The schema the permission applies to (with the `ALL` or `CREATE` forms).  If the IN [SCHEMA] clause is omitted, the permission applies across all schemas, both now and in the future.  Wildcards are not permitted with the IN keyword. |
 | `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
 
 
@@ -1285,20 +1131,24 @@ can be granted directly to
 [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles).
 
-
-<Note>
-For granting the ability to create *SQL-GPT contexts*, see
-[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
-</Note>
-
 ```sql title="GRANT SQL-GPT Context Permission Syntax"
-GRANT <READ | ADMIN> ON CONTEXT <context name> TO <user name | role name> [WITH GRANT OPTION]
+GRANT <READ | ADMIN> [PRIVILEGES]
+ON <ALL CONTEXTS [IN [SCHEMA] <schema reference>] | CONTEXT <context reference>>
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+```sql title="GRANT Create SQL-GPT Context Permission Syntax"
+GRANT CREATE [PRIVILEGES] ON CONTEXTS
+[IN [SCHEMA] <schema reference>]
+TO <user name | role name> [WITH GRANT OPTION]
 ```
 
 | Permission | Description |
 | --- | --- |
 | `ADMIN` | Modify or drop the given *context* (includes `READ` access). |
 | `READ` | Use the given *context* to generate SQL using a SQL-GPT query. |
+| `<context reference>` | The name of the context to which access is being granted, or a wildcard expression signifying the contexts to which access is being granted.  The following forms are valid: <br/> <br/> *&lt;schema&gt;.&lt;context&gt;*: Fully-qualified context name in the specified schema <br/> <br/> `*.*`: All existing contexts that the granting user can see, across all schemas <br/> <br/> `*`: All existing schemas the granting user can see, which grants access to all contexts in those schemas now and in the future <br/> <br/> *&lt;schema&gt;*: All contexts in the specified schema <br/> <br/> *&lt;context&gt;*: Context in the default schema. If a schema exists with the same name, it will be used. To avoid this, specify the fully- qualified context name. |
+| `<schema reference>` | The schema the permission applies to (with the `ALL` or `CREATE` forms).  If the IN [SCHEMA] clause is omitted, the permission applies across all schemas, both now and in the future.  Wildcards are not permitted with the IN keyword. |
 | `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
 
 
@@ -1326,19 +1176,23 @@ can be granted directly to
 [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles).
 
+```sql title="GRANT Stream Permission Syntax"
+GRANT ADMIN [PRIVILEGES]
+ON <ALL STREAMS [IN [SCHEMA] <schema reference>] | STREAM <stream reference>>
+TO <user name | role name> [WITH GRANT OPTION]
+```
 
-<Note>
-For granting the ability to create *streams*, see
-[GRANT Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-grant).
-</Note>
-
-```sql title="GRANT Stream Administrative Permission Syntax"
-GRANT ADMIN ON STREAM <stream name> TO <user name | role name> [WITH GRANT OPTION]
+```sql title="GRANT Create Stream Permission Syntax"
+GRANT CREATE [PRIVILEGES] ON STREAMS
+[IN [SCHEMA] <schema reference>]
+TO <user name | role name> [WITH GRANT OPTION]
 ```
 
 | Permission | Description |
 | --- | --- |
 | `ADMIN` | Drop the given *stream*. |
+| `<stream reference>` | The name of the stream to which access is being granted, or a wildcard expression signifying the streams to which access is being granted.  The following forms are valid: <br/> <br/> *&lt;schema&gt;.&lt;stream&gt;*: Fully-qualified stream name in the specified schema <br/> <br/> `*.*`: All existing streams that the granting user can see, across all schemas <br/> <br/> `*`: All existing schemas the granting user can see, which grants access to all streams in those schemas now and in the future <br/> <br/> *&lt;schema&gt;*: All streams in the specified schema <br/> <br/> *&lt;stream&gt;*: Stream in the default schema. If a schema exists with the same name, it will be used. To avoid this, specify the fully- qualified stream name. |
+| `<schema reference>` | The schema the permission applies to (with the `ALL` or `CREATE` forms).  If the IN [SCHEMA] clause is omitted, the permission applies across all schemas, both now and in the future.  Wildcards are not permitted with the IN keyword. |
 | `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
 
 
@@ -1404,14 +1258,6 @@ REVOKE SYSTEM < ADMIN | CREATE | MONITOR | READ | WRITE > FROM <user name | role
 REVOKE USER ADMIN FROM <user name | role name>
 ```
 
-```sql title="REVOKE KiFS Directory Create Permission Syntax"
-REVOKE CREATE DIRECTORY FROM <user name | role name>
-```
-
-```sql title="REVOKE UDF Create Permission Syntax"
-REVOKE CREATE FUNCTION FROM <user name | role name>
-```
-
 
 #### Examples
 
@@ -1438,166 +1284,6 @@ REVOKE USER ADMIN FROM jsmith
 ```
 
 
-<a id="sql-security-priv-mgmt-schema-revoke"></a>
-
-
-### REVOKE Schema Permission
-
-
-[Schema permissions](/content/security/sec_concepts#security-concepts-permissions-schema), which
-allow management of [schemas](/content/sql/ddl#sql-create-schema) and their
-contained objects can be revoked from
-[users](/content/security/sec_concepts#security-concepts-users) or
-[roles](/content/security/sec_concepts#security-concepts-roles).
-
-```sql title="REVOKE Schema Permission Syntax"
-REVOKE < SELECT | INSERT | UPDATE | DELETE | CREATE <object type> | ALL > [PRIVILEGES]
-ON [SCHEMA] <schema reference>
-FROM <user name | role name>
-```
-
-
-#### Parameters
-
-
-<AccordionGroup>
-
-<Accordion title="PRIVILEGES" id="privileges-3" defaultOpen>
-
-Optional keyword for SQL-92 compatibility
-
-</Accordion>
-
-<Accordion title="SCHEMA" id="schema-2" defaultOpen>
-
-Optional keyword to avoid ambiguity between revoking a grant to a schema and a grant to a
-table/view in the user's default schema
-
-</Accordion>
-
-<Accordion title="&lt;schema reference&gt;" id="<schema-reference>-2" defaultOpen>
-
-Either the name of the schema to which access is being revoked or a wildcard expression
-signifying the schema(s) and table(s)/views(s) to which access is being revoked
-
-
-<div>
-<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
-  <thead>
-  <tr>
-    <th>Wildcard Form</th>
-    <th>Selected Objects</th>
-  </tr>
-  </thead>
-  <tbody>
-  <tr>
-    <td><code>*</code></td>
-    <td>All schemas currently in the database</td>
-  </tr>
-  <tr>
-    <td><code>*.*</code></td>
-    <td>All schemas, tables, &amp; views currently in the database</td>
-  </tr>
-  </tbody>
-</table>
-</div>
-
-</Accordion>
-
-<Accordion title="&lt;object type&gt;" id="<object-type>-2" defaultOpen>
-
-For revoking `CREATE` privilege, the object type to remove permission to create in the
-given schema.
-
-Supported object types include:
-
-
-<div>
-<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
-  <thead>
-  <tr>
-    <th>Target Type</th>
-    <th>Description</th>
-  </tr>
-  </thead>
-  <tbody>
-  <tr>
-    <td><code>CONTEXT</code></td>
-    <td>[SQL-GPT context](/content/sql/sqlgpt#sql-gpt-create-context) object</td>
-  </tr>
-  <tr>
-    <td><code>CREDENTIAL</code></td>
-    <td>[Credential](/content/sql/ddl#sql-create-credential) object</td>
-  </tr>
-  <tr>
-    <td><code>DATA SINK</code></td>
-    <td>External [data sink](/content/sql/ddl#sql-create-data-sink)</td>
-  </tr>
-  <tr>
-    <td><code>DATA SOURCE</code></td>
-    <td>External [data source](/content/sql/ddl#sql-create-data-source)</td>
-  </tr>
-  <tr>
-    <td><code>GRAPH</code></td>
-    <td>[Graph](/content/sql/graph#sql-graph-create)</td>
-  </tr>
-  <tr>
-    <td><code>PROCEDURE</code></td>
-    <td>SQL [stored procedure](/content/sql/procedure#sql-procedures)</td>
-  </tr>
-  <tr>
-    <td><code>STREAM</code></td>
-    <td>[Stream](/content/sql/ddl#sql-create-stream)</td>
-  </tr>
-  <tr>
-    <td><code>TABLE</code></td>
-    <td>[Table](/content/sql/ddl#sql-create-table) (or view)</td>
-  </tr>
-  </tbody>
-</table>
-</div>
-
-</Accordion>
-
-</AccordionGroup>
-
-
-<Info>
-The `ALL` permission corresponds to the native
-[table_admin](/content/security/sec_concepts#security-concepts-permissions-schema) permission,
-which gives full read/write access as well as the additional permission to
-`CREATE`, `ALTER`, & `DROP` any table or view in the specified
-schema(s).
-</Info>
-
-
-#### Examples
-
-
-To revoke `SELECT` access on all schemas from the **auditor** role:
-
-{/* Source: /examples/sql/security/grant_revoke.kisql (lines 134) */}
-```sql REVOKE Read on Schemas from Role Example
-REVOKE SELECT ON * FROM auditor
-```
-
-To revoke `SELECT` access on all current and future tables & views within the
-**app_schema** schema from the **app_user** role:
-
-{/* Source: /examples/sql/security/grant_revoke.kisql (lines 137) */}
-```sql REVOKE Read on Schema from Role Example
-REVOKE SELECT ON app_schema FROM app_user
-```
-
-To revoke full access on each of the schemas, tables, & views in the database
-individually from the **dbadmin** role:
-
-{/* Source: /examples/sql/security/grant_revoke.kisql (lines 143) */}
-```sql REVOKE All Permissions on All Schemas/Tables/Views from Role Example
-REVOKE ALL ON *.* FROM dbadmin
-```
-
-
 <a id="sql-security-priv-mgmt-table-revoke"></a>
 
 
@@ -1608,12 +1294,6 @@ REVOKE ALL ON *.* FROM dbadmin
 be applied to tables and views, can be revoked from
 [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles).
-
-
-<Note>
-For revoking the ability to create *tables*, see
-[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
-</Note>
 
 [Row-level security](/content/security/sec_concepts#sec-concepts-perm-table-row) can be revoked for
 `SELECT` privilege only by revoking `SELECT` privilege from the entire
@@ -1633,7 +1313,13 @@ column when granting access (`HASH`, `MASK`).
 
 ```sql title="REVOKE Table Permission Syntax"
 REVOKE < SELECT | INSERT | UPDATE | DELETE | ALL > [PRIVILEGES]
-ON [TABLE] [<schema name>.]<table/view name> [<column list>]
+ON <ALL TABLES [IN [SCHEMA] <schema reference>] | [TABLE | SCHEMA] <object reference> [<column list>]>
+FROM <user name | role name>
+```
+
+```sql title="REVOKE Create Table Permission Syntax"
+REVOKE CREATE [PRIVILEGES] ON TABLES
+[IN [SCHEMA] <schema reference>]
 FROM <user name | role name>
 ```
 
@@ -1643,31 +1329,66 @@ FROM <user name | role name>
 
 <AccordionGroup>
 
-<Accordion title="PRIVILEGES" id="privileges-4" defaultOpen>
+<Accordion title="PRIVILEGES" id="privileges-2" defaultOpen>
 
 Optional keyword for SQL-92 compatibility
 
 </Accordion>
 
-<Accordion title="TABLE" id="table-2" defaultOpen>
+<Accordion title="TABLE / SCHEMA" id="table-/-schema-2" defaultOpen>
 
-Optional keyword for SQL-92 compatibility, and to avoid ambiguity between revoking a
-grant to a table/view in the user's default schema (when `<schema name>` is omitted)
-and a grant to a schema
-
-</Accordion>
-
-<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
-
-The name of the schema containing the table/view to which access is being revoked; if
-omitted, the table/view will be looked for in the default schema
+Optional SQL-92 keywords that disambiguate the object reference: `TABLE` selects a
+table/view in the user's default schema (when the schema is omitted), while `SCHEMA`
+selects a schema.
 
 </Accordion>
 
-<Accordion title="&lt;table/view name&gt;" id="<table/view-name>" defaultOpen>
+<Accordion title="&lt;object reference&gt;" id="<object-reference>-2" defaultOpen>
 
-The name of the table to which access is being revoked; the wildcard `*` can be used to
-revoke access to all tables/views within the given `<schema name>` schema
+The name of the table/view and/or schema to which access is being revoked; the following
+forms are valid:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Form</th>
+    <th>Selected Objects</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td>*&lt;schema&gt;.&lt;object&gt;*</td>
+    <td>Fully-qualified table or view name in the specified schema</td>
+  </tr>
+  <tr>
+    <td><code>*.*</code></td>
+    <td>All existing tables &amp; views that the revoking user can see, across all schemas</td>
+  </tr>
+  <tr>
+    <td><code>*</code></td>
+    <td>All schemas the revoking user can see, removing access to all tables and views in those schemas now and in the future</td>
+  </tr>
+  <tr>
+    <td>*&lt;schema&gt;*</td>
+    <td>All tables and views in the specified schema now and in the future</td>
+  </tr>
+  <tr>
+    <td>*&lt;object&gt;*</td>
+    <td>Table or view in the default schema.  If a schema exists with the same name, it will be used.  To avoid this, specify the fully-qualified object name.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;schema reference&gt;" id="<schema-reference>-2" defaultOpen>
+
+The schema the permission applies to (with the ALL or CREATE forms).  If the IN [SCHEMA]
+clause is omitted, the permission is removed from all schemas, both now and in the
+future.  Wildcards are not permitted with the IN keyword.
 
 </Accordion>
 
@@ -1715,6 +1436,29 @@ schema from the **developer** role:
 {/* Source: /examples/sql/security/grant_revoke.kisql (lines 140) */}
 ```sql REVOKE All Permissions on Current Tables/Views in Schema from Role Example
 REVOKE ALL ON example.* FROM developer
+```
+
+To revoke `SELECT` access on all schemas from the **auditor** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 134) */}
+```sql REVOKE Read on Schemas from Role Example
+REVOKE SELECT ON * FROM auditor
+```
+
+To revoke `SELECT` access on all current and future tables & views within the
+**app_schema** schema from the **app_user** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 137) */}
+```sql REVOKE Read on Schema from Role Example
+REVOKE SELECT ON app_schema FROM app_user
+```
+
+To revoke full access on each of the schemas, tables, & views in the database
+individually from the **dbadmin** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 143) */}
+```sql REVOKE All Permissions on All Schemas/Tables/Views from Role Example
+REVOKE ALL ON *.* FROM dbadmin
 ```
 
 
@@ -1774,14 +1518,16 @@ directly to
 [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
 
-
-<Note>
-For revoking the ability to create *credentials*, see
-[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
-</Note>
-
 ```sql title="REVOKE Credential Permission Syntax"
-REVOKE <READ | ADMIN> ON CREDENTIAL <credential name> FROM <user name | role name>
+REVOKE <READ | ADMIN> [PRIVILEGES]
+ON <ALL CREDENTIALS [IN [SCHEMA] <schema reference>] | CREDENTIAL <credential reference>>
+FROM <user name | role name>
+```
+
+```sql title="REVOKE Create Credential Permission Syntax"
+REVOKE CREATE [PRIVILEGES] ON CREDENTIALS
+[IN [SCHEMA] <schema reference>]
+FROM <user name | role name>
 ```
 
 
@@ -1817,14 +1563,16 @@ directly to
 [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
 
-
-<Note>
-For revoking the ability to create *data sources*, see
-[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
-</Note>
-
 ```sql title="REVOKE Data Source Permission Syntax"
-REVOKE <CONNECT | ADMIN> ON DATA SOURCE <data source name> FROM <user name | role name>
+REVOKE <CONNECT | ADMIN> [PRIVILEGES]
+ON <ALL DATA SOURCES [IN [SCHEMA] <schema reference>] | DATA SOURCE <data source reference>>
+FROM <user name | role name>
+```
+
+```sql title="REVOKE Create Data Source Permission Syntax"
+REVOKE CREATE [PRIVILEGES] ON DATA SOURCES
+[IN [SCHEMA] <schema reference>]
+FROM <user name | role name>
 ```
 
 
@@ -1861,14 +1609,16 @@ directly to
 [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
 
-
-<Note>
-For revoking the ability to create *data sinks*, see
-[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
-</Note>
-
 ```sql title="REVOKE Data Sink Permission Syntax"
-REVOKE <CONNECT | ADMIN> ON DATA SINK <data sink name> FROM <user name | role name>
+REVOKE <CONNECT | ADMIN> [PRIVILEGES]
+ON <ALL DATA SINKS [IN [SCHEMA] <schema reference>] | DATA SINK <data sink reference>>
+FROM <user name | role name>
+```
+
+```sql title="REVOKE Create Data Sink Permission Syntax"
+REVOKE CREATE [PRIVILEGES] ON DATA SINKS
+[IN [SCHEMA] <schema reference>]
+FROM <user name | role name>
 ```
 
 
@@ -1905,14 +1655,15 @@ directly to
 [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
 
-
-<Note>
-For revoking the ability to create *directories*, see
-[REVOKE SYSTEM Permission](/content/sql/security#sql-security-priv-mgmt-sys-revoke).
-</Note>
-
 ```sql title="REVOKE Directory Permission Syntax"
-REVOKE <READ | WRITE> ON DIRECTORY <directory name> FROM <user name | role name>
+REVOKE <READ | WRITE> [PRIVILEGES]
+ON <ALL DIRECTORIES | DIRECTORY < <directory name> | * >>
+FROM <user name | role name>
+```
+
+```sql title="REVOKE Create Directory Permission Syntax"
+REVOKE CREATE DIRECTORY [PRIVILEGES]
+FROM <user name | role name>
 ```
 
 
@@ -1949,14 +1700,15 @@ directly to
 [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
 
+```sql title="REVOKE Function (UDF/UDTF) Permission Syntax"
+REVOKE <EXECUTE | ADMIN> [PRIVILEGES]
+ON <ALL FUNCTIONS | FUNCTION < <function name> | * >>
+FROM <user name | role name>
+```
 
-<Note>
-For revoking the ability to create *UDFs/UDTFs*, see
-[REVOKE SYSTEM Permission](/content/sql/security#sql-security-priv-mgmt-sys-revoke).
-</Note>
-
-```sql title="REVOKE FUNCTION (UDF) Permission Syntax"
-REVOKE <EXECUTE | ADMIN> ON FUNCTION < <function name> | * > FROM <user name | role name>
+```sql title="REVOKE Create Function (UDF/UDTF) Permission Syntax"
+REVOKE CREATE FUNCTION [PRIVILEGES]
+FROM <user name | role name>
 ```
 
 
@@ -1992,14 +1744,16 @@ directly to
 [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
 
-
-<Note>
-For revoking the ability to create *graphs*, see
-[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
-</Note>
-
 ```sql title="REVOKE Graph Permission Syntax"
-REVOKE <READ | WRITE | ADMIN> ON GRAPH <graph name> FROM <user name | role name>
+REVOKE <READ | WRITE | ADMIN> [PRIVILEGES]
+ON <ALL GRAPHS [IN [SCHEMA] <schema reference>] | GRAPH <graph reference>>
+FROM <user name | role name>
+```
+
+```sql title="REVOKE Create Graph Permission Syntax"
+REVOKE CREATE [PRIVILEGES] ON GRAPHS
+[IN [SCHEMA] <schema reference>]
+FROM <user name | role name>
 ```
 
 
@@ -2025,14 +1779,16 @@ Permissions relating to [SQL procedures](/content/sql/procedure#sql-procedures) 
 from [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles).
 
+```sql title="REVOKE Procedure Permission Syntax"
+REVOKE EXECUTE [PRIVILEGES]
+ON <ALL PROCEDURES [IN [SCHEMA] <schema reference>] | PROCEDURE <procedure reference>>
+FROM <user name | role name>
+```
 
-<Note>
-For revoking the ability to create *SQL procedures*, see
-[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
-</Note>
-
-```sql title="REVOKE EXECUTE PROCEDURE Permission Syntax"
-REVOKE EXECUTE PROCEDURE ON <procedure name> FROM <user name | role name>
+```sql title="REVOKE Create Procedure Permission Syntax"
+REVOKE CREATE [PRIVILEGES] ON PROCEDURES
+[IN [SCHEMA] <schema reference>]
+FROM <user name | role name>
 ```
 
 
@@ -2059,14 +1815,16 @@ directly to
 [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
 
-
-<Note>
-For revoking the ability to create *SQL-GPT contexts*, see
-[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
-</Note>
-
 ```sql title="REVOKE SQL-GPT Context Permission Syntax"
-REVOKE <READ | ADMIN> ON CONTEXT <context name> FROM <user name | role name>
+REVOKE <READ | ADMIN> [PRIVILEGES]
+ON <ALL CONTEXTS [IN [SCHEMA] <schema reference>] | CONTEXT <context reference>>
+FROM <user name | role name>
+```
+
+```sql title="REVOKE Create SQL-GPT Context Permission Syntax"
+REVOKE CREATE [PRIVILEGES] ON CONTEXTS
+[IN [SCHEMA] <schema reference>]
+FROM <user name | role name>
 ```
 
 
@@ -2095,14 +1853,16 @@ directly to
 [users](/content/security/sec_concepts#security-concepts-users) or
 [roles](/content/security/sec_concepts#security-concepts-roles) can be revoked.
 
+```sql title="REVOKE Stream Permission Syntax"
+REVOKE ADMIN [PRIVILEGES]
+ON <ALL STREAMS [IN [SCHEMA] <schema reference>] | STREAM <stream reference>>
+FROM <user name | role name>
+```
 
-<Note>
-For revoking the ability to create *streams*, see
-[REVOKE Schema Permission](/content/sql/security#sql-security-priv-mgmt-schema-revoke).
-</Note>
-
-```sql title="REVOKE Stream Administrative Permission Syntax"
-REVOKE ADMIN ON STREAM <stream name> FROM <user name | role name>
+```sql title="REVOKE Create Stream Permission Syntax"
+REVOKE CREATE [PRIVILEGES] ON STREAMS
+[IN [SCHEMA] <schema reference>]
+FROM <user name | role name>
 ```
 
 
@@ -2298,7 +2058,7 @@ Optional keyword for clarity
 
 </Accordion>
 
-<Accordion title="ON" id="on-2" defaultOpen>
+<Accordion title="ON" id="on" defaultOpen>
 
 Keyword for specifying the optional *ON* clause, which checks for the specified `permission`
 on the following `target` (and optional `target type`) given in this clause
@@ -2436,6 +2196,7 @@ Additionally, *impersonation* is only supported via ODBC/JDBC.
 <a id="sql-security-impersonation-exec-as"></a>
 
 
+<a id="execute-as"></a>
 ### EXECUTE AS
 
 
@@ -2618,6 +2379,7 @@ SELECT CURRENT_USER() AS whoami
 <a id="sql-security-impersonation-revert"></a>
 
 
+<a id="revert"></a>
 ### REVERT
 
 
@@ -2644,6 +2406,7 @@ of `REVERT`.
 <a id="sql-security-impersonation-setuser"></a>
 
 
+<a id="set-user"></a>
 ### SET USER
 
 

@@ -6237,12 +6237,12 @@ Optional parameters.
 <tr>
 <td className="name"><code>table\_name</code></td>
 <td className="type"> <span className="param-type">String</span> </td>
-<td className="description last">Name of a table, in \[schema\_name.\]table\_name format, using standard <a href="/content/concepts/tables/#table-name-resolution" target="_top">name resolution rules</a>. Must be an existing table. The default value is ''.</td>
+<td className="description last">Name of a table, in \[schema\_name.\]table\_name format, using standard <a href="/content/concepts/tables/#table-name-resolution" target="_top">name resolution rules</a>. Must be an existing table. A value of <code>\*</code> clears statistics on every user table the caller may read (excluding system schemas, views, and temporary tables); when used, <code>column\_name</code> must be empty. The default value is ''.</td>
 </tr>
 <tr>
 <td className="name"><code>column\_name</code></td>
 <td className="type"> <span className="param-type">String</span> </td>
-<td className="description last">Name of the column in <code>table\_name</code> for which to clear statistics. The column must be from an existing table. An empty string clears statistics for all columns in the table. The default value is ''.</td>
+<td className="description last">Name of the column in <code>table\_name</code> for which to clear statistics. The column must be from an existing table. An empty string clears statistics for all columns in the table. Must be empty when <code>table\_name</code> is <code>\*</code>. The default value is ''.</td>
 </tr>
 <tr>
 <td className="name"><code>options</code></td>
@@ -6811,8 +6811,9 @@ Map of objects to be captured in the backup; must be specified when creating a f
 <li>'credential': <a href="/content/concepts/credentials/" target="_top">Credential(s)</a>. </li>
 <li>'datasink': <a href="/content/concepts/data_sinks/" target="_top">Data sink(s)</a>. </li>
 <li>'datasource': <a href="/content/concepts/data_sources/" target="_top">Data source(s)</a>. </li>
+<li>'directory': KiFS <a href="/content/tools/kifs/" target="_top">File directory(ies)</a>. </li>
 <li>'function\_environment': <a href="/content/udf/python/writing/#udf-python-func-env" target="_top">Python UDF function environment(s)</a>. </li>
-<li>'graph': <a href="/content/graph_solver/network_graph_solver/" target="_top">Graph(s)</a> definition. </li>
+<li>'graph': <a href="/content/graph_solver/network_graph_solver/" target="_top">Graph</a> definition(s). Source table(s), if applicable, are required in order to restore graph objects. </li>
 <li>'monitor': <a href="/content/concepts/table_monitors/" target="_top">Table monitor(s)</a> / <a href="/content/sql/ddl/#create-stream" target="_top">SQL stream(s)</a>. </li>
 <li>'resource\_group': <a href="/content/rm/concepts/#resource-groups" target="_top">Resource group(s)</a>. </li>
 <li>'role': <a href="/content/security/sec_concepts/#roles" target="_top">Role(s)</a>, role members (roles or users, recursively), and associated permissions. </li>
@@ -19097,8 +19098,9 @@ Map of database objects to be restored from the backup.
 <li>'credential': <a href="/content/concepts/credentials/" target="_top">Credential(s)</a>. </li>
 <li>'datasink': <a href="/content/concepts/data_sinks/" target="_top">Data sink(s)</a>. </li>
 <li>'datasource': <a href="/content/concepts/data_sources/" target="_top">Data source(s)</a>. </li>
+<li>'directory': KiFS <a href="/content/tools/kifs/" target="_top">File directory(ies)</a>. </li>
 <li>'function\_environment': <a href="/content/udf/python/writing/#udf-python-func-env" target="_top">Python UDF function environment(s)</a>. </li>
-<li>'graph': <a href="/content/graph_solver/network_graph_solver/" target="_top">Graph(s)</a> definition. </li>
+<li>'graph': <a href="/content/graph_solver/network_graph_solver/" target="_top">Graph</a> definition(s). Source table(s), if applicable, are required in order to restore graph objects. </li>
 <li>'monitor': <a href="/content/concepts/table_monitors/" target="_top">Table monitor(s)</a> / <a href="/content/sql/ddl/#create-stream" target="_top">SQL stream(s)</a>. </li>
 <li>'resource\_group': <a href="/content/rm/concepts/#resource-groups" target="_top">Resource group(s)</a>. </li>
 <li>'role': <a href="/content/security/sec_concepts/#roles" target="_top">Role(s)</a>, role members (roles or users, recursively), and associated permissions. </li>
@@ -19171,6 +19173,14 @@ Optional parameters.
  The default value is 'false'. 
 </li>
 <li>'renamed\_objects\_schema': If the <code>restore\_policy</code> is <code>rename</code>, use this schema for relocated existing objects instead of the default generated one. The default value is ''. </li>
+<li>
+'restore\_all\_permissions': Whether or not all permissions of restored principals should be restored or scoped to the restored objects. Supported values: 
+<ul>
+<li>'true': Restore all permissions. </li>
+<li>'false': Restore only permissions on restored objects. </li>
+</ul>
+ The default value is 'false'. 
+</li>
 <li>
 'restore\_policy': Behavior to apply when any database object to restore already exists. Supported values: 
 <ul>
@@ -21570,15 +21580,6 @@ Optional parameters.
 </ul>
  The default value is 'false'. 
 </li>
-<li>'column\_names': Columns, per table in <code>table\_names</code>, to collect statistics for when @{"{"}input.key options.collect\_now{"}"} is <code>true</code>; ignored otherwise. Encoded as a ';'-separated parallel array aligned with <code>table\_names</code> (e.g. 'x,y;z' requests columns x,y for the first table and z for the second). A value of '\*' expands to every collectable column on each table (geometry, vector, JSON, and array columns are skipped). An explicit list may not be combined with a '\*' table\_names wildcard. The default value is ''. </li>
-<li>
-'collect\_now': If <code>true</code>, the columns named by @{"{"}input.key options.column\_names{"}"} are collected synchronously during this request and reflected in the response. Supported values: 
-<ul>
-<li>'true' </li>
-<li>'false' </li>
-</ul>
- The default value is 'false'. 
-</li>
 </ul>
  The default value is an empty object ( {"{"}{"}"} ).
 </td>
@@ -22977,6 +22978,13 @@ Optional parameters.
 <li>'false' </li>
 </ul>
  The default value is 'true'. 
+</li>
+<li>
+'enable\_worker\_oop\_update': For an out-of-place update (delete and insert), controls where the replacement records are reinserted. If set to <code>true</code>, the workers that own the data reinsert them directly, avoiding a round trip through the head node; a shard-key change reshards the replacements to their new owning workers. If set to <code>false</code>, the replacement records are reinserted from the head node. Overrides the {"{"}feature.enable\_worker\_oop\_update{"}"}@ configuration default. Supported values: 
+<ul>
+<li>'true' </li>
+<li>'false' </li>
+</ul>
 </li>
 <li>
 'truncate\_strings': If set to <code>true</code>, any strings which are too long for their charN string fields will be truncated to fit. Supported values: 
