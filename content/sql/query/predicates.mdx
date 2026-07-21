@@ -1,0 +1,58 @@
+---
+title: Predicates
+---
+
+*Predicate* are generally used within a SQL `WHERE` clause to query records.
+They compare the values of two or more *expressions*; whenever a record meets
+the criteria defined in a *predicate clause* it will be marked as eligible
+to be part of the query result set.  If it meets all *predicate clauses* defined
+within a query, it will be returned in the result set.
+
+A single *predicate clause* may use a simple *predicate operator* to compare the
+values of two *expressions* or a more complex *predicate clause* form.  A
+*compound predicate clause* uses a *compound predicate operator* to link
+together multiple *predicate clauses* to further refine a result set.
+
+Unlimited-width ([non-charN](/content/concepts/types#types-chart)) strings can only be used within
+equality-based predicates, e.g. `=`, `IN`, etc.
+
+<a id="sql-pred-op"></a>
+
+
+## Predicate Operators
+
+
+* `=` *equality*
+* `!=` or `<>` *inequality*
+* `<` *less than*
+* `<=` *less than or equal to*
+* `>` *greater than*
+* `>=` *greater than or equal to*
+
+
+## Predicate Clauses
+
+
+In the following list of *predicate clauses*, `ref_expr` is the reference
+expression to apply the predicate to; note that `EXISTS` has no reference
+expression.
+
+| Predicate Clause | Description |
+| --- | --- |
+| `<expr_a> <pred_op> <expr_b>` | Matches records where `expr_a` relates to `expr_b` according to [predicate operator](/content/sql/query/predicates#sql-pred-op) `pred_op`. |
+| `<ref_expr> <pred_op> ALL (<select statement>)` | Matches records where the reference expression `ref_expr` relates to *all* of the results of `select statement` according to the [predicate operator](/content/sql/query/predicates#sql-pred-op) `pred_op` |
+| `<ref_expr> <pred_op> ANY (<select statement>)` | Matches records where the reference expression `ref_expr` relates to *any* of the results of `select statement` according to the [predicate operator](/content/sql/query/predicates#sql-pred-op) `pred_op` |
+| `<ref_expr> [NOT] BETWEEN <begin_expr> AND <end_expr>` | Matches records where the reference expression `ref_expr` is (or is `NOT`) between the values of `begin_expr` and `end_expr`, inclusive |
+| `<ref_expr> [NOT] IN (<match_list>)` | Matches records where the reference expression `ref_expr` is (or is `NOT`) in the `match_list` list of match values.  The list can either be a comma-separated list of terms/expressions or the result of a `SELECT` statement. |
+| `<ref_expr> IS [NOT] NULL` | Matches records where the reference expression `ref_expr` is (or is `NOT`) *null*. |
+| `[NOT] EXISTS (<select statement>)` | Matches records where `select statement` returns 1 or more records. |
+
+
+## Compound Predicate Operators
+
+
+| Predicate Operator | Description |
+| --- | --- |
+| `<pred_a> AND <pred_b>` | Matches records where both `pred_a` & `pred_b` are *true* |
+| `<pred_a> OR <pred_b>` | Matches records where either `pred_a` or `pred_b` is *true* |
+| `NOT <pred_b>` | Matches records where `pred` is *false* |

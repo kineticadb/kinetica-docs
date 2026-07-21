@@ -1,0 +1,179 @@
+---
+title: Set Operations
+---
+
+<a id="sql-set-ops"></a>
+
+
+There are three types of supported set operations, each having the option of
+returning duplicate records in the result set by using the keyword `ALL`:
+
+* [UNION [ALL]](/content/sql/query/set-operations#sql-union) - return all records from both source data sets
+* [INTERSECT [ALL]](/content/sql/query/set-operations#sql-intersect) - return only records that exist in
+  both source data sets
+* [EXCEPT [ALL]](/content/sql/query/set-operations#sql-except) - return all records that exist in the first
+  data set, but not in the second
+
+
+<a id="sql-union"></a>
+
+
+## UNION
+
+
+The `UNION` set operator creates a single list of records from the results of
+two `SELECT` statements.  Use the `ALL` keyword to keep all records from
+both sets; omit it to remove duplicate records and form a single list of records
+unique between the two sets.  See [Limitations and Cautions](/content/concepts/unions#union-limitations) for limitations.
+
+```sql title="UNION Syntax"
+<select statement>
+UNION [ALL]
+<select statement>
+```
+
+For example, given a table of lunch menu items and another table of dinner menu
+items, a `UNION` can be used to return all unique lunch & dinner menu items
+together, including items that are the same on both menus, but of a different
+price:
+
+{/* Source: /examples/sql/union.kisql (lines 67-79) */}
+```sql UNION Example
+SELECT
+    food_name,
+    category,
+    price
+FROM
+    example.lunch_menu
+UNION
+SELECT
+    food_name,
+    category,
+    price
+FROM
+    example.dinner_menu
+```
+
+
+<Info>
+Since the example includes `price` and all columns selected must
+match between the two sets for an item to be considered a duplicate,
+a lunch item that is priced differently as a dinner item would also
+appear in the result set.
+</Info>
+
+A `UNION ALL` can be used to return all lunch & dinner menu items together,
+including duplicates:
+
+{/* Source: /examples/sql/union.kisql (lines 88-100) */}
+```sql UNION ALL Example
+SELECT
+    food_name,
+    category,
+    price
+FROM
+    example.lunch_menu
+UNION ALL
+SELECT
+    food_name,
+    category,
+    price
+FROM
+    example.dinner_menu
+```
+
+
+<a id="sql-intersect"></a>
+
+
+## INTERSECT
+
+
+The `INTERSECT` set operator creates a single list of records that exist in
+both of the result sets from two `SELECT` statements.  Use the `ALL` keyword
+to keep duplicate records that exist in both sets; omit it to remove duplicate
+records and form a single list of records that exist in both sets.  See
+[Limitations](/content/concepts/intersect#intersect-limitations) for limitations.
+
+```sql title="INTERSECT Syntax"
+<select statement>
+INTERSECT [ALL]
+<select statement>
+```
+
+For example, given a table of lunch menu items and another table of dinner menu
+items, an `INTERSECT` can be used to return all lunch menu items (excluding
+duplicates) that are also dinner items for the same price:
+
+{/* Source: /examples/sql/intersect.kisql (lines 67-79) */}
+```sql INTERSECT Example
+SELECT
+    food_name,
+    category,
+    price
+FROM
+    example.lunch_menu
+INTERSECT
+SELECT
+    food_name,
+    category,
+    price
+FROM
+    example.dinner_menu
+```
+
+
+<Info>
+Since the example includes `price` and all columns selected must
+match between the two sets for an item to be included, a lunch item
+that is priced differently as a dinner item would not appear in the
+result set.
+</Info>
+
+<a id="sql-except"></a>
+
+
+## EXCEPT
+
+
+The `EXCEPT` set operator performs set subtraction, creating a single list of
+records that exist in the first `SELECT` statement's result set, but not in
+the second `SELECT` statement's result set.  Use the `ALL` keyword to keep
+duplicate records that exist in the first set but not in the second; omit it to
+remove duplicate records and form a single list of records that exist in the
+first set but not the second.  See [Limitations](/content/concepts/except#except-limitations) for limitations:
+
+```sql title="EXPECT Syntax"
+<select statement>
+EXCEPT [ALL]
+<select statement>
+```
+
+For example, given a table of lunch menu items and another table of dinner menu
+items, an `EXCEPT` can be used to return all lunch menu items (excluding
+duplicates) that are not also dinner items for the same price:
+
+{/* Source: /examples/sql/except.kisql (lines 67-79) */}
+```sql EXPECT Example
+SELECT
+    food_name,
+    category,
+    price
+FROM
+    example.lunch_menu
+EXCEPT
+SELECT
+    food_name,
+    category,
+    price
+FROM
+    example.dinner_menu
+```
+
+
+<Info>
+Since the example includes `price` and all columns selected must
+match between the two sets for an item to be eliminated, a lunch item
+that is priced differently as a dinner item would still appear in the
+result set.
+</Info>

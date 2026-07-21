@@ -1,0 +1,233 @@
+---
+title: WITH (Common Table Expressions)
+---
+
+<a id="sql-with"></a>
+
+<a id="sql-cte"></a>
+
+
+The `WITH` operation, also known as a *Common Table Expression (CTE)*
+creates a set of data that can be assigned table & column aliases and used one
+or more times in subsequent operations.  The aliased set can be used within the
+`SELECT`, `FROM`, or `WHERE` clauses of a subsequent query or a subsequent
+*CTE* within the same `WITH` operation.
+
+```sql title="WITH Syntax"
+WITH [RECURSIVE]
+	<cte definition>[,...]
+<select statement>
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="RECURSIVE" id="recursive" defaultOpen>
+
+Allow one or more of the `<cte definition>` queries to be self-referential, providing for the
+possibility of [recursive queries](/content/sql/query/with-common-table-expressions#sql-recursive-query).
+
+</Accordion>
+
+<Accordion title="&lt;cte definition&gt;" id="<cte-definition>" defaultOpen>
+
+The subquery or one of the subqueries defined within this `WITH` clause, structured as follows:
+
+
+```
+<cte name> [(<column alias list>)] AS (<subquery>)
+```
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Parameter</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>&lt;cte name&gt;</code></td>
+    <td>Table alias given to the data set returned by the *CTE*.</td>
+  </tr>
+  <tr>
+    <td><code>&lt;column alias list&gt;</code></td>
+    <td>List of aliases assigned to the columns the *CTE* returns.</td>
+  </tr>
+  <tr>
+    <td><code>&lt;subquery&gt;</code></td>
+    <td><code>SELECT</code> statement to associate with the corresponding <code>&lt;cte name&gt;</code>.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+Each column alias in `<column alias list>` is matched to each column returned by the
+corresponding `<subquery>` in the order that each were defined; e.g., for column aliases
+`(A, B, C)` used with a subquery `SELECT x, y, z ...`, alias `A` will reference column
+`x`, `B` will reference `y`, and `C` will reference `z`.  If no aliases are used, the
+names of the source columns themselves can be used to reference the data set returned by the
+subquery.
+
+</Accordion>
+
+<Accordion title="&lt;select statement&gt;" id="<select-statement>" defaultOpen>
+
+The `SELECT` statement to run with the defined `WITH` subqueries.
+
+</Accordion>
+
+</AccordionGroup>
+
+The column aliases must be unique within the `WITH` statement--no
+other column or column alias can be similarly named, for example.  Also, when
+used in a `FROM` clause and given a table alias, the table alias must be
+preceded with `AS`.
+
+A *CTE* can be made available to a DML or DDL statement by having the `WITH`
+statement follow the `CREATE TABLE ... AS`, `INSERT`, `UPDATE`, or
+`DELETE` statement (not precede it).
+
+
+## Examples
+
+
+To define a simple *CTE* subquery using a `WITH` clause:
+
+{/* Source: /examples/sql/cte.kisql (lines 25-37) */}
+```sql WITH Example
+WITH
+    dept2_emp_sal_by_mgr (manager_id, sal) AS
+    (
+        SELECT manager_id, salary
+        FROM example.employee
+        WHERE dept_id = 2
+    )
+SELECT
+    manager_id dept2_mgr_id,
+    MAX(sal) dept2_highest_emp_sal_per_mgr,
+    COUNT(*) as dept2_total_emp_per_mgr
+FROM dept2_emp_sal_by_mgr
+GROUP BY manager_id
+```
+
+To apply the *CTE* to an `INSERT` statement while using multiple *CTE*
+definitions, follow the `INSERT` clause with the `WITH` clause:
+
+{/* Source: /examples/sql/cte.kisql (lines 55-72) */}
+```sql WITH Defining Multiple Subqueries in INSERT Example
+INSERT INTO example.dept2_emp_mgr_roster (emp_first_name, emp_last_name, mgr_first_name, mgr_last_name)
+WITH
+    dept2_emp AS
+    (
+        SELECT first_name, last_name, manager_id
+        FROM example.employee
+        WHERE dept_id = 2
+    ),
+    dept2_mgr AS
+    (
+        SELECT first_name, last_name, id
+        FROM example.employee
+        WHERE dept_id = 2
+    )
+SELECT d2emp.first_name, d2emp.last_name, d2mgr.first_name, d2mgr.last_name
+FROM
+    dept2_emp as d2emp
+    JOIN dept2_mgr as d2mgr ON d2emp.manager_id = d2mgr.id
+```
+
+
+<a id="sql-recursive-query"></a>
+
+
+## Recursive Queries
+
+
+[Common table expressions](/content/sql/query/with-common-table-expressions#sql-with) are used to create
+*recursive queries*, via the `RECURSIVE` option, using the following form:
+
+```sql title="Recursive WITH Syntax"
+WITH RECURSIVE
+	<cte name> AS
+	(
+    	<non-recursive query>
+    	UNION [ALL]
+    	<recursive query>
+    )
+<select statement>
+```
+
+Use `UNION` to remove duplicate records from the result set; use `UNION ALL`
+to return all records from the recursion.
+
+
+<Note>
+There is no check on queries that recurse infinitely.  Ensure
+that recursive queries are constructed with an appropriate limit.
+</Note>
+
+For instance, to query all of a given manager's subordinates:
+
+{/* Source: /examples/sql/cte.kisql (lines 83-106) */}
+```sql Recursive Query Example
+WITH RECURSIVE subordinates AS
+(
+    SELECT
+        id,
+        manager_id,
+        first_name,
+        last_name
+    FROM
+        example.employee
+    WHERE
+        id = 6
+    UNION ALL
+    SELECT
+        e.id,
+        e.manager_id,
+        e.first_name,
+        e.last_name
+    FROM
+        example.employee e
+        INNER JOIN subordinates s ON s.id = e.manager_id
+)
+SELECT *
+FROM subordinates
+ORDER BY manager_id, id
+```
+
+To show the management chain for each employee in a company:
+
+{/* Source: /examples/sql/cte.kisql (lines 112-137) */}
+```sql Recursive Query with Recursion Trail Example
+WITH RECURSIVE subordinates AS
+(
+    SELECT
+        id,
+        manager_id,
+        first_name,
+        last_name,
+        JSON_ARRAY(first_name || ',' || last_name) AS hierarchy
+    FROM
+        example.employee
+    WHERE
+        id = 1
+    UNION ALL
+    SELECT
+        e.id,
+        e.manager_id,
+        e.first_name,
+        e.last_name,
+        JSON_ARRAY_APPEND(s.hierarchy, e.first_name || ',' || e.last_name) AS hierarchy
+    FROM
+        example.employee e
+        INNER JOIN subordinates s ON s.id = e.manager_id
+)
+SELECT *
+FROM subordinates
+ORDER BY manager_id, id
+```

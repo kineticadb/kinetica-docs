@@ -1,0 +1,75 @@
+---
+title: Subqueries
+---
+
+## Non-Correlated Subqueries
+
+
+These are subqueries that are self-contained, in that they can be executed
+independently of the surrounding query.
+
+{/* Source: /examples/sql/query.kisql (lines 89-97) */}
+```sql Non-Correlated Subquery in SELECT Example
+SELECT
+    last_name,
+    first_name,
+    sal,
+    (
+        SELECT AVG(sal)
+        FROM example.employee
+    ) AS avg_emp_sal
+FROM example.employee
+```
+
+{/* Source: /examples/sql/query.kisql (lines 101-107) */}
+```sql Non-Correlated Subquery in FROM Example
+SELECT
+    l || ', ' || f AS "Employee_Name"
+FROM
+    (
+        SELECT last_name AS l, first_name AS f
+        FROM example.employee
+    )
+```
+
+{/* Source: /examples/sql/query.kisql (lines 111-118) */}
+```sql Non-Correlated Subquery in WHERE Example
+SELECT last_name, first_name
+FROM example.employee
+WHERE dept_id IN
+    (
+        SELECT id
+        FROM example.department
+        WHERE code = 'ENGR' OR code = 'MKTG'
+    )
+```
+
+
+## Correlated Subqueries
+
+
+These are subqueries that depend on the values in the surrounding query, and
+cannot be executed independently of the surrounding query.
+
+{/* Source: /examples/sql/query.kisql (lines 125-132) */}
+```sql Correlated Subquery Example
+SELECT *
+FROM demo.nyctaxi o
+WHERE fare_amount =
+    (
+        SELECT MAX(fare_amount)
+        FROM demo.nyctaxi i
+        WHERE o.passenger_count = i.passenger_count
+    )
+```
+
+
+<Note>
+Correlated subqueries have the following limitations:
+* They cannot reference grouping columns in the parent query
+* They cannot reference tables beyond the immediate outer query; i.e., a
+  table cannot be referenced in a correlated subquery that is two or more
+  levels of nesting deeper than it is
+* They cannot contain disjunctive conditions
+* They cannot be part of an `OUTER JOIN ON` clause condition
+</Note>

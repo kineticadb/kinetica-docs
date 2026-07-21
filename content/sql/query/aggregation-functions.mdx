@@ -1,0 +1,100 @@
+---
+title: Aggregation Functions
+---
+
+<a id="sql-aggregation-functions"></a>
+
+
+These functions can be applied to [aggregate](/content/sql/query/aggregation#sql-aggregation)
+data. They include:
+
+* [Array Aggregation Functions](/content/sql/query/array-functions#sql-array-functions-agg)
+* [Geospatial/Geometry Aggregation Functions](/content/sql/query/geospatial-geometry-functions#sql-geo-functions-aggregation)
+* [JSON Aggregation Functions](/content/sql/query/json-functions#sql-json-functions-agg)
+* [Lookup/Grouping Aggregation Functions](/content/sql/query/aggregation-functions#sql-lookup-functions-agg)
+* [Math Aggregation Functions](/content/sql/query/math-functions#sql-math-functions-agg)
+* [String Aggregation Functions](/content/sql/query/string-functions#sql-string-functions-agg)
+
+
+<a id="sql-lookup-functions-agg"></a>
+
+
+## Lookup/Grouping Functions
+
+
+<AccordionGroup>
+
+<Accordion title="ARG_MAX(agg_expr, ret_expr)" id="arg_max-agg_expr-ret_expr" defaultOpen>
+
+The value of `ret_expr` where `agg_expr` is the maximum
+value (e.g. `ARG_MAX(cost, product_id)` returns the product
+ID of the highest cost product). `ARG_MAX(a, b)` is equivalent to
+`LAST(b, a)`.
+
+</Accordion>
+
+<Accordion title="ARG_MIN(agg_expr, ret_expr)" id="arg_min-agg_expr-ret_expr" defaultOpen>
+
+The value of `ret_expr` where `agg_expr` is the minimum
+value (e.g. `ARG_MIN(cost, product_id)` returns the product
+ID of the lowest cost product). `ARG_MIN(a, b)` is equivalent to
+`FIRST(b, a)`.
+
+</Accordion>
+
+<Accordion title="ATTR(expr)" id="attr-expr" defaultOpen>
+
+If `MIN(expr)` = `MAX(expr)`, returns `expr`; otherwise
+`*`
+
+
+<Info>
+`expr` must resolve to a string type, and must be casted
+to one, if not already
+</Info>
+
+</Accordion>
+
+<Accordion title="FIRST(ret_expr, agg_expr)" id="first-ret_expr-agg_expr" defaultOpen>
+
+The value of `ret_expr` where `agg_expr` is the minimum
+value (e.g. `FIRST(product_id, cost)` returns the product ID
+ID of the lowest cost product). `FIRST(a, b)` is equivalent to
+`ARG_MIN(b,a)`
+
+</Accordion>
+
+<Accordion title="GROUPING(expr)" id="grouping-expr" defaultOpen>
+
+Used primarily with [ROLLUP](/content/sql/query/grouping#sql-grouping-rollup),
+[CUBE](/content/sql/query/grouping#sql-grouping-cube), and
+[GROUPING SETS](/content/sql/query/grouping#sql-grouping-groupingsets), to distinguish the source of
+*null* values in an aggregated result set, returns whether
+`expr` is part of the aggregation set used to calculate the
+values in a given result set row.  Returns `0` if `expr`
+is part of the row's aggregation set, `1` if `expr` is not
+(meaning that aggregation took place across all `expr`
+values).
+
+For example, in a `ROLLUP(A)` operation, there will be two
+potential rows with *null* in the result set for column `A`.
+One row will contain *null* values of `A` aggregated
+together, and the other will contain *null*, but be an
+aggregation over the entire table, irrespective of `A`
+values.  In this case, `GROUPING(A)` will return `0` for
+the *null* values of `A` aggregated together (as well as all
+other grouped `A` values) and `1` for the row resulting
+from aggregating across all `A` values.
+
+</Accordion>
+
+<Accordion title="LAST(ret_expr, agg_expr)" id="last-ret_expr-agg_expr" defaultOpen>
+
+The value of `ret_expr` where `agg_expr` is the maximum
+value (e.g. `LAST(product_id, cost)` returns the product
+ID of the highest cost product). `LAST(a, b)` is equivalent to
+`ARG_MAX(b, a)`.
+
+</Accordion>
+
+</AccordionGroup>

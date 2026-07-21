@@ -1,0 +1,352 @@
+---
+title: ML Functions
+---
+
+<a id="sql-ml-functions"></a>
+
+
+There are two supported machine learning functions:
+
+* [PREDICT](/content/sql/query/ml-functions#sql-ml-functions-predict)
+* [OUTLIERS](/content/sql/query/ml-functions#sql-ml-functions-outliers)
+
+
+<a id="sql-ml-functions-predict"></a>
+
+
+## PREDICT
+
+
+The `PREDICT` table function will predict the values of the dependent
+variables that correspond to a given column of independent variables, using a
+given base table containing "historical" values of each.  This table will be
+used as the basis to calculate the prediction.
+
+To make the prediction, the slope & y-intercept of the least-squares-fit linear
+equation of the base table data will be calculated.  Then, that line will be
+used to calculate the dependent variable for each given independent variable,
+and the values of each will be returned in the result set as `Y` and `X`,
+respectively.
+
+The basic form of the `PREDICT` function, called within a `SELECT` statement
+follows.
+
+```sql title="PREDICT Table Function Syntax"
+SELECT x, y FROM TABLE
+(
+	PREDICT
+	(
+		HISTORY_TABLE     => INPUT_TABLE(<table name | select statement>),
+		X_COLUMN          => < '<column name>' | <column position> >,
+		Y_COLUMN          => < '<column name>' | <column position> >,
+		PREDICT_ON_TABLE  => INPUT_TABLE(<table name | select statement>),
+		PREDICT_ON_COLUMN => < '<column name>' | <column position> >,
+		[PREDICT_METHOD   => 'LINEAR']
+	)
+)
+```
+
+<AccordionGroup>
+
+<Accordion title="HISTORY_TABLE" id="history_table" defaultOpen>
+
+The name of the table containing the "historical" data upon which the prediction will be made.
+
+To make a prediction from the data based on the *ticket_prices* table, pass the name of the table
+to `INPUT_TABLE`:
+
+```
+INPUT_TABLE(ticket_prices)
+```
+To make a prediction from data that is the result of a query, pass the query to `INPUT_TABLE`:
+
+```
+INPUT_TABLE
+(
+    SELECT * FROM ticket_prices_local
+    UNION
+    SELECT * FROM ticket_prices_global
+)
+```
+</Accordion>
+
+<Accordion title="X_COLUMN" id="x_column" defaultOpen>
+
+The name or position of the column in `HISTORY_TABLE` containing the independent variable that
+will be used as the basis for the prediction.
+
+</Accordion>
+
+<Accordion title="Y_COLUMN" id="y_column" defaultOpen>
+
+The name or position of the column in `HISTORY_TABLE` containing the dependent variable that
+will be used as the basis for the prediction.
+
+</Accordion>
+
+<Accordion title="PREDICT_ON_TABLE" id="predict_on_table" defaultOpen>
+
+The name of the table containing the independent variable against which the prediction will be
+made.
+
+To make a prediction against column data in the *future_years* table, pass the name of the table
+to `INPUT_TABLE`:
+
+```
+INPUT_TABLE(future_years)
+```
+To make a prediction against data that is the result of a query, pass the query to
+`INPUT_TABLE`:
+
+```
+INPUT_TABLE
+(
+    SELECT * FROM future_years
+    UNION
+    SELECT * FROM future_decades
+)
+```
+</Accordion>
+
+<Accordion title="PREDICT_ON_COLUMN" id="predict_on_column" defaultOpen>
+
+The name or position of the column in `PREDICT_ON_TABLE` containing the independent variable
+against which the prediction will be made.
+
+</Accordion>
+
+<Accordion title="PREDICT_METHOD" id="predict_method" defaultOpen>
+
+The optional calculation method to use to make the prediction.  The only supported (and default)
+method is `LINEAR`.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+To predict ticket prices for years found in the *future_years* table, based on
+historical ticket price data found in the *ticket_prices* table:
+
+{/* Source: /examples/sql/functions/ml.kisql (lines 53-63) */}
+```sql PREDICT Example
+SELECT * FROM TABLE
+(
+	PREDICT
+	(
+		HISTORY_TABLE => INPUT_TABLE(example.ticket_prices),
+		X_COLUMN => 'year',
+		Y_COLUMN => 'cost',
+		PREDICT_ON_TABLE => INPUT_TABLE(example.future_years),
+		PREDICT_ON_COLUMN => 'year'
+	)
+)
+```
+
+
+<a id="sql-ml-functions-outliers"></a>
+
+
+## OUTLIERS
+
+
+The `OUTLIERS` table function will calculate the outliers in a given data set,
+based on a specified calculation type, threshold, and partition column.  The
+partition column allows the data to be segmented into subsets, one per unique
+partition column value, and have the outliers for each subset calculated &
+determined independently from other subsets.
+
+The basic form of the `OUTLIERS` function, called within a `SELECT`
+statement follows.
+
+```sql title="OUTLIERS Table Function Syntax"
+SELECT * FROM TABLE
+(
+	OUTLIERS
+	(
+		DATA_TABLE        => INPUT_TABLE(<table name | select statement>),
+		DATA_COLUMN       => < '<column name>' | <column position> >,
+		[PARTITION_COLUMN => < '<column name>' | <column position> >,]
+		[OUTLIER_METHOD   => < 'ZSCORE' | 'PERCENTILE' >,]
+		[THRESHOLD_LOW    => <threshold value>,]
+		[THRESHOLD_HIGH   => <threshold value>,]
+		[OUTPUT_DATA      => < 'OUTLIERS' | 'NON_OUTLIERS' | 'ALL' >,]
+		[OUTPUT_SCORE     => < TRUE | FALSE >]
+	)
+)
+```
+
+<AccordionGroup>
+
+<Accordion title="DATA_TABLE" id="data_table" defaultOpen>
+
+The name of the data table within which outliers will be detected.
+
+To detect outliers in the data in the *employee* table, pass the name of the table to
+`INPUT_TABLE`:
+
+```
+INPUT_TABLE(employee)
+```
+To detect outliers in the data that is the result of a query, pass the query to `INPUT_TABLE`:
+
+```
+INPUT_TABLE
+(
+    SELECT * FROM employee_east
+    UNION
+    SELECT * FROM employee_west
+)
+```
+</Accordion>
+
+<Accordion title="DATA_COLUMN" id="data_column" defaultOpen>
+
+The name or position of the column in `DATA_TABLE` containing the outliers to detect.
+
+</Accordion>
+
+<Accordion title="PARTITION_COLUMN" id="partition_column" defaultOpen>
+
+The name or position of the column in `DATA_TABLE` containing the value to partition over, when
+detecting outliers.  Each unique `PARTITION_COLUMN` value will denote a subset of the source
+data, within which outliers will be determined independently from other subsets.
+
+</Accordion>
+
+<Accordion title="OUTLIER_METHOD" id="outlier_method" defaultOpen>
+
+The optional calculation method to use to detect outliers.  The default method is `ZSCORE`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Method</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>ZSCORE</code></td>
+    <td>Z-score calculation, indicating the number of standard deviations above the mean each value within the set is.  If a <code>PARTITION_COLUMN</code> is given, the z-score will be calculated for each subset of data corresponding to a unique <code>PARTITION_COLUMN</code> value.  The z-score uses the following formula: <pre><code>(DATA_COLUMN - AVG(DATA_COLUMN)) / STDDEV(DATA_COLUMN)&#10;Scores will be decimals centered around `0`.</code></pre></td>
+  </tr>
+  <tr>
+    <td><code>PERCENTILE</code></td>
+    <td>The standard percentile calculation, performed within each <code>PARTITION_COLUMN</code> group (if specified).  Scores will be decimals between <code>0</code>, inclusive, and <code>100</code>, exclusive.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="THRESHOLD_LOW" id="threshold_low" defaultOpen>
+
+The lower bound to use for the determination of outliers.  Records with scores lower than this
+value will be considered outliers.  If not given, no lower bound will be applied.  The value
+should match the `OUTLIER_METHOD` used:
+
+* `ZSCORE` - Threshold is the negative number of standard deviations to the left of the mean,
+  beyond which outliers are found; e.g., `-3` would indicate a threshold of *3* standard
+  deviations lower than the mean.
+* `PERCENTILE` - Threshold is the percentage lower than which outliers are found;
+  e.g., `25` would indicate outliers have percentile scores below *25%*.
+
+</Accordion>
+
+<Accordion title="THRESHOLD_HIGH" id="threshold_high" defaultOpen>
+
+The upper bound to use for the determination of outliers.  Records with scores higher than this
+value will be considered outliers.  If not given, no upper bound will be applied.  The value
+should match the `OUTLIER_METHOD` used:
+
+* `ZSCORE` - Threshold is the positive number of standard deviations to the right of the mean,
+  beyond which outliers are found; e.g., `3` would indicate a threshold of *3* standard
+  deviations higher than the mean.
+* `PERCENTILE` - Threshold is the percentage higher than which outliers are found;
+  e.g., `75` would indicate outliers have percentile scores above *75%*.
+
+</Accordion>
+
+<Accordion title="OUTLIER_DATA" id="outlier_data" defaultOpen>
+
+The selection of source records to return in the result set.  The default is `OUTLIERS`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Method</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>OUTLIERS</code></td>
+    <td>Return only the records that are outliers.</td>
+  </tr>
+  <tr>
+    <td><code>NON_OUTLIERS</code></td>
+    <td>Return only the records that are not outliers.</td>
+  </tr>
+  <tr>
+    <td><code>ALL</code></td>
+    <td>Return all records.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="OUTPUT_SCORE" id="output_score" defaultOpen>
+
+If `TRUE`, the calculated score for each record will be added to the result set in a column
+named `OUTPUT_SCORE`.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+To find the outlier employee salaries in the *employee* table that are
+*1 standard deviation* away from the mean, using the *z-score* method:
+
+{/* Source: /examples/sql/functions/ml.kisql (lines 87-96) */}
+```sql Outliers Using Z-Score Example
+SELECT * FROM TABLE
+(
+	OUTLIERS
+	(
+		DATA_TABLE     => INPUT_TABLE(example.employee),
+		DATA_COLUMN    => 'salary',
+		THRESHOLD_LOW  => -1,
+		THRESHOLD_HIGH => 1
+	)
+)
+```
+
+To show the percentile for non-outlier employee salaries by department in the
+*employee* table, between the *25th* & *75th* percentiles, using the
+*percentile* method:
+
+{/* Source: /examples/sql/functions/ml.kisql (lines 103-116) */}
+```sql Non-Outliers Using Percentile Example
+SELECT * FROM TABLE
+(
+	OUTLIERS
+	(
+		DATA_TABLE       => INPUT_TABLE(example.employee),
+		DATA_COLUMN      => 'salary',
+		PARTITION_COLUMN => 'dept_id',
+		OUTLIER_METHOD   => 'PERCENTILE',
+		THRESHOLD_LOW    => 25,
+		THRESHOLD_HIGH   => 75,
+		OUTPUT_DATA      => 'NON_OUTLIERS',
+		OUTPUT_SCORE     => TRUE
+	)
+)
+```

@@ -1,0 +1,162 @@
+---
+title: UPDATE
+---
+
+<a id="sql-dml-update"></a>
+
+<a id="sql-update"></a>
+
+
+Updates can set columns to specified constant values or expressions.
+
+```sql title="UPDATE Syntax"
+UPDATE [<schema name>.]<table name>
+SET
+    <column 1> = <expression 1>,
+    ...
+    <column n> = <expression n>
+[FROM <table expression>]
+[WHERE <expression list>]
+```
+
+For example, to update employee with ID `5` to have a new manager, with
+ID `3`, and to have a *10%* salary increase:
+
+{/* Source: /examples/sql/dml/update.kisql (lines 81-85) */}
+```sql UPDATE Example
+UPDATE example.employee
+SET
+    sal = sal * 1.10,
+    manager_id = 3
+WHERE id = 5
+```
+
+Subqueries can be used in the expression list *and* within the `SET` clause.
+To update all the bottom earners in each department with a *5%* salary increase
+using a subquery in the expression list:
+
+{/* Source: /examples/sql/dml/update.kisql (lines 98-105) */}
+```sql UPDATE with Subquery in WHERE Clause Example
+UPDATE example.employee b
+SET sal = sal * 1.05
+WHERE sal =
+    (
+        SELECT MIN(sal)
+        FROM example.employee l
+        WHERE b.dept_id = l.dept_id
+    )
+```
+
+To update a backup table to match the source table that was just updated for
+new salary values using a subquery within the `SET` clause:
+
+{/* Source: /examples/sql/dml/update.kisql (lines 117-123) */}
+```sql UPDATE with Subquery in SET Clause Example
+UPDATE  example.employee_backup eb
+SET     sal =
+    (
+        SELECT sal
+        FROM example.employee e
+        WHERE eb.id = e.id
+    )
+```
+
+[Joins](/content/concepts/joins) can be used within an `UPDATE` statement
+to update records based on the results of a `JOIN`.
+
+
+<Note>
+The `JOIN` statement cannot be part of the `SET` clause.
+Also, primary key column updates are not supported using `JOIN`
+operations. The table to be updated must be in the `FROM`
+clause.
+</Note>
+
+For example, to update a backup table to match the source table that was just
+updated for new manager and salary values using an `INNER JOIN`:
+
+{/* Source: /examples/sql/dml/update.kisql (lines 143-146) */}
+```sql UPDATE with JOIN Clause Example
+UPDATE  eb
+SET     sal = e.sal, manager_id = e.manager_id
+FROM    example.employee_backup eb
+JOIN    example.employee e ON eb.id = e.id
+```
+
+
+<Tip>
+Simplified `JOIN` syntax is also supported:
+</Tip>
+
+{/* Source: /examples/sql/dml/update.kisql (lines 166-169) */}
+```sql UPDATE with JOIN Clause Alternate Example
+UPDATE  eb
+SET     sal = e.sal, manager_id = e.manager_id
+FROM    example.employee_backup eb, example.employee e
+WHERE   eb.id = e.id
+```
+
+
+<a id="sql-update-overwrite"></a>
+
+
+## Overwriting Duplicates
+
+
+When updating the *primary key* value(s) of a record, it is possible for that
+updated record to collide with another record with the same *primary key*.  To
+update the original record with the values specified in the `SET` clause and
+remove the other existing record with the same *primary key*, use the
+`KI_HINT_UPDATE_ON_EXISTING_PK` hint.  If the target table has no
+*primary key*, this hint will be ignored.
+
+
+<Tip>
+This hint can be specified as the connection option
+`UpdateOnExistingPk` when using
+[JDBC/ODBC](/content/connectors/sql_guide#jdbc-config-override).
+</Tip>
+
+{/* Source: /examples/sql/dml/update.kisql (lines 196-198) */}
+```sql UPDATE Overwrite Duplicates Example
+UPDATE example.employee /* KI_HINT_UPDATE_ON_EXISTING_PK */
+SET id = 1, sal = 123000
+WHERE id = 6
+```
+
+
+<Note>
+By default, updates resulting in *primary key* collisions will be
+rejected, and the existing record(s) will remain unchanged.  The
+`KI_HINT_UPDATE_ON_EXISTING_PK` hint overrides this behavior, favoring the
+original record being updated and the new values used to update it,
+specified in the `SET` clause, over the other existing record with the same
+*primary key*.
+</Note>
+
+<a id="sql-update-ignore"></a>
+
+
+## Ignoring Duplicates
+
+
+When updating the *primary key* value(s) of a record, it is possible for that
+updated record to collide with another record with the same primary key.  To
+discard updates that result in *primary key* collisions and not return an error,
+use the `KI_HINT_IGNORE_EXISTING_PK` hint.  If the target table has no
+*primary key* or if using `KI_HINT_UPDATE_ON_EXISTING_PK`, this hint will be
+ignored.
+
+
+<Tip>
+These hints can be specified as connection options
+(`IgnoreExistingPk`, `UpdateOnExistingPk`) when using
+[JDBC/ODBC](/content/connectors/sql_guide#jdbc-config-override).
+</Tip>
+
+{/* Source: /examples/sql/dml/update.kisql (lines 218-220) */}
+```sql UPDATE Ignore Duplicates Example
+UPDATE example.employee /* KI_HINT_IGNORE_EXISTING_PK */
+SET id = 1, sal = 123000
+WHERE id = 6
+```

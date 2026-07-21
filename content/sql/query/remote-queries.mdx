@@ -1,0 +1,94 @@
+---
+title: Remote Queries
+---
+
+A *remote query* makes use of a
+[data source](/content/sql/ddl/create-data-source#sql-create-data-source) to run a given query on the
+remote system referenced by that *data source*.
+
+```sql title="Remote Query Syntax"
+SELECT * FROM TABLE
+(
+	EXECUTE_REMOTE_QUERY
+	(
+		QUERY => '<remote query>',
+		OPTIONS => KV_PAIRS(datasource_name = '<data source name>')
+	)
+)
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;remote query&gt;" id="<remote-query>" defaultOpen>
+
+SQL query to execute on the remote system.
+
+</Accordion>
+
+<Accordion title="&lt;data source name&gt;" id="<data-source-name>" defaultOpen>
+
+Name of the [data source](/content/sql/ddl/create-data-source#sql-create-data-source) referencing the remote system on
+which the query should be executed.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To query employees' managers from a given remote system:
+
+{/* Source: /examples/sql/query_remote.kisql (lines 62-81) */}
+```sql Remote Query Example
+SELECT * FROM TABLE
+(
+	EXECUTE_REMOTE_QUERY
+	(
+		QUERY => '
+			SELECT
+			    e.last_name || '', '' || e.first_name AS "Employee_Name",
+			    m.last_name || '', '' || m.first_name AS "Manager_Name"
+			FROM
+			    example.employee e
+			    LEFT JOIN example.employee m ON e.manager_id = m.id
+			WHERE
+			    e.dept_id IN (1, 2, 3)
+			ORDER BY
+			    m.id ASC NULLS FIRST,
+			    e.hire_date
+		',
+		OPTIONS => KV_PAIRS(datasource_name = 'example.jdbc_ds')
+	)
+)
+```
+
+To query employees' information from a given remote system and join it to data
+in the host system:
+
+{/* Source: /examples/sql/query_remote.kisql (lines 88-105) */}
+```sql Remote/Local JOIN Query Example
+SELECT
+    e.last_name || ', ' || e.first_name AS "Employee_Name",
+    d.code
+FROM
+	TABLE
+	(
+		EXECUTE_REMOTE_QUERY
+		(
+			QUERY => '
+				SELECT last_name, first_name, dept_id
+				FROM example.employee
+			',
+			OPTIONS => KV_PAIRS(datasource_name = 'example.jdbc_ds')
+		)
+	) e,
+	example.department d
+WHERE e.dept_id = d.id
+ORDER BY 1
+```

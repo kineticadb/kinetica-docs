@@ -1,0 +1,140 @@
+---
+title: Distribution Functions
+---
+
+<a id="sql-distribution-functions"></a>
+
+
+[Distribution](/content/concepts/tables#distribution) functions are column expressions that affect the
+[sharded](/content/concepts/tables#sharding)/[replicated](/content/concepts/tables#replication) nature of the result
+set of a given query.  It may be necessary to force a result set to be
+distributed in a certain way for a subsequent operation on that result set to be
+performant.
+
+
+<Note>
+Employing these functions will prevent any automatic resharding
+of data to allow the query to succeed.  Use only when a better query plan
+(with respect to data distribution) is known than any the system can devise.
+</Note>
+
+<AccordionGroup>
+
+<Accordion title="KI_REPLICATE()" id="ki_replicate" defaultOpen>
+
+Force a scalar result set to be replicated (query/subquery with no `GROUP BY`)
+
+</Accordion>
+
+<Accordion title="KI_REPLICATE_GROUP_BY(0)" id="ki_replicate_group_by-0" defaultOpen>
+
+Force an aggregated result set to be replicated (query/subquery with `GROUP BY`)
+
+</Accordion>
+
+<Accordion title="KI_MATCH_COLUMN(0)" id="ki_match_column-0" defaultOpen>
+
+Aligns the column count of queries that are part of a [UNION](/content/sql/query/set-operations#sql-union),
+[INTERSECT](/content/sql/query/set-operations#sql-intersect) or [EXCEPT](/content/sql/query/set-operations#sql-except) with a query whose column list
+has been amended with either `KI_REPLICATE_GROUP_BY` or `KI_SHARD_KEY`
+
+</Accordion>
+
+<Accordion title="KI_SHARD_KEY(&lt;column list&gt;)" id="ki_shard_key-<column-list>" defaultOpen>
+
+Force the result set to be [sharded](/content/concepts/tables#sharding) on the given columns.
+This will override any implicitly-derived or explicitly-defined
+[replication](/content/concepts/tables#replicated) status the table would have had.
+
+
+<Info>
+The column(s) listed in `column list` must also appear in the
+`SELECT` list; `KI_SHARD_KEY` merely identifies which of the
+selected columns should be used as the [shard key](/content/concepts/tables#shard-key).
+</Info>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Sharding Example
+
+
+For example, a query for all employees and their total employees managed,
+including employees who don't manage anyone, could employ a [UNION](/content/sql/query/set-operations#sql-union)
+like this:
+
+{/* Source: /examples/sql/distribution.kisql (lines 43-54) */}
+```sql Sharding Example
+SELECT manager_id, COUNT(*)
+FROM example.employee
+GROUP BY manager_id
+UNION
+SELECT id, 0
+FROM example.employee
+WHERE id NOT IN
+	(
+		SELECT manager_id
+		FROM example.employee
+		WHERE manager_id IS NOT NULL
+	)
+```
+
+In this example, the `employee` table is [sharded](/content/concepts/tables#sharding) on `id`.
+Since the first part of the `UNION` aggregates on `manager_id`, the result
+will be [replicated](/content/concepts/tables#replication).  The second part of the `UNION` does
+no aggregation and includes the [shard key](/content/concepts/tables#shard-key) in the `SELECT`
+list; the result of this will be *sharded*.
+
+Prior to *Kinetica v7.0*, the [limitation](/content/concepts/unions#union-limitations) of `UNION`
+operations requiring that both parts of a `UNION` have to be distributed the
+same way, would make the query fail, with the following message:
+
+```
+GPUdb Error: either all input tables must be replicated or all input tables
+must be non-replicated
+```
+In order to work around this limitation, a *distribution function* could be
+used.  This is what the SQL engine of *Kinetica*, versions *7.0* or later, do
+automatically.
+
+One option is to *shard* the first part of the `UNION` to match the second
+part:
+
+{/* Source: /examples/sql/distribution.kisql (lines 60-77) */}
+```sql Re-shard Example
+SELECT
+	manager_id,
+	COUNT(*),
+	KI_SHARD_KEY(manager_id)
+FROM example.employee
+GROUP BY manager_id
+UNION
+SELECT
+	id,
+	0,
+	KI_MATCH_COLUMN(0)
+FROM example.employee
+WHERE id NOT IN
+	(
+		SELECT manager_id
+		FROM example.employee
+		WHERE manager_id IS NOT NULL
+	)
+```
+
+Here, the *distribution function* `KI_SHARD_KEY` is used to make the selected
+`manager_id` column the new *shard key* for the first part of the `UNION`.
+Now, the *shard key* for the first part of the `UNION` (`manager_id`) aligns
+with the *shard key* for the second part (`id`), and the query succeeds.  Note
+the use of `KI_MATCH_COLUMN`, which aligns the selected column lists on each
+side of the `UNION`.  Without this matching *distribution function*, the
+`UNION` would appear to be merging three columns from the first part of the
+query into two columns in the second part and would fail.
+
+
+<Info>
+The `manager_id` column must exist in the `SELECT` list in order
+for the `KI_SHARD_KEY` function to designate it as the *shard key*.
+</Info>

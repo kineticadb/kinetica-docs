@@ -1,0 +1,305 @@
+---
+title: INSERT
+---
+
+<a id="sql-dml-insert"></a>
+
+<a id="sql-insert"></a>
+
+
+There are two methods for inserting data into a table from within the database:
+
+* [Inserting values](/content/sql/dml/insert#sql-dml-insert-values)
+* [Copying data from another table](/content/sql/dml/insert#sql-dml-insert-select)
+
+When specifying a column list using either method, any non-nullable fields not
+included in the list will be given default values--empty string for strings, and
+`0` for numerics.  The fields in the column list and the values or fields
+selected must align.
+
+
+<Tip>
+If [Multi-Head Ingest](/content/tuning/multihead/multihead_ingest) has
+been [enabled on the database server](/content/tuning/multihead/multihead_ingest#multi-head-ingest-configuration),
+`INSERT` operations will automatically leverage it, when
+[applicable](/content/tuning/multihead/multihead_ingest#multi-head-ingest-considerations).
+</Tip>
+
+See [Loading Data](/content/sql/load#sql-load-file) for inserting data into a table from sources external
+to the database.
+
+
+<a id="sql-dml-insert-values"></a>
+
+<a id="sql-insert-values"></a>
+
+
+## INSERT INTO ... VALUES
+
+
+Records with literal values can be inserted into the database.
+
+```sql title="INSERT INTO ... VALUES Syntax"
+INSERT INTO [<schema name>.]<table name> [(<column list>)]
+VALUES (<column value list>)[,...]
+[ON CONFLICT (<conflict column list>)
+<
+    DO NOTHING
+    |
+    DO UPDATE SET
+    <
+        <column 1> = <expression 1>,
+        ...
+        <column n> = <expression n>
+        |
+        (<column list>) = (<sub-select statement>)
+    >
+>
+]
+[WITH OPTIONS (<insert option name> = '<insert option value>'[,...])]
+```
+
+{/* Source: /examples/sql/dml/insert.kisql (lines 45-52) */}
+```sql INSERT INTO ... VALUES Example
+INSERT INTO example.employee (id, dept_id, manager_id, first_name, last_name, sal, hire_date)
+VALUES
+    (1, 1, null, 'Anne', 'Arbor', 200000, '2000-01-01'),
+    (2, 2, 1, 'Brooklyn', 'Bridges', 100000, '2000-02-01'),
+    (3, 3, 1, 'Cal', 'Cutta', 100000, '2000-03-01'),
+    (4, 2, 2, 'Dover', 'Della', 150000, '2000-04-01'),
+    (5, 2, 2, 'Elba', 'Eisle', 50000, '2000-05-01'),
+    (6, 4, 1, 'Frank', 'Furt', 12345.67, '2000-06-01')
+```
+
+<a id="sql-insert-values-opt"></a>
+
+
+### Insert Options
+
+
+The following options can be specified to modify the way data is inserted (or
+not inserted) into the target table.
+
+
+<Info>
+The `WITH OPTIONS` clause is only valid when used within JDBC.
+</Info>
+
+<AccordionGroup>
+
+<Accordion title="BATCH SIZE" id="batch-size" defaultOpen>
+
+Use an ingest batch size of the given number of records.
+
+The default batch size is *50,000*.
+
+</Accordion>
+
+<Accordion title="ON ERROR" id="on-error" defaultOpen>
+
+When an error is encountered inserting a record, handle it using one of the
+following modes.  The default mode is `ABORT`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Mode</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>PERMISSIVE</code></td>
+    <td>If an error is encountered parsing a source record, attempt to insert as many of the valid fields from the record as possible; insert a null for each errant value found.</td>
+  </tr>
+  <tr>
+    <td><code>SKIP</code></td>
+    <td>If an error is encountered parsing a source record, skip the record.</td>
+  </tr>
+  <tr>
+    <td><code>ABORT</code></td>
+    <td>If an error is encountered parsing a source record, stop the insert process.  Primary key collisions are considered abortable errors in this mode.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-insert-values-on-conflict"></a>
+
+
+### ON CONFLICT
+
+
+The `ON CONFLICT` clause controls the behavior when an inserted record
+conflicts with an existing record on the specified columns.  Use
+`DO NOTHING` to silently discard the conflicting record, or `DO UPDATE SET`
+to update the existing record with new values.
+
+
+<Info>
+The `ON CONFLICT` clause is only valid when used within an
+`/execute/sql` call.
+</Info>
+
+Within the `DO UPDATE SET` clause, the special `EXCLUDED` reference
+provides access to the values of the record that was proposed for insertion.
+
+```sql title="INSERT INTO ... VALUES ... ON CONFLICT Example"
+INSERT INTO example.employee (id, dept_id, manager_id, first_name, last_name, sal, hire_date)
+VALUES
+    (6, 4, 1, 'Frank', 'Furt', 24680.50, '2000-06-01'),
+    (7, 3, 3, 'George', 'Towne', 103050, '2000-03-02')
+ON CONFLICT (id)
+DO UPDATE SET
+    last_name = EXCLUDED.last_name,
+    dept_id = EXCLUDED.dept_id,
+    manager_id = EXCLUDED.manager_id,
+    sal = EXCLUDED.sal
+```
+
+
+<a id="sql-dml-insert-select"></a>
+
+<a id="sql-insert-select"></a>
+
+
+## INSERT INTO ... SELECT
+
+
+Records that are the result set of a query can be inserted into the database.
+
+```sql title="INSERT INTO ... SELECT Syntax"
+INSERT INTO [<schema name>.]<table name> [(<column list>)]
+<select statement>
+[ON CONFLICT (<conflict column list>)
+<
+    DO NOTHING
+    |
+    DO UPDATE SET
+    <
+        <column 1> = <expression 1>,
+        ...
+        <column n> = <expression n>
+        |
+        (<column list>) = (<sub-select statement>)
+    >
+>
+]
+```
+
+{/* Source: /examples/sql/dml/insert.kisql (lines 72-75) */}
+```sql INSERT INTO ... SELECT Example
+INSERT INTO example.employee_backup (id, dept_id, manager_id, first_name, last_name, sal)
+SELECT id, dept_id, manager_id, first_name, last_name, sal
+FROM example.employee
+WHERE hire_date >= '2000-04-01'
+```
+
+The `ON CONFLICT` clause can also be used with `INSERT INTO ... SELECT`.
+See [ON CONFLICT](/content/sql/dml/insert#sql-insert-select-on-conflict) for details.
+
+
+<a id="sql-insert-select-on-conflict"></a>
+
+
+### ON CONFLICT
+
+
+The `ON CONFLICT` clause controls the behavior when an inserted record
+conflicts with an existing record on the specified columns.  Use
+`DO NOTHING` to silently discard the conflicting record, or `DO UPDATE SET`
+to update the existing record with new values.
+
+
+<Info>
+The `ON CONFLICT` clause is only valid when used within an
+`/execute/sql` call.
+</Info>
+
+Within the `DO UPDATE SET` clause, the special `EXCLUDED` reference
+provides access to the values of the record that was proposed for insertion.
+
+```sql title="INSERT INTO ... SELECT ... ON CONFLICT Example"
+INSERT INTO example.employee_backup (id, dept_id, manager_id, first_name, last_name, sal, hire_date)
+SELECT id, dept_id, manager_id, first_name, last_name, sal, hire_date
+FROM example.employee
+WHERE hire_date >= '2000-04-01'
+ON CONFLICT (id)
+DO UPDATE SET
+    last_name = EXCLUDED.last_name,
+    dept_id = EXCLUDED.dept_id,
+    manager_id = EXCLUDED.manager_id,
+    sal = EXCLUDED.sal
+```
+
+
+<a id="sql-dml-upsert"></a>
+
+<a id="sql-upsert"></a>
+
+<a id="sql-insert-select-upsert"></a>
+
+
+## Upserting
+
+
+To *upsert* records, inserting new records and updating existing ones
+*(as denoted by primary key)*, use the `KI_HINT_UPDATE_ON_EXISTING_PK` hint.
+If the target table has no *primary key*, this hint will be ignored.
+
+
+<Tip>
+This hint can be specified as the connection option
+`UpdateOnExistingPk` when using
+[JDBC/ODBC](/content/connectors/sql_guide#jdbc-config-override).
+</Tip>
+
+{/* Source: /examples/sql/dml/insert.kisql (lines 126-129) */}
+```sql Upsert Example
+INSERT INTO example.employee_backup /* KI_HINT_UPDATE_ON_EXISTING_PK */
+SELECT *
+FROM example.employee
+WHERE hire_date >= '2000-01-01'
+```
+
+
+<Note>
+By default, any record being inserted that matches the
+*primary key* of an existing record in the target table will be discarded,
+and the existing record will remain unchanged.  The
+`KI_HINT_UPDATE_ON_EXISTING_PK` hint overrides this behavior, favoring the
+source records over the target ones.
+</Note>
+
+<a id="sql-insert-select-ignore"></a>
+
+
+## Ignoring Duplicates
+
+
+To discard duplicate records *(as denoted by primary key)* when inserting data,
+use the `KI_HINT_IGNORE_EXISTING_PK` hint.  If the target table has no
+*primary key* or if in *upsert* mode (using `KI_HINT_UPDATE_ON_EXISTING_PK`),
+this hint will be ignored.
+
+
+<Tip>
+Both of these hints can be specified as the connection options
+`IgnoreExistingPk` & `UpdateOnExistingPk`, respectively, when using
+[JDBC/ODBC](/content/connectors/sql_guide#jdbc-config-override).
+</Tip>
+
+{/* Source: /examples/sql/dml/insert.kisql (lines 169-172) */}
+```sql Ignore Duplicates Example
+INSERT INTO example.employee_backup /* KI_HINT_IGNORE_EXISTING_PK */
+SELECT *
+FROM example.employee
+WHERE hire_date >= '2000-01-01'
+```

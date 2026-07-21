@@ -1,0 +1,71 @@
+---
+title: PIVOT
+---
+
+<a id="sql-pivot"></a>
+
+<a id="sql-pivot"></a>
+
+
+The `PIVOT` clause can be used to [pivot](/content/concepts/pivot)
+columns, "rotating" column values into multiple columns (one for each value),
+creating wider and shorter denormalized tables from longer, more normalized
+tables.
+
+```sql title="PIVOT Syntax"
+<select statement>
+PIVOT
+(
+    <aggregate expression [AS <alias>]>[,...]
+    FOR <column> IN (<column list>)
+)
+```
+
+For example, given a source table `phone_number`, which lists each phone number
+for a customer as a separate record in the table, a *pivot* operation can be
+performed, creating a single record per customer with the home, work, & cell
+phone numbers as separate columns.
+
+With this data:
+
+{/* Source: /examples/sql/pivot.out (lines 31-38) */}
+``` PIVOT Input
++--------+--------------+----------------+
+| name   | phone_type   | phone_number   |
++--------+--------------+----------------+
+| Jane   | Home         | 123-456-7890   |
+| Jane   | Work         | 111-222-3333   |
+| John   | Home         | 123-456-7890   |
+| John   | Cell         | 333-222-1111   |
++--------+--------------+----------------+
+```
+
+The following *pivot* operation can be applied:
+
+{/* Source: /examples/sql/pivot.kisql (lines 65-76) */}
+```sql PIVOT Example
+SELECT
+    name,
+    Home_Phone,
+    Work_Phone,
+    Cell_Phone
+FROM
+    example.phone_list
+PIVOT
+(
+    MAX(phone_number) AS Phone
+    FOR phone_type IN ('Home', 'Work', 'Cell')
+)
+```
+
+The data will be pivoted into a table like this:
+
+{/* Source: /examples/sql/pivot.out (lines 120-125) */}
+``` PIVOT Output
++--------+----------------+----------------+----------------+
+| name   | Home_Phone     | Work_Phone     | Cell_Phone     |
++--------+----------------+----------------+----------------+
+| Jane   | 123-456-7890   | 111-222-3333   |                |
+| John   | 123-456-7890   |                | 333-222-1111   |
++--------+----------------+----------------+----------------+
+```

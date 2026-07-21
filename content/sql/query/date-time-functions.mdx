@@ -1,0 +1,1318 @@
+---
+title: Date/Time Functions
+---
+
+<a id="sql-datetime-functions"></a>
+
+
+This section comprises the following functions:
+
+* [Date/Time Base Functions](/content/sql/query/date-time-functions#sql-datetime-functions-base), which can extract parts of
+  date/time expressions, convert back and forth between data types, and return
+  the current date/time
+* [Date/Time Complex Conversion Functions](/content/sql/query/date-time-functions#sql-datetime-functions-complex), which can perform more complex
+  date/type conversions
+
+
+<a id="sql-datetime-functions-base"></a>
+
+
+## Date/Time Base Functions
+
+
+<AccordionGroup>
+
+<Accordion title="CLOCK_TIMESTAMP()" id="clock_timestamp" defaultOpen>
+
+Returns the date & time as `YYYY-MM-DD HH24:MI:SS.mmm`
+
+
+<Info>
+`CLOCK_TIMESTAMP` may return different values each time it is called in the
+same query or SQL Procedure, which may lead to data getting out of sync across HA
+clusters.  Use `CURRENT_DATETIME` to avoid this issue.
+</Info>
+
+</Accordion>
+
+<Accordion title="CURRENT_DATE()" id="current_date" defaultOpen>
+
+Returns the date as `YYYY-MM-DD`
+
+</Accordion>
+
+<Accordion title="CURRENT_DATETIME()" id="current_datetime" defaultOpen>
+
+Returns the date & time as `YYYY-MM-DD HH24:MI:SS.mmm`
+
+
+<Info>
+`CURRENT_DATETIME` will return same values each time it is called in the
+same query or SQL Procedure, and should keep data in-sync across HA clusters.
+See `CLOCK_TIMESTAMP` to always get the actual time each time it is called.
+</Info>
+
+</Accordion>
+
+<Accordion title="CURRENT_TIME()" id="current_time" defaultOpen>
+
+Returns the time as `HH24:MI:SS.mmm`
+
+</Accordion>
+
+<Accordion title="CURRENT_TIMESTAMP()" id="current_timestamp" defaultOpen>
+
+Returns the date & time as `YYYY-MM-DD HH24:MI:SS.mmm`; to
+return the date & time as the number of milliseconds since the
+epoch, pass the result of this function to `LONG()`
+
+</Accordion>
+
+<Accordion title="DATEADD (unit, amount, expr)" id="dateadd-unit-amount-expr" defaultOpen>
+
+Adds the positive or negative integral `amount` of `unit` date/time intervals to the date/time in
+`expr`
+
+The following date/time intervals are supported for `unit`:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Constant</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>YEAR</code></td>
+    <td>Year is modified by interval amount *(not affected by leap year, etc.)*</td>
+  </tr>
+  <tr>
+    <td><code>QUARTER</code></td>
+    <td>Month is modified by three times the interval amount, irrespective of the number of days in the months between; day adjusting performed the same as the <code>MONTH</code> description, but only on final month (e.g., *Jan 31st* + *1 quarter* will be *Apr 30th*, not *Apr 28th* because of *February*)</td>
+  </tr>
+  <tr>
+    <td><code>MONTH</code></td>
+    <td>Month is modified by interval amount and date adjusted if overflow/underflow occurs; day adjusted to last day of calculated month if not a valid day for that month *(e.g. Apr 31st -&gt; Apr 30th)*</td>
+  </tr>
+  <tr>
+    <td><code>WEEK</code></td>
+    <td>Day is modified by 7 times the interval amount *(time not* *affected by daylight savings time, etc.);* month &amp; year are adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>DAY</code></td>
+    <td>Day is modified by interval amount *(time not affected by daylight* *savings time, etc.);* date is adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>HOUR</code></td>
+    <td>Hour is modified by interval amount *(time not affected by daylight* *savings time, etc.);* date is adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>MINUTE</code></td>
+    <td>Minute is modified by interval amount; date/time are adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>SECOND</code></td>
+    <td>Second is modified by interval amount; date/time are adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>MILLISECOND</code></td>
+    <td>Millisecond is modified by interval amount; date/time are adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>FRAC_SECOND</code></td>
+    <td>Nanosecond is modified by interval amount; date/time are adjusted, if overflow/underflow occurs <Note>Time is processed to millisecond precision, so any portion of an `amount` with finer granularity than 1,000,000 nanoseconds will be ignored (e.g., requesting the addition of *1,234,567* *nanoseconds* will result in *1 millisecond* actually being added)</Note></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+<Info>
+Any of these `unit` types can have a `SQL_TSI_` prefix prepended to them; e.g., both
+`DAY` and `SQL_TSI_DAY` are valid `unit` types for specifying a day interval.
+</Info>
+
+Examples:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Function Call</th>
+    <th>Result</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>DATEADD(YEAR, 1, '2000-10-10')</code></td>
+    <td><code>2001-10-10</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEADD(QUARTER, 1, '2000-11-30')</code></td>
+    <td><code>2001-02-28</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEADD(MONTH, 1, '2000-01-31')</code></td>
+    <td><code>2000-02-29</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEADD(WEEK, 53, '2000-01-01')</code></td>
+    <td><code>2001-01-06</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEADD(DAY, 1, '2000-12-31')</code></td>
+    <td><code>2001-01-01</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEADD(HOUR, 12, '2000-10-10 12:34:56')</code></td>
+    <td><code>2000-10-11 00:34:56.000</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEADD(MINUTE, 1, '2000-10-10 12:34:56')</code></td>
+    <td><code>2000-10-10 12:35:56.000</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEADD(SECOND, 1, '2000-12-31 23:59:59')</code></td>
+    <td><code>2001-01-01 00:00:00.000</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEADD(MILLISECOND, 1, '2000-10-10 12:34:56')</code></td>
+    <td><code>2000-10-10 12:34:56.001</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEADD(FRAC_SECOND, 1000000, '2000-10-10 12:34:56')</code></td>
+    <td><code>2000-10-10 12:34:56.001</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEADD(SECOND, 1, TIME '12:34:56')</code></td>
+    <td><code>12:34:57.000</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="DATE_BUCKET (width, ds[, offset[, base]])" id="date_bucket-width-ds-offset-base" defaultOpen>
+
+Calculates the date range in which a given date `ds` falls, based on a set of fixed-width "buckets"
+with the given `width`, start-aligned `base` date, and `offset` from that `base` date.
+
+The `width` is the number of days each bucket should span.
+
+The `offset` is the number of days after (positive `offset`) or number of days before (negative
+`offset`) the `base` date to which the buckets should be aligned.  The default is no offset.
+
+The default `base` is `2000-01-03`.
+
+Typically, `DATE_BUCKET` is used in the following type of query:
+
+```
+SELECT
+    DATE_BUCKET(7, ds, -3, '2023-02-21')
+        + INTERVAL 3 DAYS AS week_midpoint,
+    AVG(cpu) AS avg_cpu
+FROM example.host_metrics_summary
+GROUP BY week_midpoint
+ORDER BY week_midpoint
+```
+The result will be as follows:
+
+* Dates in the `ds` column of the `example.host_metrics_summary` table will be grouped into buckets
+* Each bucket will span a range of `7` days
+* The baseline bucket will start at `2023-02-18` (`2023-02-21` offset by `-3` days) and continue
+  through `2023-02-24` (`7` days, including `2023-02-18`)
+* Buckets will extend before & after the baseline bucket in contiguous, non-overlapping fashion
+* Each result record will show the date in the middle of the bucket's date range (`+ INTERVAL 3 DAYS`
+  from the start of each `7` day span) and the average CPU usage across the records contained within
+  that date range
+* Gaps in the data will not be filled in with empty buckets--only buckets containing the dates found in
+  the `ds` column of `example.host_metrics_summary` will be returned in the result set
+
+</Accordion>
+
+<Accordion title="DATEDIFF ([unit,] begin, end)" id="datediff-unit-begin-end" defaultOpen>
+
+Calculates the difference between two date/time expressions, returning the result as an
+integral difference in the units specified; more precisely, how many whole date/time
+intervals of type `unit` need to be added to  (or subtracted from) `begin` to equal
+`end` (or get as close as possible **without** going past it) using the unit types and
+and rules specified in `DATEADD`.
+
+The default `unit` is `DAY`.
+
+
+<Info>
+This *is not* symmetric with `DATEADD` in all cases, as adding *1*
+`MONTH` to *Mar 31st* results in *Apr 30th*, but the `DATEDIFF` in `MONTH`
+units between those two dates is *0*.
+</Info>
+
+Examples:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Function Call</th>
+    <th>Result</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>DATEDIFF(DATE('2000-10-10'), DATE('2000-12-31'))</code></td>
+    <td><code>82</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEDIFF(DATE('2000-03-31'), DATE('2000-04-30'))</code></td>
+    <td><code>30</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEDIFF(DATE('2000-12-31'), DATE('2000-10-10'))</code></td>
+    <td><code>-82</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEDIFF(DATETIME('2000-10-10 12:34:56'), 978222896000)</code></td>
+    <td><code>81</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEDIFF(MONTH, DATE('2000-10-10'), DATE('2000-12-31'))</code></td>
+    <td><code>2</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEDIFF(MONTH, DATE('2000-03-31'), DATE('2000-04-30'))</code></td>
+    <td><code>0</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEDIFF(MONTH, DATE('2000-12-31'), DATE('2000-10-10'))</code></td>
+    <td><code>-2</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEDIFF(HOUR, DATETIME('2000-10-10 12:34:56'), 978222896000)</code></td>
+    <td><code>1956</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="DATEPART(part, expr)" id="datepart-part-expr" defaultOpen>
+
+Returns the requested `part` of the date/time `expr`.  The `part` may be any of
+those specified in `DATE_TRUNC(part, expr)`, plus the following:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Constant</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>SECS_SINCE_EPOCH</code></td>
+    <td>Return the number of seconds since the epoch (1970-01-01).</td>
+  </tr>
+  <tr>
+    <td><code>MSECS_SINCE_EPOCH</code></td>
+    <td>Return the number of milliseconds since the epoch.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+Examples:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Function Call</th>
+    <th>Result</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>DATEPART(YEAR, '2000-12-31')</code></td>
+    <td><code>2000</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEPART(MONTH, '2000-03-31 12:34:56.000')</code></td>
+    <td><code>3</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEPART(DAY, '2000-03-31 12:34:56.000')</code></td>
+    <td><code>31</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEPART(SECOND, '2000-03-31 12:34:56.220')</code></td>
+    <td><code>56</code></td>
+  </tr>
+  <tr>
+    <td><code>DATEPART(MSECS_SINCE_EPOCH, '2000-03-31 12:34:56.220')</code></td>
+    <td><code>954506096220</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="DATE_TRUNC(part, expr)" id="date_trunc-part-expr" defaultOpen>
+
+Returns the date/time `expr` after truncating it beyond the given date/time `part`.
+The following date/time constants are supported for `part`:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Constant</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>YEAR</code></td>
+    <td>Return the first day of the year in which <code>expr</code> occurs</td>
+  </tr>
+  <tr>
+    <td><code>QUARTER</code></td>
+    <td>Return the first day of the quarter in which <code>expr</code> occurs</td>
+  </tr>
+  <tr>
+    <td><code>MONTH</code></td>
+    <td>Return the first day of the month in which <code>expr</code> occurs</td>
+  </tr>
+  <tr>
+    <td><code>WEEK</code></td>
+    <td>Return the first day of the week in which <code>expr</code> occurs</td>
+  </tr>
+  <tr>
+    <td><code>DAY</code></td>
+    <td>Return the date (at midnight) on which <code>expr</code> occurs</td>
+  </tr>
+  <tr>
+    <td><code>HOUR</code></td>
+    <td>Return the timestamp up to the hour in which <code>expr</code> occurs</td>
+  </tr>
+  <tr>
+    <td><code>MINUTE</code></td>
+    <td>Return the timestamp up to the minute in which <code>expr</code> occurs</td>
+  </tr>
+  <tr>
+    <td><code>SECOND</code></td>
+    <td>Return the timestamp up to the second in which <code>expr</code> occurs</td>
+  </tr>
+  <tr>
+    <td><code>MILLISECOND</code></td>
+    <td>Return the timestamp up to the millisecond in which <code>expr</code> occurs</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+Examples:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Function Call</th>
+    <th>Result</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>DATE_TRUNC(YEAR, '2008-09-10 12:34:56.789')</code></td>
+    <td><code>2008-01-01 00:00:00.000</code></td>
+  </tr>
+  <tr>
+    <td><code>DATE_TRUNC(QUARTER, '2008-09-10 12:34:56.789')</code></td>
+    <td><code>2008-07-01 00:00:00.000</code></td>
+  </tr>
+  <tr>
+    <td><code>DATE_TRUNC(MONTH, '2008-09-10 12:34:56.789')</code></td>
+    <td><code>2008-09-01 00:00:00.000</code></td>
+  </tr>
+  <tr>
+    <td><code>DATE_TRUNC(WEEK, '2008-09-10 12:34:56.789')</code></td>
+    <td><code>2008-09-07 00:00:00.000</code></td>
+  </tr>
+  <tr>
+    <td><code>DATE_TRUNC(DAY, '2008-09-10 12:34:56.789')</code></td>
+    <td><code>2008-09-10 00:00:00.000</code></td>
+  </tr>
+  <tr>
+    <td><code>DATE_TRUNC(HOUR, '2008-09-10 12:34:56.789')</code></td>
+    <td><code>2008-09-10 12:00:00.000</code></td>
+  </tr>
+  <tr>
+    <td><code>DATE_TRUNC(MINUTE, '2008-09-10 12:34:56.789')</code></td>
+    <td><code>2008-09-10 12:34:00.000</code></td>
+  </tr>
+  <tr>
+    <td><code>DATE_TRUNC(SECOND, '2008-09-10 12:34:56.789')</code></td>
+    <td><code>2008-09-10 12:34:56.000</code></td>
+  </tr>
+  <tr>
+    <td><code>DATE_TRUNC(MILLISECOND, '2008-09-10 12:34:56.789')</code></td>
+    <td><code>2008-09-10 12:34:56.789</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="DAY(expr)" id="day-expr" defaultOpen>
+
+Alias for `DAYOFMONTH(expr)`
+
+</Accordion>
+
+<Accordion title="DAYNAME(expr)" id="dayname-expr" defaultOpen>
+
+Extracts the day of the week from `expr` and converts it to the
+corresponding day name [`Sunday` - `Saturday` ]
+
+</Accordion>
+
+<Accordion title="DAYOFMONTH(expr)" id="dayofmonth-expr" defaultOpen>
+
+Extracts the day of the month from `expr` [`1` - `31`]
+
+</Accordion>
+
+<Accordion title="DAYOFWEEK(expr)" id="dayofweek-expr" defaultOpen>
+
+Extracts the day of the week from `expr` [`1` - `7`]
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Expression Value</th>
+    <th>Result</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td>Date on *Sunday*</td>
+    <td><code>1</code></td>
+  </tr>
+  <tr>
+    <td>Date on *Monday*</td>
+    <td><code>2</code></td>
+  </tr>
+  <tr>
+    <td>Date on *Tuesday*</td>
+    <td><code>3</code></td>
+  </tr>
+  <tr>
+    <td>Date on *Wednesday*</td>
+    <td><code>4</code></td>
+  </tr>
+  <tr>
+    <td>Date on *Thursday*</td>
+    <td><code>5</code></td>
+  </tr>
+  <tr>
+    <td>Date on *Friday*</td>
+    <td><code>6</code></td>
+  </tr>
+  <tr>
+    <td>Date on *Saturday*</td>
+    <td><code>7</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="DAY_OF_WEEK(expr)" id="day_of_week-expr" defaultOpen>
+
+Alias for `DAYOFWEEK(expr)`
+
+</Accordion>
+
+<Accordion title="DAYOFYEAR(expr)" id="dayofyear-expr" defaultOpen>
+
+Extracts the day of the year from `expr` [`1` - `366`]
+
+</Accordion>
+
+<Accordion title="DAY_OF_YEAR(expr)" id="day_of_year-expr" defaultOpen>
+
+Alias for `DAYOFYEAR(expr)`
+
+</Accordion>
+
+<Accordion title="EPOCH_MSECS_TO_DATETIME(expr)" id="epoch_msecs_to_datetime-expr" defaultOpen>
+
+Converts `expr` milliseconds since the epoch to a date/time
+
+Example:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <tbody>
+  <tr>
+    <td>**Function Call**</td>
+    <td><code>EPOCH_MSECS_TO_DATETIME(971181296789)</code></td>
+  </tr>
+  <tr>
+    <td>**Return**</td>
+    <td><code>2000-10-10 12:34:56.789</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="EPOCH_SECS_TO_DATETIME(expr)" id="epoch_secs_to_datetime-expr" defaultOpen>
+
+Converts `expr` seconds since the epoch to a date/time
+
+Example:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <tbody>
+  <tr>
+    <td>**Function Call**</td>
+    <td><code>EPOCH_SECS_TO_DATETIME(971181296)</code></td>
+  </tr>
+  <tr>
+    <td>**Return**</td>
+    <td><code>2000-10-10 12:34:56.000</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="EXTRACT(&lt;part&gt; FROM &lt;expr&gt;)" id="extract-<part>-from-<expr>" defaultOpen>
+
+Extracts the date/time `part` from the date/time `expr`.  This function is used to support database
+clients which require the call in this form; however, each of the supported date/time `part`
+constants results in a call for which there is a simpler, more direct corresponding call, which are
+listed below.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Constant</th>
+    <th>Corresponding Alternative Function Call</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>YEAR</code></td>
+    <td><code>YEAR(expr)</code></td>
+  </tr>
+  <tr>
+    <td><code>QUARTER</code></td>
+    <td><code>QUARTER(expr)</code></td>
+  </tr>
+  <tr>
+    <td><code>MONTH</code></td>
+    <td><code>MONTH(expr)</code></td>
+  </tr>
+  <tr>
+    <td><code>WEEK</code></td>
+    <td><code>WEEK(expr)</code></td>
+  </tr>
+  <tr>
+    <td><code>DAY</code></td>
+    <td><code>DAY(expr)</code></td>
+  </tr>
+  <tr>
+    <td><code>HOUR</code></td>
+    <td><code>HOUR(expr)</code></td>
+  </tr>
+  <tr>
+    <td><code>MINUTE</code></td>
+    <td><code>MINUTE(expr)</code></td>
+  </tr>
+  <tr>
+    <td><code>SECOND</code></td>
+    <td><code>SECOND(expr)</code></td>
+  </tr>
+  <tr>
+    <td><code>MILLISECOND</code></td>
+    <td><code>MSEC(expr)</code></td>
+  </tr>
+  <tr>
+    <td><code>EPOCH</code></td>
+    <td><code>SECS_SINCE_EPOCH(expr)</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="HOUR(expr)" id="hour-expr" defaultOpen>
+
+Extracts the hour of the day from `expr` [`0` - `23`]
+
+</Accordion>
+
+<Accordion title="&lt;expr&gt; + INTERVAL '&lt;amount&gt;' &lt;part&gt; &lt;expr&gt; - INTERVAL '&lt;amount&gt;' &lt;part&gt;" id="<expr>-interval-<amount>-<part>-<expr>-interval-<amount>-<part>" defaultOpen>
+
+Adds to or subtracts from the date/time `expr` the integral
+`amount` units of type `part`.  This mirrors the behavior of
+the `TIMESTAMPADD` function, only with a different format and
+different date/time part constants.  The following date/time
+constants are supported for `part`:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Constant</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>YEAR</code></td>
+    <td>Year is modified by interval amount *(not affected by leap year, etc.)*</td>
+  </tr>
+  <tr>
+    <td><code>QUARTER</code></td>
+    <td>Month is modified by three times the interval amount, irrespective of the number of days in the months between; day adjusting performed the same as the <code>MONTH</code> description, but only on final month (e.g., *Jan 31st* + *1 quarter* will be *Apr 30th*, not *Apr 28th* because of *February*)</td>
+  </tr>
+  <tr>
+    <td><code>MONTH</code></td>
+    <td>Month is modified by interval amount and date adjusted if overflow/underflow occurs; day adjusted to last day of calculated month if not a valid day for that month *(e.g. Apr 31st -&gt; Apr 30th)*</td>
+  </tr>
+  <tr>
+    <td><code>WEEK</code></td>
+    <td>Day is modified by 7 times the interval amount *(time not* *affected by daylight savings time, etc.);* month &amp; year are adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>DAY</code></td>
+    <td>Day is modified by interval amount *(time not affected by daylight* *savings time, etc.);* date is adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>HOUR</code></td>
+    <td>Hour is modified by interval amount *(time not affected by daylight* *savings time, etc.);* date is adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>MINUTE</code></td>
+    <td>Minute is modified by interval amount; date/time are adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>SECOND</code></td>
+    <td>Second is modified by interval amount; date/time are adjusted, if overflow/underflow occurs</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="LAST_DAY(date)" id="last_day-date" defaultOpen>
+
+Returns the date of the last day of the month in the given `date`
+
+</Accordion>
+
+<Accordion title="MINUTE(expr)" id="minute-expr" defaultOpen>
+
+Extracts the minute of the day from `expr` [`0` - `59`]
+
+</Accordion>
+
+<Accordion title="MONTH(expr)" id="month-expr" defaultOpen>
+
+Extracts the month of the year from `expr` [`1` - `12`]
+
+</Accordion>
+
+<Accordion title="MONTHNAME(expr)" id="monthname-expr" defaultOpen>
+
+Extracts the month of the year from `expr` and converts it to
+the corresponding month name [`January` - `December`]
+
+</Accordion>
+
+<Accordion title="MSEC(expr)" id="msec-expr" defaultOpen>
+
+Extracts the millisecond of the second from `expr` [`0` - `999`]
+
+</Accordion>
+
+<Accordion title="MSECS_SINCE_EPOCH(expr)" id="msecs_since_epoch-expr" defaultOpen>
+
+Converts `expr` date/time to the number of milliseconds since the epoch
+
+Example:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <tbody>
+  <tr>
+    <td>**Function Call**</td>
+    <td><code>MSECS_SINCE_EPOCH('2000-10-10 12:34:56.789')</code></td>
+  </tr>
+  <tr>
+    <td>**Return**</td>
+    <td><code>971181296789</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="NEXT_DAY(date, day_of_week)" id="next_day-date-day_of_week" defaultOpen>
+
+Returns the date of the next day of the week, provided as a day
+name in `day_of_week`, that occurs after the given `date`
+
+Some examples, given that *2000-10-10* is a *Tuesday*:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Function Call</th>
+    <th>Result</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>NEXT_DAY('2000-10-10', 'Wednesday')</code></td>
+    <td><code>2000-10-11</code></td>
+  </tr>
+  <tr>
+    <td><code>NEXT_DAY('2000-10-10', 'Friday')</code></td>
+    <td><code>2000-10-13</code></td>
+  </tr>
+  <tr>
+    <td><code>NEXT_DAY('2000-10-10', 'Tuesday')</code></td>
+    <td><code>2000-10-17</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="NOW()" id="now" defaultOpen>
+
+Alias for `CURRENT_DATETIME()`
+
+</Accordion>
+
+<Accordion title="QUARTER(expr)" id="quarter-expr" defaultOpen>
+
+Extracts the quarter of the year from `expr` [`1` - `4`]
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Expression Value</th>
+    <th>Result</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td>Date in *January*, *February*, or *March*</td>
+    <td><code>1</code></td>
+  </tr>
+  <tr>
+    <td>Date in *April*, *May*, or *June*</td>
+    <td><code>2</code></td>
+  </tr>
+  <tr>
+    <td>Date in *July*, *August*, or *September*</td>
+    <td><code>3</code></td>
+  </tr>
+  <tr>
+    <td>Date in *October*, *November*, or *December*</td>
+    <td><code>4</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="SECOND(expr)" id="second-expr" defaultOpen>
+
+Extracts the seconds of the minute from `expr` [`0` - `59`]
+
+</Accordion>
+
+<Accordion title="SEC(expr)" id="sec-expr" defaultOpen>
+
+Alias for `SECOND(expr)`
+
+</Accordion>
+
+<Accordion title="SECS_SINCE_EPOCH(expr)" id="secs_since_epoch-expr" defaultOpen>
+
+Converts `expr` date/time to the number of seconds since the epoch
+
+Example:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <tbody>
+  <tr>
+    <td>**Function Call**</td>
+    <td><code>SECS_SINCE_EPOCH('2000-10-10 12:34:56')</code></td>
+  </tr>
+  <tr>
+    <td>**Return**</td>
+    <td><code>971181296</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="SLEEP(expr)" id="sleep-expr" defaultOpen>
+
+Pause execution for at least `expr` seconds; though system load may delay the return from this call
+for longer than the specified amount.  Use a decimal for `expr` to pause for less than a second;
+e.g., `SLEEP(0.001)` will pause for at least 1 millisecond.  `SLEEP` should be invoked in a
+[Tableless Query](/content/sql/query/tableless-query#sql-tableless-query) to avoid being called for every record in a result set; e.g.:
+
+```
+SELECT SLEEP(0.001)
+```
+</Accordion>
+
+<Accordion title="TIME_BUCKET (width, ts[, offset[, base]])" id="time_bucket-width-ts-offset-base" defaultOpen>
+
+Calculates the date/time range in which a given timestamp `ts` falls, based on a set of fixed-width
+"buckets" with the given `width`, start-aligned `base` date/time, and `offset` from that `base`
+date/time
+
+The `width` is the number of milliseconds each bucket should span.  An `INTERVAL` can also be used
+to specify the `width`.
+
+The `offset` is the number of milliseconds after (positive `offset`) or number of milliseconds
+before (negative `offset`) the `base` date/time to which the buckets should be aligned.  An
+`INTERVAL` can also be used to specify the `offset`.  The default is no offset.
+
+The default `base` is `2000-01-03 00:00:00`.
+
+Typically, `TIME_BUCKET` is used in the following type of query:
+
+```
+SELECT
+    TIME_BUCKET(
+        INTERVAL 5 MINUTES,
+        ts,
+        INTERVAL -2.5 MINUTES,
+        '2023-02-28'
+    ) + INTERVAL 2.5 MINUTES AS five_minute_midpoint,
+    AVG(cpu) AS avg_cpu
+FROM example.host_metrics
+GROUP BY five_minute_midpoint
+ORDER BY five_minute_midpoint
+```
+The result will be as follows:
+
+* Timestamps in the `ts` column of the `example.host_metrics` table will be grouped into buckets
+* Each bucket will span a `5` minute interval
+* The baseline bucket will start at `2023-02-27 23:57:30` (`2023-02-28` offset by `-2.5` minutes)
+  and continue through `2023-02-28 00:02:30` (`5` minutes from `2023-02-27 23:57:30`)
+* Buckets will extend before & after the baseline bucket in contiguous, non-overlapping fashion
+* Each result record will show the timestamp in the middle of the bucket's range
+  (`+ INTERVAL 2.5 MINUTES` from the start of each `5` minute span) and the average CPU usage
+  across the records contained within that date/time range
+* Gaps in the data will not be filled in with empty buckets--only buckets containing the timestamps
+  found in the `ts` column of `example.host_metrics` will be returned in the result set
+
+</Accordion>
+
+<Accordion title="TIMESTAMPADD (unit, amount, expr)" id="timestampadd-unit-amount-expr" defaultOpen>
+
+Adds the positive or negative integral `amount` of `unit` date/time intervals to the date/time in
+`expr`
+
+The following date/time intervals are supported for `unit`:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Constant</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>YEAR</code></td>
+    <td>Year is modified by interval amount *(not affected by leap year, etc.)*</td>
+  </tr>
+  <tr>
+    <td><code>QUARTER</code></td>
+    <td>Month is modified by three times the interval amount, irrespective of the number of days in the months between; day adjusting performed the same as the <code>MONTH</code> description, but only on final month (e.g., *Jan 31st* + *1 quarter* will be *Apr 30th*, not *Apr 28th* because of *February*)</td>
+  </tr>
+  <tr>
+    <td><code>MONTH</code></td>
+    <td>Month is modified by interval amount and date adjusted if overflow/underflow occurs; day adjusted to last day of calculated month if not a valid day for that month *(e.g. Apr 31st -&gt; Apr 30th)*</td>
+  </tr>
+  <tr>
+    <td><code>WEEK</code></td>
+    <td>Day is modified by 7 times the interval amount *(time not* *affected by daylight savings time, etc.);* month &amp; year are adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>DAY</code></td>
+    <td>Day is modified by interval amount *(time not affected by daylight* *savings time, etc.);* date is adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>HOUR</code></td>
+    <td>Hour is modified by interval amount *(time not affected by daylight* *savings time, etc.);* date is adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>MINUTE</code></td>
+    <td>Minute is modified by interval amount; date/time are adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>SECOND</code></td>
+    <td>Second is modified by interval amount; date/time are adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>MILLISECOND</code></td>
+    <td>Millisecond is modified by interval amount; date/time are adjusted, if overflow/underflow occurs</td>
+  </tr>
+  <tr>
+    <td><code>FRAC_SECOND</code></td>
+    <td>Nanosecond is modified by interval amount; date/time are adjusted, if overflow/underflow occurs <Note>Time is processed to millisecond precision, so any portion of an `amount` with finer granularity than 1,000,000 nanoseconds will be ignored (e.g., requesting the addition of *1,234,567* *nanoseconds* will result in *1 millisecond* actually being added)</Note></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+<Info>
+Any of these `unit` types can have a `SQL_TSI_` prefix prepended to them; e.g., both
+`DAY` and `SQL_TSI_DAY` are valid `unit` types for specifying a day interval.
+</Info>
+
+Examples:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Function Call</th>
+    <th>Result</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TIMESTAMPADD(SQL_TSI_YEAR, 1, '2000-10-10')</code></td>
+    <td><code>2001-10-10</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMESTAMPADD(SQL_TSI_QUARTER, 1, '2000-11-30')</code></td>
+    <td><code>2001-02-28</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMESTAMPADD(SQL_TSI_MONTH, 1, '2000-01-31')</code></td>
+    <td><code>2000-02-29</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMESTAMPADD(SQL_TSI_WEEK, 53, '2000-01-01')</code></td>
+    <td><code>2001-01-06</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMESTAMPADD(SQL_TSI_DAY, 1, '2000-12-31')</code></td>
+    <td><code>2001-01-01</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMESTAMPADD(SQL_TSI_HOUR, 12, '2000-10-10 12:34:56')</code></td>
+    <td><code>2000-10-11 00:34:56.000</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMESTAMPADD(SQL_TSI_MINUTE, 1, '2000-10-10 12:34:56')</code></td>
+    <td><code>2000-10-10 12:35:56.000</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMESTAMPADD(SQL_TSI_SECOND, 1, '2000-12-31 23:59:59')</code></td>
+    <td><code>2001-01-01 00:00:00.000</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMESTAMPADD(SQL_TSI_MILLISECOND, 1, '2000-10-10 12:34:56')</code></td>
+    <td><code>2000-10-10 12:34:56.001</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMESTAMPADD(SQL_TSI_FRAC_SECOND, 1000000, '2000-10-10 12:34:56')</code></td>
+    <td><code>2000-10-10 12:34:56.001</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMESTAMPADD(SQL_TSI_SECOND, 1, TIME '12:34:56')</code></td>
+    <td><code>12:34:57.000</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="TIMESTAMPDIFF (unit, begin, end)" id="timestampdiff-unit-begin-end" defaultOpen>
+
+Calculates the difference between two date/time expressions, returning the result as an
+integral difference in the units specified; more precisely, how many whole date/time
+intervals of type `unit` need to be added to  (or subtracted from) `begin` to equal
+`end` (or get as close as possible **without** going past it) using the unit types and
+and rules specified in `TIMESTAMPADD`.
+
+
+<Info>
+This *is not* symmetric with `TIMESTAMPADD` in all cases, as adding *1*
+`MONTH` to *Mar 31st* results in *Apr 30th*, but the `TIMESTAMPDIFF` in `MONTH`
+units between those two dates is *0*.
+</Info>
+
+Examples:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Function Call</th>
+    <th>Result</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TIMESTAMPDIFF(MONTH, DATETIME('2000-10-10 01:23:45.678'), DATETIME('2000-12-31 12:34:56.789'))</code></td>
+    <td><code>2</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMESTAMPDIFF(MONTH, DATETIME('2000-03-31 01:23:45.678'), DATETIME('2000-04-30 12:34:56.789'))</code></td>
+    <td><code>0</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMESTAMPDIFF(MONTH, DATETIME('2000-12-31 01:23:45.678'), DATETIME('2000-10-10 12:34:56.789'))</code></td>
+    <td><code>-2</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMESTAMPDIFF(HOUR, DATETIME('2000-10-10 12:34:56.789'), TIMESTAMP(978222896678))</code></td>
+    <td><code>1955</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="TIMESTAMP_TRUNC(part, expr)" id="timestamp_trunc-part-expr" defaultOpen>
+
+Alias for `DATE_TRUNC(part, expr)`
+
+</Accordion>
+
+<Accordion title="UNIX_TIMESTAMP(expr)" id="unix_timestamp-expr" defaultOpen>
+
+Alias for `SECS_SINCE_EPOCH(expr)`
+
+</Accordion>
+
+<Accordion title="WEEK(expr)" id="week-expr" defaultOpen>
+
+Extracts the week of the year from `expr` [`1` - `54`]; each full week starts on
+*Sunday* (a `1` is returned for the week containing *Jan 1st*)
+
+</Accordion>
+
+<Accordion title="YEAR(expr)" id="year-expr" defaultOpen>
+
+Extracts the year from `expr`; 4-digit year, A.D.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-datetime-functions-complex"></a>
+
+
+## Date/Time Complex Conversion Functions
+
+
+<AccordionGroup>
+
+<Accordion title="DATE_TO_EPOCH_MSECS(year, month, day, hour, min, sec, msec)" id="date_to_epoch_msecs-year-month-day-hour-min-sec-msec" defaultOpen>
+
+Converts the full date to milliseconds since the epoch
+
+
+Example:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <tbody>
+  <tr>
+    <td>**Function Call**</td>
+    <td><code>DATE_TO_EPOCH_MSECS(2017, 06, 15, 09, 22, 15, 42)</code></td>
+  </tr>
+  <tr>
+    <td>**Return**</td>
+    <td><code>1497518535042</code></td>
+  </tr>
+  <tr>
+    <td>**Resolves To**</td>
+    <td>*Thursday, June 15, 2017 9:22:15.042 AM*</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="DATE_TO_EPOCH_SECS(year, month, day, hour, min, sec)" id="date_to_epoch_secs-year-month-day-hour-min-sec" defaultOpen>
+
+Converts the full date to seconds since the epoch
+
+
+Example:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <tbody>
+  <tr>
+    <td>**Function Call**</td>
+    <td><code>DATE_TO_EPOCH_SECS(2017, 06, 15, 09, 22, 15)</code></td>
+  </tr>
+  <tr>
+    <td>**Return**</td>
+    <td><code>1494926535</code></td>
+  </tr>
+  <tr>
+    <td>**Resolves To**</td>
+    <td>*Thursday, June 15, 2017 9:22:15.042 AM*</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="TIMESTAMP_FROM_DATE_TIME(date, time)" id="timestamp_from_date_time-date-time" defaultOpen>
+
+Converts the given date and time to a composite date/time format
+
+Example:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <tbody>
+  <tr>
+    <td>**Function Call**</td>
+    <td><code>TIMESTAMP_FROM_DATE_TIME('2017-06-15', '10:37:30')</code></td>
+  </tr>
+  <tr>
+    <td>**Return**</td>
+    <td><code>2017-06-15 10:37:30.000</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WEEK_TO_EPOCH_MSECS(year, week_number)" id="week_to_epoch_msecs-year-week_number" defaultOpen>
+
+Converts the year and week number to milliseconds since the epoch; negative
+values are accepted
+
+Example:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <tbody>
+  <tr>
+    <td>**Function Call**</td>
+    <td><code>WEEK_TO_EPOCH_MSECS(2017,-32)</code></td>
+  </tr>
+  <tr>
+    <td>**Return**</td>
+    <td><code>1463270400000</code></td>
+  </tr>
+  <tr>
+    <td>**Resolves To**</td>
+    <td>*Sunday, May 15, 2016 12:00:00 AM*</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WEEK_TO_EPOCH_SECS(year, week_number)" id="week_to_epoch_secs-year-week_number" defaultOpen>
+
+Converts the year and week number to seconds since the epoch. Negative
+values are accepted.  Each new week begins Sunday at midnight.
+
+Example:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <tbody>
+  <tr>
+    <td>**Function Call**</td>
+    <td><code>WEEK_TO_EPOCH_SECS(2017,-32)</code></td>
+  </tr>
+  <tr>
+    <td>**Return**</td>
+    <td><code>1463270400</code></td>
+  </tr>
+  <tr>
+    <td>**Resolves To**</td>
+    <td>*Sunday, May 15, 2016 12:00:00 AM*</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>

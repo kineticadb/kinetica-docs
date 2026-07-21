@@ -1,0 +1,48 @@
+---
+title: Iteration
+---
+
+<a id="sql-iteration"></a>
+
+
+*Kinetica* supports [iteration](/content/concepts/iteration) over each
+record within a data set for the purpose of creating a result set with `0` to
+`N` result records per record in the original set.
+
+This iteration can be variable, based on some value within each record, or
+fixed, based on a given constant value.
+
+The *iteration* is performed by joining against the virtual `ITER` table, as
+follows:
+
+```sql title="Iteration Syntax"
+SELECT *
+FROM table, ITER
+WHERE ITER.i < <column expression>
+```
+
+The `<column expression>` can be replaced by a constant for fixed *iteration*.
+
+For example, to extract all of the individual letters from a column of words,
+with one record per letter extracted (using variable iteration):
+
+{/* Source: /examples/sql/iteration.kisql (lines 63-66) */}
+```sql Iteration Over Column Values Example
+SELECT id, word, i, SUBSTR(word, i + 1, 1) AS letter
+FROM example.dictionary
+JOIN ITER ON i < LENGTH(word)
+ORDER BY id, i
+```
+
+To duplicate the set of words five times (using fixed iteration):
+
+{/* Source: /examples/sql/iteration.kisql (lines 82-85) */}
+```sql Iteration Over Table Example
+SELECT i, id, word
+FROM example.dictionary, ITER
+WHERE i < 5
+ORDER BY id, i
+```
+
+For more detail, examples, and limitations, see
+[Iteration](/content/concepts/iteration).

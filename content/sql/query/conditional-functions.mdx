@@ -1,0 +1,114 @@
+---
+title: Conditional Functions
+---
+
+<a id="sql-conditional-functions"></a>
+
+
+Conditional functions are subject to
+[short-circuiting](/content/concepts/expressions#short-circuiting) to aid in error-checking.
+
+<AccordionGroup>
+
+<Accordion title="DECODE(expr, match_a, value_a, ..., match_N, value_N[, unmatched_value])" id="decode-expr-match_a-value_a-match_n-value_n-unmatched_value" defaultOpen>
+
+Evaluates `expr`: returns the first `value` whose corresponding `match` is equal to
+`expr`; returns the optional `unmatched_value` (or *null*), if no match is found
+
+</Accordion>
+
+<Accordion title="IF(expr, value_if_true, value_if_false)" id="if-expr-value_if_true-value_if_false" defaultOpen>
+
+Evaluates `expr`: if *true*, returns `value_if_true`; otherwise, if *false* or *null*,
+returns `value_if_false`
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Parameter</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>expr</code></td>
+    <td>any *true*/*false* condition <Note>When an integer column is used directly, this function will interpret non-zero values as *true* and zero values as *false*.</Note></td>
+  </tr>
+  <tr>
+    <td><code>value_if_true</code></td>
+    <td>any type; must be the same type as <code>value_if_false</code></td>
+  </tr>
+  <tr>
+    <td><code>value_if_false</code></td>
+    <td>any type; must be the same type as <code>value_if_true</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## CASE
+
+
+The case statement acts as a *scalar function*, but has two more complex forms.
+Note that for each of these `CASE` statements, the value expressions must all
+be of the same or convertible data type.
+
+In the first form, each `WHEN` is followed by a conditional expression whose
+corresponding `THEN` expression will have its value returned, if true.
+Control will continue through each `WHEN` until a match is found and the
+corresponding value returned; if no match is found, the value of the `ELSE`
+expression will be returned, or *null*, if no `ELSE` clause exists.
+
+```sql title="CASE without Expression Syntax"
+CASE
+    WHEN <cond_expr_a> THEN <value_expr_a>
+    ...
+    WHEN <cond_expr_n> THEN <value_expr_n>
+    ELSE <value_expr>
+END
+```
+
+In the second form, the `CASE` expression is evaluated.  A match of that
+result will be attempted against each `WHEN` expression until a match is found
+and the value of the corresponding `THEN` expression returned; if no match is
+found, the value of the `ELSE` expression will be returned, or *null*, if no
+`ELSE` clause exists.
+
+```sql title="CASE with Expression Syntax"
+CASE <expr>
+    WHEN <match_expr_a> THEN <value_expr_a>
+    ...
+    WHEN <match_expr_n> THEN <value_expr_n>
+    ELSE <value_expr>
+END
+```
+
+
+<Info>
+This second version below has greater optimization than the first.
+</Info>
+
+{/* Source: /examples/sql/functions/conditional.kisql (lines 36-40) */}
+```sql CASE without Expression Example
+CASE
+    WHEN color = 1 THEN 'Red'
+    WHEN color >= 2 THEN 'Green'
+    ELSE 'Blue'
+END
+```
+
+{/* Source: /examples/sql/functions/conditional.kisql (lines 46-50) */}
+```sql CASE with Expression Example
+CASE MOD(LENGTH(text), 2)
+    WHEN 0 THEN 'Even'
+    WHEN 1 THEN 'Odd'
+    ELSE null
+END
+```

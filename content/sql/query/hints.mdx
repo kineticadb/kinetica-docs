@@ -1,0 +1,577 @@
+---
+title: Hints
+---
+
+<a id="sql-hints"></a>
+
+
+Hints can be added as comments within queries, and affect just the query in
+which they appear.  They will override the corresponding client & server
+settings (when such settings exist).
+
+Kinetica supports both global & scoped hints:
+
+* [Scoped Hints](/content/sql/query/hints#sql-hints-scoped) - affect a portion of the query
+* [Global Hints](/content/sql/query/hints#sql-hints-global) - affect the entire query
+
+
+<a id="sql-hints-scoped"></a>
+
+
+## Scoped Hints
+
+
+Scoped hints may appear anywhere in the query.  Scoped hints must be in a
+comment block in the form:
+
+```
+/*+ <HINT>[,<HINT>...] */
+```
+{/* Source: /examples/sql/view/create_mview_delta.kisql (lines 47-50) */}
+```sql Scoped Hint Example
+CREATE MATERIALIZED VIEW example.weather_zone AS
+SELECT w.name AS event_name, w.type AS event_type, gz.name AS zone
+FROM example.weather /*+ KI_HINT_DELTA_TABLE */ w
+JOIN example.geo_zone gz ON STXY_INTERSECTS(lon, lat, zone)
+```
+
+<AccordionGroup>
+
+<Accordion title="KI_HINT_DELTA_TABLE" id="ki_hint_delta_table" defaultOpen>
+
+Designates the corresponding table as a
+[delta table](/content/sql/ddl/create-materialized-view#sql-create-materialized-view-delta), within the
+context of a [CREATE MATERIALIZED VIEW](/content/sql/ddl/create-materialized-view#sql-create-materialized-view) statement.
+
+This hint must be placed immediately after the `FROM <table>` clause to
+which it applies, but before any table alias specified for that table.
+
+</Accordion>
+
+<Accordion title="KI_HINT_GROUP_BY_PK" id="ki_hint_group_by_pk" defaultOpen>
+
+Create primary keys for this [GROUP BY](/content/sql/query/aggregation#sql-aggregation) result
+set on the grouped-upon columns/expressions; often used to create a
+[primary key](/content/concepts/tables#primary-key) on the result of a
+[CREATE TABLE ... AS](/content/sql/ddl/create-table-as#sql-create-table-as) that ends in a
+`GROUP BY`, and can also make
+[materialized views](/content/sql/ddl/create-materialized-view#sql-create-materialized-view) containing
+grouping operations more performant.
+
+
+<Info>
+If any of the grouped-on expressions are nullable, no
+primary key will be applied.
+</Info>
+
+This hint may be placed either immediately after the `SELECT`
+keyword or immediately after the `FROM <table>` clause.
+
+</Accordion>
+
+<Accordion title="KI_HINT_MATERIALIZE" id="ki_hint_materialize" defaultOpen>
+
+This can make some operations more performant, but can use more memory.  It
+would normally be used on a multi-dimensional [join](/content/sql/query/join#sql-join) or
+[union](/content/sql/query/set-operations#sql-union) result set to speed up operations done on that
+result set.  This can also be used on a query with a
+[CTE](/content/sql/query/with-common-table-expressions#sql-cte) in the `WITH` clause; if different `WHERE`
+clauses are applied to the CTE, the CTE query may only have to be evaluated
+once.
+
+This hint must be placed immediately after the `SELECT` keyword, like the
+`SELECT` producing a join.
+
+
+<Info>
+`KI_HINT_MATERIALIZE` includes the functionality of
+`KI_HINT_NO_VIRTUAL_UNION`.
+</Info>
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_VIRTUAL_UNION" id="ki_hint_no_virtual_union" defaultOpen>
+
+This can make some operations more performant, but can use more memory.
+This would normally be used on a union query combining many tables or
+sub-queries.
+
+This scoped must be placed immediately after the `SELECT` keyword, like
+the first `SELECT` keyword in the union.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-hints-global"></a>
+
+
+## Global Hints
+
+
+Global hints may appear anywhere in the query.  Global hints must be in a
+comment block in the form:
+
+```
+/* <HINT>[,<HINT>...] */
+```
+{/* Source: /examples/sql/hint.kisql (lines 20-24) */}
+```sql Global Hint Example
+CREATE TABLE example.taxi_trip_daily_totals AS
+/* KI_HINT_GROUP_BY_PK, KI_HINT_INDEX(transaction_date) */
+SELECT vendor_id, DATE(dropoff_datetime) AS transaction_date, COUNT(*) AS total_trips
+FROM demo.nyctaxi
+GROUP BY vendor_id, transaction_date
+```
+
+<AccordionGroup>
+
+<Accordion title="KI_HINT_BATCH_SIZE(n)" id="ki_hint_batch_size-n" defaultOpen>
+
+Use an ingest batch size of `n` records.  Default: 10,000.
+
+Only applicable when issuing [INSERT](/content/sql/dml/insert#sql-insert) statements.
+
+</Accordion>
+
+<Accordion title="KI_HINT_CHUNK_SIZE(n)" id="ki_hint_chunk_size-n" defaultOpen>
+
+Use chunk sizes of `n` records per chunk within result sets.
+Suffixes of `K` & `M` can be used to represent thousands or
+millions of records; e.g., `20K`, `50M`.
+
+</Accordion>
+
+<Accordion title="KI_HINT_COST_BASED_OPTIMIZATION" id="ki_hint_cost_based_optimization" defaultOpen>
+
+Cost-based optimizations are usually turned on by default.  If they have
+been turned off by default using a global configuration setting
+(`sql.cost_based_optimization`), they can be turned on for an individual
+query using this hint.
+
+</Accordion>
+
+<Accordion title="KI_HINT_DICT_PROJECTION" id="ki_hint_dict_projection" defaultOpen>
+
+Retain the [dictionary encoding](/content/concepts/dictionary_encoding)
+attributes of source columns in a projection result set.
+
+</Accordion>
+
+<Accordion title="KI_HINT_DISTRIBUTED_OPERATIONS" id="ki_hint_distributed_operations" defaultOpen>
+
+Reshard data when doing so would be the only way to process one or
+more operations in this query.
+
+</Accordion>
+
+<Accordion title="KI_HINT_DONT_COMBINE" id="ki_hint_dont_combine" defaultOpen>
+
+Don't combine joins and unions for this query.
+
+</Accordion>
+
+<Accordion title="KI_HINT_GROUP_BY_FORCE_REPLICATED" id="ki_hint_group_by_force_replicated" defaultOpen>
+
+Make all result tables within a single query replicated; useful when
+meeting the input table requirements of [JOIN](/content/sql/query/join#sql-join),
+[UNION](/content/sql/query/set-operations#sql-union), etc. in a query containing aggregated
+subqueries which generate differently-sharded result tables.
+
+</Accordion>
+
+<Accordion title="KI_HINT_GROUP_BY_PK" id="ki_hint_group_by_pk-2" defaultOpen>
+
+Create primary keys for all [GROUP BY](/content/sql/query/aggregation#sql-aggregation) result
+sets on the grouped-upon columns/expressions within a given query; often
+used to create a primary key on the result of a
+[CREATE TABLE ... AS](/content/sql/ddl/create-table-as#sql-create-table-as) that ends in a
+`GROUP BY`, and can also make materialized views containing grouping
+operations more performant.
+
+
+<Info>
+If any of the grouped-on expressions are nullable, no
+primary key will be applied.
+</Info>
+
+</Accordion>
+
+<Accordion title="KI_HINT_HAS_HEADER" id="ki_hint_has_header" defaultOpen>
+
+Assume the first line of the source CSV file has a header row.
+Only used with CSV ingestion via [INSERT INTO ... SELECT ... FROM FILE](/content/sql/load#sql-load-file-client).
+
+</Accordion>
+
+<Accordion title="KI_HINT_IGNORE_EXISTING_PK" id="ki_hint_ignore_existing_pk" defaultOpen>
+
+When inserting into or updating a table with a primary key, if the
+[INSERT](/content/sql/dml/insert#sql-insert) or [UPDATE](/content/sql/dml/update#sql-update) results in a
+primary key collision, reject the command with no error or warning.  If the
+specified table does not have a primary key or the
+`KI_HINT_UPDATE_ON_EXISTING_PK` hint is used to switch to *upsert* mode
+for inserts or overwrite mode for updates, then this hint is ignored.
+
+</Accordion>
+
+<Accordion title="KI_HINT_INDEX(column_list)" id="ki_hint_index-column_list" defaultOpen>
+
+Create an index on each of the comma-separated columns in the given
+`column_list`; often used with
+[CREATE TABLE ... AS](/content/sql/ddl/create-table-as#sql-create-table-as) to create an index on a
+persisted result set.
+
+</Accordion>
+
+<Accordion title="KI_HINT_JOIN_TABLE_CHUNK_SIZE(n)" id="ki_hint_join_table_chunk_size-n" defaultOpen>
+
+Use chunk sizes of `n` records per chunk within joins.
+Suffixes of `K` & `M` can be used to represent thousands or
+millions of records; e.g., `20K`, `50M`.
+
+</Accordion>
+
+<Accordion title="KI_HINT_KEEP_TEMP_TABLES" id="ki_hint_keep_temp_tables" defaultOpen>
+
+Don't erase temp tables created by this query.
+
+</Accordion>
+
+<Accordion title="KI_HINT_KEY_LOOKUP" id="ki_hint_key_lookup" defaultOpen>
+
+Use [distributed key lookup](/content/tuning/multihead/multihead_egress) to
+retrieve records from a single table using a fast, indexed lookup.
+
+See [SQL](/content/tuning/multihead/multihead_egress#multi-head-egress-sql) for details and examples.
+
+</Accordion>
+
+<Accordion title="KI_HINT_MAX_CONCURRENCY(n)" id="ki_hint_max_concurrency-n" defaultOpen>
+
+Run this query with the specified `n` concurrency, usually lower than the
+system or user group limit in order to avoid resource exhaustion.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_COST_BASED_OPTIMIZATION" id="ki_hint_no_cost_based_optimization" defaultOpen>
+
+Don't use the cost-based optimizer when calculating the query plan.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_DICT_PROJECTION" id="ki_hint_no_dict_projection" defaultOpen>
+
+Don't retain [dictionary encoding](/content/concepts/dictionary_encoding)
+attributes of source columns in a projection result set.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_DISTRIBUTED_OPERATIONS" id="ki_hint_no_distributed_operations" defaultOpen>
+
+Don't reshard data when doing so would be the only way to process
+one or more operations in this query.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_HEADER" id="ki_hint_no_header" defaultOpen>
+
+Assume the source CSV file has no header row.  Only used
+with CSV ingestion via [INSERT INTO ... SELECT ... FROM FILE](/content/sql/load#sql-load-file-client).
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_JOIN_COUNT" id="ki_hint_no_join_count" defaultOpen>
+
+Optimize joins by not calculating intermediate set counts.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_LATE_MATERIALIZATION" id="ki_hint_no_late_materialization" defaultOpen>
+
+Force the materialization of intermediary result sets.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_NATIVE_SEMI_JOINS" id="ki_hint_no_native_semi_joins" defaultOpen>
+
+Don't use semi-joins.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_PARALLEL_EXECUTION" id="ki_hint_no_parallel_execution" defaultOpen>
+
+Execute all components of this query in series.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_PLAN_CACHE" id="ki_hint_no_plan_cache" defaultOpen>
+
+Don't cache the query plan calculated for this query.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_QUERY_RESULT_CACHING" id="ki_hint_no_query_result_caching" defaultOpen>
+
+Don't use the query cache for processing this query.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_RULE_BASED_OPTIMIZATION" id="ki_hint_no_rule_based_optimization" defaultOpen>
+
+Don't use the rule-based optimizer when calculating the query plan.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_SHADOW_CUBE" id="ki_hint_no_shadow_cube" defaultOpen>
+
+Don't use the shadow cube for caching requests in the worker processes.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_SSQ_OPTIMIZATION" id="ki_hint_no_ssq_optimization" defaultOpen>
+
+Don't optimize the query using Scalar Sub-Query (SSQ) substitution.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_VALIDATE_CHANGE" id="ki_hint_no_validate_change" defaultOpen>
+
+Don't fail an [ALTER TABLE](/content/sql/ddl/alter-table#sql-alter-table) command when changing
+column types/sizes and the column data is too long/large.  Truncate the
+data instead and allow the modification to succeed.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_VIRTUAL_UNION" id="ki_hint_no_virtual_union-2" defaultOpen>
+
+Don't utilize Virtual Unions when performing this query.
+
+</Accordion>
+
+<Accordion title="KI_HINT_PROJECT_MATERIALIZED_VIEW" id="ki_hint_project_materialized_view" defaultOpen>
+
+Force the materialization of a *materialized view*.  Some
+*materialized views* containing [JOIN](/content/sql/query/join#sql-join) clauses will be
+backed by a [native join view](/content/concepts/joins#join-native).  This is done to
+improve the performance of *materialized view* refreshes and reduce memory
+usage at the cost of reduced query performance.  This hint will induce the
+reverse of this trade-off -- increased query performance at the cost
+of reduced refresh performance and increased memory usage.
+
+</Accordion>
+
+<Accordion title="KI_HINT_REPL_ASYNC" id="ki_hint_repl_async" defaultOpen>
+
+Instruct the target database to treat this statement as one that
+should be run asynchronously and serially across all
+[high availability](/content/ha/ha_architecture) clusters in its ring.  See
+[HA Asynchronous Operation Handling](/content/ha/ha_architecture#ha-op-async) for details.
+
+
+<Info>
+The target database must be configured for
+high-availability for this to have an effect.  See
+[High Availability Configuration & Management](/content/ha/ha_configuration) for details.
+</Info>
+
+</Accordion>
+
+<Accordion title="KI_HINT_REPL_ASYNC_PARALLEL" id="ki_hint_repl_async_parallel" defaultOpen>
+
+Instruct the target database to treat this statement as one that
+should be run asynchronously and in parallel across all
+[high availability](/content/ha/ha_architecture) clusters in its ring.  See
+[HA Asynchronous Operation Handling](/content/ha/ha_architecture#ha-op-async) for details.
+
+
+<Info>
+The target database must be configured for
+high-availability for this to have an effect.  See
+[High Availability Configuration & Management](/content/ha/ha_configuration) for details.
+</Info>
+
+</Accordion>
+
+<Accordion title="KI_HINT_REPL_NONE" id="ki_hint_repl_none" defaultOpen>
+
+Instruct the target database to treat this statement as one that should not
+be run across all [high availability](/content/ha/ha_architecture) clusters
+in its ring. See [HA Query Operation Handling](/content/ha/ha_architecture#ha-op-query) for
+details.
+
+
+<Info>
+The target database must be configured for
+high-availability for this to have an effect.  See
+[High Availability Configuration & Management](/content/ha/ha_configuration) for details.
+</Info>
+
+</Accordion>
+
+<Accordion title="KI_HINT_REPL_SYNC" id="ki_hint_repl_sync" defaultOpen>
+
+Instruct the target database to treat this statement as one that
+should be run synchronously and serially across all
+[high availability](/content/ha/ha_architecture) clusters in its ring.  See
+[HA Synchronous Operation Handling](/content/ha/ha_architecture#ha-op-sync) for details.
+
+
+<Info>
+The target database must be configured for
+high-availability for this to have an effect.  See
+[High Availability Configuration & Management](/content/ha/ha_configuration) for details.
+</Info>
+
+</Accordion>
+
+<Accordion title="KI_HINT_REPL_SYNC_PARALLEL" id="ki_hint_repl_sync_parallel" defaultOpen>
+
+Instruct the target database to treat this statement as one that
+should be run synchronously and in parallel across all
+[high availability](/content/ha/ha_architecture) clusters in its ring.  See
+[HA Synchronous Operation Handling](/content/ha/ha_architecture#ha-op-sync) for details.
+
+
+<Info>
+The target database must be configured for
+high-availability for this to have an effect.  See
+[High Availability Configuration & Management](/content/ha/ha_configuration) for details.
+</Info>
+
+</Accordion>
+
+<Accordion title="KI_HINT_REQUEST_TIMEOUT(m)" id="ki_hint_request_timeout-m" defaultOpen>
+
+Use a timeout of `m` minutes when processing this command.
+
+</Accordion>
+
+<Accordion title="KI_HINT_SAVE_UDF_STATS" id="ki_hint_save_udf_stats" defaultOpen>
+
+Save statistics of UDF runs for UDFs invoked via SQL.
+
+</Accordion>
+
+<Accordion title="KI_HINT_SCHEDULING_PRIORITY(n)" id="ki_hint_scheduling_priority-n" defaultOpen>
+
+Run this query with the specified `n` priority, usually lower than the
+system or user group limit in order to avoid resource exhaustion.
+
+</Accordion>
+
+<Accordion title="KI_HINT_SERVER_SIDE_INSERT" id="ki_hint_server_side_insert" defaultOpen>
+
+Issue the [INSERT INTO ... VALUE](/content/sql/dml/insert#sql-insert-values) statement as
+a server-side command, instead of incurring the overhead of the client-side
+distributed ingestion processor, which can give better performance when
+inserting many rows.
+
+</Accordion>
+
+<Accordion title="KI_HINT_TRUNCATE_STRINGS" id="ki_hint_truncate_strings" defaultOpen>
+
+Truncate all strings being inserted into restricted-width *(charN)*
+columns to the max width for the column.  Used with any
+[INSERT INTO](/content/sql/dml/insert#sql-insert), [LOAD INTO](/content/sql/load#sql-load-into), or
+[CREATE EXTERNAL TABLE](/content/sql/ddl/create-external-table#sql-create-ext-table) statement.
+
+</Accordion>
+
+<Accordion title="KI_HINT_UPDATE_ON_EXISTING_PK" id="ki_hint_update_on_existing_pk" defaultOpen>
+
+Change the record collision policy for inserting into or updating a table
+with a primary key:
+
+* For [INSERT](/content/sql/dml/insert#sql-insert) statements, invoke an *upsert* scheme;
+  any existing table record with primary key values that match those of a
+  record being inserted will be replaced by that new record.
+* For [UPDATE](/content/sql/dml/update#sql-update) statements, invoke an overwrite scheme;
+  if a record update causes the record's primary key to match that of
+  another record in the same table, that other record will be removed and
+  the original record will remain, updated with its new primary key and any
+  other values from the `SET` clause.
+
+Without this hint, the `INSERT` or `UPDATE` will be rejected and the
+error handled based on the presence of the `KI_HINT_IGNORE_EXISTING_PK`
+hint.  If the specified table does not have a primary key, then this hint
+will be ignored.
+
+</Accordion>
+
+<Accordion title="KI_HINT_WAL_SYNC_METHOD(method)" id="ki_hint_wal_sync_method-method" defaultOpen>
+
+Specify the WAL sync `method` for a query.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Method</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>none</code></td>
+    <td>Disables the write-ahead log feature.</td>
+  </tr>
+  <tr>
+    <td><code>background</code></td>
+    <td>WAL entries are periodically written instead of immediately after each operation.</td>
+  </tr>
+  <tr>
+    <td><code>flush</code></td>
+    <td>Protects entries in the event of a database crash.</td>
+  </tr>
+  <tr>
+    <td><code>fsync</code></td>
+    <td>Protects entries in the event of an OS crash.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Testing Hints
+
+
+The following global hints are intended to be used for testing.
+They are usually not recommended for regular use and are subject to change.
+
+<AccordionGroup>
+
+<Accordion title="KI_HINT_NO_CHUNK_SKIPPING" id="ki_hint_no_chunk_skipping" defaultOpen>
+
+Do not use any chunk-skipping optimizations when performing this query.
+Currently, this only affects chunk-skipping performed in join operations.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_CONSTANT_FOLDING" id="ki_hint_no_constant_folding" defaultOpen>
+
+Do not use constant-folding optimizations when performing this query.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_HAVING_PUSHDOWN" id="ki_hint_no_having_pushdown" defaultOpen>
+
+Do not push down any `HAVING` clauses when planning this query.
+
+</Accordion>
+
+<Accordion title="KI_HINT_NO_TRANSITIVE_SIMPLIFICATIONS" id="ki_hint_no_transitive_simplifications" defaultOpen>
+
+Normally, if a query contains "x = y" and "x = 5" then the transitive
+simplification will add "y = 5" in some cases.  This usually helps perform
+optimizations.  This hint disables this behavior.
+
+</Accordion>
+
+</AccordionGroup>

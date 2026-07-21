@@ -1,0 +1,49 @@
+---
+title: Aggregation
+---
+
+<a id="sql-aggregation"></a>
+
+<a id="sql-aggregation"></a>
+
+
+The `GROUP BY` clause can be used to segment data into groups and apply
+[aggregate functions](/content/sql/query/aggregation-functions#sql-aggregation-functions) over the values within
+each group.  Aggregation functions applied to data without a `GROUP BY` clause
+will be applied over the entire result set.
+
+
+<Info>
+`GROUP BY` can operate on columns, column expressions, column
+aliases, or the position of a member of the `SELECT` clause (where
+`1` is the first element).
+</Info>
+
+For example, to find the average cab fare from the taxi data set:
+
+{/* Source: /examples/sql/aggregation.kisql (lines 11-12) */}
+```sql Aggregation without GROUP BY Example
+SELECT ROUND(AVG(total_amount),2) AS "Average_Fare"
+FROM demo.nyctaxi
+```
+
+To find the minimum, maximum, & average trip distances, as well as the average
+passenger count for each vendor per year from the taxi data set (weeding out
+data with errant trip distances):
+
+{/* Source: /examples/sql/aggregation.kisql (lines 19-31) */}
+```sql Aggregate with GROUP BY Example
+SELECT
+    vendor_id AS Vendor_ID,
+    YEAR(pickup_datetime) AS Year,
+    MAX(trip_distance) AS Max_Trip,
+    MIN(trip_distance) AS Min_Trip,
+    ROUND(AVG(trip_distance),2) AS Avg_Trip,
+    INT(AVG(passenger_count)) AS Avg_Passenger_Count
+FROM demo.nyctaxi
+WHERE
+    trip_distance > 0 AND
+    trip_distance < 100
+GROUP BY vendor_id, 2
+ORDER BY Vendor_ID, Year
+```

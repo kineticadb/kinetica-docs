@@ -1,0 +1,75 @@
+---
+title: SELECT Statement
+---
+
+```sql title="SELECT Statement Syntax"
+SELECT [DISTINCT | TOP <n>]
+    <column expression> [EXCLUDE(<column exclusion list>)],...
+FROM [<schema name>.]<table name> [<table alias>]
+    [<join type> JOIN <join table name> [<join alias>] ON <join expr>],...
+[WHERE <filtering expression list>]
+[GROUP BY <grouping expression list>]
+[HAVING <group filtering expression list>]
+[ORDER BY <ordering expression list>]
+[LIMIT [<offset>, ]<num rows>]
+```
+
+
+<Info>
+* In any *column expression*, a wildcard like `*` can be used to specify
+  all columns, while `<table name/alias>.*` can be used to specify all
+  columns from the given table.
+
+* The `EXCLUDE` function can be used to list columns to exclude from the
+  wildcard expression it follows; for instance, the following can be
+  used to select all columns from the employee table except for the `ssn`
+  & `date_of_birth` columns:
+
+  ```sql title="EXCLUDE Example"
+  SELECT e.* EXCLUDE(ssn, date_of_birth)
+  FROM employee e
+  ```
+
+* Table & column names can be double-quoted to use reserved words, e.g.,
+  `"PERCENT"`; or to use numbers or special characters in column names,
+  e.g., `"1234"` or `"key:value"`.
+
+* `TOP <n>` returns the first *n* records (up to *20000* records by
+  default).
+
+* The *grouping expression list* may contain column names, aliases,
+  expressions, or positions (e.g., `GROUP BY 2` to aggregate on the 2nd
+  column in the `SELECT` list).
+
+* The *having expression list* may contain grouping expressions or any
+  grouping expression aliases defined in the `SELECT` list.
+
+* The *ordering expression list* may contain column names, expressions, or
+  column positions (e.g., `ORDER BY 2` to aggregate on the 2nd column in
+  the `SELECT` list).  The default ordering is `ASC`.  The default null
+  ordering is `NULLS FIRST` when using ascending order and `NULLS LAST`
+  when using descending order.  The general format for each
+  comma-separated ordering expression in the list is:
+
+  ```sql title="ORDER BY Expression Syntax"
+  <column name/alias/expression/position> [ASC | DESC] [NULLS FIRST | NULLS LAST]
+  ```
+
+* `LIMIT` applies paging to the result set, starting at the 0-based
+  *offset* (if specified) and returning *num rows* records.
+</Info>
+
+{/* Source: /examples/sql/query.kisql (lines 58-68) */}
+```sql SELECT Example
+SELECT
+    e.last_name || ', ' || e.first_name AS "Employee_Name",
+    m.last_name || ', ' || m.first_name AS "Manager_Name"
+FROM
+    example.employee e
+    LEFT JOIN example.employee m ON e.manager_id = m.id
+WHERE
+    e.dept_id IN (1, 2, 3)
+ORDER BY
+    m.id ASC NULLS FIRST,
+    e.hire_date
+```

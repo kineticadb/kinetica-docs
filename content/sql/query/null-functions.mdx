@@ -1,0 +1,215 @@
+---
+title: Null Functions
+---
+
+<a id="sql-null-functions"></a>
+
+
+Some of the following null functions require parameters to be of convertible
+data types.  Note that *limited-width* (charN) & *unlimited-width* (non-charN)
+[string types](/content/concepts/types#types-chart) are not convertible.
+
+<AccordionGroup>
+
+<Accordion title="COALESCE(expr_a, ..., expr_N)" id="coalesce-expr_a-expr_n" defaultOpen>
+
+Returns the value of the first expression that is
+not *null* starting with `expr_a` and ending
+with `expr_N`.  If all are *null*, then *null*
+is returned.  All expressions should be of the
+same or convertible data type.
+
+</Accordion>
+
+<Accordion title="IFNULL(expr_a, expr_b)" id="ifnull-expr_a-expr_b" defaultOpen>
+
+Returns `expr_a` if it is not *null*; otherwise,
+returns `expr_b`.  Both should be of the same or
+convertible data type. See
+[Short-Circuiting](/content/concepts/expressions#short-circuiting) for error-checking
+details.
+
+</Accordion>
+
+<Accordion title="IS_NULL(expr)" id="is_null-expr" defaultOpen>
+
+Returns `1` if `expr` is *null*; otherwise,
+returns `0`
+
+</Accordion>
+
+<Accordion title="ISNULL(expr)" id="isnull-expr" defaultOpen>
+
+Alias for `IS_NULL(expr)`
+
+</Accordion>
+
+<Accordion title="NULLIF(expr_a, expr_b)" id="nullif-expr_a-expr_b" defaultOpen>
+
+Returns *null* if `expr_a` equals `expr_b`;
+otherwise, returns the value of `expr_a`; both
+expressions should be of the same or convertible
+data type.
+
+</Accordion>
+
+<Accordion title="NVL(expr_a, expr_b)" id="nvl-expr_a-expr_b" defaultOpen>
+
+Alias for `IFNULL`
+
+</Accordion>
+
+<Accordion title="NVL2(expr, value_if_not_null, value_if_null)" id="nvl2-expr-value_if_not_null-value_if_null" defaultOpen>
+
+Evaluates `expr`: if not *null*, returns
+`value_if_not_null`; if *null*, returns
+`value_if_null`.  Both `value_if_not_null` &
+`value_if_null` should be of the same data type
+as `expr` or implicitly convertible; see
+[Short-Circuiting](/content/concepts/expressions#short-circuiting) for error-checking
+details.
+
+</Accordion>
+
+<Accordion title="REMOVE_NULLABLE(expr)" id="remove_nullable-expr" defaultOpen>
+
+Alias for `ZEROIFNULL`
+
+</Accordion>
+
+<Accordion title="ZEROIFNULL(expr)" id="zeroifnull-expr" defaultOpen>
+
+Replaces *null* values with appropriate values
+based on the column type (e.g., `0` if numeric
+column, an empty string if *charN* column, etc.).
+Also removes the `nullable`
+[column property](/content/concepts/types) if used
+to calculate a derived column.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-dist-functions"></a>
+
+
+## Record Distribution Functions
+
+
+Record distribution functions provide a means to locate any database record
+within the memory processing hierarchy; and through aggregating the results,
+determine the distribution of records across the cluster.
+
+<AccordionGroup>
+
+<Accordion title="KI_CHUNK()" id="ki_chunk" defaultOpen>
+
+Returns the index of the chunk within the rank/TOM containing this record.
+This value may change as data is added or deleted from a table.
+
+</Accordion>
+
+<Accordion title="KI_CHUNK_ID()" id="ki_chunk_id" defaultOpen>
+
+Returns the ID of the chunk within the rank/TOM containing this record.
+This value should remain the same even after system restarts.
+
+</Accordion>
+
+<Accordion title="KI_CHUNK_MAX(col)" id="ki_chunk_max-col" defaultOpen>
+
+Returns the maximum value for the specified column in its chunk.
+If the data has changed, this value may be higher than any actual values.
+
+</Accordion>
+
+<Accordion title="KI_CHUNK_MIN(col)" id="ki_chunk_min-col" defaultOpen>
+
+Returns the minimum value for the specified column in its chunk.
+If the data has changed, this value may be lower than any actual values.
+
+</Accordion>
+
+<Accordion title="KI_CHUNK_OFFSET()" id="ki_chunk_offset" defaultOpen>
+
+Returns the index of the record within the chunk.
+
+</Accordion>
+
+<Accordion title="KI_PARTITION()" id="ki_partition" defaultOpen>
+
+Returns the index of the partition within the rank/TOM containing this record, for
+[partitioned](/content/concepts/tables#partitioning) tables.
+
+</Accordion>
+
+<Accordion title="KI_RANK()" id="ki_rank" defaultOpen>
+
+Returns the index of the rank containing this record.
+
+</Accordion>
+
+<Accordion title="KI_TOM()" id="ki_tom" defaultOpen>
+
+Returns the index of the TOM within the rank containing this record.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+For example, the following query can be used to determine the distribution of
+records of the `example.stocks` table across the nodes of the cluster.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/functions/ki_functions.kisql (lines 47-52) */}
+```sql Non-Partitioned Distribution
+SELECT
+	KI_RANK() AS "Rank",
+	COUNT(*) AS "TotalRecords"
+FROM example.stocks
+GROUP BY 1
+ORDER BY 1
+```
+
+{/* Source: /examples/sql/functions/ki_functions.kisql (lines 59-65) */}
+```sql Partitioned Distribution
+SELECT
+	KI_RANK() AS "Rank",
+	KI_PARTITION() AS "Partition",
+	COUNT(*) AS "TotalRecords"
+FROM example.stocks
+GROUP BY 1, 2
+ORDER BY 1, 2
+```
+
+{/* Source: /examples/sql/functions/ki_functions.kisql (lines 72-78) */}
+```sql Multi-TOM Distribution
+SELECT
+	KI_RANK() AS "Rank",
+	KI_TOM() AS "TOM",
+	COUNT(*) AS "TotalRecords"
+FROM example.stocks
+GROUP BY 1, 2
+ORDER BY 1, 2
+```
+
+{/* Source: /examples/sql/functions/ki_functions.kisql (lines 85-91) */}
+```sql Chunk-Level Distribution
+SELECT
+	KI_RANK() AS "Rank",
+	KI_CHUNK() AS "Chunk",
+	COUNT(*) AS "TotalRecords"
+FROM example.stocks
+GROUP BY 1, 2
+ORDER BY 1, 2
+```
+
+</CodeGroup>
+
+For partitioned tables, `KI_PARTITION()` can be added to the query to also
+the distribution across partitions, and for clusters with more than 1 TOM per
+rank (1 TOM/rank is the default), `KI_TOM()` can be added.  To see chunk-level
+distribution, use `KI_CHUNK()`.

@@ -1,0 +1,187 @@
+---
+title: Join
+---
+
+<a id="sql-join"></a>
+
+
+The supported *join types* are:
+
+* `INNER JOIN` - matching rows between two tables
+* `[LEFT] SEMI JOIN` - rows in the left-hand table that have matching rows in
+  the right-hand table
+* `LEFT [OUTER] JOIN` - matching rows between two tables, and rows in the
+  left-hand table that have no matching rows in the right-hand table
+* `RIGHT [OUTER] JOIN` - matching rows between two tables, and rows in the
+  right-hand table that have no matching rows in the left-hand table
+* `FULL [OUTER] JOIN` matching rows between two tables, and rows in both
+  tables that have no matching rows in the other
+* `CROSS JOIN` - every row in one table paired with every row in the other
+
+There are two execution schemes that are used to process *joins*, depending on
+the [distribution](/content/concepts/tables#distribution) of the joined tables:
+
+* [Local](/content/concepts/joins#join-local) - highly performant, but native
+  [join criteria](/content/concepts/joins) must be met
+* [Distributed](/content/concepts/joins#join-distributed) - highly flexible, as native *join*
+  restrictions are lifted, but less performant due to interprocessor
+  communication overhead and requires more memory & disk space to process
+
+
+<Note>
+Though the data distribution restrictions on native
+[joins](/content/concepts/joins) do not exist for *joins* made via SQL,
+following the *join* guidelines on [sharding](/content/concepts/tables#sharding) will result in
+much more performant queries.
+</Note>
+
+*Kinetica* supports both `JOIN ... ON` and `WHERE` clause syntax for
+*inner joins*;  all *outer join* types (`LEFT`, `RIGHT`, & `FULL OUTER`)
+require `JOIN ... ON` syntax.
+
+For example, to list the name of each employee and the name of the employee's
+manager, using the `WHERE` clause to specify the *join* condition:
+
+{/* Source: /examples/sql/join.kisql (lines 23-33) */}
+```sql JOIN via WHERE Clause Example
+SELECT
+    e.last_name || ', ' || e.first_name AS "Employee_Name",
+    m.last_name || ', ' || m.first_name AS "Manager_Name"
+FROM
+    example.employee e,
+    example.employee m
+WHERE
+    e.manager_id = m.id
+ORDER BY
+    e.last_name,
+    e.first_name
+```
+
+To list the name of each employee and the associated manager, even for employees
+that don't have a manager, using the `JOIN ... ON` syntax to specify the
+*join* condition:
+
+{/* Source: /examples/sql/join.kisql (lines 38-46) */}
+```sql JOIN via FROM Clause Example
+SELECT
+    e.last_name || ', ' || e.first_name AS "Employee_Name",
+    m.last_name || ', ' || m.first_name AS "Manager_Name"
+FROM
+    example.employee e
+    LEFT JOIN example.employee m ON e.manager_id = m.id
+ORDER BY
+    e.last_name,
+    e.first_name
+```
+
+
+<a id="sql-join-asof"></a>
+
+<a id="sql-join-asof"></a>
+
+
+## ASOF
+
+
+*Kinetica* supports the notion of an inexact match *join* via the `ASOF`
+*join* function.  This feature allows each left-side table record to be matched
+to a single right-side table record whose join column value is the smallest or
+largest value within a range relative to the left-side join column value.  In
+the case where multiple right-side table records have the same smallest or
+largest value for a given left-side table record, only one of the right-side
+table records will be chosen (non-deterministically) and returned as part of the
+*join*.
+
+```sql title="ASOF Syntax"
+ASOF(<left_column>, <right_column>, <rel_range_begin>, <rel_range_end>, <MIN|MAX>)
+```
+
+The five parameters are:
+
+* `left_column` - name of the column to join on from the left-side table
+* `right_column` - name of the column to join on from the right-side table
+* `rel_range_begin` - constant value defining the position, relative to each
+  left-side column value, of the beginning of the range in which to match
+  right-side column values; use a negative constant to begin the range before
+  the left-side column value, or a positive one to begin after it
+* `rel_range_end` - constant value defining the position, relative to each
+  left-side column value, of the end of the range in which to match right-side
+  column values; use a negative constant to end the range before the left-side
+  column value, or a positive one to end after it
+* `MIN|MAX` - use `MIN` to return the right-side matched record with the
+  smallest join column value; use `MAX` to return the right-side matched
+  record with the greatest join column value
+
+Effectively, each matched right-side column value must be:
+
+* `>=` *&lt;left-side column value&gt;* `+ rel_range_begin`
+* `<=` *&lt;left-side column value&gt;* `+ rel_range_end`
+
+
+<Note>
+`ASOF` *joins* are unsupported on some *materialized views*.
+In these situations, the materialized view can be recreated with the
+`KI_HINT_PROJECT_MATERIALIZED_VIEW` hint to allow it to be used in an
+`ASOF` join.
+</Note>
+
+
+### Examples
+
+
+The following `ASOF` call might be used to list, for each flight arrival time,
+the soonest flight departure time that occurs between half an hour and an hour
+and a half after the arrival; effectively, the time-matching portion of a
+connecting flight query:
+
+{/* Source: /examples/sql/join.kisql (lines 83) */}
+```sql ASOF Time-Based Expression Example
+ASOF(inbound.eta, outbound.etd, INTERVAL '30' MINUTE, INTERVAL '90' MINUTE, MIN)
+```
+
+This `ASOF` call returns right-side locations that are nearest eastward to
+each left-side location, for locations within 5 degrees of the left-side:
+
+{/* Source: /examples/sql/join.kisql (lines 112) */}
+```sql ASOF Distance-Based Expression Example
+ASOF(b.x, n.x, .00001, 5, MIN)
+```
+
+For example, to match a set of stock trades to the opening prices for those
+stocks (if an opening price record exists within 24 hours prior to the trade),
+and to include trades for which there is no opening stock price record:
+
+{/* Source: /examples/sql/join.kisql (lines 172-182) */}
+```sql ASOF JOIN Example
+SELECT
+    t.id,
+    t.dt AS execution_dt,
+    q.open_dt AS quote_dt,
+    t.price AS execution_price,
+    q.open_price
+FROM
+    example.trades t
+    LEFT JOIN example.quotes q ON
+        t.ticker = q.symbol AND
+        ASOF(t.dt, q.open_dt, INTERVAL '-1' DAY, INTERVAL '0' DAY, MAX)
+```
+
+While the `ASOF` *join* function can only be used as part of a *join*, it can
+effectively be made into a filter condition by sub-selecting the filter criteria
+in the `FROM` clause and joining on that criteria.
+
+For instance, to look up the stock price for a given company as of a given date:
+
+{/* Source: /examples/sql/join.kisql (lines 207-216) */}
+```sql ASOF JOIN with Filter Example
+SELECT
+    t.ticker,
+    t.asof_dt,
+    q.open_dt,
+    q.open_price
+FROM
+    (SELECT 'EBAY' AS ticker, DATETIME('2006-12-15 12:34:56') AS asof_dt) t
+    LEFT JOIN example.quotes q ON
+        t.ticker = q.symbol AND
+        ASOF(t.asof_dt, q.open_dt, INTERVAL '-1' DAY, INTERVAL '0' DAY, MAX)
+```

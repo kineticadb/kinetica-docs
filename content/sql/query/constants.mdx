@@ -1,0 +1,119 @@
+---
+title: Constants
+---
+
+<a id="sql-constants"></a>
+
+
+Each data type has an associated literal constant syntax, which can be used, for
+instance, to insert constant data values into those columns.
+
+
+## Numeric Constants
+
+
+Integer and floating point data types can be either single-quoted or not.
+
+{/* Source: /examples/sql/constant.kisql (lines 55-62) */}
+```sql Numeric Constants Example
+INSERT INTO example.numeric_types (int_type1, int_type2, float_type1, float_type2)
+VALUES
+(
+    1,
+    '2',
+    3.4,
+    '5.6'
+)
+```
+
+
+## String-Based Constants
+
+
+String-based data types should be single-quoted.
+
+{/* Source: /examples/sql/constant.kisql (lines 70-77) */}
+```sql String-Based Constants Example
+INSERT INTO example.string_types (varchar_type, charn_type, ipv4_type, wkt_type)
+VALUES
+(
+    'varchar value',
+    'charN value',
+    '12.34.56.78',
+    'POINT(0 0)'
+)
+```
+
+
+## Binary Constants
+
+
+Binary types can be represented in either of the following forms:
+
+* single-quoted or unquoted base-10
+* single-quoted hexadecimal
+
+{/* Source: /examples/sql/constant.kisql (lines 85-89) */}
+```sql Binary Constants Example
+INSERT INTO example.byte_types (bytes_type)
+VALUES
+    (12345678901234567890),
+    ('12345678901234567890'),
+    ('0x00AB54A98CEB1F0AD2')
+```
+
+
+## Date/Time Constants
+
+
+Kinetica accepts unqualified single-quoted date/time values, ANSI SQL, and ODBC
+escape sequences in the following formats:
+
+| Data Type | Native | ANSI | ODBC |
+| --- | --- | --- | --- |
+| Date | `'YYYY-MM-DD'` | `DATE 'YYYY-MM-DD'` | `{d 'YYYY-MM-DD'}` |
+| Time | `'HH:MI:SS.mmm'` | `TIME 'HH:MI:SS.mmm'` | `{t 'HH:MI:SS.mmm'}` |
+| DateTime | `'YYYY-MM-DD[T\| ]HH:MI:SS.mmm[Z]'` | `TIMESTAMP 'YYYY-MM-DD HH:MI:SS.mmm'` | `{ts 'YYYY-MM-DD HH:MI:SS.mmm'}` |
+| Timestamp | `'YYYY-MM-DD[T\| ]HH:MI:SS.mmm[Z]'` | `TIMESTAMP 'YYYY-MM-DD HH:MI:SS.mmm'` | `{ts 'YYYY-MM-DD HH:MI:SS.mmm'}` |
+
+{/* Source: /examples/sql/constant.kisql (lines 99-112) */}
+```sql Native Date/Time Constants Example
+INSERT INTO example.date_time_types (date_type, time_type, datetime_type, timestamp_type)
+VALUES
+(
+    '2000-01-02',
+    '12:34:56.789',
+    '2000-01-02 12:34:56.789',
+    '2000-01-02 12:34:56.789'
+),
+(
+    '2000-1-02',
+    '1:23:45.678',
+    '2000-01-02T12:34:56.789Z',
+    '2000-1-02 1:23:45.678'
+)
+```
+
+{/* Source: /examples/sql/constant.kisql (lines 117-124) */}
+```sql ANSI Date/Time Constants Example
+INSERT INTO example.date_time_types (date_type, time_type, datetime_type, timestamp_type)
+VALUES
+(
+    DATE '2000-01-02',
+    TIME '12:34:56.789',
+    TIMESTAMP '2000-01-02 12:34:56.789',
+    TIMESTAMP '2000-01-02 12:34:56.789'
+)
+```
+
+{/* Source: /examples/sql/constant.kisql (lines 129-136) */}
+```sql ODBC Date/Time Constants Example
+INSERT INTO example.date_time_types (date_type, time_type, datetime_type, timestamp_type)
+VALUES
+(
+    {d '2000-01-02'},
+    {t '12:34:56.789'},
+    {ts '2000-01-02 12:34:56.789'},
+    {ts '2000-01-02 12:34:56.789'}
+)
+```

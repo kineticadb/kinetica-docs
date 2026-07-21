@@ -1,0 +1,585 @@
+---
+title: Window
+---
+
+<a id="sql-window"></a>
+
+<a id="sql-window"></a>
+
+
+[Window functions](/content/concepts/window) are available through the use of the
+`OVER` clause, which can partition rows into frames. Different
+[types of functions](/content/sql/query/window#sql-window-types) can be used to aggregate data
+over a sliding window.
+
+```sql title="Window Function Syntax"
+SELECT
+    <window function> OVER (
+        [PARTITION BY <column expression list>]
+        [ORDER BY <ordering expression list>]
+        [
+            <RANGE | ROWS>
+            <
+                <UNBOUNDED PRECEDING | <number> PRECEDING | CURRENT ROW | <number> FOLLOWING>
+                |
+                BETWEEN <UNBOUNDED PRECEDING | <number> PRECEDING | CURRENT ROW | <number> FOLLOWING>
+                    AND <UNBOUNDED FOLLOWING | <number> PRECEDING | CURRENT ROW | <number> FOLLOWING>
+            >
+        ]
+    ) [AS <alias>]
+```
+
+The default frame type is:
+
+```
+RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+```
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;window function&gt;" id="<window-function>" defaultOpen>
+
+One of the supported [window functions](/content/sql/query/window#sql-window-types) listed below
+
+</Accordion>
+
+<Accordion title="PARTITION BY" id="partition-by" defaultOpen>
+
+Optional list of columns and/or column expressions to use in partitioning the data.  The window
+function will be applied separately to each partition, defined by the set of records containing
+the same value(s) for the specified partition-by column(s).  If no `PARTITION BY` clause is
+given, the window function will be calculated over the entire data set.
+
+</Accordion>
+
+<Accordion title="ORDER BY" id="order-by" defaultOpen>
+
+Clause defining the ordering of records within each partition before applying the window
+function; optional when using `FIRST_VALUE()` or `LAST_VALUE()`.
+
+The ordering expression syntax is:
+
+```
+<column name/alias/expression/position> [ASC | DESC] [NULLS FIRST | NULLS LAST]
+```
+The default sort order is ascending (`ASC`).  The default null ordering is `NULLS FIRST` when
+using ascending order and `NULLS LAST` when using descending order.
+
+
+<Info>
+Only one column can be specified in the ordering expression list when
+using `RANGE`.  When using `ROWS`, the frame is applied after any
+ordering; so, while several columns may appear in the order expression list,
+there will be only one `ROWS` clause following the list.
+</Info>
+
+</Accordion>
+
+<Accordion title="RANGE" id="range" defaultOpen>
+
+Range-based frame used in applying the window function to each record.  The frame is based on the
+values in the column or column expression used in the `ORDER BY` clause.  All records with this
+value within the specified relation to the current record's value will be used in calculating its
+window function result.
+
+A range-based frame can be specified for any [aggregate function](/content/sql/query/window#sql-window-types-agg)
+or the `FIRST_VALUE()` or `LAST_VALUE()` [ranking function](/content/sql/query/window#sql-window-types-rank).
+
+For a frame between a specified lower bound and the current row:
+
+```
+RANGE <lower frame bound>
+```
+For a frame between a specified lower and upper bound:
+
+```
+RANGE BETWEEN <lower frame bound> AND <upper frame bound>
+```
+The *frame bound* can be one of the following:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Frame Bound</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>UNBOUNDED PRECEDING</code></td>
+    <td>All records in the partition before the one at the upper bound; cannot be used as an upper bound</td>
+  </tr>
+  <tr>
+    <td><code>&lt;number&gt; PRECEDING</code></td>
+    <td>All records in the partition with an <code>ORDER BY</code> value between the current record's value and <code>&lt;number&gt;</code> less than the current record's value, inclusive</td>
+  </tr>
+  <tr>
+    <td><code>CURRENT ROW</code></td>
+    <td>The current record being processed by the window function, as well as all *peer rows* (rows with the same ordering value)</td>
+  </tr>
+  <tr>
+    <td><code>&lt;number&gt; FOLLOWING</code></td>
+    <td>All records in the partition with an <code>ORDER BY</code> value between the current record's value and <code>&lt;number&gt;</code> more than the current record's value, inclusive</td>
+  </tr>
+  <tr>
+    <td><code>UNBOUNDED FOLLOWING</code></td>
+    <td>All records in the partition after the one at the lower bound; cannot be used as a lower bound</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="ROWS" id="rows" defaultOpen>
+
+Row-based frame used in applying the window function to each record.  The frame is based on the
+position of records, as determined by the `ORDER BY` clause.  All records within the specified
+ordered distance from a given record will be used in calculating its window function value.
+
+A row-based frame can be specified for any [aggregate function](/content/sql/query/window#sql-window-types-agg)
+or the `FIRST_VALUE()` or `LAST_VALUE()` [ranking function](/content/sql/query/window#sql-window-types-rank).
+
+For a frame between a specified lower bound and the current row:
+
+```
+ROWS <lower frame bound>
+```
+For a frame between a specified lower and upper bound:
+
+```
+ROWS BETWEEN <lower frame bound> AND <upper frame bound>
+```
+The *frame bound* can be one of the following:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Frame Bound</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>UNBOUNDED PRECEDING</code></td>
+    <td>All records in the partition before the one at the upper bound; cannot be used as an upper bound</td>
+  </tr>
+  <tr>
+    <td><code>&lt;number&gt; PRECEDING</code></td>
+    <td>All records in the partition from the one <code>&lt;number&gt;</code> records before the current record through the record at the upper bound</td>
+  </tr>
+  <tr>
+    <td><code>CURRENT ROW</code></td>
+    <td>The current record being processed by the window function</td>
+  </tr>
+  <tr>
+    <td><code>&lt;number&gt; FOLLOWING</code></td>
+    <td>All records in the partition from the record at the lower bound through the one <code>&lt;number&gt;</code> records after the current record</td>
+  </tr>
+  <tr>
+    <td><code>UNBOUNDED FOLLOWING</code></td>
+    <td>All records in the partition after the one at the lower bound; cannot be used as a lower bound</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;alias&gt;" id="<alias>" defaultOpen>
+
+Column alias to apply to the window function result column
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-window-types"></a>
+
+<a id="sql-window-types-agg"></a>
+
+
+## Aggregate Functions
+
+
+<AccordionGroup>
+
+<Accordion title="AVG(expr)" id="avg-expr" defaultOpen>
+
+Calculates the average of the given expression `expr` over the specified window frame
+
+</Accordion>
+
+<Accordion title="COUNT(expr)" id="count-expr" defaultOpen>
+
+Calculates the count of the given expression `expr` over the specified window frame
+
+</Accordion>
+
+<Accordion title="MAX(expr)" id="max-expr" defaultOpen>
+
+Calculates the maximum value of the given expression `expr` over the specified window frame
+
+</Accordion>
+
+<Accordion title="MEAN(expr)" id="mean-expr" defaultOpen>
+
+Alias for `AVG()`. Calculates the average of the given expression `expr` over the specified
+window frame
+
+</Accordion>
+
+<Accordion title="MIN(expr)" id="min-expr" defaultOpen>
+
+Calculates the minimum value of the given expression `expr` over the specified window frame
+
+</Accordion>
+
+<Accordion title="PRODUCT(expr)" id="product-expr" defaultOpen>
+
+Calculates the product of the given expression `expr` over the specified window frame
+
+</Accordion>
+
+<Accordion title="RATIO_TO_REPORT(expr)" id="ratio_to_report-expr" defaultOpen>
+
+Calculates the ratio of the value of `expr` to the sum of `expr` over the specified window
+frame.  Note that `ORDER BY` is not supported for this function.
+
+</Accordion>
+
+<Accordion title="STDDEV(expr)" id="stddev-expr" defaultOpen>
+
+Alias for `STDDEV_POP()`. Calculates the population standard deviation of the given
+expression `expr` over the specified window frame
+
+</Accordion>
+
+<Accordion title="STDDEV_POP(expr)" id="stddev_pop-expr" defaultOpen>
+
+Calculates the population standard deviation of the given expression `expr` over the specified
+window frame
+
+</Accordion>
+
+<Accordion title="STDDEV_SAMP(expr)" id="stddev_samp-expr" defaultOpen>
+
+Calculates the sample standard deviation of the given expression `expr` over the specified
+window frame
+
+</Accordion>
+
+<Accordion title="SUM(expr)" id="sum-expr" defaultOpen>
+
+Calculates the sum of the given expression `expr` over the specified window frame
+
+</Accordion>
+
+<Accordion title="VAR(expr)" id="var-expr" defaultOpen>
+
+Alias for `VAR_POP()`. Calculates the population variance of the given expression `expr` over
+the specified window frame
+
+</Accordion>
+
+<Accordion title="VAR_POP(expr)" id="var_pop-expr" defaultOpen>
+
+Calculates the population variance of the given expression `expr` over the specified window
+frame
+
+</Accordion>
+
+<Accordion title="VAR_SAMP(expr)" id="var_samp-expr" defaultOpen>
+
+Calculates the sample variance of the given expression `expr` over the specified window frame
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-window-types-rank"></a>
+
+
+## Ranking Functions
+
+
+<AccordionGroup>
+
+<Accordion title="CUME_DIST()" id="cume_dist" defaultOpen>
+
+The relative position of the current row within the cumulative distribution of the selected
+partition, expressed as a percentage from `0` (exclusive) to `1` (inclusive). The formula for
+this calculation is as follows:
+
+```
+(count of <= records within partition) / (partition row count)
+```
+This function is shorthand for using the `COUNT()` function in separate partition statements to
+arrive at the same result:
+
+
+```sql
+DOUBLE
+(
+    COUNT(*) OVER
+    (
+        PARTITION BY <partition_column>
+        ORDER BY <sort_column>
+    )
+) /
+(
+    COUNT(*) OVER
+    (
+        PARTITION BY <partition_column>
+        ORDER BY <sort_column>
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    )
+)
+```
+
+</Accordion>
+
+<Accordion title="DENSE_RANK()" id="dense_rank" defaultOpen>
+
+Number of the current row within the selected partition except rows with identical values
+evaluate to different ranks. Starts at 1
+
+</Accordion>
+
+<Accordion title="FIRST_VALUE(&lt;column&gt;) [&lt;IGNORE | RESPECT&gt; NULLS]" id="first_value-<column>-<ignore-|-respect>-nulls" defaultOpen>
+
+The value found in the first row within a frame of the given expression. Optionally, add
+`IGNORE NULLS` or `RESPECT NULLS` to the function syntax to ignore or respect `nulls`,
+respectively.
+
+</Accordion>
+
+<Accordion title="LAG(&lt;column&gt;[, &lt;num&gt;]) [&lt;IGNORE | RESPECT&gt; NULLS]" id="lag-<column>-<num>-<ignore-|-respect>-nulls" defaultOpen>
+
+The value of the row before the given expression's value. Provide an additional comma-separated
+value to specify which row to select, e.g., `LAG(vendor_id, 3)` would list the value in the
+`vendor_id` column from three rows prior to the current row. Optionally, add `IGNORE NULLS`
+or `RESPECT NULLS` to the function syntax to ignore or respect `nulls` respectively.
+
+</Accordion>
+
+<Accordion title="LAST_VALUE(&lt;column&gt;) [&lt;IGNORE | RESPECT&gt; NULLS]" id="last_value-<column>-<ignore-|-respect>-nulls" defaultOpen>
+
+The value found in the last row within a frame of the given expression. Optionally, add
+`IGNORE NULLS` or `RESPECT NULLS` to the function syntax to ignore or respect
+`nulls` respectively.
+
+</Accordion>
+
+<Accordion title="LEAD(&lt;column&gt;[, &lt;num&gt;]) [&lt;IGNORE | RESPECT&gt; NULLS]" id="lead-<column>-<num>-<ignore-|-respect>-nulls" defaultOpen>
+
+The value of the row after the given expression's value. Provide an additional comma-separated
+value to specify which row to select, e.g., `LEAD(vendor_id, 3)` would list the value in the
+`vendor_id` column from three rows after the current row. Optionally, add `IGNORE NULLS`
+or `RESPECT NULLS` to the function syntax to ignore or respect `nulls` respectively.
+
+</Accordion>
+
+<Accordion title="NTILE(&lt;num of groups&gt;)" id="ntile-<num-of-groups>" defaultOpen>
+
+The group number of the row after partitioning the rows into `num of groups` groups.  For
+example, `NTILE(4)` will partition data by quartiles and return the associated group number,
+`1` to `4`.
+
+</Accordion>
+
+<Accordion title="PERCENT_RANK()" id="percent_rank" defaultOpen>
+
+The rank of the current row within the selected partition, expressed as a percentage from `0`
+to `1`, inclusive. The formula for this calculation is as follows:
+
+```
+(rank within partition - 1) / (partition row count - 1)
+```
+This function is shorthand for using the `RANK()` & `COUNT()` functions in separate partition
+statements to arrive at the same result:
+
+
+```sql
+DOUBLE
+(
+    RANK() OVER
+    (
+        PARTITION BY <partition_column>
+        ORDER BY <sort_column>
+    ) - 1
+) /
+(
+    COUNT(*) OVER
+    (
+        PARTITION BY <partition_column>
+        ORDER BY <sort_column>
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) - 1
+)
+```
+
+</Accordion>
+
+<Accordion title="RANK()" id="rank" defaultOpen>
+
+Number of the current row within the selected partition. However, rows with identical values
+evaluate to the same rank. Starts at 1
+
+</Accordion>
+
+<Accordion title="ROW_NUMBER()" id="row_number" defaultOpen>
+
+Number of the current row within the selected partition. Starts at 1
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To calculate the rolling sum of total amounts collected by each
+taxi vendor over the course of a given day, as well as the number of other trips
+that occurred within 5 minutes of each trip:
+
+{/* Source: /examples/sql/window.kisql (lines 13-37) */}
+```sql Window Rolling Sum Example
+SELECT
+    vendor_id,
+    pickup_datetime,
+    total_amount,
+    passenger_count,
+    DECIMAL
+    (
+        SUM(total_amount) OVER
+            (
+                PARTITION BY vendor_id
+                ORDER BY pickup_datetime
+                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            )
+    ) AS growing_sum,
+    COUNT(*) OVER
+        (
+            PARTITION BY vendor_id
+            ORDER BY LONG(pickup_datetime)
+            RANGE BETWEEN 300000 PRECEDING AND 300000 FOLLOWING
+        ) AS trip_demand
+FROM demo.nyctaxi
+WHERE pickup_datetime >= '2015-01-01' AND pickup_datetime < '2015-01-01 02:00:00'
+ORDER BY
+    vendor_id,
+    pickup_datetime
+```
+
+To calculate a 5-before and 10-after moving average of 4-passenger trip
+distances per vendor over the course of a given day:
+
+{/* Source: /examples/sql/window.kisql (lines 43-59) */}
+```sql Window Moving Average Example
+SELECT
+    vendor_id,
+    pickup_datetime,
+    trip_distance,
+    AVG(trip_distance) OVER
+        (
+            PARTITION BY vendor_id
+            ORDER BY pickup_datetime
+            ROWS BETWEEN 5 PRECEDING AND 10 FOLLOWING
+        ) AS local_avg_dist
+FROM demo.nyctaxi
+WHERE
+    passenger_count = 4 AND
+    pickup_datetime >= '2015-01-01' AND pickup_datetime < '2015-01-02'
+ORDER BY
+    vendor_id,
+    pickup_datetime
+```
+
+To rank, by vendor, the total amounts collected from 3-passenger trips on a
+given day:
+
+{/* Source: /examples/sql/window.kisql (lines 65-78) */}
+```sql Window Ranking Example
+SELECT
+    vendor_id,
+    pickup_datetime,
+    dropoff_datetime,
+    total_amount AS fare,
+    RANK() OVER (PARTITION BY vendor_id ORDER BY total_amount) AS ranked_fare,
+    DECIMAL(PERCENT_RANK() OVER (PARTITION BY vendor_id ORDER BY total_amount)) * 100 AS percent_ranked_fare
+FROM demo.nyctaxi
+WHERE
+    passenger_count = 3 AND
+    pickup_datetime >= '2015-01-11' AND pickup_datetime < '2015-01-12'
+ORDER BY
+    vendor_id,
+    pickup_datetime
+```
+
+To compare each trip's total amount to the lowest (ignoring nulls), highest
+(ignoring nulls), & average total amount for 5-passenger trips for each vendor
+over the course of a given day:
+
+{/* Source: /examples/sql/window.kisql (lines 85-111) */}
+```sql Window FIRST_VALUE Example
+SELECT
+    vendor_id,
+    pickup_datetime,
+    tip_amount,
+    tip_amount -
+        FIRST_VALUE(tip_amount) IGNORE NULLS OVER
+            (PARTITION BY vendor_id ORDER BY tip_amount) AS vs_lowest_tip,
+    tip_amount -
+        DECIMAL
+        (
+            AVG(tip_amount) OVER
+                (
+                    PARTITION BY vendor_id
+                    ORDER BY tip_amount
+                    ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+                )
+        ) AS vs_average_tip,
+    tip_amount -
+        FIRST_VALUE(tip_amount) IGNORE NULLS OVER
+            (PARTITION BY vendor_id ORDER BY tip_amount DESC) AS vs_highest_tip
+FROM demo.nyctaxi
+WHERE
+    passenger_count = 5 AND trip_distance > 0 AND tip_amount > 0 AND
+    pickup_datetime >= '2015-04-17' AND pickup_datetime < '2015-04-18'
+ORDER BY
+    vendor_id,
+    pickup_datetime
+```
+
+To compare each vendor's average total amount to their average total amount
+within the interquartile range:
+
+{/* Source: /examples/sql/window.kisql (lines 117-131) */}
+```sql Window N-Tile Example
+SELECT
+    vendor_id,
+    DECIMAL(AVG(total_amount)) AS average_total_amount,
+    DECIMAL(AVG(IF(quartile IN (2,3), total_amount, null))) AS average_interq_range_total_amount
+FROM
+(
+    SELECT
+        vendor_id,
+        total_amount,
+        NTILE(4) OVER (PARTITION BY vendor_id ORDER BY total_amount) quartile
+    FROM
+        demo.nyctaxi
+)
+GROUP BY vendor_id
+ORDER BY vendor_id
+```

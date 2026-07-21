@@ -1,0 +1,200 @@
+---
+title: EXPLAIN
+---
+
+<a id="sql-explain"></a>
+
+
+Outputs the execution plan of a given SQL statement.
+
+
+<Tip>
+For the visual explain plan utility in *GAdmin*, see the *Explain*
+feature under [SQL Tool](/content/admin/gadmin/query#gadmin-sql).
+</Tip>
+
+```sql title="EXPLAIN Syntax"
+EXPLAIN [PHYSICAL|ANALYZE|VERBOSE|VERBOSE ANALYZE] [FORMAT <JSON|TABLE>] <statement>
+```
+
+Each supporting API endpoint call that is made in servicing the request is
+listed as an execution plan step in the output, along with any input or output
+tables associated with the call and the prior plan execution steps on which a
+given execution step depends.
+
+The following options can be specified:
+
+* `PHYSICAL` - *(default)* outputs the physical execution plan with the
+  following endpoint-level details per step:
+
+  * `ID` - execution step number
+  * `ENDPOINT` - name of native API endpoint called
+  * `INPUT_TABLES` - input tables used by the endpoint *(if any)*
+  * `OUTPUT_TABLE` - output table created by the endpoint *(if any)*
+  * `DEPENDENCIES` - list of prior execution steps upon which this step
+    depends
+
+* `ANALYZE` - same as `PHYSICAL`, including additional run-time details:
+
+  * `RUN_TIME` - execution time of each endpoint call
+  * `RESULT_ROWS` - number of records produced in the endpoint call
+
+* `VERBOSE` - same as `PHYSICAL`, including endpoint parameter details:
+
+  * `COLUMNS` - columns passed to the endpoint call
+  * `EXPRESSIONS` - expressions passed to the endpoint call
+  * `OPTIONS` - option keys & values passed to the endpoint call
+  * `LAST_USE_TABLES` - list of tables that will not be used by any following
+    execution step
+  * `ADDITIONAL_INFO` - other parameters passed to the endpoint call
+
+* `VERBOSE ANALYZE` - same as `VERBOSE` & `ANALYZE` together, including
+  the execution plan for any joins contained within the query
+
+* `FORMAT JSON` - outputs the result in JSON format
+* `FORMAT TABLE` - *(default)* outputs the result in tabular format
+
+
+<Tip>
+For `PHYSICAL` & `VERBOSE` modes, the
+`/* KI_HINT_RECURSIVE_EXPLAIN */` hint can be used to show the plan
+recursively through any materialized views involved in the query.
+</Tip>
+
+
+<Note>
+Specifying `ANALYZE` will cause the statement to be executed
+in order to collect run-time statistics on the endpoint calls made.
+</Note>
+
+For example, to output the execution plan for a query that aggregates the number
+of taxi rides between boroughs:
+
+{/* Source: /examples/sql/explain.kisql (lines 11-23) */}
+```sql EXPLAIN Example
+EXPLAIN
+SELECT
+    n_begin.ntaname AS boro_begin,
+    boro_end,
+    COUNT(*) AS total_trips
+FROM
+(
+    SELECT pickup_latitude, pickup_longitude, n_end.ntaname AS boro_end
+    FROM demo.nyctaxi t
+    JOIN example_geospatial.nyc_neighborhood n_end ON STXY_INTERSECTS(dropoff_longitude, dropoff_latitude, geom)
+)
+JOIN example_geospatial.nyc_neighborhood n_begin ON STXY_INTERSECTS(pickup_longitude, pickup_latitude, geom)
+GROUP BY 1, 2
+```
+
+The execution plan is listed in table format, as follows:
+
+{/* Source: /examples/sql/explain.out (lines 27-34) */}
+```sql EXPLAIN Output
++------+-------------------------+----------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------+----------------+
+| ID   | ENDPOINT                | INPUT_TABLES                                                                                                                     | OUTPUT_TABLE                                                           | DEPENDENCIES   |
++------+-------------------------+----------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------+----------------+
+| 0    | /create/jointable       | demo.nyctaxi AS TableAlias_0_,example_geospatial.nyc_neighborhood AS TableAlias_1_                                               | sys_sql_temp.Join_3_01234567_89ab_cdef_0123_456789abcdef               | -1             |
+| 1    | /create/jointable       | sys_sql_temp.Join_3_01234567_89ab_cdef_0123_456789abcdef AS TableAlias_0_,example_geospatial.nyc_neighborhood AS TableAlias_1_   | sys_sql_temp.Join_5_01234567_89ab_cdef_0123_456789abcdef               | 0              |
+| 2    | /aggregate/groupby      | sys_sql_temp.Join_5_01234567_89ab_cdef_0123_456789abcdef                                                                         | sys_sql_temp.ShardedAggregate_7_01234567_89ab_cdef_0123_456789abcdef   | 1              |
+| 3    | /get/records/bycolumn   | sys_sql_temp.ShardedAggregate_7_01234567_89ab_cdef_0123_456789abcdef                                                             |                                                                        | 2              |
++------+-------------------------+----------------------------------------------------------------------------------------------------------------------------------+------------------------------------------------------------------------+----------------+
+```
+
+If there is an error processing a query, the error can be returned in the
+JSON-formatted execution plan:
+
+{/* Source: /examples/sql/explain.kisql (lines 47-50) */}
+```sql EXPLAIN with Detail Example
+EXPLAIN VERBOSE ANALYZE FORMAT JSON
+SELECT * /* KI_HINT_NO_DISTRIBUTED_OPERATIONS */
+FROM example.explain_table t1
+JOIN example.explain_table t2 ON t1.shard_column = t2.not_shard_column
+```
+
+The execution plan is listed in JSON format with the query error, as follows:
+
+{/* Source: /examples/sql/explain.out (lines 76-156) */}
+``` EXPLAIN with Detail Output
+"PLAN": [
+    {
+        "ADDITIONAL_INFO": "Not all of the non-replicated tables are equated by shard keys. Number of sharded sets: 2, Number of components connected: 0 (<REF>)",
+        "COLUMNS": "TableAlias_0_.shard_column AS shard_column,TableAlias_0_.not_shard_column AS not_shard_column,TableAlias_1_.shard_column AS shard_column0,TableAlias_1_.not_shard_column AS not_shard_column0",
+        "DEPENDENCIES": "-1",
+        "ENDPOINT": "/create/jointable",
+        "EXPRESSIONS": "inner join TableAlias_0_, TableAlias_1_  on   (TableAlias_0_.shard_column = TableAlias_1_.not_shard_column )  ",
+        "ID": "0",
+        "INFO": "{"estimate_input_row_counts":"1.0, 1.0","estimate_row_count":"1.0"}",
+        "JSON_REQUEST": "{
+            "join_table_name": "<sys_sql_temp.>Join_1_01234567_89ab_cdef_0123_456789abcdef",
+            "table_names": [
+                "example.explain_table AS TableAlias_0_",
+                "example.explain_table AS TableAlias_1_"
+            ],
+            "column_names": [
+                "TableAlias_0_.shard_column AS shard_column",
+                "TableAlias_0_.not_shard_column AS not_shard_column",
+                "TableAlias_1_.shard_column AS shard_column0",
+                "TableAlias_1_.not_shard_column AS not_shard_column0"
+            ],
+            "expressions": [
+                "inner join TableAlias_0_, TableAlias_1_  on   (TableAlias_0_.shard_column = TableAlias_1_.not_shard_column )  "
+            ],
+            "options": {
+                "create_explain": "true",
+                "show_filters": "true",
+                "ttl": "-1"
+            }
+        }",
+        "LAST_USE_TABLES": "",
+        "OPTIONS": "{create_explain,true} {show_filters,true} {ttl,-1}",
+        "RESULT_DISTRIBUTION": "NA / ;",
+        "RESULT_ROWS": "0",
+        "RUN_TIME": "0",
+        "TABLE_DEFINITIONS": "CREATE TABLE "example"."explain_table"\r
+        (\r
+            "shard_column" INTEGER (shard_key),\r
+            "not_shard_column" INTEGER\r
+        )\r
+        TIER STRATEGY (\r
+            ( ( VRAM 1, RAM 5, DISK0 5, PERSIST 5 ) )\r
+        );
+        CREATE TABLE "example"."explain_table"\r
+        (\r
+            "shard_column" INTEGER (shard_key),\r
+            "not_shard_column" INTEGER\r
+        )\r
+        TIER STRATEGY (\r
+            ( ( VRAM 1, RAM 5, DISK0 5, PERSIST 5 ) )\r
+        );"
+    },
+    {
+        "ADDITIONAL_INFO": "",
+        "COLUMNS": "shard_column AS shard_column, not_shard_column AS not_shard_column, shard_column0 AS shard_column0, not_shard_column0 AS not_shard_column0",
+        "DEPENDENCIES": "0",
+        "ENDPOINT": "/get/records/bycolumn",
+        "EXPRESSIONS": "",
+        "ID": "1",
+        "INFO": "",
+        "JSON_REQUEST": "{
+            "table_name": "sys_sql_temp.Join_1_01234567_89ab_cdef_0123_456789abcdef",
+            "column_names": [
+                "shard_column AS shard_column",
+                "not_shard_column AS not_shard_column",
+                "shard_column0 AS shard_column0",
+                "not_shard_column0 AS not_shard_column0"
+            ],
+            "offset": 0,
+            "limit": -9999,
+            "encoding": "binary",
+            "options": {}
+        }",
+        "LAST_USE_TABLES": "<sys_sql_temp.>Join_1_01234567_89ab_cdef_0123_456789abcdef",
+        "OPTIONS": "",
+        "RESULT_DISTRIBUTION": "",
+        "RESULT_ROWS": "0",
+        "RUN_TIME": "0",
+        "TABLE_DEFINITIONS": ""
+    }
+]
+```

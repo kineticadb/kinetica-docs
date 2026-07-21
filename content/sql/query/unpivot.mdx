@@ -1,0 +1,109 @@
+---
+title: UNPIVOT
+---
+
+<a id="sql-unpivot"></a>
+
+<a id="sql-unpivot"></a>
+
+
+The `UNPIVOT` clause can be used to [unpivot](/content/concepts/unpivot)
+columns, "rotating" row values into column values, creating longer, more
+normalized tables from shorter, more denormalized tables.
+
+```sql title="UNPIVOT Syntax"
+<select statement>
+UNPIVOT
+(
+    <value_column> FOR <var_column> IN (<column list>)
+)
+```
+
+For example, given a source table `customer_contact`, which lists the home,
+work, & cell phone numbers for each customer in the table, an *unpivot*
+operation can be performed, creating separate home, work, & cell phone records
+for each customer.
+
+With this data:
+
+{/* Source: /examples/sql/unpivot.out (lines 29-34) */}
+``` UNPIVOT Input
++--------+----------------+----------------+----------------+
+| name   | home_phone     | work_phone     | cell_phone     |
++--------+----------------+----------------+----------------+
+| Jane   | 123-456-7890   | 111-222-3333   |                |
+| John   | 123-456-7890   |                | 333-222-1111   |
++--------+----------------+----------------+----------------+
+```
+
+The following *unpivot* operation can be applied:
+
+{/* Source: /examples/sql/unpivot.kisql (lines 49-62) */}
+```sql UNPIVOT Example
+SELECT *
+FROM
+(
+    SELECT
+        name,
+        Home_Phone AS Home,
+        Work_Phone AS Work,
+        Cell_Phone AS Cell
+    FROM
+        example.customer_contact
+)
+UNPIVOT (
+    phone_number FOR phone_type IN (Home, Work, Cell)
+)
+```
+
+The data will be unpivoted into a table like this:
+
+{/* Source: /examples/sql/unpivot.out (lines 89-96) */}
+``` UNPIVOT Output
++--------+----------------+--------------+
+| name   | phone_number   | phone_type   |
++--------+----------------+--------------+
+| Jane   | 123-456-7890   | Home         |
+| John   | 123-456-7890   | Home         |
+| Jane   | 111-222-3333   | Work         |
+| John   | 333-222-1111   | Cell         |
++--------+----------------+--------------+
+```
+
+
+<Info>
+If the original column names can be used as the values of the unpivot
+key, as is, the pre-selection and renaming of those columns using a subquery
+in the `FROM` clause can be eliminated.
+
+For example, unpivoting without aliasing the quarterly grade columns will
+result in those exact column names being used as the quarter values:
+</Info>
+
+{/* Source: /examples/sql/unpivot.kisql (lines 68-73) */}
+```sql UNPIVOT without Aliases Example
+SELECT *
+FROM example.student_grade
+UNPIVOT
+(
+    grade FOR quarter IN (q1_grade, q2_grade, q3_grade, q4_grade)
+)
+```
+
+{/* Source: /examples/sql/unpivot.out (lines 109-122) */}
+``` UNPIVOT without Aliases Output
++--------------+-------------+------------+
+|   student_id |       grade | quarter    |
++--------------+-------------+------------+
+|            1 |   80.0      | q1_grade   |
+|            2 |   82.0      | q1_grade   |
+|            3 |   73.0      | q1_grade   |
+|            1 |   90.0      | q2_grade   |
+|            3 |   77.0      | q2_grade   |
+|            1 |   85.0      | q3_grade   |
+|            2 |   87.0      | q3_grade   |
+|            3 |   97.0      | q3_grade   |
+|            1 |   95.0      | q4_grade   |
+|            2 |   92.0      | q4_grade   |
++--------------+-------------+------------+
+```

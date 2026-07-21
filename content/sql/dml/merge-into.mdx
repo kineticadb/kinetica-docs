@@ -1,0 +1,63 @@
+---
+title: MERGE INTO
+---
+
+<a id="sql-dml-merge"></a>
+
+<a id="sql-dml-merge-into"></a>
+
+<a id="sql-merge"></a>
+
+<a id="sql-merge-into"></a>
+
+
+Merges records from a source table or query into a target table.  When a
+record in the source matches one in the target (based on the `ON` condition),
+the target record can be updated; when there is no match, a new record can be
+inserted.  At least one of the `WHEN MATCHED` or `WHEN NOT MATCHED` clauses
+must be specified.
+
+```sql title="MERGE INTO Syntax"
+MERGE INTO [<target schema name>.]<target table name> [[AS] <alias>]
+USING
+(
+    [<source schema name>.]<source table name>
+    | <source select statement>
+)
+ON <expression list>
+[WHEN MATCHED THEN UPDATE SET
+    <column 1> = <expression 1>,
+    ...
+    <column n> = <expression n>
+]
+[WHEN NOT MATCHED THEN INSERT [(<column list>)] VALUES (<column value list>)]
+```
+
+The `USING` clause specifies the source of the data to merge, which can be
+either a table or a `SELECT` statement.
+
+The `ON` clause specifies the condition(s) used to determine whether a source
+record matches a target record.
+
+The `WHEN MATCHED` clause specifies the `UPDATE` to apply to matching target
+records.
+
+The `WHEN NOT MATCHED` clause specifies the `INSERT` to apply for source
+records that have no match in the target table.
+
+For example, to merge a source table into a target table, updating existing
+records and inserting new ones:
+
+```sql title="MERGE INTO Example"
+MERGE INTO target t
+USING source s
+ON t.id = s.id
+WHEN MATCHED THEN
+    UPDATE SET
+        name = s.name,
+        quantity = s.quantity,
+        updated_at = CURRENT_TIMESTAMP
+WHEN NOT MATCHED THEN
+    INSERT (id, name, quantity, updated_at)
+    VALUES (s.id, s.name, s.quantity, CURRENT_TIMESTAMP)
+```
