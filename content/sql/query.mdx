@@ -9599,7 +9599,7 @@ The default delimiter is a comma.
 
 
 Simple pattern-matching capability is provided through the use of the `LIKE` and `ILIKE`
-clauses, for [string columns](/content/sql/ddl#sql-column-types).  `LIKE` is case-sensitive,
+clauses, for [string columns](/content/sql/ddl/column-types#sql-column-types).  `LIKE` is case-sensitive,
 while `ILIKE` is case-insensitive.
 
 ```sql title="LIKE / ILIKE Syntax"
@@ -9670,11 +9670,11 @@ WHERE first_name NOT ILIKE '%~_%' ESCAPE '~'
 
 
 The `FILTER_BY_STRING` table function allows for several types of pattern
-matching for [fixed-width string columns](/content/sql/ddl#sql-column-types)
+matching for [fixed-width string columns](/content/sql/ddl/column-types#sql-column-types)
 (`VARCHAR(1)` - `VARCHAR(256)`), as well as
 [full text search](/content/concepts/full_text_search) capability for all
 string columns with the `TEXT_SEARCH`
-[column property](/content/sql/ddl#sql-column-properties).  Its features are based
+[column property](/content/sql/ddl/column-properties#sql-column-properties).  Its features are based
 on the [/filter/bystring](/content/api/rest/filter_bystring_rest) endpoint.
 
 The basic form of the `FILTER_BY_STRING` function when called in a `SELECT`
@@ -9782,7 +9782,7 @@ Type of string filter to apply:
   </tr>
   <tr>
     <td><code>search</code></td>
-    <td>Full text search with wildcards and boolean operators, for string columns (<code>VARCHAR</code>) that have the <code>TEXT_SEARCH</code> [column property](/content/sql/ddl#sql-column-properties) applied. See [Full Text Search](/content/concepts/full_text_search) for syntax &amp; grammar detail. <Note>Omit the `COLUMN_NAMES` parameter when using this `MODE`. All text-searchable string columns will be searched.  Also, only a table name can be used for `TABLE_NAME`--a query cannot be used.</Note></td>
+    <td>Full text search with wildcards and boolean operators, for string columns (<code>VARCHAR</code>) that have the <code>TEXT_SEARCH</code> [column property](/content/sql/ddl/column-properties#sql-column-properties) applied. See [Full Text Search](/content/concepts/full_text_search) for syntax &amp; grammar detail. <Note>Omit the `COLUMN_NAMES` parameter when using this `MODE`. All text-searchable string columns will be searched.  Also, only a table name can be used for `TABLE_NAME`--a query cannot be used.</Note></td>
   </tr>
   <tr>
     <td><code>starts_with</code></td>
@@ -10751,7 +10751,7 @@ Correlated subqueries have the following limitations:
 
 
 A *remote query* makes use of a
-[data source](/content/sql/ddl#sql-create-data-source) to run a given query on the
+[data source](/content/sql/ddl/create-data-source#sql-create-data-source) to run a given query on the
 remote system referenced by that *data source*.
 
 ```sql title="Remote Query Syntax"
@@ -10779,7 +10779,7 @@ SQL query to execute on the remote system.
 
 <Accordion title="&lt;data source name&gt;" id="<data-source-name>" defaultOpen>
 
-Name of the [data source](/content/sql/ddl#sql-create-data-source) referencing the remote system on
+Name of the [data source](/content/sql/ddl/create-data-source#sql-create-data-source) referencing the remote system on
 which the query should be executed.
 
 </Accordion>
@@ -10883,8 +10883,8 @@ JOIN example.geo_zone gz ON STXY_INTERSECTS(lon, lat, zone)
 <Accordion title="KI_HINT_DELTA_TABLE" id="ki_hint_delta_table" defaultOpen>
 
 Designates the corresponding table as a
-[delta table](/content/sql/ddl#sql-create-materialized-view-delta), within the
-context of a [CREATE MATERIALIZED VIEW](/content/sql/ddl#sql-create-materialized-view) statement.
+[delta table](/content/sql/ddl/create-materialized-view#sql-create-materialized-view-delta), within the
+context of a [CREATE MATERIALIZED VIEW](/content/sql/ddl/create-materialized-view#sql-create-materialized-view) statement.
 
 This hint must be placed immediately after the `FROM <table>` clause to
 which it applies, but before any table alias specified for that table.
@@ -10896,9 +10896,9 @@ which it applies, but before any table alias specified for that table.
 Create primary keys for this [GROUP BY](/content/sql/query#sql-aggregation) result
 set on the grouped-upon columns/expressions; often used to create a
 [primary key](/content/concepts/tables#primary-key) on the result of a
-[CREATE TABLE ... AS](/content/sql/ddl#sql-create-table-as) that ends in a
+[CREATE TABLE ... AS](/content/sql/ddl/create-table-as#sql-create-table-as) that ends in a
 `GROUP BY`, and can also make
-[materialized views](/content/sql/ddl#sql-create-materialized-view) containing
+[materialized views](/content/sql/ddl/create-materialized-view#sql-create-materialized-view) containing
 grouping operations more performant.
 
 
@@ -11029,7 +11029,7 @@ subqueries which generate differently-sharded result tables.
 Create primary keys for all [GROUP BY](/content/sql/query#sql-aggregation) result
 sets on the grouped-upon columns/expressions within a given query; often
 used to create a primary key on the result of a
-[CREATE TABLE ... AS](/content/sql/ddl#sql-create-table-as) that ends in a
+[CREATE TABLE ... AS](/content/sql/ddl/create-table-as#sql-create-table-as) that ends in a
 `GROUP BY`, and can also make materialized views containing grouping
 operations more performant.
 
@@ -11063,7 +11063,7 @@ for inserts or overwrite mode for updates, then this hint is ignored.
 
 Create an index on each of the comma-separated columns in the given
 `column_list`; often used with
-[CREATE TABLE ... AS](/content/sql/ddl#sql-create-table-as) to create an index on a
+[CREATE TABLE ... AS](/content/sql/ddl/create-table-as#sql-create-table-as) to create an index on a
 persisted result set.
 
 </Accordion>
@@ -11088,6 +11088,13 @@ Use [distributed key lookup](/content/tuning/multihead/multihead_egress) to
 retrieve records from a single table using a fast, indexed lookup.
 
 See [SQL](/content/tuning/multihead/multihead_egress#multi-head-egress-sql) for details and examples.
+
+</Accordion>
+
+<Accordion title="KI_HINT_MAX_CONCURRENCY(n)" id="ki_hint_max_concurrency-n" defaultOpen>
+
+Run this query with the specified `n` concurrency, usually lower than the
+system or user group limit in order to avoid resource exhaustion.
 
 </Accordion>
 
@@ -11174,7 +11181,7 @@ Don't optimize the query using Scalar Sub-Query (SSQ) substitution.
 
 <Accordion title="KI_HINT_NO_VALIDATE_CHANGE" id="ki_hint_no_validate_change" defaultOpen>
 
-Don't fail an [ALTER TABLE](/content/sql/ddl#sql-alter-table) command when changing
+Don't fail an [ALTER TABLE](/content/sql/ddl/alter-table#sql-alter-table) command when changing
 column types/sizes and the column data is too long/large.  Truncate the
 data instead and allow the modification to succeed.
 
@@ -11290,6 +11297,13 @@ Save statistics of UDF runs for UDFs invoked via SQL.
 
 </Accordion>
 
+<Accordion title="KI_HINT_SCHEDULING_PRIORITY(n)" id="ki_hint_scheduling_priority-n" defaultOpen>
+
+Run this query with the specified `n` priority, usually lower than the
+system or user group limit in order to avoid resource exhaustion.
+
+</Accordion>
+
 <Accordion title="KI_HINT_SERVER_SIDE_INSERT" id="ki_hint_server_side_insert" defaultOpen>
 
 Issue the [INSERT INTO ... VALUE](/content/sql/dml#sql-insert-values) statement as
@@ -11304,7 +11318,7 @@ inserting many rows.
 Truncate all strings being inserted into restricted-width *(charN)*
 columns to the max width for the column.  Used with any
 [INSERT INTO](/content/sql/dml#sql-insert), [LOAD INTO](/content/sql/load#sql-load-into), or
-[CREATE EXTERNAL TABLE](/content/sql/ddl#sql-create-ext-table) statement.
+[CREATE EXTERNAL TABLE](/content/sql/ddl/create-external-table#sql-create-ext-table) statement.
 
 </Accordion>
 

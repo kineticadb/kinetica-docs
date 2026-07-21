@@ -6272,6 +6272,24 @@ print(json_object["data"]["records"])
 <p><strong>kafka\_wait\_time</strong> – Maximum time (seconds) to buffer records received from Kafka before ingestion. The default value is ‘30’. The minimum allowed value is ‘1’. The maximum allowed value is ‘120’.</p>
 </li>
 <li>
+<p><strong>iceberg\_table\_metadata\_cache\_enabled</strong> – Enable caching of Iceberg table metadata.</p>
+</li>
+<li>
+<p><strong>iceberg\_table\_metadata\_cache\_size</strong> – Maximum number of Iceberg table metadata entries to cache.</p>
+</li>
+<li>
+<p><strong>iceberg\_table\_metadata\_cache\_ttl</strong> – Time-to-live (seconds) for cached Iceberg table metadata entries.</p>
+</li>
+<li>
+<p><strong>iceberg\_table\_metadata\_cache\_snapshot\_check</strong> – When enabled, check the current Iceberg snapshot on cache hits and invalidate entries that have changed.</p>
+</li>
+<li>
+<p><strong>iceberg\_catalog\_connection\_cache\_size</strong> – Maximum number of cached Iceberg REST catalog connections.</p>
+</li>
+<li>
+<p><strong>iceberg\_manifest\_cache\_enabled</strong> – Enable caching of parsed Iceberg manifest and manifest-list files.</p>
+</li>
+<li>
 <p><strong>egress\_parquet\_compression</strong> – Parquet file compression type. Allowed values are:</p>
 <ul className="simple">
 <li>
@@ -6300,6 +6318,9 @@ print(json_object["data"]["records"])
 </li>
 <li>
 <p><strong>tps\_per\_tom</strong> – Size of the worker rank data processing thread pool. This includes operations such as inserts, updates, and deletes on table data. Multi-head inserts are not affected by this limit. The minimum allowed value is ‘2’. The maximum allowed value is ‘8192’.</p>
+</li>
+<li>
+<p><strong>remote\_io\_threads</strong> – Size of the worker rank IO thread pool. This is used for blocking IO operations such as reads from object storage or external file systems.</p>
 </li>
 <li>
 <p><strong>background\_worker\_threads</strong> – Size of the worker rank background thread pool. This includes background operations such as watermark evictions catalog table updates. The minimum allowed value is ‘1’. The maximum allowed value is ‘8192’.</p>
@@ -6546,6 +6567,9 @@ print(json_object["data"]["records"])
 </li>
 <li>
 <p><strong>set\_build\_materialized\_view\_policy</strong> – Set startup rebuilding scheme for the materialized view; see description of ‘build\_materialized\_view\_policy’ in <a className="reference internal" href="#gpudb.GPUdb.create_materialized_view" title="gpudb.GPUdb.create_materialized_view"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_materialized\_view()</span></code></a> for possible values for input parameter <span className="em">value</span>.</p>
+</li>
+<li>
+<p><strong>rebuild\_text\_search\_index</strong> – Drops and rebuilds the <a className="reference external" href="/content/concepts/full_text_search/">text search</a> index for the table from current type metadata and chunk storage. Use this to repair a text-search index left incomplete by an interrupted or failed rebuild (for example, after a crash during an add-column that requested text search): re-running the original add\_column will not work because the column already exists. This action is also dispatched automatically by <a className="reference internal" href="#gpudb.GPUdb.alter_table_columns" title="gpudb.GPUdb.alter_table_columns"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.alter\_table\_columns()</span></code></a> after add\_column completions that require a full re-index. The input parameter <span className="em">value</span> is ignored.</p>
 </li>
 </ul>
 </div>
@@ -7726,6 +7750,18 @@ print(json_object["data"]["records"])
 <div className="dd">
 <p>Optional parameters. Allowed keys are:</p>
 <ul>
+<li>
+<p><strong>block\_table\_mutations</strong> – Whether or not to block all mutations on target tables while they are being backed up. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Block all mutations on target tables while they are being backed up.</p>
+</li>
+<li>
+<p><strong>false</strong> – Only block mutations on a target table at the point a disk eviction is necessary.</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
 <li>
 <p><strong>checksum</strong> – Whether or not to calculate checksums for backup files. Allowed values are:</p>
 <ul className="simple">
@@ -9983,7 +10019,10 @@ print(json_object["data"]["records"])
 <p><strong>permissive</strong> – Records with missing columns are populated with nulls if possible; otherwise, the malformed records are skipped.</p>
 </li>
 <li>
-<p><strong>ignore\_bad\_records</strong> – Malformed records are skipped.</p>
+<p><strong>skip</strong> – Malformed records are skipped.</p>
+</li>
+<li>
+<p><strong>ignore\_bad\_records</strong> – Alias for skip.</p>
 </li>
 <li>
 <p><strong>abort</strong> – Stops current insertion and aborts entire operation when an error is encountered. Primary key collisions are considered abortable errors in this mode.</p>
@@ -14167,6 +14206,9 @@ print(json_object["data"]["records"])
 <li>
 <p><strong>regex</strong> – Full regular expression search (not accelerated). If the column is a string type (non-charN) and the number of records is too large, it will return 0.</p>
 </li>
+<li>
+<p><strong>search\_stats</strong> – Cross-shard BM25 corpus statistics for one (column, query) pair. Returns the merged BM25 statistics (max\_doc, doc\_count, sum\_total\_term\_freq, per-term doc\_freq / total\_term\_freq) needed by callers that score documents themselves (e.g. text\_match\_bm25\_global SQL function pre-pass). Requires <span className="em">column\_names</span> to contain exactly one column with text search enabled. The <span className="em">view\_name</span> field is ignored — this mode does not produce a result table.</p>
+</li>
 </ul>
 </div>
 <div className="dt">column\_names (<span className="em">list of str</span>) –</div>
@@ -14228,6 +14270,10 @@ print(json_object["data"]["records"])
 </li>
 </ul>
 <p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+<div className="dt">stats\_data (<span className="em">bytes</span>) –</div>
+<div className="dd">
+<p>Serialized cross-shard BM25 corpus statistics, populated for <span className="em">search\_stats</span> mode and empty otherwise. Wire format matches the merged BM25GlobalStats blob the BM25 stats worker produces internally (max\_doc, doc\_count, sum\_total\_term\_freq, sum\_doc\_freq, num\_terms, then per term: term, doc\_freq, total\_term\_freq). Clients that consume this perform their own scoring; the gpudb client library will expose a parser as a future convenience. The default value is ‘’.</p>
 </div>
 </div>
 </div>
@@ -16749,6 +16795,21 @@ print(json_object["data"]["records"])
 <p>The default value is ‘false’.</p>
 </li>
 <li>
+<p><strong>error\_handling</strong> – Specifies how errors should be handled upon insertion. When set, this option is authoritative; supplying a contradictory <span className="em">allow\_partial\_batch</span> is an error. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>permissive</strong> – Records with bad column values are kept when possible: the offending column is filled with its default value if one exists, otherwise with null if the column is nullable; if neither is possible the record is skipped and reported.</p>
+</li>
+<li>
+<p><strong>skip</strong> – Records with bad values are skipped and reported; the rest of the batch is inserted.</p>
+</li>
+<li>
+<p><strong>abort</strong> – Stops the insertion and rejects the entire batch when any record is incorrect.</p>
+</li>
+</ul>
+<p>The default value is ‘abort’.</p>
+</li>
+<li>
 <p><strong>dry\_run</strong> – If set to <span className="em">true</span>, no data will be saved and any errors will be returned. Allowed values are:</p>
 <ul className="simple">
 <li>
@@ -17007,7 +17068,10 @@ print(json_object["data"]["records"])
 <p><strong>permissive</strong> – Records with missing columns are populated with nulls if possible; otherwise, the malformed records are skipped.</p>
 </li>
 <li>
-<p><strong>ignore\_bad\_records</strong> – Malformed records are skipped.</p>
+<p><strong>skip</strong> – Malformed records are skipped.</p>
+</li>
+<li>
+<p><strong>ignore\_bad\_records</strong> – Alias for skip.</p>
 </li>
 <li>
 <p><strong>abort</strong> – Stops current insertion and aborts entire operation when an error is encountered. Primary key collisions are considered abortable errors in this mode.</p>
@@ -17577,7 +17641,10 @@ print(json_object["data"]["records"])
 <p><strong>permissive</strong> – Records with missing columns are populated with nulls if possible; otherwise, the malformed records are skipped.</p>
 </li>
 <li>
-<p><strong>ignore\_bad\_records</strong> – Malformed records are skipped.</p>
+<p><strong>skip</strong> – Malformed records are skipped.</p>
+</li>
+<li>
+<p><strong>ignore\_bad\_records</strong> – Alias for skip.</p>
 </li>
 <li>
 <p><strong>abort</strong> – Stops current insertion and aborts entire operation when an error is encountered. Primary key collisions are considered abortable errors in this mode.</p>
@@ -18057,7 +18124,10 @@ print(json_object["data"]["records"])
 <p><strong>permissive</strong> – Records with missing columns are populated with nulls if possible; otherwise, the malformed records are skipped.</p>
 </li>
 <li>
-<p><strong>ignore\_bad\_records</strong> – Malformed records are skipped.</p>
+<p><strong>skip</strong> – Malformed records are skipped.</p>
+</li>
+<li>
+<p><strong>ignore\_bad\_records</strong> – Alias for skip.</p>
 </li>
 <li>
 <p><strong>abort</strong> – Stops current insertion and aborts entire operation when an error is encountered. Primary key collisions are considered abortable errors in this mode.</p>
@@ -19294,6 +19364,9 @@ print(json_object["data"]["records"])
 <p><strong>all</strong> – All object types and data contained in the given <a className="reference external" href="/content/concepts/schemas/">schema(s)</a>.</p>
 </li>
 <li>
+<p><strong>catalog</strong> – Data Lake catalog that is external to the database.</p>
+</li>
+<li>
 <p><strong>context</strong> – <a className="reference external" href="/content/sql-gpt/concepts/#sql-gpt-context">Context(s)</a>.</p>
 </li>
 <li>
@@ -19452,6 +19525,9 @@ print(json_object["data"]["records"])
 </li>
 </ul>
 <p>The default value is ‘none’.</p>
+</li>
+<li>
+<p><strong>target\_schema\_map</strong> – Restore schema-based objects to alternate schema. Value is a comma delimitted list of key:value pairs mapping the original (source) schema name as it exists in the backup to a target (destination) schema namespace: ‘&lt;src&gt;:&lt;dst&gt;,&lt;src&gt;:&lt;dst&gt;,…’. Note that schema names are case sensitive and must adhere to the database schema <a className="reference external" href="/content/concepts/schemas/">naming criteria</a>. The default value is ‘’.</p>
 </li>
 </ul>
 <p>The default value is an empty dict ( {"{"}{"}"} ).</p>

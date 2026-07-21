@@ -1,0 +1,110 @@
+---
+title: CREATE TABLE ... AS
+---
+
+<a id="sql-create-table-as"></a>
+
+
+Creates a new *table* from the given query in the specified
+[schema](/content/sql/ddl/create-schema#sql-create-schema).
+
+```sql title="CREATE TABLE ... AS Syntax"
+CREATE [OR REPLACE] [REPLICATED] [TEMP] TABLE [<schema name>.]<table name> AS
+(
+    <select statement>
+)
+```
+
+Any column aliases used must adhere to the supported
+[naming criteria](/content/sql/naming#sql-naming-criteria).
+
+While [primary keys](/content/concepts/tables#primary-key) & [foreign keys](/content/concepts/tables#foreign-key) are
+not transferred to the new table, [shard keys](/content/concepts/tables#shard-key) will be, if the
+column(s) composing them are part of the `SELECT` list.
+
+
+## Parameters
+
+
+| Parameter/Key | Description |
+| --- | --- |
+| `OR REPLACE` | Any existing *table* or *view* with the same name will be dropped before creating this one |
+| `REPLICATED` | The *table* will be distributed within the database as a [replicated](/content/concepts/tables#replicated) *table* |
+| `TEMP` | The *table* will be a [memory-only table](/content/concepts/tables_memory_only); which, among other things, means it will not be persisted (if the database is restarted, the *table* will be removed), but it will have increased ingest performance |
+| `<schema name>` | Name of the *schema* that will contain the created *table*; if no *schema* is specified, the *table* will be created in the user's [default schema](/content/concepts/schemas#schema-default) |
+| `<table name>` | Name of the *table* to create; must adhere to supported [naming criteria](/content/sql/naming#sql-naming-criteria) |
+| `<select statement>` | The query that will define both the initial structure and content of the created *table* |
+
+The following can be applied to `<select statement>` to affect the resulting
+table:
+
+
+| Keyword | Type | Description |
+| --- | --- | --- |
+| [KI_HINT_GROUP_BY_PK](/content/sql/query#sql-hints) | *hint* | Creates a [primary keys](/content/concepts/tables#primary-key) on the columns in the `GROUP BY` clause if the outermost `SELECT` statement contains a `GROUP BY` |
+| [KI_HINT_INDEX(column list)](/content/sql/query#sql-hints) | *hint* | Indexes each of the columns specified in the column list |
+| [KI_SHARD_KEY(column list)](/content/sql/query#sql-distribution-functions) | *pseudo-* *function* | Shards the result table with a [shard key](/content/concepts/tables#shard-key) composed of all columns in the specified column list |
+
+
+## Examples
+
+
+To create a replicated temporary table that is a copy of an
+existing table, failing if a table with the same name as the target table
+already exists:
+
+{/* Source: /examples/sql/table/create_table.kisql (lines 136-140) */}
+```sql CREATE TABLE ... AS (Replicated/Temporary) Example
+CREATE REPLICATED TEMP TABLE example.new_temporary_table AS
+(
+    SELECT *
+    FROM example.old_table
+)
+```
+
+
+To create a permanent table with columns `a`, `b`, `c`, & `d` a new
+*shard key* on columns `a` & `b`, and an index on column `d`, replacing a
+table with the same name as the target table, if it exists:
+
+{/* Source: /examples/sql/table/create_table.kisql (lines 147-151) */}
+```sql CREATE TABLE ... AS (Reshard) Example
+CREATE OR REPLACE TABLE example.new_sharded_table AS
+(
+    SELECT a, b, c, d, KI_SHARD_KEY(a, b) /* KI_HINT_INDEX(d) */
+    FROM example.old_table
+)
+```
+
+To copy a table with columns `a`, `b`, `c`, & `d`, preserving the
+*primary key* on `a`, `b`, & `c`, and the *foreign key* from `d`; a new
+table must be created to match the schema of the old one and then records can be
+copied from the old one to the new one:
+
+{/* Source: /examples/sql/table/create_table.kisql (lines 159-167) */}
+```sql CREATE TABLE (Preserve Primary Key) Example, DDL Step
+CREATE TABLE example.new_pk_copy_table
+(
+    a INTEGER NOT NULL,
+    b INTEGER NOT NULL,
+    c VARCHAR(32) NOT NULL,
+    d TIMESTAMP,
+    PRIMARY KEY (a, b, c),
+    FOREIGN KEY (d) REFERENCES example.old_table_lookup(d)
+)
+```
+
+{/* Source: /examples/sql/table/create_table.kisql (lines 170-172) */}
+```sql CREATE TABLE (Preserve Primary Key) Example, DML Step
+INSERT INTO example.new_pk_copy_table
+SELECT *
+FROM example.old_table
+```
+
+
+<Info>
+This create/insert process is necessary, as neither *primary keys* nor
+*foreign keys* can be preserved through hints.
+</Info>
+
+See [Limitations](/content/sql/limit#sql-limitations) for other restrictions.

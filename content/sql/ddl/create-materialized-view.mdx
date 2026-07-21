@@ -1,0 +1,291 @@
+---
+title: CREATE MATERIALIZED VIEW
+---
+
+<a id="sql-create-materialized-view"></a>
+
+
+Specifying `MATERIALIZED` in a [CREATE VIEW](/content/sql/ddl/create-view#sql-create-view) statement
+will make the view a [materialized view](/content/concepts/materialized_views).
+
+```sql title="CREATE MATERIALIZED VIEW Syntax"
+CREATE [OR REPLACE] [TEMP] MATERIALIZED VIEW [<schema name>.]<view name>
+[
+    REFRESH
+    <
+        OFF |
+        ON CHANGE |
+        ON QUERY |
+        EVERY <number> <SECOND[S] | MINUTE[S] | HOUR[S] | DAY[S]>
+            [STARTING AT '<YYYY-MM-DD [HH:MM[:SS]]>']
+            [STOP AFTER < '<YYYY-MM-DD [HH:MM[:SS]]>' | <number> <SECOND[S] | MINUTE[S] | HOUR[S] | DAY[S]> >]
+    >
+]
+AS
+<select statement>
+[WITH OPTIONS (<materialized view property name> = '<materialized view property value>'[,...])]
+[<table property clause>]
+```
+
+The intermediary results of *materialized views* are cached to improve the
+performance of queries against them.  This means that, unlike typical *views*,
+*materialized views* are not lightweight database entities, but rather consume
+memory and processing time proportional to the size of the source data and
+complexity of the query.
+
+When any of the source *tables* of a *materialized view* is altered or dropped,
+the *materialized view* will also be dropped.
+
+
+<Warning>
+A `CREATE OR REPLACE` issues an implicit drop, so *replacing* an
+input *table* will have the same effect on the *materialized view* as
+dropping it.
+</Warning>
+
+While [primary keys](/content/concepts/tables#primary-key) &
+[foreign keys](/content/concepts/tables#foreign-key) are not transferred to the new
+*materialized view*, [shard keys](/content/concepts/tables#shard-key) will be, if the
+column(s) composing them are part of the `SELECT` list.  A new *shard key* can
+be specified for the *materialized view* by using the
+`KI_SHARD_KEY(<column list>)` pseudo-function in the `SELECT` list.
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="OR REPLACE" id="or-replace" defaultOpen>
+
+Any existing *table*/*view* with the same name will be dropped before creating this
+*materialized view*
+
+</Accordion>
+
+<Accordion title="TEMP" id="temp" defaultOpen>
+
+The *materialized view* will be a [memory-only table](/content/concepts/tables_memory_only);
+which, among other things, means it will not be persisted (if the database is restarted, the
+*materialized view* will be removed), but it will have increased ingest performance
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* that will contain the created *materialized view*; if no *schema* is
+specified, the *materialized view* will be created in the user's
+[default schema](/content/concepts/schemas#schema-default)
+
+</Accordion>
+
+<Accordion title="&lt;view name&gt;" id="<view-name>" defaultOpen>
+
+Name of the *materialized view* to create; must adhere to the supported
+[naming criteria](/content/sql/naming#sql-naming-criteria)
+
+</Accordion>
+
+<Accordion title="REFRESH" id="refresh" defaultOpen>
+
+Specifies the data refresh scheme for the *materialized view*.   The following schemes are
+available:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Constant</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>OFF</code></td>
+    <td>*(the default)* Will prevent the *materialized view* from being automatically refreshed, but will still allow [manual refreshes](/content/sql/ddl/refresh-view#sql-refresh-view) of the data to be requested</td>
+  </tr>
+  <tr>
+    <td><code>ON CHANGE</code></td>
+    <td>Will cause the *materialized view* to be updated any time a record is added, modified, or deleted from the subtending *tables* in its query</td>
+  </tr>
+  <tr>
+    <td><code>ON QUERY</code></td>
+    <td>Will cause the *materialized view* to be updated any time it is queried</td>
+  </tr>
+  <tr>
+    <td><code>EVERY</code></td>
+    <td>Allows specification of an interval in seconds, minutes, hours, or days, at which the *materialized view* should be refreshed.  By default, the first refresh interval will be one interval's worth of time from the point at which the *materialized view* creation was requested.  This can be modified with the following options: <ul><li><code>STARTING AT</code>:  specify a date or timestamp at which refresh cycles should begin</li><li><code>STOP AFTER</code>:  specify a date, timestamp, or time interval after which refresh cycles should end</li></ul></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;select statement&gt;" id="<select-statement>" defaultOpen>
+
+The query that will define both the structure and content of the created *materialized view*
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of connection option/value assignments will
+follow.  The following options are available:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>EXECUTE AS</code></td>
+    <td>Executes *materialized view* refreshes as the given user with that user's privileges, when <code>EVERY ...</code> is specified as the <code>REFRESH</code> method. <Note>If this user doesn't exist at the time of a refresh, the refresh will be executed as the creating user, and, failing that, the system administration user.</Note></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;table property clause&gt;" id="<table-property-clause>" defaultOpen>
+
+Optional clause, assigning table properties, from a subset of those available, to the
+*materialized view*
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-create-materialized-view-prop"></a>
+
+
+## Table Property Clause
+
+
+A subset of *table* properties can be applied to the *materialized view* at
+creation time.
+
+The supported *Table Property Clause* syntax & features are the same as those in
+the [CREATE TABLE Table Property Clause](/content/sql/ddl/create-table#sql-create-table-prop).
+
+
+<a id="sql-create-materialized-view-delta"></a>
+
+
+## Changes-Only Views via Delta Tables
+
+
+A *materialized view* can be configured to only show the changes in the query
+result since its last refresh.  This applies strictly for inserts; updates and
+deletes will not be reflected in the view's data.
+
+Using a *materialized view* to only show deltas in the result data can be
+achieved using the `KI_HINT_DELTA_TABLE` scoped hint.  This hint should be
+placed immediately after the table name (and before any table alias) of each
+source table in the query that should be treated as a *delta table*--a table
+which will contribute to the result set only those records added since the last
+time the *materialized view* referencing it was refreshed.
+
+The marked *delta table* must be a regular table--it cannot be any of the
+following:
+
+* [external table](/content/sql/ddl/create-external-table#sql-create-ext-table)
+* [filter view](/content/concepts/filtered_views)
+* [join view](/content/concepts/joins)
+* [logical view](/content/sql/ddl/create-view#sql-create-view)
+* [materialized view](/content/sql/ddl/create-materialized-view#sql-create-materialized-view)
+
+For instance, a *changes-only materialized view* `weather_zone` can be created
+with its `weather` source table marked as a *delta table* in order to only
+show new weather events since the last refresh of `weather_zone`:
+
+{/* Source: /examples/sql/view/create_mview_delta.kisql (lines 47-50) */}
+```sql Create Changes-Only Materialized View
+CREATE MATERIALIZED VIEW example.weather_zone AS
+SELECT w.name AS event_name, w.type AS event_type, gz.name AS zone
+FROM example.weather /*+ KI_HINT_DELTA_TABLE */ w
+JOIN example.geo_zone gz ON STXY_INTERSECTS(lon, lat, zone)
+```
+
+After an initial round of data is inserted, a query on the *materialized view*
+might return this:
+
+{/* Source: /examples/sql/view/create_mview_delta.out (lines 107-113) */}
+```sql Create Changes-Only Materialized View Output, Round 1
++--------------+--------------+-------------+
+| event_name   | event_type   | zone        |
++--------------+--------------+-------------+
+| Anna         | Hurricane    | Northeast   |
+| Bob          | Monsoon      | Northwest   |
+| Civic        | High Winds   | Southwest   |
++--------------+--------------+-------------+
+```
+
+After another round of data is inserted, a query on the *materialized view*
+might return this:
+
+{/* Source: /examples/sql/view/create_mview_delta.out (lines 145-149) */}
+```sql Create Changes-Only Materialized View Output, Round 2
++--------------+--------------+-------------+
+| event_name   | event_type   | zone        |
++--------------+--------------+-------------+
+| Dened        | Hurricane    | Southeast   |
++--------------+--------------+-------------+
+```
+
+
+## Examples
+
+
+To create a *materialized view* with columns `a`, `b`, `c`, & `d` and a
+new *shard key* on columns `a` & `b`, that refreshes once per half hour,
+replacing a *view* with the same name as the target *view*, if it exists:
+
+{/* Source: /examples/sql/view/create_mview.kisql (lines 41-46) */}
+```sql CREATE MATERIALIZED VIEW Example
+CREATE OR REPLACE MATERIALIZED VIEW example.materialized_view_of_table
+REFRESH EVERY .5 HOURS AS
+(
+    SELECT a, b, c, d, KI_SHARD_KEY(a, b)
+    FROM example.table_to_view
+)
+```
+
+To create a *materialized view* with all columns of a table, refreshing once per
+minute from the beginning of *2025* through to the end of that year using the
+permissions of user *mv_user* to perform the refreshes:
+
+{/* Source: /examples/sql/view/create_mview.kisql (lines 183-192) */}
+```sql CREATE MATERIALIZED VIEW Start/Stop Example
+CREATE MATERIALIZED VIEW example.materialized_view_of_table
+REFRESH EVERY 1 MINUTE
+STARTING AT '2025-01-01 00:00:00'
+STOP AFTER 365 DAYS
+AS
+(
+    SELECT *
+    FROM example.table_to_view
+)
+WITH OPTIONS (EXECUTE AS = 'mv_user')
+```
+
+To create a *materialized view* that shows only weather events from a streamed
+`weather` table and their locations from a static `geo_zone` table that have
+occurred since the last time the materialized view `weather_zone` joining the
+two data sets was refreshed:
+
+{/* Source: /examples/sql/view/create_mview_delta.kisql (lines 47-50) */}
+```sql CREATE MATERIALIZED VIEW Changes-Only Example
+CREATE MATERIALIZED VIEW example.weather_zone AS
+SELECT w.name AS event_name, w.type AS event_type, gz.name AS zone
+FROM example.weather /*+ KI_HINT_DELTA_TABLE */ w
+JOIN example.geo_zone gz ON STXY_INTERSECTS(lon, lat, zone)
+```

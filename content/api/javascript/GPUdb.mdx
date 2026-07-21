@@ -67,6 +67,12 @@ A set of configurable options for the GPUdb API.
 <td className="attributes"> &lt;optional&gt;<br /> </td>
 <td className="description last">The timeout value, in milliseconds, after which requests to GPUdb will be aborted. A timeout value of zero is interpreted as an infinite timeout. Note that timeout is not suppored for synchronous requests, which will not return until a response is received and cannot be aborted.</td>
 </tr>
+<tr>
+<td className="name"><code>ha\_failover\_order</code></td>
+<td className="type"> <span className="param-type">String</span> </td>
+<td className="attributes"> &lt;optional&gt;<br /> </td>
+<td className="description last">The order in which the API selects clusters from the supplied URL list, affecting both the initial cluster connected to and the cluster chosen on failover. One of <code>"sequential"</code> (the default; the caller's URL order is preserved, so the initial cluster is the first URL and failover advances in listed order) or <code>"random"</code> (the URL list is shuffled so both the initial cluster and the failover sequence are randomized).</td>
+</tr>
 </tbody>
 </table>
 </td>
@@ -104,8 +110,42 @@ A set of configurable options for the GPUdb API.
 </ul>
 </div>
 </div>
+<h4 className="name" id="FAILOVER_TRIGGER_MESSAGES"><span className="type-signature">(readonly) </span>FAILOVER\_TRIGGER\_MESSAGES<span className="type-signature"></span></h4>
+<div className="description"> The set of server response/error messages that indicate a recoverable condition — the cluster could not serve the request but did not apply it — for which the API fails over to another cluster rather than returning the error to the caller. Retrying these elsewhere is safe because the request had no effect on the rejecting cluster. </div>
+<div className="dl details">
+<div className="dt tag-source">Source:</div>
+<div className="dd tag-source">
+<ul className="dummy">
+<li> , </li>
+</ul>
+</div>
+</div>
+<h4 className="name" id="HA_FAILOVER_ORDER"><span className="type-signature">(readonly) </span>HA\_FAILOVER\_ORDER<span className="type-signature"></span></h4>
+<div className="description"> The valid values for the <code>ha\_failover\_order</code> option, which controls the order in which the API selects clusters from the supplied URL list — both the initial cluster and the cluster chosen on failover. </div>
+<div className="dl details">
+<div className="dt tag-source">Source:</div>
+<div className="dd tag-source">
+<ul className="dummy">
+<li> , </li>
+</ul>
+</div>
+</div>
 <h4 className="name" id="api_version"><span className="type-signature">(readonly) </span>api\_version<span className="type-signature"> :String</span></h4>
 <div className="description"> The version number of the GPUdb JavaScript API. </div>
+<h5>Type:</h5>
+<ul>
+<li> <span className="param-type">String</span> </li>
+</ul>
+<div className="dl details">
+<div className="dt tag-source">Source:</div>
+<div className="dd tag-source">
+<ul className="dummy">
+<li> , </li>
+</ul>
+</div>
+</div>
+<h4 className="name" id="ha_failover_order"><span className="type-signature">(readonly) </span>ha\_failover\_order<span className="type-signature"> :String</span></h4>
+<div className="description"> The HA failover order used to select clusters (both the initial cluster and the cluster chosen on failover). One of <code>"sequential"</code> (the default) or <code>"random"</code>. </div>
 <h5>Type:</h5>
 <ul>
 <li> <span className="param-type">String</span> </li>
@@ -4839,6 +4879,12 @@ Map containing the properties of the system to be updated. Error if empty.
 <li>'kafka\_batch\_size': Maximum number of records to be ingested in a single batch. The default value is '1000'. The minimum allowed value is '1'. The maximum allowed value is '10000000'. </li>
 <li>'kafka\_poll\_timeout': Maximum time (milliseconds) for each poll to get records from Kafka. The default value is '0'. The minimum allowed value is '0'. The maximum allowed value is '1000'. </li>
 <li>'kafka\_wait\_time': Maximum time (seconds) to buffer records received from Kafka before ingestion. The default value is '30'. The minimum allowed value is '1'. The maximum allowed value is '120'. </li>
+<li>'iceberg\_table\_metadata\_cache\_enabled': Enable caching of Iceberg table metadata. </li>
+<li>'iceberg\_table\_metadata\_cache\_size': Maximum number of Iceberg table metadata entries to cache. </li>
+<li>'iceberg\_table\_metadata\_cache\_ttl': Time-to-live (seconds) for cached Iceberg table metadata entries. </li>
+<li>'iceberg\_table\_metadata\_cache\_snapshot\_check': When enabled, check the current Iceberg snapshot on cache hits and invalidate entries that have changed. </li>
+<li>'iceberg\_catalog\_connection\_cache\_size': Maximum number of cached Iceberg REST catalog connections. </li>
+<li>'iceberg\_manifest\_cache\_enabled': Enable caching of parsed Iceberg manifest and manifest-list files. </li>
 <li>
 'egress\_parquet\_compression': Parquet file compression type. Supported values: 
 <ul>
@@ -4853,6 +4899,7 @@ Map containing the properties of the system to be updated. Error if empty.
 <li>'system\_metadata\_retention\_period': Sets the system\_metadata.retention\_period value of the conf. The minimum allowed value is '1'. </li>
 <li>'tcs\_per\_tom': Size of the worker rank data calculation thread pool. This is primarily used for computation-based operations such as aggregates and record retrieval. The minimum allowed value is '2'. The maximum allowed value is '8192'. </li>
 <li>'tps\_per\_tom': Size of the worker rank data processing thread pool. This includes operations such as inserts, updates, and deletes on table data. Multi-head inserts are not affected by this limit. The minimum allowed value is '2'. The maximum allowed value is '8192'. </li>
+<li>'remote\_io\_threads': Size of the worker rank IO thread pool. This is used for blocking IO operations such as reads from object storage or external file systems. </li>
 <li>'background\_worker\_threads': Size of the worker rank background thread pool. This includes background operations such as watermark evictions catalog table updates. The minimum allowed value is '1'. The maximum allowed value is '8192'. </li>
 <li>'log\_debug\_job\_info': Outputs various job-related information to the rank logs. Used for troubleshooting. </li>
 <li>'enable\_thread\_hang\_logging': Log a stack trace for any thread that runs longer than a defined threshold. Used for troubleshooting. The default value is 'true'. </li>
@@ -5030,6 +5077,7 @@ Modification operation to be applied. Supported values:
 <li>'set\_load\_vectors\_policy': Set startup data loading scheme for the table; see description of 'load\_vectors\_policy' in <a href="/content/api/javascript/GPUdb#create_table"><code>GPUdb#create\_table</code></a> for possible values for <code>value</code>. </li>
 <li>'set\_build\_pk\_index\_policy': Set startup primary key generation scheme for the table; see description of 'build\_pk\_index\_policy' in <a href="/content/api/javascript/GPUdb#create_table"><code>GPUdb#create\_table</code></a> for possible values for <code>value</code>. </li>
 <li>'set\_build\_materialized\_view\_policy': Set startup rebuilding scheme for the materialized view; see description of 'build\_materialized\_view\_policy' in <a href="/content/api/javascript/GPUdb#create_materialized_view"><code>GPUdb#create\_materialized\_view</code></a> for possible values for <code>value</code>. </li>
+<li>'rebuild\_text\_search\_index': Drops and rebuilds the <a href="/content/concepts/full_text_search/" target="_top">text search</a> index for the table from current type metadata and chunk storage. Use this to repair a text-search index left incomplete by an interrupted or failed rebuild (for example, after a crash during an add-column that requested text search): re-running the original add\_column will not work because the column already exists. This action is also dispatched automatically by <a href="/content/api/javascript/GPUdb#alter_table_columns"><code>GPUdb#alter\_table\_columns</code></a> after add\_column completions that require a full re-index. The <code>value</code> is ignored. </li>
 </ul>
 </td>
 </tr>
@@ -6712,6 +6760,14 @@ Map of objects to be captured in the backup; must be specified when creating a f
 <td className="description last">
 Optional parameters. 
 <ul>
+<li>
+'block\_table\_mutations': Whether or not to block all mutations on target tables while they are being backed up. Supported values: 
+<ul>
+<li>'true': Block all mutations on target tables while they are being backed up. </li>
+<li>'false': Only block mutations on a target table at the point a disk eviction is necessary. </li>
+</ul>
+ The default value is 'false'. 
+</li>
 <li>
 'checksum': Whether or not to calculate checksums for backup files. Supported values: 
 <ul>
@@ -9056,7 +9112,8 @@ Optional parameters.
 'error\_handling': Specifies how errors should be handled upon insertion. Supported values: 
 <ul>
 <li>'permissive': Records with missing columns are populated with nulls if possible; otherwise, the malformed records are skipped. </li>
-<li>'ignore\_bad\_records': Malformed records are skipped. </li>
+<li>'skip': Malformed records are skipped. </li>
+<li>'ignore\_bad\_records': Alias for skip. </li>
 <li>'abort': Stops current insertion and aborts entire operation when an error is encountered. Primary key collisions are considered abortable errors in this mode. </li>
 </ul>
  The default value is 'abort'. 
@@ -13997,6 +14054,7 @@ The string filtering mode to apply. See below for details. Supported values:
 <li>'contains': Partial substring match (not accelerated). If the column is a string type (non-charN) and the number of records is too large, it will return 0. </li>
 <li>'starts\_with': Strings that start with the given expression (not accelerated). If the column is a string type (non-charN) and the number of records is too large, it will return 0. </li>
 <li>'regex': Full regular expression search (not accelerated). If the column is a string type (non-charN) and the number of records is too large, it will return 0. </li>
+<li>'search\_stats': Cross-shard BM25 corpus statistics for one (column, query) pair. Returns the merged BM25 statistics (max\_doc, doc\_count, sum\_total\_term\_freq, per-term doc\_freq / total\_term\_freq) needed by callers that score documents themselves (e.g. text\_match\_bm25\_global SQL function pre-pass). Requires <code>column\_names</code> to contain exactly one column with text search enabled. The <code>view\_name</code> field is ignored — this mode does not produce a result table. </li>
 </ul>
 </td>
 </tr>
@@ -16716,6 +16774,15 @@ Optional parameters.
  The default value is 'false'. 
 </li>
 <li>
+'error\_handling': Specifies how errors should be handled upon insertion. When set, this option is authoritative; supplying a contradictory <code>allow\_partial\_batch</code> is an error. Supported values: 
+<ul>
+<li>'permissive': Records with bad column values are kept when possible: the offending column is filled with its default value if one exists, otherwise with null if the column is nullable; if neither is possible the record is skipped and reported. </li>
+<li>'skip': Records with bad values are skipped and reported; the rest of the batch is inserted. </li>
+<li>'abort': Stops the insertion and rejects the entire batch when any record is incorrect. </li>
+</ul>
+ The default value is 'abort'. 
+</li>
+<li>
 'dry\_run': If set to <code>true</code>, no data will be saved and any errors will be returned. Supported values: 
 <ul>
 <li>'true' </li>
@@ -16875,7 +16942,8 @@ Optional parameters.
 'error\_handling': Specifies how errors should be handled upon insertion. Supported values: 
 <ul>
 <li>'permissive': Records with missing columns are populated with nulls if possible; otherwise, the malformed records are skipped. </li>
-<li>'ignore\_bad\_records': Malformed records are skipped. </li>
+<li>'skip': Malformed records are skipped. </li>
+<li>'ignore\_bad\_records': Alias for skip. </li>
 <li>'abort': Stops current insertion and aborts entire operation when an error is encountered. Primary key collisions are considered abortable errors in this mode. </li>
 </ul>
  The default value is 'abort'. 
@@ -17291,7 +17359,8 @@ Optional parameters.
 'error\_handling': Specifies how errors should be handled upon insertion. Supported values: 
 <ul>
 <li>'permissive': Records with missing columns are populated with nulls if possible; otherwise, the malformed records are skipped. </li>
-<li>'ignore\_bad\_records': Malformed records are skipped. </li>
+<li>'skip': Malformed records are skipped. </li>
+<li>'ignore\_bad\_records': Alias for skip. </li>
 <li>'abort': Stops current insertion and aborts entire operation when an error is encountered. Primary key collisions are considered abortable errors in this mode. </li>
 </ul>
  The default value is 'abort'. 
@@ -17607,7 +17676,8 @@ Optional parameters.
 'error\_handling': Specifies how errors should be handled upon insertion. Supported values: 
 <ul>
 <li>'permissive': Records with missing columns are populated with nulls if possible; otherwise, the malformed records are skipped. </li>
-<li>'ignore\_bad\_records': Malformed records are skipped. </li>
+<li>'skip': Malformed records are skipped. </li>
+<li>'ignore\_bad\_records': Alias for skip. </li>
 <li>'abort': Stops current insertion and aborts entire operation when an error is encountered. Primary key collisions are considered abortable errors in this mode. </li>
 </ul>
  The default value is 'abort'. 
@@ -18970,6 +19040,7 @@ Optional parameters.
 Map of database objects to be restored from the backup. 
 <ul>
 <li>'all': All object types and data contained in the given <a href="/content/concepts/schemas/" target="_top">schema(s)</a>. </li>
+<li>'catalog': Data Lake catalog that is external to the database. </li>
 <li>'context': <a href="/content/sql-gpt/concepts/#sql-gpt-context" target="_top">Context(s)</a>. </li>
 <li>'credential': <a href="/content/concepts/credentials/" target="_top">Credential(s)</a>. </li>
 <li>'datasink': <a href="/content/concepts/data_sinks/" target="_top">Data sink(s)</a>. </li>
@@ -19066,6 +19137,7 @@ Optional parameters.
 </ul>
  The default value is 'none'. 
 </li>
+<li>'target\_schema\_map': Restore schema-based objects to alternate schema. Value is a comma delimitted list of key:value pairs mapping the original (source) schema name as it exists in the backup to a target (destination) schema namespace: '<src>:<dst>,<src>:<dst>,...'. Note that schema names are case sensitive and must adhere to the database schema <a href="/content/concepts/schemas/" target="_top">naming criteria</a>. The default value is ''. </dst></src></dst></src></li>
 </ul>
  The default value is an empty object ( {"{"}{"}"} ).
 </td>

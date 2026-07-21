@@ -1,0 +1,104 @@
+---
+title: SHOW TABLE
+---
+
+<a id="sql-show-table"></a>
+
+
+Outputs the DDL statement required to reconstruct the given *table*.
+
+```sql title="SHOW TABLE Syntax"
+SHOW [[CREATE] TABLE] [<schema name>.]<table name>
+```
+
+
+<Info>
+The response to `SHOW TABLE` is a single-record result set
+with the DDL statement as the value in the `DDL` column, shown below with
+the column separators returned by <Badge color="blue-destructive">kisql</Badge>.
+</Info>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="CREATE" id="create" defaultOpen>
+
+Optional keyword for clarity
+
+</Accordion>
+
+<Accordion title="TABLE" id="table" defaultOpen>
+
+Optional clause to avoid ambiguity:
+
+* if given, and a *view* with the given name exists instead, the command will return an error
+* if omitted, and a *view* with the given name exists instead, the command will be interpreted as
+  a `SHOW VIEW` statement
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* containing the *table* to show
+
+</Accordion>
+
+<Accordion title="&lt;table name&gt;" id="<table-name>" defaultOpen>
+
+Name of the *table* whose DDL will be output
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To output the DDL for the example table created in the
+[CREATE TABLE](/content/sql/ddl/create-table#sql-create-table) section:
+
+{/* Source: /examples/sql/table/create_table.kisql (lines 69) */}
+```sql SHOW TABLE Example
+SHOW CREATE TABLE example.various_types
+```
+
+{/* Source: /examples/sql/table/create_table.out (lines 155-187) */}
+```sql SHOW TABLE Output
+| CREATE TABLE "example"."various_types"
+(
+    "i" INTEGER (primary_key) NOT NULL COMMENT 'non-nullable integer, part of primary key (defined at end)',
+    "bi" BIGINT (primary_key, shard_key) NOT NULL COMMENT 'long, part of primary key, shard key, foreign key source (defined at end)',
+    "b" BOOLEAN COMMENT '0s and 1s only',
+    "ub" UNSIGNED BIGINT COMMENT 'native unsigned long',
+    "r" REAL COMMENT 'native float',
+    "d" DOUBLE COMMENT 'native double',
+    "s" VARCHAR (text_search) COMMENT 'string, searchable, only limited in size by system-configured value',
+    "c" VARCHAR (32, dict) COMMENT 'char32 using dictionary-encoding of values',
+    "p" VARCHAR (256, text_search) COMMENT 'char256, searchable',
+    "ip" IPV4 COMMENT 'IP address',
+    "ui" UUID DEFAULT NEW_UUID() COMMENT 'UUID',
+    "ts" TIMESTAMP COMMENT 'timestamp',
+    "td" DATE COMMENT 'simple date',
+    "tt" TIME COMMENT 'simple time',
+    "dt" DATETIME DEFAULT NOW() COMMENT 'date/time',
+    "dc" DECIMAL (28, 0) COMMENT 'integer of up to 27 digits',
+    "dc8" DECIMAL (18, 4) COMMENT '8-byte decimal',
+    "dc12" DECIMAL (27, 18) COMMENT '12-byte decimal',
+    "n" DECIMAL (18, 4) COMMENT 'alias for DECIMAL(18, 4)',
+    "byt" BLOB COMMENT 'BLOB',
+    "w" GEOMETRY COMMENT 'geospatial column for WKT string data',
+    "j" JSON COMMENT 'JSON string',
+    "v" VECTOR (10) COMMENT 'vector column holding 10 floating point values',
+    "ai" INTEGER[3] COMMENT 'array column holding 3 integer values',
+    FOREIGN KEY ("bi") REFERENCES "example"."lookup" ("id") AS "fk"
+)
+TIER STRATEGY (
+    ( ( VRAM 1, RAM 5, DISK0 5, PERSIST 5 ) )
+)
+ATTRIBUTE INDEX ("ip")
+ATTRIBUTE INDEX ("ts"); |
+```

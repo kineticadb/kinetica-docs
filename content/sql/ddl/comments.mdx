@@ -1,0 +1,154 @@
+---
+title: Comments
+---
+
+<a id="sql-comment"></a>
+
+
+*Comments*, text-based tags, can be applied to a variety of object types.
+
+Normally, *comments* are applied to objects after the object is created;
+however, *comments* can also be applied in-line to table columns within a
+[CREATE TABLE](/content/sql/ddl/create-table#sql-create-table) or [CREATE EXTERNAL TABLE](/content/sql/ddl/create-external-table#sql-create-ext-table)
+statement.
+
+```sql title="COMMENT Syntax"
+COMMENT ON <object type> <object name> IS '<comment text>';
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;object type&gt;" id="<object-type>" defaultOpen>
+
+Specifies the type of object to which the *comment* will be applied.  The following types are
+supported:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Type</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>SCHEMA</code></td>
+    <td>Apply a [schema-level](/content/sql/ddl/create-schema#sql-create-schema) comment; can be viewed in the <code>ki_catalog.ki_schemas</code> [Kinetica catalog table](/content/catalogs/kinetica)</td>
+  </tr>
+  <tr>
+    <td><code>TABLE</code></td>
+    <td>Apply a [table-level](/content/sql/ddl/create-table#sql-create-table) comment; can be viewed in the <code>ki_catalog.ki_objects</code> [Kinetica catalog table](/content/catalogs/kinetica)</td>
+  </tr>
+  <tr>
+    <td><code>VIEW</code></td>
+    <td>Apply a [view-level](/content/sql/ddl/create-view#sql-create-view) comment; can be viewed in the <code>ki_catalog.ki_objects</code> [Kinetica catalog table](/content/catalogs/kinetica)</td>
+  </tr>
+  <tr>
+    <td><code>COLUMN</code></td>
+    <td>Apply a [column-level](/content/sql/ddl/create-table#sql-create-table) comment; can be viewed in the <code>ki_catalog.ki_columns</code> [Kinetica catalog table](/content/catalogs/kinetica)</td>
+  </tr>
+  <tr>
+    <td><code>PROCEDURE</code></td>
+    <td>Apply a [procedure-level](/content/sql/procedure) comment; can be viewed in the <code>ki_catalog.ki_objects</code> [Kinetica catalog table](/content/catalogs/kinetica)</td>
+  </tr>
+  <tr>
+    <td><code>USER</code></td>
+    <td>Apply a [user-level](/content/sql/security#sql-security-user-mgmt) comment; can be viewed in the <code>ki_catalog.ki_users_and_roles</code> [Kinetica catalog table](/content/catalogs/kinetica)</td>
+  </tr>
+  <tr>
+    <td><code>ROLE</code></td>
+    <td>Apply a [role-level](/content/sql/security#sql-security-role-mgmt) comment; can be viewed in the <code>ki_catalog.ki_users_and_roles</code> [Kinetica catalog table](/content/catalogs/kinetica)</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;object name&gt;" id="<object-name>" defaultOpen>
+
+Name of the object to which the *comment* will be applied; must adhere to the supported
+[naming criteria](/content/sql/naming#sql-naming-criteria)
+
+</Accordion>
+
+<Accordion title="&lt;comment text&gt;" id="<comment-text>" defaultOpen>
+
+Text of the *comment* to apply.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+For example, to apply a *comment* to a column in-line with the containing table
+creation:
+
+{/* Source: /examples/sql/comment.kisql (lines 78-82) */}
+```sql In-Line Column Comment Example
+CREATE TABLE comment_schema.comment_table_inline
+(
+	id INT COMMENT 'I''m an in-line table column-level comment',
+	name VARCHAR(32)
+)
+```
+
+
+To apply a *comment* to a column after the containing table is created:
+
+{/* Source: /examples/sql/comment.kisql (lines 106) */}
+```sql Post-Creation Column Comment Example
+COMMENT ON COLUMN comment_schema.comment_table_inline.name IS 'I''m a post-creation table column-level comment'
+```
+
+
+## List Comments
+
+
+To list the *comments* for users & roles:
+
+{/* Source: /examples/sql/comment.kisql (lines 123-124) */}
+```sql List User/Role Comments
+SELECT name, comments
+FROM ki_users_and_roles
+```
+
+
+To list the *comments* for schemas:
+
+{/* Source: /examples/sql/comment.kisql (lines 131-132) */}
+```sql List Schema Comments
+SELECT schema_name, comments
+FROM ki_schemas
+```
+
+
+To list the *comments* for tables, views, & SQL procedures:
+
+{/* Source: /examples/sql/comment.kisql (lines 138-139) */}
+```sql List Table/View/Procedure Comments
+SELECT obj_kind, object_name, comments
+FROM ki_objects
+```
+
+
+To list the *comments* for columns:
+
+{/* Source: /examples/sql/comment.kisql (lines 146-147) */}
+```sql List Column Comments
+SELECT schema_name, table_name, column_name, comments
+FROM ki_columns
+```
+
+
+To show the *comments* for columns within the context of the containing table,
+use [SHOW TABLE](/content/sql/ddl/show-table#sql-show-table) on the table containing the columns.

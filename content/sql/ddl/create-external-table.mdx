@@ -1,0 +1,1463 @@
+---
+title: CREATE EXTERNAL TABLE
+---
+
+<a id="sql-create-ext-table"></a>
+
+
+Creates a new [external table](/content/concepts/external_tables), which is
+a database object whose source data is located in one or more files, either
+internal or external to the database.
+
+```sql title="CREATE EXTERNAL TABLE Syntax"
+CREATE [OR REPLACE] [REPLICATED] [TEMP] [LOGICAL | MATERIALIZED] EXTERNAL TABLE [<schema name>.]<table name>
+[<table definition clause>]
+<
+	REMOTE QUERY '<source data query>'
+	|
+	FILE PATHS <file paths>
+		[FORMAT <[DELIMITED] TEXT [(<delimited text options>)] | AVRO | JSON | PARQUET | SHAPEFILE>]
+>
+[WITH OPTIONS (<load option name> = '<load option value>'[,...])]
+[<partition clause>]
+[<tier strategy clause>]
+[<index clause>]
+[<table property clause>]
+```
+
+
+<Info>
+For contextualized examples, see [Examples](/content/sql/ddl/create-external-table#sql-create-ext-table-examples).
+For copy/paste examples, see [Loading Data](/content/snippets/load-data).  For an overview
+of loading data into *Kinetica*, see [Data Loading Concepts](/content/load_data/concepts).
+</Info>
+
+
+The source data can be located in either of the following locations:
+
+* in [KiFS](/content/tools/kifs)
+* on a remote system, accessible via a
+  [data source](/content/sql/ddl/create-data-source#sql-create-data-source)
+
+A materialized *external table* (default) that uses a *data source* can perform
+a one-time load upon creation and optionally subscribe for updates on an
+interval, depending on the *data source* provider:
+
+| Provider | Description | One-Time Load | Subscription |
+| --- | --- | --- | --- |
+| *Azure* | Microsoft blob storage | Yes | Yes |
+| *GCS* | Google Cloud Storage | Yes | Yes |
+| *HDFS* | Apache Hadoop Distributed File System | Yes |  |
+| *JDBC* | Java DataBase Connectivity; using a user-supplied driver or one of the drivers on the list [supported list](/content/concepts/jdbc_drivers) | Yes | Yes |
+| *S3* | Amazon S3 Bucket | Yes | Yes |
+
+See [Manage Subscription](/content/sql/ddl/alter-table#sql-alter-table-manage-sub) for pausing, resuming, canceling,
+and dropping subscriptions on the *external table*.
+
+Although an *external table* cannot use a *data source* configured for *Kafka*,
+a standard *table* can have *Kafka* data streamed into it via a
+[LOAD INTO](/content/sql/load#sql-load-file-server) command that references such a
+*data source*.
+
+The use of *external tables* with [ring resiliency](/content/ha)
+has additional [considerations](/content/ha/ha_configuration#ring-extdata).
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="OR REPLACE" id="or-replace" defaultOpen>
+
+Any existing *table* or *view* with the same name will be dropped before creating this one.
+
+</Accordion>
+
+<Accordion title="REPLICATED" id="replicated" defaultOpen>
+
+The *external table* will be distributed within the database as a
+[replicated](/content/concepts/tables#replicated) *table*.
+
+</Accordion>
+
+<Accordion title="TEMP" id="temp" defaultOpen>
+
+The *external table* will be a [memory-only table](/content/concepts/tables_memory_only); which,
+among other things, means it will not be persisted (if the database is restarted, the
+*external table* will be removed), but it will have increased ingest performance.
+
+</Accordion>
+
+<Accordion title="LOGICAL" id="logical" defaultOpen>
+
+External data will **not** be loaded into the database; the data will be retrieved from the
+source upon servicing each query against the *external table*.  This mode ensures queries on
+the *external table* will always return the most current source data, though there will be a
+performance penalty for reparsing & reloading the data from source files upon each query.
+
+</Accordion>
+
+<Accordion title="MATERIALIZED" id="materialized" defaultOpen>
+
+Loads a copy of the external data into the database, refreshed on demand; this is the default
+*external table* type.
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* that will contain the created *external table*; if no *schema* is specified,
+the *external table* will be created in the user's [default schema](/content/concepts/schemas#schema-default).
+
+</Accordion>
+
+<Accordion title="&lt;table name&gt;" id="<table-name>" defaultOpen>
+
+Name of the *external table* to create; must adhere to the supported
+[naming criteria](/content/sql/naming#sql-naming-criteria).
+
+</Accordion>
+
+<Accordion title="&lt;table definition clause&gt;" id="<table-definition-clause>" defaultOpen>
+
+Optional clause, defining the structure for the *external table* associated with the source
+data.
+
+</Accordion>
+
+<Accordion title="REMOTE QUERY" id="remote-query" defaultOpen>
+
+Source data specification clause, where `<source data query>` is a SQL query selecting the data
+which will be loaded.
+
+
+<Info>
+This clause is mutually exclusive with the `FILE PATHS` clause, and is only
+applicable to JDBC *data sources*.
+</Info>
+
+The query should meet the following criteria:
+
+* Any column expression used is given a column alias.
+* The first column is not a `WKT` or unlimited length `VARCHAR` type.
+* The columns and expressions queried should match the intended order, number, & type of the
+  columns in the target table.
+
+Any query resulting in more than *10,000* records will be distributed and loaded in parallel
+(unless directed otherwise) using the following rule sequence:
+
+1. If `REMOTE_QUERY_NO_SPLIT` is `TRUE`, the query will not be distributed.
+2. If a valid `REMOTE_QUERY_PARTITION_COLUMN` is specified, the query will be distributed by partitioning on the
+   given column's values
+3. If a valid `REMOTE_QUERY_ORDER_BY` is specified, the query will be distributed by ordering the data
+   accordingly and then partitioning into sequential blocks from the first record
+4. If a non-null numeric/date/time column exists, the query will be distributed by partitioning
+   on the first such column's values
+5. The query will be distributed by sorting the data on the first column and then partitioning
+   into sequential blocks from the first record
+
+Type inferencing is limited by the available JDBC types.  To take advantage of Kinetica-specific
+types and properties, define the table columns explicitly in the [&lt;table definition clause&gt;](/content/sql/ddl/create-external-table#sql-create-ext-table-def).
+
+</Accordion>
+
+<Accordion title="FILE PATHS" id="file-paths" defaultOpen>
+
+Source file specification clause, where `<file paths>` is a comma-separated list of
+single-quoted file paths from which data will be loaded; all files specified are presumed to have
+the same format and data types.
+
+
+<Info>
+This clause is mutually exclusive with the `REMOTE QUERY` clause, and is not
+applicable to JDBC *data sources*.
+</Info>
+
+The form of a file path is dependent on the source referenced:
+
+* *Data Source*:  If a *data source* is specified in the [load options](/content/sql/ddl/create-external-table#sql-create-ext-table-load-opt), these file paths must resolve
+  to accessible files at that *data source* location.  A "path prefix" can be specified instead,
+  which will cause all files whose path begins with the given prefix to be included.
+
+  For example, a "path prefix" of `/data/ge` for `<file paths>` would match all of the
+  following:
+
+  * `/data/geo.csv`
+  * `/data/geo/flights.csv`
+  * `/data/geo/2021/airline.csv`
+
+  If using an HDFS *data source*, the "path prefix" must be the name of an HDFS directory.
+
+* [KiFS](/content/tools/kifs):  The path must resolve to an accessible file path within *KiFS*.
+  A "path prefix" can be specified instead, which will cause all files whose path begins with the
+  given prefix to be included.
+
+  For example, a "path prefix" of `kifs://data/ge` would match all of the following files under
+  the *KiFS* `data` directory:
+
+  * `kifs://data/geo.csv`
+  * `kifs://data/geo/flights.csv`
+  * `kifs://data/geo/2021/airline.csv`
+
+</Accordion>
+
+<Accordion title="FORMAT" id="format" defaultOpen>
+
+Optional indicator of source file type, for file-based data sources; will be inferred from the
+file extension if not given.
+
+Supported formats include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Keyword</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>[DELIMITED] TEXT</code></td>
+    <td>Any text-based, delimited field data file (CSV, PSV, TSV, etc.); a comma-delimited list of options can be given to specify the way in which the data file(s) should be parsed, including the delimiter used, whether headers are present, etc.  Records spanning multiple lines are not supported. See [Delimited Text Options](/content/sql/ddl/create-external-table#sql-create-ext-table-delim-opt) for the complete list of <code>&lt;delimited text options&gt;</code>.</td>
+  </tr>
+  <tr>
+    <td><code>AVRO</code></td>
+    <td>*Apache Avro* data file</td>
+  </tr>
+  <tr>
+    <td><code>JSON</code></td>
+    <td>Either a *JSON* or *GeoJSON* data file See [JSON/GeoJSON Limitations](/content/load_data/concepts#ingest-json-limitations) for the supported data types.</td>
+  </tr>
+  <tr>
+    <td><code>PARQUET</code></td>
+    <td>*Apache Parquet* data file See [Parquet Limitations](/content/load_data/concepts#ingest-parquet-limitations) for the supported data types.</td>
+  </tr>
+  <tr>
+    <td><code>SHAPEFILE</code></td>
+    <td>*ArcGIS* shapefile</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of connection & global option/value assignments
+will follow.
+
+See [Load Options](/content/sql/ddl/create-external-table#sql-create-ext-table-load-opt) for the complete list of options.
+
+</Accordion>
+
+<Accordion title="&lt;partition clause&gt;" id="<partition-clause>" defaultOpen>
+
+Optional clause, defining a [partitioning](/content/sql/ddl/create-table#sql-create-table-partition) scheme for the
+*external table* associated with the source data.
+
+</Accordion>
+
+<Accordion title="&lt;tier strategy clause&gt;" id="<tier-strategy-clause>" defaultOpen>
+
+Optional clause, defining the [tier strategy](/content/sql/ddl/create-table#sql-create-table-tier-strategy) for the
+*external table* associated with the source data.
+
+</Accordion>
+
+<Accordion title="&lt;index clause&gt;" id="<index-clause>" defaultOpen>
+
+Optional clause, applying any number of [column indexes](/content/concepts/indexes#column-index),
+[chunk skip indexes](/content/sql/ddl/alter-table#sql-alter-table-chunk-skip-index-add),
+[geospatial indexes](/content/sql/ddl/alter-table#sql-alter-table-geospatial-index-add),
+[CAGRA indexes](/content/sql/ddl/alter-table#sql-alter-table-cagra-index-add), or
+[HNSW indexes](/content/sql/ddl/alter-table#sql-alter-table-hnsw-index-add)
+to the *external table* associated with the source data.
+
+</Accordion>
+
+<Accordion title="&lt;table property clause&gt;" id="<table-property-clause>" defaultOpen>
+
+Optional clause, assigning table properties, from a subset of those available, to the
+*external table* associated with the source data.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-create-ext-table-delim-opt"></a>
+
+
+## Delimited Text Options
+
+
+The following options can be specified when loading data from delimited text
+files.  When reading from multiple files, options specific to the source file
+will be applied to each file being read.
+
+<AccordionGroup>
+
+<Accordion title="COMMENT = '&lt;string&gt;'" id="comment-<string>" defaultOpen>
+
+Treat lines in the source file(s) that begin with `string` as comments and skip.
+
+The default comment marker is `#`.
+
+</Accordion>
+
+<Accordion title="DELIMITER = '&lt;char&gt;'" id="delimiter-<char>" defaultOpen>
+
+Use `char` as the source file field delimiter.
+
+The default delimiter is a comma, unless a source file has one of these extensions:
+
+* `.psv` - will cause `|` to be the delimiter
+* `.tsv` - will cause the tab character to be the delimiter
+
+See [Delimited Text Option Characters](/content/sql/ddl/create-external-table#sql-create-ext-table-delim-opt-char) for allowed characters.
+
+</Accordion>
+
+<Accordion title="ESCAPE = '&lt;char&gt;'" id="escape-<char>" defaultOpen>
+
+Use `char` as the source file data escape character.  The escape character preceding any
+other character, in the source data, will be converted into that other character, except
+in the following special cases:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Source Data String</th>
+    <th>Representation when Loaded into the Database</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>&lt;char&gt;a</code></td>
+    <td>ASCII bell</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;b</code></td>
+    <td>ASCII backspace</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;f</code></td>
+    <td>ASCII form feed</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;n</code></td>
+    <td>ASCII line feed</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;r</code></td>
+    <td>ASCII carriage return</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;t</code></td>
+    <td>ASCII horizontal tab</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;v</code></td>
+    <td>ASCII vertical tab</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+For instance, if the escape character is `\`, a `\t` encountered in
+the data will be converted to a tab character when stored in the database.
+
+The escape character can be used to escape the quoting character, and will be treated as
+an escape character whether it is within a quoted field value or not.
+
+There is no default escape character.
+
+</Accordion>
+
+<Accordion title="HEADER DELIMITER = '&lt;char&gt;'" id="header-delimiter-<char>" defaultOpen>
+
+Use `char` as the source file header field name/property delimiter, when the source file
+header contains both names and properties.  This is largely specific to the Kinetica
+export to delimited text feature, which will, within each field's header, contain the
+field name and any associated properties, delimited by the pipe `|` character.
+
+An example *Kinetica* header in a CSV file:
+
+{/* Source: /examples/data/products.kh.min.csv (lines 1) */}
+```
+id|int|data,category|string|data|char16,name|string|data|char32
+```
+
+The default is the `|` (pipe) character.  See
+[Delimited Text Option Characters](/content/sql/load#sql-load-file-server-delim-opt-char) for allowed characters.
+
+
+<Info>
+The `DELIMITER` character will still be used to separate
+field name/property sets from each other in the header row
+</Info>
+
+</Accordion>
+
+<Accordion title="INCLUDES HEADER = &lt;TRUE|FALSE&gt;" id="includes-header-<true|false>" defaultOpen>
+
+Declare that the source file(s) will or will not have a header.
+
+The default is `TRUE`.
+
+</Accordion>
+
+<Accordion title="NULL = '&lt;string&gt;'" id="null-<string>" defaultOpen>
+
+Treat `string` as the indicator of a null source field value.
+
+The default is the empty string.
+
+</Accordion>
+
+<Accordion title="QUOTE = '&lt;char&gt;'" id="quote-<char>" defaultOpen>
+
+Use `char` as the source file data quoting character, for enclosing field values.
+Usually used to wrap field values that contain embedded delimiter characters, though any
+field may be enclosed in quote characters *(for clarity, for instance)*.  The quote
+character must appear as the first and last character of a field value in order to be
+interpreted as quoting the value.  Within a quoted value, embedded quote characters may be
+escaped by preceding them with another quote character or the escape character specified
+by `ESCAPE`, if given.
+
+The default is the `"` (double-quote) character.  See
+[Delimited Text Option Characters](/content/sql/ddl/create-external-table#sql-create-ext-table-delim-opt-char) for allowed characters.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-create-ext-table-delim-opt-char"></a>
+
+
+### Delimited Text Option Characters
+
+
+For `DELIMITER`, `HEADER DELIMITER`, `ESCAPE`, & `QUOTE`, any single
+character can be used, or any one of the following escaped characters:
+
+| Escaped Char | Corresponding Source File Character |
+| --- | --- |
+| `''` | Single quote |
+| `\a` | ASCII bell |
+| `\b` | ASCII backspace |
+| `\f` | ASCII form feed |
+| `\t` | ASCII horizontal tab |
+| `\v` | ASCII vertical tab |
+
+For instance, if two single quotes (`''`) are specified for a `QUOTE`
+character, the parser will interpret *single quotes* in the source file as
+*quoting* characters; specifying `\t` for `DELIMITER` will cause the parser
+to interpret *ASCII horizontal tab* characters in the source file as *delimiter*
+characters.
+
+
+<a id="sql-create-ext-table-load-opt"></a>
+
+
+## Load Options
+
+
+The following options can be specified to modify the way data is loaded (or not
+loaded) into the target table.
+
+<AccordionGroup>
+
+<Accordion title="BAD RECORD TABLE" id="bad-record-table" defaultOpen>
+
+Name of the table containing records that failed to be loaded into the target table.  This
+bad record table will include the following columns:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Column Name</th>
+    <th>Source Data Format Codes</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>line_number</code></td>
+    <td>Number of the line in the input file containing the failed record</td>
+  </tr>
+  <tr>
+    <td><code>char_number</code></td>
+    <td>Position of character within a failed record that is assessed as the beginning of the portion of the record that failed to process</td>
+  </tr>
+  <tr>
+    <td><code>filename</code></td>
+    <td>Name of file that contained the failed record</td>
+  </tr>
+  <tr>
+    <td><code>line_rejected</code></td>
+    <td>Text of the record that failed to process</td>
+  </tr>
+  <tr>
+    <td><code>error_msg</code></td>
+    <td>Error message associated with the record processing failure</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+<Info>
+This option is not applicable for an `ON ERROR` mode of `ABORT`.  In that
+mode, processing stops at the first error and that error is returned to the user.
+</Info>
+
+</Accordion>
+
+<Accordion title="BATCH SIZE" id="batch-size" defaultOpen>
+
+Use an ingest batch size of the given number of records.
+
+The default batch size is *50,000*.
+
+</Accordion>
+
+<Accordion title="COLUMN FORMATS" id="column-formats" defaultOpen>
+
+Use the given type-specific formatting for the given column when parsing source data being
+loaded into that column.  This should be a map of column names to format specifications,
+where each format specification is map of column type to data format, all formatted as a
+JSON string.
+
+Supported column types include:
+
+
+<Tabs>
+  <Tab title="date">
+Apply the given date format to the given column.
+
+Common date format codes follow.  For the complete list, see
+[Date/Time Conversion Codes](/content/sql/query#sql-datetime-conversion-codes).
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Code</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>YYYY</code></td>
+    <td>4-digit year</td>
+  </tr>
+  <tr>
+    <td><code>MM</code></td>
+    <td>2-digit month, where *January* is <code>01</code></td>
+  </tr>
+  <tr>
+    <td><code>DD</code></td>
+    <td>2-digit day of the month, where the *1st* of each month is <code>01</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+  </Tab>
+  <Tab title="time">
+Apply the given time format to the given column.
+
+Common time format codes follow.  For the complete list, see
+[Date/Time Conversion Codes](/content/sql/query#sql-datetime-conversion-codes).
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Code</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>HH24</code></td>
+    <td>24-based hour, where *12:00 AM* is <code>00</code> and *7:00 PM* is <code>19</code></td>
+  </tr>
+  <tr>
+    <td><code>MI</code></td>
+    <td>2-digit minute of the hour</td>
+  </tr>
+  <tr>
+    <td><code>SS</code></td>
+    <td>2-digit second of the minute</td>
+  </tr>
+  <tr>
+    <td><code>MS</code></td>
+    <td>milliseconds</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+  </Tab>
+  <Tab title="datetime">
+Apply the given date/time format to the given column.
+  </Tab>
+</Tabs>
+
+
+For example, to load dates of the format `2010.10.30` into date column *d* and times of
+the 24-hour format `18:36:54.789` into time column *t*:
+
+```
+{
+    "d": {"date": "YYYY.MM.DD"},
+    "t": {"time": "HH24:MI:SS.MS"}
+}
+```
+
+<Info>
+This option is not available for *data sources* configured for *JDBC*.
+</Info>
+
+</Accordion>
+
+<Accordion title="DATA SOURCE" id="data-source" defaultOpen>
+
+Load data from the given [data source](/content/sql/ddl/create-data-source#sql-create-data-source).
+[Data source connect privilege](/content/sql/security#sql-security-priv-mgmt-ds-grant) is required when
+loading from a *data source*.
+
+</Accordion>
+
+<Accordion title="DEFAULT COLUMN FORMATS" id="default-column-formats" defaultOpen>
+
+Use the given formats for source data being loaded into target table columns with the
+corresponding column types.   This should be a map of target column type to source format
+for data being loaded into columns of that type, formatted as a JSON string.
+
+Supported column properties and source data formats are the same as those
+listed in the description of the `COLUMN FORMATS` option.
+
+For example, to make the default format for loading source data dates like `2010.10.30`
+and 24-hour times like `18:36:54.789`:
+
+```
+{
+    "date": "YYYY.MM.DD",
+    "time": "HH24:MI:SS.MS",
+    "datetime": "YYYY.MM.DD HH24:MI:SS.MS"
+}
+```
+
+<Info>
+This option is not available for *data sources* configured for *JDBC*.
+</Info>
+
+</Accordion>
+
+<Accordion title="FIELDS IGNORED BY" id="fields-ignored-by" defaultOpen>
+
+Choose a comma-separated list of fields from the source file(s) to ignore, loading only
+those fields that are not in the identified list in the order they appear in the file.
+Fields can be identified by either `POSITION` or `NAME`.  If ignoring by `NAME`, the
+specified names must match the source file field names exactly.
+
+* Identifying by Name:
+
+  ```
+  FIELDS IGNORED BY NAME(Category, Description)
+  ```
+* Identifying by Position:
+
+  ```
+  FIELDS IGNORED BY POSITION(3, 4)
+  ```
+
+<Info>
+* When ignoring source data file fields, the set of fields that are not ignored must
+  align, in type & number in their order in the source file, with the *external table*
+  columns into which the data will be loaded.
+* Ignoring fields by `POSITION` is only supported for delimited text files.
+</Info>
+
+</Accordion>
+
+<Accordion title="FIELDS MAPPED BY" id="fields-mapped-by" defaultOpen>
+
+Choose a comma-separated list of fields from the source file(s) to load, in the specified
+order, identifying fields by either `POSITION` or `NAME`.  If mapping by `NAME`, the
+specified names must match the source file field names exactly.
+
+* Identifying by Name:
+
+  ```
+  FIELDS MAPPED BY NAME(ID, Name, Stock)
+  ```
+* Identifying by Position:
+
+  ```
+  FIELDS MAPPED BY POSITION(1, 2, 5)
+  ```
+
+<Info>
+* When mapping source data file fields, the set of fields that are identified must
+  align, in type & number in the specified order, with the *external table* columns into
+  which data will be loaded.
+* Mapping fields by `POSITION` is only supported for delimited text files.
+</Info>
+
+</Accordion>
+
+<Accordion title="FLATTEN_COLUMNS" id="flatten_columns" defaultOpen>
+
+Specify the policy for handling nested columns within JSON data.
+
+The default is `FALSE`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TRUE</code></td>
+    <td>Break up nested columns into multiple columns.</td>
+  </tr>
+  <tr>
+    <td><code>FALSE</code></td>
+    <td>Treat nested columns as JSON columns instead of flattening.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="IGNORE_EXISTING_PK" id="ignore_existing_pk" defaultOpen>
+
+Specify the error suppression policy for inserting duplicate primary key values into a
+table with a primary key.  If the specified table does not have a primary key or the
+`UPDATE_ON_EXISTING_PK` option is used, then this options has no effect.
+
+The default is `FALSE`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TRUE</code></td>
+    <td>Suppress errors when inserted records and existing records' PKs match.</td>
+  </tr>
+  <tr>
+    <td><code>FALSE</code></td>
+    <td>Return errors when inserted records and existing records' PKs match.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="INGESTION MODE" id="ingestion-mode" defaultOpen>
+
+Whether to do a full ingest of the data or perform a *dry run* or *type inference* instead.
+
+The default mode is `FULL`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>DRY RUN</code></td>
+    <td>No data will be inserted, but the file will be read with the applied <code>ON ERROR</code> mode and the number of valid records that would normally be inserted is returned.</td>
+  </tr>
+  <tr>
+    <td><code>FULL</code></td>
+    <td>Data is fully ingested according to the active <code>ON ERROR</code> mode.</td>
+  </tr>
+  <tr>
+    <td><code>TYPE INFERENCE</code></td>
+    <td>Infer the type of the source data and return, without ingesting any data. The inferred type is returned in the response, as the output of a <code>SHOW TABLE</code> command.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="JDBC_FETCH_SIZE" id="jdbc_fetch_size" defaultOpen>
+
+Retrieve this many records at a time from the remote database.  Lowering this number will
+help tables with large record sizes fit into available memory during ingest.
+
+The default is *50,000*.
+
+
+<Info>
+This option is only available for *data sources* configured for *JDBC*.
+</Info>
+
+</Accordion>
+
+<Accordion title="NUM_SPLITS_PER_RANK" id="num_splits_per_rank" defaultOpen>
+
+The number of remote query partitions to assign each *Kinetica* worker process.  The
+queries assigned to a worker process will be executed by the tasks allotted to the process.
+
+To decrease memory pressure, increase the number of splits per rank.
+
+The default is *8* splits per rank.
+
+
+<Info>
+This option is only available for *data sources* configured for *JDBC*.
+</Info>
+
+</Accordion>
+
+<Accordion title="NUM_TASKS_PER_RANK" id="num_tasks_per_rank" defaultOpen>
+
+The number of tasks to use on each *Kinetica* worker process to process remote data.
+
+To decrease memory pressure, decrease the number of tasks per rank.
+
+The default is *8* tasks per rank.
+This is configurable in
+[external_file_reader_num_tasks](/content/config#config-main-external-files).
+
+</Accordion>
+
+<Accordion title="JDBC_SESSION_INIT_STATEMENT" id="jdbc_session_init_statement" defaultOpen>
+
+Run the single given statement before the initial load is performed and also before each
+subsequent reload, if `REFRESH ON START` or `SUBSCRIBE` is `TRUE`.
+
+For example, to set the time zone to *UTC* before running each load, use:
+
+```
+JDBC_SESSION_INIT_STATEMENT = 'SET TIME ZONE ''UTC'''
+```
+
+<Info>
+This option is only available for *data sources* configured for *JDBC*.
+</Info>
+
+</Accordion>
+
+<Accordion title="ON ERROR" id="on-error" defaultOpen>
+
+When an error is encountered loading a record, handle it using either of the
+following modes.  The default mode is `ABORT`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>SKIP</code></td>
+    <td>If an error is encountered parsing a source record, skip the record.</td>
+  </tr>
+  <tr>
+    <td><code>ABORT</code></td>
+    <td>If an error is encountered parsing a source record, stop the data load process.  Primary key collisions are considered abortable errors in this mode.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="POLL_INTERVAL" id="poll_interval" defaultOpen>
+
+Interval, in seconds, at which a *data source* is polled for updates.  The number of
+seconds must be passed as a single-quoted string.
+
+The default interval is *60* seconds.  This option is only applicable when `SUBSCRIBE` is
+`TRUE`.
+
+</Accordion>
+
+<Accordion title="REFRESH ON START" id="refresh-on-start" defaultOpen>
+
+Whether to refresh the *external table* data upon restart of the database.  Only relevant
+for *materialized external tables*.
+
+The default is `FALSE`.  This option is ignored if `SUBSCRIBE` is `TRUE`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TRUE</code></td>
+    <td>Refresh the *external table's* data when the database is restarted.</td>
+  </tr>
+  <tr>
+    <td><code>FALSE</code></td>
+    <td>Do not refresh the *external table's* data when the database is restarted.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="REMOTE_QUERY_INCREASING_COLUMN" id="remote_query_increasing_column" defaultOpen>
+
+For a JDBC query *change data capture* loading scheme, the remote query column that will be
+used to determine whether a record is new and should be loaded or not.  This column should
+have an ever-increasing value and be of an integral or date/timestamp type.  Often, this
+column will be a sequence-based ID or create/modify timestamp.
+
+This option is only applicable when `SUBSCRIBE` is `TRUE`.
+
+
+<Info>
+This option is only available for *data sources* configured for *JDBC*.
+</Info>
+
+</Accordion>
+
+<Accordion title="REMOTE_QUERY_NO_SPLIT" id="remote_query_no_split" defaultOpen>
+
+Whether to not distribute the retrieval of remote data and issue queries for blocks of data
+at time in parallel.
+
+The default is `FALSE`.
+
+
+<Info>
+This option is only available for *data sources* configured for *JDBC*
+</Info>
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TRUE</code></td>
+    <td>Issue the remote data retrieval as a single query.</td>
+  </tr>
+  <tr>
+    <td><code>FALSE</code></td>
+    <td>Distribute and parallelize the remote data retrieval in queries for blocks of data at a time.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="REMOTE_QUERY_ORDER_BY" id="remote_query_order_by" defaultOpen>
+
+Ordering expression to use in partitioning remote data for retrieval.  The remote data will
+be ordered according to this expression and then retrieved in sequential blocks from the
+first record.  This is potentially less performant than using `REMOTE_QUERY_PARTITION_COLUMN`.
+
+If `REMOTE_QUERY_NO_SPLIT` is `TRUE`, a valid `REMOTE_QUERY_PARTITION_COLUMN` is specified, or the column given is
+invalid, this option is ignored.
+
+
+<Info>
+This option is only available for *data sources* configured for *JDBC*
+</Info>
+
+</Accordion>
+
+<Accordion title="REMOTE_QUERY_PARTITION_COLUMN" id="remote_query_partition_column" defaultOpen>
+
+Column to use to partition remote data for retrieval.  The column must be numeric and
+should be relatively evenly distributed so that queries using values of this column to
+partition data will retrieve relatively consistently-sized result sets.
+
+If `REMOTE_QUERY_NO_SPLIT` is `TRUE` or the column given is invalid, this option is ignored.
+
+
+<Info>
+This option is only available for *data sources* configured for *JDBC*
+</Info>
+
+</Accordion>
+
+<Accordion title="SUBSCRIBE" id="subscribe" defaultOpen>
+
+Whether to subscribe to the [data source](/content/sql/ddl/create-data-source#sql-create-data-source) specified in the
+`DATA SOURCE` option.  Only relevant for *materialized external tables* using
+*data sources* configured to allow streaming.
+
+The default is `FALSE`.  If `TRUE`, the `REFRESH ON START` option is ignored.
+
+
+<Info>
+This option is not available for *data sources* configured for *HDFS*.
+</Info>
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TRUE</code></td>
+    <td>Subscribe to the specified *streaming data source*.</td>
+  </tr>
+  <tr>
+    <td><code>FALSE</code></td>
+    <td>Do not subscribe to the specified *data source*.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="TRUNCATE_STRINGS" id="truncate_strings" defaultOpen>
+
+Specify the string truncation policy for inserting text into `VARCHAR` columns that are
+not large enough to hold the entire text value.
+
+The default is `FALSE`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TRUE</code></td>
+    <td>Truncate any inserted string value at the maximum size for its column.</td>
+  </tr>
+  <tr>
+    <td><code>FALSE</code></td>
+    <td>Reject any record with a string value that is too long for its column.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="TYPE_INFERENCE_MODE" id="type_inference_mode" defaultOpen>
+
+When making a type inference of the data values in order to define column types for the
+target table, use one of the following modes.
+
+The default mode is `SPEED`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>ACCURACY</code></td>
+    <td>Scan all available data to arrive at column types that are the narrowest possible that can still hold all the data.</td>
+  </tr>
+  <tr>
+    <td><code>SPEED</code></td>
+    <td>Pick the widest possible column types from the minimum data scanned in order to quickly arrive at column types that should fit all data values.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="UPDATE_ON_EXISTING_PK" id="update_on_existing_pk" defaultOpen>
+
+Specify the record collision policy for inserting into a table with a primary key.
+If the specified table does not have a primary key, then this options has no effect.
+
+The default is `FALSE`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TRUE</code></td>
+    <td>Update existing records with records being inserted, when PKs match.</td>
+  </tr>
+  <tr>
+    <td><code>FALSE</code></td>
+    <td>Discard records being inserted when existing records' PKs match.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-create-ext-table-def"></a>
+
+
+## Table Definition Clause
+
+
+The *table definition clause* allows for an explicit local table structure to be
+defined, irrespective of the source data type.  This specification mirrors that
+of [CREATE TABLE](/content/sql/ddl/create-table#sql-create-table).
+
+```sql title="Table Definition Clause Syntax"
+(
+    <column name> <column definition> [COMMENT '<column comment>'],
+    ...
+    <column name> <column definition> [COMMENT '<column comment>'],
+    [PRIMARY KEY (<column list>)],
+    [SHARD KEY (<column list>)],
+    [FOREIGN KEY
+        (<column list>) REFERENCES <foreign table name>(<foreign column list>) [AS <foreign key name>],
+        ...
+        (<column list>) REFERENCES <foreign table name>(<foreign column list>) [AS <foreign key name>]
+    ]
+)
+```
+
+See [Data Definition (DDL)](/content/sql/ddl#sql-ddl) for column format.
+
+
+<a id="sql-create-ext-table-partition"></a>
+
+
+## Partition Clause
+
+
+An *external table* can be further segmented into *partitions*.
+
+The supported *Partition Clause* syntax & features are the same as those in the
+[CREATE TABLE Partition Clause](/content/sql/ddl/create-table#sql-create-table-partition).
+
+
+<a id="sql-create-ext-table-tier-strategy"></a>
+
+
+## Tier Strategy Clause
+
+
+An *external table* can have a [tier strategy](/content/rm/concepts#rm-concepts-tier-strategy)
+specified at creation time.  If not assigned a *tier strategy* upon creation, a
+[default tier strategy](/content/rm/configuration#rm-config-tier-strategy-default)
+will be assigned.
+
+The supported *Tier Strategy Clause* syntax & features are the same as those in
+the [CREATE TABLE Tier Strategy Clause](/content/sql/ddl/create-table#sql-create-table-tier-strategy).
+
+
+<a id="sql-create-ext-table-index"></a>
+
+
+## Index Clause
+
+
+An *external table* can have any number of indexes applied to any of its columns
+at creation time.
+
+The supported *Index Clause* syntax & features are the same as those in the
+[CREATE TABLE Index Clause](/content/sql/ddl/create-table#sql-create-table-index).
+
+
+<a id="sql-create-ext-table-prop"></a>
+
+
+## Table Property Clause
+
+
+A subset of *table* properties can be applied to the *external table* associated
+with the external data at creation time.
+
+The supported *Table Property Clause* syntax & features are the same as those in
+the [CREATE TABLE Table Property Clause](/content/sql/ddl/create-table#sql-create-table-prop).
+
+
+<a id="sql-create-ext-table-examples"></a>
+
+
+## Examples
+
+
+To create a *logical external table* with the following features, using a query
+as the source of data:
+
+* External table named `ext_employee_dept2` in the `example` schema
+* Source is `department` *2* employees from the `example.employee` table,
+  queried through the <Badge color="gray">example.jdbc_ds</Badge> data source
+* Data is re-queried from the source each time the *external table* is queried
+
+{/* Source: /examples/sql/external_table/remote_query_logical.kisql (lines 59-61) */}
+```sql CREATE LOGICAL EXTERNAL TABLE
+CREATE LOGICAL EXTERNAL TABLE example.ext_employee_dept2
+REMOTE QUERY 'SELECT * FROM example.employee WHERE dept_id = 2'
+WITH OPTIONS (DATA SOURCE = 'example.jdbc_ds')
+```
+
+To create an *external table* with the following features, using *KiFS* as the
+source of data:
+
+* External table named `ext_product` in the `example` schema
+* External source is a *KiFS* file named `product.csv` located in the `data`
+  directory
+* Data is not refreshed on database startup
+
+{/* Source: /examples/sql/external_table/formats.kisql (lines 46-47) */}
+```sql CREATE EXTERNAL TABLE with Default Options
+CREATE EXTERNAL TABLE example.ext_product
+FILE PATHS 'kifs://data/products.csv'
+```
+
+To create an *external table* with the following features, using *KiFS* as the
+source of data:
+
+* External table named `ext_employee` in the `example` schema
+* External source is a *Parquet* file named `employee.parquet` located in the
+  *KiFS* directory `data`
+* External table has a *primary key* on the `id` column
+* Data is not refreshed on database startup
+
+{/* Source: /examples/sql/external_table/pksk.kisql (lines 33-35) */}
+```sql CREATE EXTERNAL TABLE with Parquet File Example
+CREATE EXTERNAL TABLE example.ext_employee
+FILE PATHS 'kifs://data/employee.parquet'
+WITH OPTIONS (PRIMARY KEY = (id))
+```
+
+To create an *external table* with the following features, using *KiFS* as the
+source of data:
+
+* External table named `ext_employee` in the `example` schema
+* External source is a file named `employee.csv` located in the
+  *KiFS* directory `data`
+* Apply a date format to the `hire_date` column
+
+{/* Source: /examples/sql/external_table/options.kisql (lines 51-59) */}
+```sql CREATE EXTERNAL TABLE with Date Format Example
+CREATE EXTERNAL TABLE example.ext_employee
+FILE PATHS 'kifs://data/employee.csv'
+WITH OPTIONS
+(
+	COLUMN FORMATS = '
+	{
+		"hire_date": {"date": "YYYY-MM-DD"}
+	}'
+)
+```
+
+To create an *external table* with the following features, using a *data source*
+as the source of data:
+
+* External table named `ext_product` in the `example` schema
+* External source is a *data source* named `product_ds` in the `example`
+  schema
+* Source is a file named `products.csv`
+* Data is refreshed on database startup
+
+{/* Source: /examples/sql/external_table/external_table.kisql (lines 40-46) */}
+```sql CREATE EXTERNAL TABLE with Data Source Example
+CREATE EXTERNAL TABLE example.ext_product
+FILE PATHS 'products.csv'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.product_ds',
+	REFRESH ON START = TRUE
+)
+```
+
+To create an *external table* with the following features, subscribing to a
+*data source*:
+
+* External table named `ext_product` in the `example` schema
+* External source is a *data source* named `product_ds` in the `example`
+  schema
+* Source is a file named `products.csv`
+* Data updates are streamed continuously
+
+{/* Source: /examples/sql/external_table/external_table.kisql (lines 102-109) */}
+```sql CREATE EXTERNAL TABLE with Data Source Subscription Example
+CREATE EXTERNAL TABLE example.ext_product
+FILE PATHS 'products.csv'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.product_ds',
+	SUBSCRIBE = TRUE,
+	POLL_INTERVAL = '60'
+)
+```
+
+To create an *external table* with the following features, using a remote query
+through a JDBC *data source* as the source of data:
+
+* External table named `ext_employee_dept2` in the `example` schema
+* External source is a *data source* named `jdbc_ds` in the `example`
+  schema
+* Source data is a remote query of employees in department *2* from that
+  database's `example.ext_employee` table
+* Data is refreshed on database startup
+
+{/* Source: /examples/sql/external_table/external_table.kisql (lines 167-173) */}
+```sql CREATE EXTERNAL TABLE with JDBC Data Source Remote Query Example
+CREATE EXTERNAL TABLE example.ext_employee_dept2
+REMOTE QUERY 'SELECT * FROM example.ext_employee WHERE dept_id = 2'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.jdbc_ds',
+	REFRESH ON START = TRUE
+)
+```
+
+
+### Data Sources
+
+
+#### File-Based
+
+
+To create an external table that loads a CSV file, <Badge color="gray">products.csv</Badge>,
+from the *data source* <Badge color="gray">example.product_ds</Badge>, into a table named
+`example.ext_product`:
+
+{/* Source: /examples/sql/external_table/remote_file.kisql (lines 35-37) */}
+```sql CREATE EXTERNAL TABLE Data Source File Example
+CREATE EXTERNAL TABLE example.ext_product
+FILE PATHS 'products.csv'
+WITH OPTIONS (DATA SOURCE = 'example.product_ds')
+```
+
+
+#### Query-Based
+
+
+To create an external table that is the result of a remote query of employees in
+department *2* from the JDBC *data source* <Badge color="gray">example.jdbc_ds</Badge>, into
+a local table named `example.ext_employee_dept2`:
+
+{/* Source: /examples/sql/external_table/remote_query.kisql (lines 59-61) */}
+```sql CREATE EXTERNAL TABLE Data Source Query Example
+CREATE EXTERNAL TABLE example.ext_employee_dept2
+REMOTE QUERY 'SELECT * FROM example.employee WHERE dept_id = 2'
+WITH OPTIONS (DATA SOURCE = 'example.jdbc_ds')
+```
+
+
+### Change Data Capture
+
+
+#### File-Based
+
+
+To create an external table loaded by a set of order data in a change data
+capture scheme with the following conditions:
+
+* data pulled through a *data source*, <Badge color="gray">example.order_ds</Badge>
+* data files contained with an <Badge color="gray">orders</Badge> directory
+* initially, all files in the directory will be loaded; subsequently, only those
+  files that have been updated since the last check will be reloaded
+* files will be polled for updates every *60* seconds
+* target table named `example.ext_order`
+
+{/* Source: /examples/sql/external_table/remote_file_sub.kisql (lines 35-37) */}
+```sql CREATE EXTERNAL TABLE File Change Data Capture Example
+CREATE EXTERNAL TABLE example.ext_order
+FILE PATHS 'orders/'
+WITH OPTIONS (DATA SOURCE = 'example.order_ds', SUBSCRIBE = TRUE)
+```
+
+
+#### Query-Based
+
+
+To create an external table loaded from a remote query of orders in a change
+data capture scheme with the following conditions:
+
+* data pulled through a *data source*, <Badge color="gray">example.jdbc_ds</Badge>
+* data contained with an `example.orders` table, where only orders for product
+  with ID *42* will be loaded into the target table
+* initially, all orders will be loaded; subsequently, only those orders with an
+  `order_id` column value higher than the highest one on the previous poll
+  cycle will be loaded
+* remote table will be polled for updates every *60* seconds
+* target table named `example.ext_order_product42`
+
+{/* Source: /examples/sql/external_table/remote_query_cdc.kisql (lines 57-62 64-67) */}
+```sql CREATE EXTERNAL TABLE Query Change Data Capture Example
+-- Load new orders for product 42 continuously into a table
+--   order_id is an ever-increasing sequence allotted to each new order
+CREATE EXTERNAL TABLE example.ext_order_product42
+REMOTE QUERY 'SELECT * FROM example.orders WHERE product_id = 42'
+WITH OPTIONS
+(
+	DATA SOURCE = 'example.jdbc_ds',
+	SUBSCRIBE = TRUE,
+	REMOTE_QUERY_INCREASING_COLUMN = 'order_id'
+)
+```

@@ -1,0 +1,70 @@
+---
+title: DESCRIBE STREAM
+---
+
+<a id="sql-desc-stream"></a>
+
+
+Outputs the configuration of one or more existing
+[streams](/content/sql/ddl/create-stream#sql-create-stream).
+
+```sql title="SHOW STREAM Syntax"
+DESC[RIBE] STREAM < [<schema name>.]<stream name> | <schema name>.* | * >
+```
+
+Listing options:
+
+* `[<schema name>.]<stream name>` - output the configuration of the given
+  *stream*
+* `<schema name>.*` - output the configuration of all *streams* under the
+  given *schema*
+* `*` - output the configuration of all *streams*
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* containing the *stream(s)* to describe
+
+</Accordion>
+
+<Accordion title="&lt;stream name&gt;" id="<stream-name>" defaultOpen>
+
+Name of the *stream* to describe
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Response
+
+
+The response to `DESCRIBE STREAM` is a nine-column result set:
+
+| Output Column | Description |
+| --- | --- |
+| `MONITOR_ID` | Unique name or topic ID for the *stream* |
+| `TABLE_NAME` | Name of the table being monitored |
+| `EVENT` | Table data event that triggers streamed content |
+| `INCREASING_COLUMN` | Column in table being monitored that contains ever-increasing data values |
+| `FILTER_EXPRESSION` | Filter used to monitor only data of interest |
+| `MAX_CONSECUTIVE_FAILURES` | Maximum number of failed notification attempts before suspending the *stream*; `-1` disables auto-suspend |
+| `FAILED_NOTIFICATIONS_TABLE_NAME` | Name of the table to which failed *stream* notifications are written and replayed when re-enabled |
+| `DATASINK_NAME` | Name of the *data sink* associated with the consumer |
+| `STATUS` | Whether the stream is enabled or suspended |
+
+
+## Examples
+
+
+To show the configuration for a *stream*, `kin_stream`:
+
+{/* Source: /examples/sql/stream/stream.kisql (lines 49) */}
+```sql DESCRIBE STREAM Example
+DESC STREAM example.kin_stream
+```

@@ -1,0 +1,115 @@
+---
+title: ALTER DATA SINK
+---
+
+<a id="sql-alter-data-sink"></a>
+
+
+Alters the connection parameters of an existing
+[data sink](/content/sql/ddl/create-data-sink#sql-create-data-sink).
+
+```sql title="ALTER DATA SINK Syntax"
+ALTER [EXTERNAL] DATA SINK [<data sink schema name>.]<data sink name>
+SET PROPERTY
+    <property name> = '<property value>'[,...]
+```
+
+
+<Info>
+Kafka *data sinks* will be validated upon creation, by default, and
+will fail to be created if an authorized connection cannot be established.
+</Info>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="EXTERNAL" id="external" defaultOpen>
+
+Optional keyword for clarity
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* containing the *data sink* to alter
+
+</Accordion>
+
+<Accordion title="&lt;data sink name&gt;" id="<data-sink-name>" defaultOpen>
+
+Name of the *data sink* to alter
+
+</Accordion>
+
+<Accordion title="SET PROPERTY" id="set-property" defaultOpen>
+
+Indicator that a comma-delimited list of alterations to make will follow.
+
+See [Set Properties](/content/sql/ddl/alter-data-sink#sql-alter-data-sink-prop) for the complete list of properties.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To alter a *data sink*, `kin_dsink`, updating the timeouts:
+
+{/* Source: /examples/sql/data_sink/data_sink.kisql (lines 44-45 47-48) */}
+```sql ALTER DATA SINK Example
+ALTER DATA SINK kin_dsink
+SET PROPERTY
+    CONNECTION TIMEOUT = '10',
+    WAIT TIMEOUT = '10'
+```
+
+
+<a id="sql-alter-data-sink-prop"></a>
+
+
+## Set Properties
+
+
+All *data sink* properties can be altered via [ALTER DATA SINK](/content/sql/ddl/alter-data-sink#sql-alter-data-sink).
+The following are the property names and descriptions to use when performing an
+alteration.
+
+| Option | Consumer | Description |
+| --- | --- | --- |
+| `CREDENTIAL` | *Any* | [Credential](/content/sql/ddl/create-credential#sql-create-credential) object to use to authenticate to the remote consumer |
+| `LOCATION` | *Any* | Location of the *data sink*; see [Consumer-Specific Syntax](/content/sql/ddl/create-data-sink#sql-create-data-sink-syntax) for details |
+| `VALIDATE` | *Any* | Whether to test the connection to the *data sink* upon creation; if `TRUE` *(default)*, the creation of a *data sink* that cannot be connected to will fail; if `FALSE`, the *data sink* will be created regardless of connectivity |
+| `WAIT TIMEOUT` | *Any* except `JDBC` | Timeout in seconds for reading from the consumer |
+| `CONNECTION TIMEOUT` | *Any* except `JDBC` | Timeout in seconds for connecting to a consumer |
+| `USE_HTTPS` | `AZURE`, `GCS`, `S3` | Whether to connect to the storage provider over HTTPS or not <br/> <br/> `true`: Use HTTPS *(default)* <br/> <br/> `false`: Use HTTP |
+| `USE_MANAGED_CREDENTIALS` | `AZURE`, `GCS`, `S3` | Whether to connect to the storage provider with consumer-managed credentials <br/> <br/> `AZURE`: Use the *Azure Instance Metadata Service (IMDS)* endpoint local to the Kinetica cluster to acquire credentials *(only for on-prem clusters deployed within Azure)* <br/> <br/> `GCS`: Satisfy the [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) requirements for credentials, making sure any supporting server-side configuration (files, environment variables) is done on every node in the cluster *(only for on-prem clusters deployed within GCS)* <br/> <br/> `S3`: Use the [AWS Default Credential Provider Chain](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html) to acquire credentials, making sure any supporting server-side configuration (files, environment variables) is done on every node in the cluster *(only for on-prem clusters deployed within S3)* |
+| `KAFKA_TOPIC_NAME` | `KAFKA` | Kafka topic to write to |
+| `JSON_FORMAT` | `HTTP`, `HTTPS`, `KAFKA` | The desired format of JSON encoded notifications message. <br/> <br/> `flat`: A single record is returned per message <br/> <br/> `nested`: Records are returned in an array per message |
+| `MAX_BATCH_SIZE` | `HTTP`, `HTTPS`, `KAFKA` | Maximum number of records per notification message |
+| `MAX_MESSAGE_SIZE` | `HTTP`, `HTTPS`, `KAFKA` | Maximum size in bytes of each notification message |
+| `CONTAINER NAME` | `AZURE` | Azure storage container name |
+| `SAS TOKEN` | `AZURE` | Azure storage account shared access signature token; this should be an account-level access token, not a container-level one |
+| `STORAGE ACCOUNT NAME` | `AZURE` | Azure storage account name *(only used if* `TENANT ID` *is specified)* |
+| `TENANT ID` | `AZURE` | Azure Active Directory tenant identifier |
+| `GCS_BUCKET_NAME` | `GCS` | Name of the GCS bucket to use as the data sink |
+| `GCS_PROJECT_ID` | `GCS` | Name of the Google Cloud project to use for request billing |
+| `GCS_SERVICE_ACCOUNT_KEYS` | `GCS` | Text of the JSON key file containing the GCS private key |
+| `DELEGATION TOKEN` | `HDFS` | Optional Kerberos delegation token for *worker nodes*; if not specified, the token will be acquired from HDFS |
+| `KERBEROS KEYTAB` | `HDFS` | Location of the Kerberos keytab file in [KiFS](/content/tools/kifs) |
+| `USE KERBEROS` | `HDFS` | Whether to attempt Kerberos authentication to HDFS |
+| `JDBC_DRIVER_CLASS_NAME` | `JDBC` | JDBC driver class name *(optional, if the name is available in the* *JAR file's manifest)* |
+| `JDBC_DRIVER_JAR_PATH` | `JDBC` | [KiFS](/content/tools/kifs) path of the JDBC driver JAR file to use |
+| `BUCKET NAME` | `S3` | Amazon S3 bucket name |
+| `REGION` | `S3` | Amazon S3 region identifier |
+| `S3_AWS_ROLE_ARN` | `S3` | Amazon Resource Name (ARN) specifying the role |
+| `S3_ENCRYPTION_CUSTOMER_ALGORITHM` | `S3` | Algorithm used to encrypt/decrypt data |
+| `S3_ENCRYPTION_CUSTOMER_KEY` | `S3` | Key used to encrypt/decrypt data |
+| `S3_ENCRYPTION_TYPE` | `S3` | Server side encryption type |
+| `S3_KMS_KEY_ID` | `S3` | KMS key |
+| `S3_USE_VIRTUAL_ADDRESSING` | `S3` | Whether to use virtual addressing when referencing the S3 sink <br/> <br/> `true`: The requests URI should be specified in virtual-hosted-style format where the bucket name is part of the domain name in the URL <br/> <br/> `false`: Use path-style URI for requests |
+| `S3_VERIFY_SSL` | `S3` | Whether to verify SSL connections <br/> <br/> `true`: Verify SSL connections *(default)* <br/> <br/> `false`: Don't verify SSL connections; for testing purposes, bypassing TLS errors, self-signed certificates, etc. |

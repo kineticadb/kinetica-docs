@@ -1,0 +1,72 @@
+---
+title: CREATE VIEW
+---
+
+<a id="sql-create-view"></a>
+
+
+Creates a new *virtual table* from the given query.
+
+```sql title="CREATE VIEW Syntax"
+CREATE [OR REPLACE] VIEW [<schema name>.]<view name> AS
+<select statement>
+```
+
+When any of the source *tables* of a *view* is altered or dropped, the *view*
+will also be dropped.
+
+
+<Warning>
+A `CREATE OR REPLACE` issues an implicit drop, so *replacing* an
+input *table* will have the same effect on the *view* as dropping it.
+</Warning>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="OR REPLACE" id="or-replace" defaultOpen>
+
+Any existing *table*/*view* with the same name will be dropped before creating this *view*
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* that will contain the created *view*; if no *schema* is specified, the
+*view* will be created in the user's [default schema](/content/concepts/schemas#schema-default)
+
+</Accordion>
+
+<Accordion title="&lt;view name&gt;" id="<view-name>" defaultOpen>
+
+Name of the *view* to create; must adhere to the supported
+[naming criteria](/content/sql/naming#sql-naming-criteria)
+
+</Accordion>
+
+<Accordion title="&lt;select statement&gt;" id="<select-statement>" defaultOpen>
+
+The query that will define both the structure and content of the created *view*
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To create a view that is a copy of an existing table, failing if a
+table or view with the same name as the target view already exists:
+
+{/* Source: /examples/sql/view/create_view.kisql (lines 29-33) */}
+```sql CREATE VIEW Example
+CREATE VIEW example.view_of_table AS
+(
+    SELECT *
+    FROM example.table_to_view
+)
+```

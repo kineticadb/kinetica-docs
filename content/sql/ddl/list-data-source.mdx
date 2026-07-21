@@ -1,0 +1,115 @@
+---
+title: LIST DATA SOURCE
+---
+
+<a id="sql-list-data-source"></a>
+
+
+Outputs a list of tables accessible through a JDBC
+[data source](/content/sql/ddl/create-data-source#sql-create-data-source).
+
+```sql title="LIST DATA SOURCE Syntax"
+LIST [DATA SOURCE] [<schema name>.]<data source name>
+[WITH OPTIONS (<option name> = '<option value>'[,...])]
+```
+
+
+<Info>
+The response to `LIST DATA SOURCE` is a single-column result set
+of table names in `<schema_name>.<table_name>` format.
+</Info>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="DATA SOURCE" id="data-source" defaultOpen>
+
+Optional keyword for clarity
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* containing the *data source* to list
+
+</Accordion>
+
+<Accordion title="&lt;data source name&gt;" id="<data-source-name>" defaultOpen>
+
+Name of the *data source* whose accessible tables will be listed
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of filtering option/value assignments will
+follow.  See [Options](/content/sql/ddl/list-data-source#sql-list-data-source-opts) for the full list of options.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To list all the tables accessible through a *data source*,
+`kin_ds_jdbc`:
+
+{/* Source: /examples/sql/data_source/data_source.kisql (lines     187) */}
+```sql LIST DATA SOURCE (All Tables) Example
+LIST DATA SOURCE kin_ds_jdbc
+```
+
+To list all tables in a specific schema:
+
+{/* Source: /examples/sql/data_source/data_source.kisql (lines 190-191) */}
+```sql LIST DATA SOURCE (Filter by Schema) Example
+LIST DATA SOURCE kin_ds_jdbc
+WITH OPTIONS (SCHEMA = 'ki_catalog')
+```
+
+To list tables matching a specific name pattern, regardless of catalog/schema:
+
+{/* Source: /examples/sql/data_source/data_source.kisql (lines 194-195) */}
+```sql LIST DATA SOURCE (Filter by Table) Example
+LIST DATA SOURCE kin_ds_jdbc
+WITH OPTIONS (TABLE = '%role%')
+```
+
+
+<a id="sql-list-data-source-opts"></a>
+
+
+## Options
+
+
+The `_` and `%` characters can be used in any of these options to match
+any single character or any number of characters in object names, respectively.
+
+If multiple options are used, the tables must match all specified criteria.
+
+<AccordionGroup>
+
+<Accordion title="CATALOG" id="catalog" defaultOpen>
+
+Only show tables within the specified catalog(s)
+
+</Accordion>
+
+<Accordion title="SCHEMA" id="schema" defaultOpen>
+
+Only show tables within the specified schema(s)
+
+</Accordion>
+
+<Accordion title="TABLE" id="table" defaultOpen>
+
+Only show tables matching the specified name(s)
+
+</Accordion>
+
+</AccordionGroup>

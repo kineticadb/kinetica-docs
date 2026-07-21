@@ -1,0 +1,943 @@
+---
+title: CREATE TABLE
+---
+
+<a id="sql-create-table"></a>
+
+
+Creates a new [table](/content/concepts/tables).
+
+```sql title="CREATE TABLE Syntax"
+CREATE [OR REPLACE] [REPLICATED] [TEMP] TABLE [IF NOT EXISTS] [<schema name>.]<table name>
+(
+    <column name> <column definition> [COMMENT '<column comment>'],
+    ...
+    <column name> <column definition> [COMMENT '<column comment>'],
+    [[SOFT] PRIMARY KEY (<column list>)],
+    [SHARD KEY (<column list>)],
+    [FOREIGN KEY
+        (<column list>) REFERENCES <foreign table name>(<foreign column list>) [AS <foreign key name>],
+        ...
+        (<column list>) REFERENCES <foreign table name>(<foreign column list>) [AS <foreign key name>]
+    ]
+)
+[<partition clause>]
+[<tier strategy clause>]
+[<index clause>]
+[<table property clause>]
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="OR REPLACE" id="or-replace" defaultOpen>
+
+Any existing *table* or *view* with the same name will be dropped before creating this one;
+mutually exclusive with `IF NOT EXISTS`
+
+</Accordion>
+
+<Accordion title="REPLICATED" id="replicated" defaultOpen>
+
+The *table* will be distributed within the database as a [replicated](/content/concepts/tables#replicated)
+*table*
+
+</Accordion>
+
+<Accordion title="TEMP" id="temp" defaultOpen>
+
+The *table* will be a [memory-only table](/content/concepts/tables_memory_only); which, among
+other things, means it will not be persisted (if the database is restarted, the *table* will be
+removed), but it will have increased ingest performance
+
+</Accordion>
+
+<Accordion title="IF NOT EXISTS" id="if-not-exists" defaultOpen>
+
+If a *table* or *view* with the same name exists, do nothing; mutually exclusive with
+`OR REPLACE`
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* that will contain the created *table*; if no *schema* is specified, the
+*table* will be created in the user's [default schema](/content/concepts/schemas#schema-default)
+
+</Accordion>
+
+<Accordion title="&lt;table name&gt;" id="<table-name>" defaultOpen>
+
+Name of the *table* to create; must adhere to the supported
+[naming criteria](/content/sql/naming#sql-naming-criteria)
+
+</Accordion>
+
+<Accordion title="&lt;column name&gt;" id="<column-name>" defaultOpen>
+
+Name of a *column* to create within the *table*; must adhere to the supported
+[naming criteria](/content/sql/naming#sql-naming-criteria)
+
+</Accordion>
+
+<Accordion title="&lt;column definition&gt;" id="<column-definition>" defaultOpen>
+
+Definition of the column associated with `<column name>`; see [Data Definition (DDL)](/content/sql/ddl#sql-ddl) for column
+format
+
+</Accordion>
+
+<Accordion title="COMMENT '&lt;column comment&gt;'" id="comment-<column-comment>" defaultOpen>
+
+Apply column comment `<column comment>` to the column associated with `<column name>`
+
+</Accordion>
+
+<Accordion title="SOFT" id="soft" defaultOpen>
+
+Modifier for `PRIMARY KEY` that creates a [soft primary key](/content/concepts/tables#soft-primary-key) instead
+of a standard [primary key](/content/concepts/tables#primary-key)
+
+</Accordion>
+
+<Accordion title="PRIMARY KEY (&lt;column list&gt;)" id="primary-key-<column-list>" defaultOpen>
+
+Optional [primary key](/content/concepts/tables#primary-key) specification clause, where `<column list>` is a
+comma-separated list of columns to use as the *primary key* for the *table*
+
+</Accordion>
+
+<Accordion title="SHARD KEY (&lt;column list&gt;)" id="shard-key-<column-list>" defaultOpen>
+
+Optional [shard key](/content/concepts/tables#shard-key) specification clause, where `<column list>` is a
+comma-separated list of columns to use as the *shard key* for the *table*
+
+</Accordion>
+
+<Accordion title="FOREIGN KEY ..." id="foreign-key" defaultOpen>
+
+Optional comma-separated set of [foreign key](/content/concepts/tables#foreign-key) specification clauses, with
+the following parameters:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Parameter</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>&lt;column list&gt;</code></td>
+    <td>Comma-separated list of columns in the *table* to create that will reference a matching set of *primary key* columns in another *table*</td>
+  </tr>
+  <tr>
+    <td><code>&lt;foreign table name&gt;</code></td>
+    <td>Name of target *table* referred to in this *foreign key*</td>
+  </tr>
+  <tr>
+    <td><code>&lt;foreign column list&gt;</code></td>
+    <td>The *primary key* columns in the target *table* referred to in this *foreign key*, matching the list of columns specified in <code>&lt;column list&gt;</code> in the table to create</td>
+  </tr>
+  <tr>
+    <td><code>AS &lt;foreign key name&gt;</code></td>
+    <td>Optional alias for the *foreign key*</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;partition clause&gt;" id="<partition-clause>" defaultOpen>
+
+Defines a [partitioning](/content/concepts/tables#partitioning) scheme for the *table* to create
+
+</Accordion>
+
+<Accordion title="&lt;tier strategy clause&gt;" id="<tier-strategy-clause>" defaultOpen>
+
+Defines the [tier strategy](/content/rm/concepts#rm-concepts-tier-strategy) for the *table* to create
+
+</Accordion>
+
+<Accordion title="&lt;index clause&gt;" id="<index-clause>" defaultOpen>
+
+Applies any number of [column indexes](/content/concepts/indexes#column-index),
+[chunk skip indexes](/content/concepts/indexes#chunk-skip-index),
+[geospatial indexes](/content/concepts/indexes#geospatial-index),
+[CAGRA indexes](/content/concepts/indexes#cagra-index), or
+[HNSW indexes](/content/concepts/indexes#hnsw-index)
+to the *table* to create
+
+</Accordion>
+
+<Accordion title="&lt;table property clause&gt;" id="<table-property-clause>" defaultOpen>
+
+Assigns table properties, from a subset of those available, to the *table* to create
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To create a table with various column types and properties:
+
+{/* Source: /examples/sql/table/create_table.kisql (lines 32-63) */}
+```sql CREATE TABLE Example
+CREATE TABLE example.various_types
+(
+    i    INTEGER NOT NULL                                 COMMENT 'non-nullable integer, part of primary key (defined at end)',
+    bi   BIGINT NOT NULL                                  COMMENT 'long, part of primary key, shard key, foreign key source (defined at end)',
+    b    BOOLEAN                                          COMMENT '0s and 1s only',
+    ub   UNSIGNED BIGINT                                  COMMENT 'native unsigned long',
+    r    REAL                                             COMMENT 'native float',
+    d    DOUBLE                                           COMMENT 'native double',
+    s    VARCHAR(TEXT_SEARCH)                             COMMENT 'string, searchable, only limited in size by system-configured value',
+    c    VARCHAR(30, DICT)                                COMMENT 'char32 using dictionary-encoding of values',
+    p    VARCHAR(256, TEXT_SEARCH)                        COMMENT 'char256, searchable',
+    ip   IPV4                                             COMMENT 'IP address',
+    ui   UUID(INIT_WITH_UUID)                             COMMENT 'UUID',
+    ts   TIMESTAMP                                        COMMENT 'timestamp',
+    td   DATE                                             COMMENT 'simple date',
+    tt   TIME                                             COMMENT 'simple time',
+    dt   DATETIME(INIT_WITH_NOW)                          COMMENT 'date/time',
+    dc   DECIMAL                                          COMMENT 'integer of up to 27 digits',
+    dc8  DECIMAL(18, 4)                                   COMMENT '8-byte decimal',
+    dc12 DECIMAL(27, 18)                                  COMMENT '12-byte decimal',
+    n    NUMERIC(18, 4)                                   COMMENT 'alias for DECIMAL(18, 4)',
+    byt  BYTES                                            COMMENT 'BLOB',
+    w    WKT                                              COMMENT 'geospatial column for WKT string data',
+    j    JSON                                             COMMENT 'JSON string',
+    v    VECTOR(10)                                       COMMENT 'vector column holding 10 floating point values',
+    ai   INTEGER[3]                                       COMMENT 'array column holding 3 integer values',
+    PRIMARY KEY (i, bi),                                  /* primary key columns must be NOT NULL                                               */
+    SHARD KEY (bi),                                       /* shard key columns must be part of the primary key                                  */
+    FOREIGN KEY (bi) REFERENCES example.lookup(id) AS fk  /* foreign key is often on the shard key                                              */
+)
+INDEX (ip)                                                /* index on IP column                                                                 */
+INDEX (ts)                                                /* index on timestamp column                                                          */
+```
+
+
+<a id="sql-create-table-partition"></a>
+
+
+## Partition Clause
+
+
+A *table* can be further segmented into *partitions*.  The supported *partition*
+types are:
+
+<CardGroup cols={3}>
+  <Card title="Range" href="/content/sql/ddl/create-table#sql-create-table-partition-by-range">
+    Partition by defined value ranges to improve filter & join performance
+  </Card>
+  <Card title="Interval" href="/content/sql/ddl/create-table#sql-create-table-partition-by-interval">
+    Partition by numeric or time-based intervals with dynamic partition creation
+  </Card>
+  <Card title="List" href="/content/sql/ddl/create-table#sql-create-table-partition-by-list">
+    Partition by discrete sets of values to improve filter performance
+  </Card>
+  <Card title="Hash" href="/content/sql/ddl/create-table#sql-create-table-partition-by-hash">
+    Partition by hash of key columns to improve equi-join performance
+  </Card>
+  <Card title="Series" href="/content/sql/ddl/create-table#sql-create-table-partition-by-series">
+    Partition into a sequence of dynamically-allocated partitions, filling each to a threshold
+  </Card>
+</CardGroup>
+
+See [Partitioning](/content/concepts/tables#partitioning) for details.
+
+<a id="sql-create-table-partition-by-range"></a>
+
+
+### Range Partitioning
+
+
+The general format for the [range partition](/content/concepts/tables#partitioning-by-range) clause
+is:
+
+```sql title="PARTITION BY RANGE Syntax"
+PARTITION BY RANGE ( <column expression> )
+[
+    PARTITIONS
+    (
+        <partition name> [ MIN ( <least value> ) ] [ MAX ( <greatest value> ) ],
+        ...
+        <partition name> [ MIN ( <least value> ) ] [ MAX ( <greatest value> ) ]
+    )
+]
+```
+
+The partition definition clause, `PARTITIONS`, is optional, though it is
+recommended to define partitions at table creation time, when feasible.
+
+
+<Warning>
+Defining (adding) partitions after data has been loaded will
+result in a performance penalty as the database moves existing records
+targeted for the new partition from the *default partition* into it.
+</Warning>
+
+For example, to create a *range-partitioned* *table* with the following
+criteria:
+
+* partitioned on the date/time of the order
+* partitions for years:
+
+  * *2014* - *2016*
+  * *2017*
+  * *2018*
+  * *2019*
+
+* records not in that range go to the *default partition*
+
+{/* Source: /examples/sql/table/partition_by_range.kisql (lines 15-29) */}
+```sql PARTITION BY RANGE Example
+CREATE TABLE example.customer_order_range_partition_by_year
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP NOT NULL
+)
+PARTITION BY RANGE (YEAR(purchase_ts))
+PARTITIONS
+(
+    order_2014_2016 MIN(2014) MAX(2017),
+    order_2017                MAX(2018),
+    order_2018                MAX(2019),
+    order_2019                MAX(2020)
+)
+```
+
+
+<a id="sql-create-table-partition-by-interval"></a>
+
+
+### Interval Partitioning
+
+
+The general format for the [interval partition](/content/concepts/tables#partitioning-by-interval)
+clause is:
+
+```sql title="PARTITION BY INTERVAL Syntax"
+PARTITION BY INTERVAL ( <column expression> )
+PARTITIONS
+(
+    STARTING [AT] (<least value>) INTERVAL (<interval size>)
+)
+```
+
+For example, to create an *interval-partitioned* *table* with the following
+criteria:
+
+* partitioned on the date/time of the order
+* one partition for each year from *2014* on
+* later year partitions are added as necessary
+* records prior to *2014* go to the *default partition*
+
+{/* Source: /examples/sql/table/partition_by_interval.kisql (lines 18-29) */}
+```sql PARTITION BY INTERVAL (Year) Syntax
+CREATE TABLE example.customer_order_interval_partition_by_year
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP
+)
+PARTITION BY INTERVAL (YEAR(purchase_ts))
+PARTITIONS
+(
+    STARTING AT (2014) INTERVAL (1)
+)
+```
+
+To create an *interval-partitioned* *table* with the following criteria:
+
+* partitioned on the date/time of the order
+* one partition for each day from *January 1st, 2014* on
+* later day partitions are added as necessary
+* records prior to *2014* go to the *default partition*
+
+{/* Source: /examples/sql/table/partition_by_interval.kisql (lines 58-69) */}
+```sql PARTITION BY INTERVAL (Day) Syntax
+CREATE TABLE example.customer_order_interval_partition_by_day_timestampdiff
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP
+)
+PARTITION BY INTERVAL (TIMESTAMPDIFF(DAY, '2014-01-01', purchase_ts))
+PARTITIONS
+(
+    STARTING AT (0) INTERVAL (1)
+)
+```
+
+The same *interval-partitioned* scheme above can be created using the timestamp
+column directly, with the help of the `INTERVAL` function
+*(described in the* [Date/Time Functions](/content/sql/query#sql-datetime-functions) *section)*:
+
+{/* Source: /examples/sql/table/partition_by_interval.kisql (lines 98-109) */}
+```sql PARTITION BY INTERVAL (Day) Alternate Syntax
+CREATE TABLE example.customer_order_interval_partition_by_day_interval
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP
+)
+PARTITION BY INTERVAL (purchase_ts)
+PARTITIONS
+(
+    STARTING AT ('2014-01-01') INTERVAL (INTERVAL '1' DAY)
+)
+```
+
+This scheme can be easily modified to create an hourly partition instead:
+
+{/* Source: /examples/sql/table/partition_by_interval.kisql (lines 138-149) */}
+```sql PARTITION BY INTERVAL (Hour) Syntax
+CREATE TABLE example.customer_order_interval_partition_by_hour_interval
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP
+)
+PARTITION BY INTERVAL (purchase_ts)
+PARTITIONS
+(
+    STARTING AT ('2014-01-01') INTERVAL (INTERVAL '1' HOUR)
+)
+```
+
+
+<a id="sql-create-table-partition-by-list"></a>
+
+
+### List Partitioning
+
+
+The [list partition](/content/concepts/tables#partitioning-by-list) clause has two forms:
+
+<CardGroup cols={2}>
+  <Card title="manual" href="/content/sql/ddl/create-table#sql-create-table-partition-by-list-manual">
+    Define partitions as specific value lists; unmatched records go to the default partition
+  </Card>
+  <Card title="automatic" href="/content/sql/ddl/create-table#sql-create-table-partition-by-list-automatic">
+    Database automatically creates a partition for each distinct partition key value
+  </Card>
+</CardGroup>
+
+<a id="sql-create-table-partition-by-list-manual"></a>
+
+
+#### Manual
+
+
+The general format for the
+[manual list partition](/content/concepts/tables#partitioning-by-list-manual) clause is:
+
+```sql title="PARTITION BY LIST Syntax"
+PARTITION BY LIST ( <column expression list> )
+[
+    PARTITIONS
+    (
+        <partition name> VALUES ( <value lists> ),
+        ...
+        <partition name> VALUES ( <value lists> )
+    )
+]
+```
+
+The partition definition clause, `PARTITIONS`, is optional, though it is
+recommended to define partitions at table creation time, when feasible.
+
+
+<Warning>
+Defining (adding) partitions after data has been loaded will
+result in a performance penalty as the database moves existing records
+targeted for the new partition from the *default partition* into it.
+</Warning>
+
+For example, to create a *manual list-partitioned* *table* with the following
+criteria:
+
+* partitioned on the date/time of the order
+* partitions for years:
+
+  * *2014* - *2016*
+  * *2017*
+  * *2018*
+  * *2019*
+
+* records not in that list go to the *default partition*
+
+{/* Source: /examples/sql/table/partition_by_list.kisql (lines 17-31) */}
+```sql PARTITION BY LIST (Year) Example
+CREATE TABLE example.customer_order_manual_list_partition_by_year
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP NOT NULL
+)
+PARTITION BY LIST (YEAR(purchase_ts))
+PARTITIONS
+(
+    order_2014_2016 VALUES (2014, 2015, 2016),
+    order_2017      VALUES (2017),
+    order_2018      VALUES (2018),
+    order_2019      VALUES (2019)
+)
+```
+
+To create a *manual list-partitioned* *table* with a multi-column key and the
+following criteria:
+
+* partitioned on the date/time of the order
+* each partition corresponds to a unique year & month pair
+* partitions for years/months:
+
+  * *February 2016* & *March 2016*
+  * *March 2020*
+
+* records not in that list go to the *default partition*
+
+{/* Source: /examples/sql/table/partition_by_list.kisql (lines 107-119) */}
+```sql PARTITION BY LIST (Month) Example
+CREATE TABLE example.customer_order_manual_list_partition_by_year_and_month
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP NOT NULL
+)
+PARTITION BY LIST (YEAR(purchase_ts), MONTH(purchase_ts))
+PARTITIONS
+(
+    order_2016_0203 VALUES ((2016, 2), (2016, 3)),
+    order_2020_03   VALUES ((2020, 3))
+)
+```
+
+
+<a id="sql-create-table-partition-by-list-automatic"></a>
+
+
+#### Automatic
+
+
+The general format for the
+[automatic list partition](/content/concepts/tables#partitioning-by-list-automatic) clause is:
+
+```sql title="Automatic PARTITION BY LIST Syntax"
+PARTITION BY LIST ( <column expression list> )
+AUTOMATIC
+```
+
+To create an *automatic list-partitioned* *table* with the following criteria:
+
+* partitioned on the date/time of the order
+* one partition for each unique year & month across all orders
+* partitions are added as necessary
+
+{/* Source: /examples/sql/table/partition_by_list.kisql (lines 188-196) */}
+```sql Automatic PARTITION BY LIST (Month) Example
+CREATE TABLE example.customer_order_automatic_list_partition_by_year_and_month
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP NOT NULL
+)
+PARTITION BY LIST (YEAR(purchase_ts), MONTH(purchase_ts))
+AUTOMATIC
+```
+
+
+<a id="sql-create-table-partition-by-hash"></a>
+
+
+### Hash Partitioning
+
+
+The general format for the
+[hash partition](/content/concepts/tables#partitioning-by-hash) clause is:
+
+```sql title="PARTITION BY HASH Syntax"
+PARTITION BY HASH ( <column expressions> )
+PARTITIONS <total partitions>
+```
+
+To create a *hash-partitioned* *table* with the following criteria:
+
+* partitioned on the date/time of the order
+* distributed among the fixed set of partitions, based on the hash of the year &
+  month of the order
+* 10 partitions
+
+{/* Source: /examples/sql/table/partition_by_hash.kisql (lines 15-23) */}
+```sql PARTITION BY HASH Example
+CREATE TABLE example.customer_order_hash_partition_by_year_and_month
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,2),
+    purchase_ts  TIMESTAMP NOT NULL
+)
+PARTITION BY HASH (YEAR(purchase_ts), MONTH(purchase_ts))
+PARTITIONS 10
+```
+
+
+<a id="sql-create-table-partition-by-series"></a>
+
+
+### Series Partitioning
+
+
+The general format for the
+[series partition](/content/concepts/tables#partitioning-by-series) clause is:
+
+```sql title="PARTITION BY SERIES"
+PARTITION BY SERIES ( <column list> )
+[PERCENT_FULL <percentage>]
+```
+
+The `PERCENT_FULL` should be an integer between *1* and *100*; the default is
+*50%*.
+
+To create a *series-partitioned* *table* with the following criteria:
+
+* partitioned on the customer of each order
+* partitions with *closed* key sets will contain all orders from a set of unique
+  customers
+* *50%* fill threshold
+
+{/* Source: /examples/sql/table/partition_by_series.kisql (lines 19-27) */}
+```sql PARTITION BY SERIES Example
+CREATE TABLE example.customer_order_series_partition_error_default_percent_full
+(
+    id           INT NOT NULL,
+    customer_id  INT NOT NULL,
+    total_price  DECIMAL(10,4),
+    purchase_ts  TIMESTAMP NOT NULL
+    SHARD KEY(customer_id)
+)
+PARTITION BY SERIES (customer_id)
+```
+
+To create a *series-partitioned* *track table* with the following criteria:
+
+* partitioned on the *track ID*
+* partitions with *closed* key sets will contain all points from a unique set of
+  tracks
+* *25%* fill threshold
+
+{/* Source: /examples/sql/table/partition_by_series.kisql (lines 83-91) */}
+```sql PARTITION BY SERIES (Tracks) Example
+CREATE TABLE example.route_series_partition_by_track
+(
+    TRACKID    VARCHAR NOT NULL,
+    x          DOUBLE NOT NULL,
+    y          DOUBLE NOT NULL,
+    TIMESTAMP  TIMESTAMP NOT NULL
+)
+PARTITION BY SERIES (TRACKID)
+PERCENT_FULL 25
+```
+
+
+<a id="sql-create-table-tier-strategy"></a>
+
+
+## Tier Strategy Clause
+
+
+A *table* can have a [tier strategy](/content/rm/concepts#rm-concepts-tier-strategy) specified
+at creation time.  If not assigned a *tier strategy* upon creation, a
+[default tier strategy](/content/rm/configuration#rm-config-tier-strategy-default)
+will be assigned.
+
+```sql title="TIER STRATEGY Clause Syntax"
+TIER STRATEGY
+(
+    <tier strategy>,
+    ...
+    <tier strategy>
+)
+```
+
+For example, to create a `customer_order` *table* with an above-average
+[eviction priority](/content/rm/concepts#rm-concepts-eviction-priority) in the
+[RAM Tier](/content/rm/concepts#rm-concepts-tiers-ram):
+
+{/* Source: /examples/sql/resource_management.kisql (lines 10-21) */}
+```sql TIER STRATEGY Example
+CREATE OR REPLACE TABLE example.customer_order
+(
+    id          INT NOT NULL,
+    customer_id INT NOT NULL,
+    total_price DECIMAL(10,2),
+    purchase_ts TIMESTAMP,
+    SHARD KEY (customer_id)
+)
+TIER STRATEGY
+(
+    ( ( VRAM 1, RAM 7, PERSIST 5 ) )
+)
+```
+
+If not specified, the *default tier strategy* will be assigned:
+
+{/* Source: /examples/sql/resource_management.kisql (lines 30-37) */}
+```sql Default TIER STRATEGY Example
+CREATE OR REPLACE TABLE example.customer_order
+(
+    id          INT NOT NULL,
+    customer_id INT NOT NULL,
+    total_price DECIMAL(10,2),
+    purchase_ts TIMESTAMP,
+    SHARD KEY (customer_id)
+)
+```
+
+{/* Source: /examples/sql/resource_management.kisql (lines 40) */}
+```sql SHOW TABLE Command to Display TIER STRATEGY
+SHOW CREATE TABLE example.customer_order
+```
+
+{/* Source: /examples/sql/resource_management.out (lines 33-42) */}
+```sql SHOW TABLE Command Output
+| CREATE TABLE "example"."customer_order"
+(
+    "id" INTEGER NOT NULL,
+    "customer_id" INTEGER (shard_key) NOT NULL,
+    "total_price" DECIMAL (10, 2),
+    "purchase_ts" TIMESTAMP
+)
+TIER STRATEGY (
+    ( ( VRAM 1, RAM 7, PERSIST 5 ) )
+); |
+```
+
+
+<Info>
+The response to `SHOW TABLE` is a single-record result set
+with the DDL statement as the value in the `DDL` column, shown here with
+the column separators returned by <Badge color="blue-destructive">kisql</Badge>.
+</Info>
+
+<a id="sql-create-table-index"></a>
+
+
+## Index Clause
+
+
+A *table* can have any number of [indexes](/content/concepts/indexes)
+applied to any of its columns at creation time.
+
+The types of explicit indexes supported are:
+
+<CardGroup cols={3}>
+  <Card title="Column (Attribute) Index" href="/content/concepts/indexes#column-index">
+    B-tree index on a column for equality and range filter performance
+  </Card>
+  <Card title="Low Cardinality Index" href="/content/concepts/indexes#low-cardinality-index">
+    Column index optimized for columns with many duplicate values, using less memory
+  </Card>
+  <Card title="Chunk Skip Index" href="/content/concepts/indexes#chunk-skip-index">
+    Improves equality-based filtering, especially on partition key columns
+  </Card>
+  <Card title="Geospatial Index" href="/content/concepts/indexes#geospatial-index">
+    Improves performance of geospatial functions on geometry columns
+  </Card>
+  <Card title="CAGRA Index" href="/content/concepts/indexes#cagra-index">
+    GPU-accelerated graph-based index for vector similarity search; requires manual refresh
+  </Card>
+  <Card title="HNSW Index" href="/content/concepts/indexes#hnsw-index">
+    Graph-based index for vector similarity search; automatically maintained
+  </Card>
+</CardGroup>
+
+```sql title="Index Clause Syntax"
+<[ATTRIBUTE] | CHUNK [SKIP] | LOW CARDINALITY | GEOSPATIAL | CAGRA | HNSW> INDEX (<column>)
+...
+<[ATTRIBUTE] | CHUNK [SKIP] | LOW CARDINALITY | GEOSPATIAL | CAGRA | HNSW> INDEX (<column>)
+```
+
+For example, to create a *table* with the following indexes:
+
+* *column index* on `last_name`
+* *low-cardinality index* on `dept_id`
+* *chunk skip index* on `id`
+* *geospatial index* on `work_district`
+* *geospatial index* on the pair of `office_longitude` & `office_latitude`
+* *CAGRA index* on `profile`
+
+{/* Source: /examples/sql/table/create_table.kisql (lines 178-200) */}
+```sql Index Example
+CREATE TABLE example.employee
+(
+    id INTEGER NOT NULL,
+    dept_id INTEGER NOT NULL,
+    manager_id INTEGER,
+    first_name VARCHAR(30),
+    last_name VARCHAR(30),
+    sal DECIMAL(18,4),
+    hire_date DATE,
+    work_district WKT,
+    office_longitude REAL,
+    office_latitude REAL,
+    profile VECTOR(10),
+    PRIMARY KEY (id, dept_id),
+    SHARD KEY (dept_id)
+)
+INDEX (last_name)
+LOW CARDINALITY INDEX (dept_id)
+CHUNK SKIP INDEX (id)
+GEOSPATIAL INDEX (work_district)
+GEOSPATIAL INDEX (office_longitude, office_latitude)
+CAGRA INDEX (profile)
+HNSW INDEX (profile)
+```
+
+
+<a id="sql-create-table-prop"></a>
+
+
+## Table Property Clause
+
+
+A subset of *table* properties can be applied to the *table* at creation time.
+
+```sql title="Table Property Clause"
+USING TABLE PROPERTIES
+(
+    <table property> = <value>,
+    ...
+    <table property> = <value>
+)
+```
+
+Available table properties include:
+
+<AccordionGroup>
+
+<Accordion title="CHUNK COLUMN MEMORY" id="chunk-column-memory" defaultOpen>
+
+Size of the blocks of memory holding the data, when loaded; specified as the
+maximum number of bytes any one column should hold.
+
+
+<Info>
+The size of dictionary-encoded columns is estimated.
+</Info>
+
+</Accordion>
+
+<Accordion title="CHUNK MEMORY" id="chunk-memory" defaultOpen>
+
+Size of the blocks of memory holding the data, when loaded; specified as the
+maximum total number of bytes all columns should hold.
+
+
+<Info>
+The size of dictionary-encoded columns is estimated.
+</Info>
+
+</Accordion>
+
+<Accordion title="CHUNK SIZE" id="chunk-size" defaultOpen>
+
+Size of the blocks of memory holding the data, when loaded; specified as the
+maximum number of records each block of memory should hold.
+
+</Accordion>
+
+<Accordion title="COMPRESSION_CODEC" id="compression_codec" defaultOpen>
+
+The default [compression](/content/concepts/column_compression) type to apply
+to columns of this table not explicitly given one.
+
+</Accordion>
+
+<Accordion title="NO_ERROR_IF_EXISTS" id="no_error_if_exists" defaultOpen>
+
+Error suppression option, which causes no error to be returned if a *table*
+with the same name already exists; default is `FALSE`.
+
+
+<Info>
+This is the same option as `IF NOT EXISTS`.
+</Info>
+
+</Accordion>
+
+<Accordion title="PRIMARY_KEY_TYPE" id="primary_key_type" defaultOpen>
+
+The type of [primary key index](/content/concepts/indexes#primary-key-index) to use.
+
+The default is `memory`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Type</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>memory</code></td>
+    <td>*Primary key index* is loaded into memory, occupying RAM but improving performance.</td>
+  </tr>
+  <tr>
+    <td><code>disk</code></td>
+    <td>*Primary key index* is stored on disk only, increasing available RAM at the cost of some performance.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="TTL" id="ttl" defaultOpen>
+
+The [time-to-live (TTL)](/content/concepts/ttl) for the *table*; if not set,
+the *table* will not expire.
+
+</Accordion>
+
+</AccordionGroup>
+
+For example, to create a table with up to *1,000,000* records per chunk and that
+will expire in *15* minutes:
+
+{/* Source: /examples/sql/table/create_table.kisql (lines 214-222) */}
+```sql Table Property Example
+CREATE OR REPLACE TABLE example.customer_order
+(
+    id          INTEGER NOT NULL,
+    customer_id INTEGER NOT NULL,
+    total_price DECIMAL(10,2),
+    purchase_ts TIMESTAMP,
+    SHARD KEY (customer_id)
+)
+USING TABLE PROPERTIES (CHUNK SIZE = 1000000, TTL = 15)
+```

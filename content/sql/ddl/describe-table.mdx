@@ -1,0 +1,82 @@
+---
+title: DESCRIBE TABLE
+---
+
+Lists the columns and column types & properties for a given *table*.
+
+```sql title="DESCRIBE TABLE Syntax"
+DESC[RIBE] [TABLE] [<schema name>.]<table name>
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="TABLE" id="table" defaultOpen>
+
+Optional clause to avoid ambiguity:
+
+* if given, and a *view* with the given name exists instead, the command will return an error
+* if omitted, and a *view* with the given name exists instead, the command will be interpreted as
+  a `DESCRIBE VIEW` statement
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* containing the *table* to describe
+
+</Accordion>
+
+<Accordion title="&lt;table name&gt;" id="<table-name>" defaultOpen>
+
+Name of the *table* whose configuration will be output
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To describe the example table created in the [CREATE TABLE](/content/sql/ddl/create-table#sql-create-table) section:
+
+{/* Source: /examples/sql/table/create_table.kisql (lines 66) */}
+```sql DESCRIBE TABLE Example
+DESC example.various_types
+```
+
+{/* Source: /examples/sql/table/create_table.out (lines 119-146) */}
+```sql DESCRIBE TABLE Output
++-----------+--------+------------+-----------------------------------+
+| Col_num   | Name   | Null?      | Type                              |
++-----------+--------+------------+-----------------------------------+
+| 0         | i      | NOT NULL   | INTEGER (primary_key)             |
+| 1         | bi     | NOT NULL   | BIGINT (primary_key, shard_key)   |
+| 2         | b      |            | BOOLEAN                           |
+| 3         | ub     |            | UNSIGNED BIGINT                   |
+| 4         | r      |            | REAL                              |
+| 5         | d      |            | DOUBLE                            |
+| 6         | s      |            | VARCHAR (text_search)             |
+| 7         | c      |            | VARCHAR (32, dict)                |
+| 8         | p      |            | VARCHAR (256, text_search)        |
+| 9         | ip     |            | IPV4                              |
+| 10        | ui     |            | UUID (init_with_uuid)             |
+| 11        | ts     |            | TIMESTAMP                         |
+| 12        | td     |            | DATE                              |
+| 13        | tt     |            | TIME                              |
+| 14        | dt     |            | DATETIME (init_with_now)          |
+| 15        | dc     |            | DECIMAL (28, 0)                   |
+| 16        | dc8    |            | DECIMAL (18, 4)                   |
+| 17        | dc12   |            | DECIMAL (27, 18)                  |
+| 18        | n      |            | DECIMAL (18, 4)                   |
+| 19        | byt    |            | BLOB                              |
+| 20        | w      |            | GEOMETRY                          |
+| 21        | j      |            | JSON                              |
+| 22        | v      |            | VECTOR (10)                       |
+| 23        | ai     |            | INTEGER[3]                        |
++-----------+--------+------------+-----------------------------------+
+```

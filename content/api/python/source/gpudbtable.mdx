@@ -2701,6 +2701,9 @@ insert_records( [1, 2, 3], [4, 5, 6],
 <li>
 <p><strong>set\_build\_materialized\_view\_policy</strong> – Set startup rebuilding scheme for the materialized view; see description of ‘build\_materialized\_view\_policy’ in <a className="reference internal" href="/content/api/python/source/gpudb#gpudb.GPUdb.create_materialized_view" title="gpudb.GPUdb.create_materialized_view"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_materialized\_view()</span></code></a> for possible values for input parameter <span className="em">value</span>.</p>
 </li>
+<li>
+<p><strong>rebuild\_text\_search\_index</strong> – Drops and rebuilds the <a className="reference external" href="/content/concepts/full_text_search/">text search</a> index for the table from current type metadata and chunk storage. Use this to repair a text-search index left incomplete by an interrupted or failed rebuild (for example, after a crash during an add-column that requested text search): re-running the original add\_column will not work because the column already exists. This action is also dispatched automatically by <a className="reference internal" href="#gpudb.GPUdbTable.alter_table_columns" title="gpudb.GPUdbTable.alter_table_columns"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdbTable.alter\_table\_columns()</span></code></a> after add\_column completions that require a full re-index. The input parameter <span className="em">value</span> is ignored.</p>
+</li>
 </ul>
 </div>
 <div className="dt">value (<span className="em">str</span>) –</div>
@@ -4498,6 +4501,9 @@ insert_records( [1, 2, 3], [4, 5, 6],
 </li>
 <li>
 <p><strong>regex</strong> – Full regular expression search (not accelerated). If the column is a string type (non-charN) and the number of records is too large, it will return 0.</p>
+</li>
+<li>
+<p><strong>search\_stats</strong> – Cross-shard BM25 corpus statistics for one (column, query) pair. Returns the merged BM25 statistics (max\_doc, doc\_count, sum\_total\_term\_freq, per-term doc\_freq / total\_term\_freq) needed by callers that score documents themselves (e.g. text\_match\_bm25\_global SQL function pre-pass). Requires <span className="em">column\_names</span> to contain exactly one column with text search enabled. The <span className="em">view\_name</span> field is ignored — this mode does not produce a result table.</p>
 </li>
 </ul>
 </div>

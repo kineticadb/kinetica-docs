@@ -1,0 +1,902 @@
+---
+title: ALTER TABLE
+---
+
+<a id="sql-alter-table"></a>
+
+
+Alters the configuration of a [table](/content/sql/ddl/create-table#sql-create-table).
+
+Any of the following facets of a table can be altered:
+
+* [Name](/content/sql/ddl/alter-table#sql-alter-table-rename)
+* [Schema](/content/sql/ddl/alter-table#sql-alter-table-move)
+* [Access Mode](/content/sql/ddl/alter-table#sql-alter-table-set-access-mode)
+* [TTL](/content/sql/ddl/alter-table#sql-alter-table-set-ttl)
+* [Columns](/content/sql/ddl/alter-table#sql-alter-table-column-add)
+* [Column Indexes](/content/sql/ddl/alter-table#sql-alter-table-column-index-add)
+* [Low-Cardinality Indexes](/content/sql/ddl/alter-table#sql-alter-table-low-cardinality-index-add)
+* [Chunk Skip Indexes](/content/sql/ddl/alter-table#sql-alter-table-chunk-skip-index-add)
+* [Geospatial Indexes](/content/sql/ddl/alter-table#sql-alter-table-geospatial-index-add)
+* [CAGRA Indexes](/content/sql/ddl/alter-table#sql-alter-table-cagra-index-add)
+* [HNSW Indexes](/content/sql/ddl/alter-table#sql-alter-table-hnsw-index-add)
+* [Foreign Keys](/content/sql/ddl/alter-table#sql-alter-table-foreign-key-add)
+* [Partitions](/content/sql/ddl/alter-table#sql-alter-table-partition-add)
+* [Tier Strategy](/content/sql/ddl/alter-table#sql-alter-table-set-tier-strategy)
+* [External Data Source Subscription](/content/sql/ddl/alter-table#sql-alter-table-manage-sub)
+
+
+<a id="sql-alter-table-rename"></a>
+
+
+## Rename Table
+
+
+A table can be renamed, following the supported
+[naming criteria](/content/sql/naming#sql-naming-criteria).
+
+```sql title="Rename Table Syntax"
+ALTER TABLE [<schema name>.]<table name>
+RENAME TO <new table name>
+```
+
+All dependent [views](/content/sql/ddl/create-view#sql-create-view),
+[materialized views](/content/sql/ddl/create-materialized-view#sql-create-materialized-view),
+[streams](/content/sql/ddl/create-stream#sql-create-stream), and
+[SQL procedures](/content/sql/procedure#sql-procedures) will be dropped.
+
+
+<Info>
+Any *tables* with [foreign keys](/content/concepts/tables#foreign-key) that
+target this *table* must be dropped before it can be renamed.
+</Info>
+
+<a id="sql-alter-table-move"></a>
+
+
+## Move Table
+
+
+A table can be moved from one schema to another.
+
+```sql title="Move Table Syntax"
+ALTER TABLE [<schema name>.]<table name>
+< MOVE TO | SET SCHEMA > <other schema name>
+```
+
+All dependent [views](/content/sql/ddl/create-view#sql-create-view),
+[materialized views](/content/sql/ddl/create-materialized-view#sql-create-materialized-view),
+[streams](/content/sql/ddl/create-stream#sql-create-stream), and
+[SQL procedures](/content/sql/procedure#sql-procedures) will be dropped.
+
+
+<Info>
+Any *tables* with [foreign keys](/content/concepts/tables#foreign-key) that
+target this *table* must be dropped before it can be moved.
+</Info>
+
+For example, to move the `sales_2017` table from the `example_olap` schema
+to the `example_archive` schema:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 51-52) */}
+```sql Move Table Example
+ALTER TABLE example_olap.sales_2017
+MOVE TO example_archive
+```
+
+
+<a id="sql-alter-table-set-access-mode"></a>
+
+
+## Set Access Mode
+
+
+A table can have its global accessibility modified for all users in the system,
+independently from and further restricting any role-based access controls in
+place.  Note that changing the access mode cannot *widen* access for users not
+already granted access; it can only *narrow* access for those who already have
+access.  This setting will also trump administrative access to a table.
+
+```sql title="Set Table Access Mode Syntax"
+ALTER TABLE [<schema name>.]<table name>
+SET ACCESS MODE < NO_ACCESS | READ_ONLY | WRITE_ONLY | READ_WRITE >
+```
+
+
+<a id="sql-alter-table-set-ttl"></a>
+
+
+## Set TTL
+
+
+A table's [time-to-live (TTL)](/content/concepts/ttl) can be altered.
+
+```sql title="Set Table TTL Syntax"
+ALTER TABLE [<schema name>.]<table name>
+SET TTL <new ttl>
+```
+
+For example, to set a *TTL* of *7* minutes on a table:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 230-231) */}
+```sql Set Table TTL Example
+ALTER TABLE example.employee
+SET TTL 7
+```
+
+To set a table to never expire by *TTL* timeout:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 236-237) */}
+```sql Set Table No Expiration Example
+ALTER TABLE example.employee
+SET TTL -1
+```
+
+
+<a id="sql-alter-table-column-add"></a>
+
+
+## Add Column
+
+
+A column can be added, specifying a [column definition](/content/sql/ddl#sql-ddl).
+
+```sql title="Add Table Column Syntax"
+ALTER TABLE [<schema name>.]<table name>
+ADD <column name> <column definition> [DEFAULT <string/numeric constant | column name>]
+```
+
+A new column can have its values initially populated through the use of the
+`DEFAULT` keyword.  These values can either be a string/numeric constant or
+the name of an existing column in the table from which values can be copied into
+the new column.  This default value is only in effect for the column creation;
+the new column will have no default value after that.
+
+
+**Examples**
+
+To add, to the `employee` table, a `salary` column that is a non-nullable,
+10-digit number field containing 2 decimal places with a default value of `0`:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 60-61) */}
+```sql Add Table Column (Numeric) Example
+ALTER TABLE example.employee
+ADD salary NUMERIC(10, 2) NOT NULL DEFAULT 0
+```
+
+To add, to the `employee` table, a `category` column that is a nullable,
+[dictionary-encoded](/content/concepts/dictionary_encoding), 32-character text
+field:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 68-69) */}
+```sql Add Table Column (CharN/Dictionary-Encoded) Example
+ALTER TABLE example.employee
+ADD category VARCHAR(32, DICT)
+```
+
+To add, to the `employee` table, a `bio` column that is a nullable,
+[text-searchable](/content/concepts/types#types-data-handling), unrestricted-width text field:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 75-76) */}
+```sql Add Table Column (String/Text-Searchable) Example
+ALTER TABLE example.employee
+ADD bio VARCHAR(TEXT_SEARCH)
+```
+
+
+<a id="sql-alter-table-column-rename"></a>
+
+
+## Rename Column
+
+
+An existing column can be renamed.
+
+```sql title="Rename Table Column Syntax"
+ALTER TABLE [<schema name>.]<table name>
+RENAME COLUMN <column current name> TO <column new name>
+```
+
+All dependent [views](/content/sql/ddl/create-view#sql-create-view),
+[materialized views](/content/sql/ddl/create-materialized-view#sql-create-materialized-view),
+[streams](/content/sql/ddl/create-stream#sql-create-stream), and
+[SQL procedures](/content/sql/procedure#sql-procedures) will be dropped.
+
+
+<Info>
+Any *tables* with [foreign keys](/content/concepts/tables#foreign-key) that
+target the column being renamed must be dropped before it can be renamed.
+</Info>
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 101-102) */}
+```sql Rename Table Column Example
+ALTER TABLE example.employee
+RENAME COLUMN bio TO biography
+```
+
+
+<a id="sql-alter-table-column-modify"></a>
+
+
+## Modify Column
+
+
+A column can have its [column definition](/content/sql/ddl#sql-ddl) modified, affecting
+*column type*, *column size*, *column properties*, and nullability.
+
+```sql title="Modify Table Column Syntax"
+ALTER TABLE [<schema name>.]<table name>
+MODIFY [COLUMN] <column name> <column definition>
+```
+
+```sql title="Modify Table Column Alternate Syntax"
+ALTER TABLE [<schema name>.]<table name>
+ALTER COLUMN <column name> <column definition>
+```
+
+All dependent [views](/content/sql/ddl/create-view#sql-create-view),
+[materialized views](/content/sql/ddl/create-materialized-view#sql-create-materialized-view),
+[streams](/content/sql/ddl/create-stream#sql-create-stream), and
+[SQL procedures](/content/sql/procedure#sql-procedures) will be dropped.
+
+
+<Info>
+Any *tables* with [foreign keys](/content/concepts/tables#foreign-key) that
+target the column being modified must be dropped before it can be modified.
+</Info>
+
+If a column is modified to be non-nullable, it will be populated with default
+values--empty string for string fields and `0` for numeric fields.
+
+
+**Examples**
+
+To change, in the `employee` table, the `first_name` column to one that is a
+non-nullable, [dictionary-encoded](/content/concepts/dictionary_encoding),
+50-character text field:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 83-84) */}
+```sql Modify Table Column Example
+ALTER TABLE example.employee
+ALTER COLUMN first_name VARCHAR(50, DICT) NOT NULL
+```
+
+
+<a id="sql-alter-table-column-drop"></a>
+
+
+## Drop Column
+
+
+An existing column can be removed from a table.
+
+```sql title="Drop Table Column Syntax"
+ALTER TABLE [<schema name>.]<table name>
+DROP COLUMN <column name>
+```
+
+All dependent [views](/content/sql/ddl/create-view#sql-create-view),
+[materialized views](/content/sql/ddl/create-materialized-view#sql-create-materialized-view),
+[streams](/content/sql/ddl/create-stream#sql-create-stream), and
+[SQL procedures](/content/sql/procedure#sql-procedures) will be dropped.
+
+
+<Info>
+Any *tables* with [foreign keys](/content/concepts/tables#foreign-key) that
+target the column being dropped must be dropped before it can be dropped.
+</Info>
+
+<a id="sql-alter-table-column-index-add"></a>
+
+
+## Add Column Index
+
+
+A [column (attribute) index](/content/concepts/indexes#column-index) can be added to a table
+column in order to improve the performance of operations whose expressions
+contain relational operators against the column.  See
+[Limitations](/content/concepts/indexes#column-index-limitations) for restrictions.
+
+```sql title="Add Table Column Index Syntax"
+ALTER TABLE [<schema name>.]<table name>
+ADD INDEX (<column name>)
+```
+
+For example, to index the `employee` table's `last_name` column:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 107-108) */}
+```sql Add Table Column Index Example
+ALTER TABLE example.employee
+ADD INDEX (last_name)
+```
+
+
+<a id="sql-alter-table-column-index-drop"></a>
+
+
+## Drop Column Index
+
+
+An existing [column (attribute) index](/content/concepts/indexes#column-index) can be
+removed from a table.
+
+```sql title="Drop Table Column Index Syntax"
+ALTER TABLE [<schema name>.]<table name>
+DROP INDEX (<column name>)
+```
+
+For example, to drop the index on the `employee` table's `last_name` column:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 113-114) */}
+```sql Drop Table Column Index Example
+ALTER TABLE example.employee
+DROP INDEX (last_name)
+```
+
+
+<a id="sql-alter-table-low-cardinality-index-add"></a>
+
+
+## Add Low-Cardinality Index
+
+
+A [low-cardinality index](/content/concepts/indexes#low-cardinality-index) can be added to a
+table column with few distinct values in order to improve the performance of
+operations whose expressions contain relational operators against the column.
+See [Limitations](/content/concepts/indexes#column-index-limitations) for restrictions.
+
+```sql title="Add Table Low-Cardinality Index Syntax"
+ALTER TABLE [<schema name>.]<table name>
+ADD LOW CARDINALITY INDEX (<column name>)
+```
+
+For example, to index the `employee` table's `dept_id` column:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 185-186) */}
+```sql Add Table Low-Cardinality Index Example
+ALTER TABLE example.employee
+ADD LOW CARDINALITY INDEX (dept_id)
+```
+
+
+<a id="sql-alter-table-low-cardinality-index-drop"></a>
+
+
+## Drop Low-Cardinality Index
+
+
+An existing [low-cardinality index](/content/concepts/indexes#low-cardinality-index) can be
+removed from a table.
+
+```sql title="Drop Table Low-Cardinality Index Syntax"
+ALTER TABLE [<schema name>.]<table name>
+DROP LOW CARDINALITY INDEX (<column name>)
+```
+
+For example, to drop the index on the `employee` table's `dept_id` column:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 191-192) */}
+```sql Drop Table Low-Cardinality Index Example
+ALTER TABLE example.employee
+DROP LOW CARDINALITY INDEX (dept_id)
+```
+
+
+<a id="sql-alter-table-chunk-skip-index-add"></a>
+
+
+## Add Chunk Skip Index
+
+
+A [chunk skip index](/content/concepts/indexes#chunk-skip-index) can be added to a table
+column in order to improve the performance of operations containing
+equality-based filters against the column.  See
+[Limitations](/content/concepts/indexes#chunk-skip-index-limitations) for restrictions.
+
+```sql title="Add Table Chunk Skip Index Syntax"
+ALTER TABLE [<schema name>.]<table name>
+ADD CHUNK [SKIP] INDEX (<column name>)
+```
+
+For example, to index the `employee` table's employee ID column:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 119-120) */}
+```sql Add Table Chunk Skip Index Example
+ALTER TABLE example.employee
+ADD CHUNK SKIP INDEX (id)
+```
+
+
+<a id="sql-alter-table-chunk-skip-index-drop"></a>
+
+
+## Drop Chunk Skip Index
+
+
+An existing [chunk skip index](/content/concepts/indexes#chunk-skip-index) can be removed
+from a table.
+
+```sql title="Drop Table Chunk Skip Index Syntax"
+ALTER TABLE [<schema name>.]<table name>
+DROP CHUNK [SKIP] INDEX (<column name>)
+```
+
+For example, to drop the chunk skip index on the `employee` table's employee ID column:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 125-126) */}
+```sql Drop Table Chunk Skip Index Example
+ALTER TABLE example.employee
+DROP CHUNK SKIP INDEX (id)
+```
+
+
+<a id="sql-alter-table-geospatial-index-add"></a>
+
+
+## Add Geospatial Index
+
+
+A [geospatial index](/content/concepts/indexes#geospatial-index) can be added to one or more
+table columns to improve the performance of geospatial functions applied to
+them.
+
+```sql title="Add Table Geospatial Index Syntax"
+ALTER TABLE [<schema name>.]<table name>
+ADD GEOSPATIAL INDEX (<column name>[,...])
+```
+
+For example, to index the `employee` table's work district WKT column:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 131-132) */}
+```sql Add Table WKT Geospatial Index Example
+ALTER TABLE example.employee
+ADD GEOSPATIAL INDEX (work_district)
+```
+
+To index the `employee` table's office location coordinate pair columns:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 143-144) */}
+```sql Add Table Coordinate Pair Geospatial Index Example
+ALTER TABLE example.employee
+ADD GEOSPATIAL INDEX (office_longitude, office_latitude)
+```
+
+
+<a id="sql-alter-table-geospatial-index-drop"></a>
+
+
+## Drop Geospatial Index
+
+
+An existing [geospatial index](/content/concepts/indexes#geospatial-index) can be removed
+from a table.
+
+```sql title="Drop Table Geospatial Index Syntax"
+ALTER TABLE [<schema name>.]<table name>
+DROP GEOSPATIAL INDEX (<column name>[,...])
+```
+
+For example, to drop the geospatial index on the `employee` table's work
+district WKT column:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 137-138) */}
+```sql Drop Table WKT Geospatial Index Example
+ALTER TABLE example.employee
+DROP GEOSPATIAL INDEX (work_district)
+```
+
+To drop the geospatial index on the `employee` table's office location
+coordinate pair columns:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 149-150) */}
+```sql Drop Table Coordinate Pair Geospatial Index Example
+ALTER TABLE example.employee
+DROP GEOSPATIAL INDEX (office_longitude, office_latitude)
+```
+
+
+<a id="sql-alter-table-cagra-index-add"></a>
+
+
+## Add CAGRA Index
+
+
+A [CAGRA index](/content/concepts/indexes#cagra-index) can be added to a table
+column in order to improve the performance of
+[vector searches](/content/vector_search) applied to the column.
+
+```sql title="Add Table CAGRA Index Syntax"
+ALTER TABLE [<schema name>.]<table name>
+ADD CAGRA INDEX (<column name>)
+```
+
+For example, to add a CAGRA index on the `employee` table's profile column:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 155-156) */}
+```sql Add Table CAGRA Index Example
+ALTER TABLE example.employee
+ADD CAGRA INDEX (profile)
+```
+
+
+<a id="sql-alter-table-cagra-index-refresh"></a>
+
+
+## Refresh CAGRA Index
+
+
+An existing [CAGRA index](/content/concepts/indexes#cagra-index) can be refreshed.
+
+```sql title="Refresh Table CAGRA Index Syntax"
+ALTER TABLE [<schema name>.]<table name>
+REFRESH CAGRA INDEX ON (<column name>)
+```
+
+For example, to refresh the CAGRA index on the `employee` table's profile column:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 161-162) */}
+```sql Refresh Table CAGRA Index Example
+ALTER TABLE example.employee
+REFRESH CAGRA INDEX ON (profile)
+```
+
+
+<a id="sql-alter-table-cagra-index-drop"></a>
+
+
+## Drop CAGRA Index
+
+
+An existing [CAGRA index](/content/concepts/indexes#cagra-index) can be removed from a
+table.
+
+```sql title="Drop Table CAGRA Index Syntax"
+ALTER TABLE [<schema name>.]<table name>
+DROP CAGRA INDEX (<column name>)
+```
+
+For example, to drop the CAGRA index on the `employee` table's profile column:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 167-168) */}
+```sql Drop Table CAGRA Index Example
+ALTER TABLE example.employee
+DROP CAGRA INDEX (profile)
+```
+
+
+<a id="sql-alter-table-hnsw-index-add"></a>
+
+
+## Add HNSW Index
+
+
+An [HNSW index](/content/concepts/indexes#hnsw-index) can be added to a table
+column in order to improve the performance of
+[vector searches](/content/vector_search) applied to the column.
+
+```sql title="Add Table HNSW Index Syntax"
+ALTER TABLE [<schema name>.]<table name>
+ADD HNSW INDEX (<column name>)
+```
+
+For example, add an HNSW index on the `employee` table's profile column:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 173-174) */}
+```sql Add Table HNSW Index Example
+ALTER TABLE example.employee
+ADD HNSW INDEX (profile)
+```
+
+
+<a id="sql-alter-table-hnsw-index-drop"></a>
+
+
+## Drop HNSW Index
+
+
+An existing [HNSW index](/content/concepts/indexes#hnsw-index) can be removed from a
+table.
+
+```sql title="Drop Table HNSW Index Syntax"
+ALTER TABLE [<schema name>.]<table name>
+DROP HNSW INDEX (<column name>)
+```
+
+For example, to drop the HNSW index on the `employee` table's profile column:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 179-180) */}
+```sql Drop Table HNSW Index Example
+ALTER TABLE example.employee
+DROP HNSW INDEX (profile)
+```
+
+
+<a id="sql-alter-table-foreign-key-add"></a>
+
+
+## Add Foreign Key
+
+
+A [foreign key](/content/concepts/tables#foreign-key) can be added to any column or set of
+columns with [primary key applicable types](/content/concepts/tables#primary-key-def) in
+order to improve the performance of [join](/content/sql/query#sql-join) operations
+between the table being altered and the table referenced in the *foreign key*.
+
+```sql title="Add Table Foreign Key Syntax"
+ALTER TABLE [<schema name>.]<table name>
+ADD FOREIGN KEY (<column name>,...)
+    REFERENCES [<foreign table schema name>.]<foreign table name>(<foreign column name>,...) [AS <foreign key name>]
+```
+
+For example, to add a foreign key on the `employee` table's department ID
+column, linking it to the `department` table's department ID column:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 214-215) */}
+```sql Add Table Foreign Key Example
+ALTER TABLE example.employee
+ADD FOREIGN KEY (dept_id) REFERENCES example.department(id) AS fk_emp_dept
+```
+
+
+## Drop Foreign Key
+
+
+An existing [foreign key](/content/concepts/tables#foreign-key) can be removed from a table, either
+by the name (alias) given to it during creation or by its definition:
+
+```sql title="Drop Table Foreign Key by Name Syntax"
+ALTER TABLE [<schema name>.]<table name>
+DROP FOREIGN KEY <foreign key name>
+```
+
+```sql title="Drop Table Foreign Key by Definition Syntax"
+ALTER TABLE [<schema name>.]<table name>
+DROP FOREIGN KEY (<column name>,...)
+    REFERENCES [<foreign table schema name>.]<foreign table name>(<foreign column name>,...)
+```
+
+For example, to drop the *foreign key* on the `employee` table's department ID
+column:
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 206-207) */}
+```sql Drop Table Foreign Key by Name Example
+ALTER TABLE example.employee
+DROP FOREIGN KEY fk_emp_dept
+```
+
+{/* Source: /examples/sql/table/alter_table.kisql (lines 220-221) */}
+```sql Drop Table Foreign Key by Definition Example
+ALTER TABLE example.employee
+DROP FOREIGN KEY (dept_id) REFERENCES example.department(id)
+```
+
+
+<a id="sql-alter-table-partition-add"></a>
+
+
+## Add Partition
+
+
+A *partition* can be added to a [range-partitioned](/content/concepts/tables#partitioning-by-range)
+or [list-partitioned](/content/concepts/tables#partitioning-by-list) table.
+
+
+<Warning>
+Defining (adding) partitions after data has been loaded will
+result in a performance penalty as the database moves existing records
+targeted for the new partition from the *default partition* into it.
+</Warning>
+
+
+### Range Partition
+
+
+The new *partition* can be given a minimum bound (inclusive) and a maximum bound
+(exclusive).  If the new *partition* would come before an existing *partition*,
+omitting the maximum bound would cause the new *partition* to take on the
+nearest following existing *partition's* minimum bound as its maximum bound.
+If the new *partition* would come after an existing *partition*, omitting the
+minimum bound would cause the new *partition* to take on the nearest preceding
+*partition's* maximum bound as its minimum bound.  If no *partitions* are
+present in the table, the new *partition* will have to declare both a minimum
+and maximum bound.
+
+```sql title="Add Table Range Partition Syntax"
+ALTER TABLE [<schema name>.]<table name>
+ADD PARTITION <partition name> [ MIN ( <least value> ) ] [ MAX ( <greatest value> ) ]
+```
+
+For example, to add a *partition* to the `customer_order_range_by_year` table,
+containing all records with a *partition key* less than `2020` and greater
+than or equal to the maximum bound of the nearest preceding *partition*:
+
+{/* Source: /examples/sql/table/partition_by_range.kisql (lines 55-56) */}
+```sql Add Table Range Partition Example
+ALTER TABLE example.customer_order_range_partition_by_year
+ADD PARTITION order_2020 MAX(2021)
+```
+
+
+### List Partition
+
+
+The new *partition* can be given a list of values to match against the
+*partition key* values of incoming records.
+
+```sql title="Add Table List Partition Syntax"
+ALTER TABLE [<schema name>.]<table name>
+ADD PARTITION <partition name> VALUES ( <value lists> )
+```
+
+For example, to add a *partition* to the
+`customer_order_manual_list_partition_by_year` table, containing all records
+from *2020*:
+
+{/* Source: /examples/sql/table/partition_by_list.kisql (lines 56-57) */}
+```sql Add Table List Partition (Year) Example
+ALTER TABLE example.customer_order_manual_list_partition_by_year
+ADD PARTITION order_2020 VALUES (2020)
+```
+
+For example, to add a *partition* to the
+`customer_order_manual_list_partition_by_year_and_month` table, containing all
+records from *February 2020* & *April 2020*:
+
+{/* Source: /examples/sql/table/partition_by_list.kisql (lines 148-149) */}
+```sql Add Table List Partition (Month) Example
+ALTER TABLE example.customer_order_manual_list_partition_by_year_and_month
+ADD PARTITION order_2020_0204 VALUES ((2020, 2), (2020, 4))
+```
+
+
+<a id="sql-alter-table-partition-remove"></a>
+
+
+## Remove Partition
+
+
+An existing *partition* can be removed from a
+[range-partitioned](/content/concepts/tables#partitioning-by-range) or
+[list-partitioned](/content/concepts/tables#partitioning-by-list) table, sending all data contained
+within that *partition* back to the *default partition*.
+
+```sql title="Remove Table Partition Syntax"
+ALTER TABLE [<schema name>.]<table name>
+REMOVE PARTITION <partition name>
+```
+
+For example, to remove a *partition* named `order_2017` from the
+`customer_order_range_by_year` table:
+
+{/* Source: /examples/sql/table/partition_by_range.kisql (lines 70-71) */}
+```sql Remove Table Partition Example
+ALTER TABLE example.customer_order_range_partition_by_year
+REMOVE PARTITION order_2017
+```
+
+
+<a id="sql-alter-table-partition-drop"></a>
+
+
+## Delete Partition
+
+
+An existing *partition* can be dropped from a
+[range-partitioned](/content/concepts/tables#partitioning-by-range) or
+[list-partitioned](/content/concepts/tables#partitioning-by-list) table, deleting all data
+contained within it.
+
+```sql title="Delete Table Partition Syntax"
+ALTER TABLE [<schema name>.]<table name>
+DELETE PARTITION <partition name>
+```
+
+For example, to drop a *partition* named `order_2014_2016` from the
+`customer_order_range_by_year` table, deleting all data within that
+*partition*:
+
+{/* Source: /examples/sql/table/partition_by_range.kisql (lines 80-81) */}
+```sql Delete Table Partition Example
+ALTER TABLE example.customer_order_range_partition_by_year
+DELETE PARTITION order_2014_2016
+```
+
+
+<a id="sql-alter-table-set-tier-strategy"></a>
+
+
+## Set Tier Strategy
+
+
+A table's [eviction priorities](/content/rm/concepts#rm-concepts-eviction-priority) can be
+adjusted by setting its [tier strategy](/content/rm/concepts#rm-concepts-tier-strategy).
+
+```sql title="Set Table Tier Strategy Syntax"
+ALTER TABLE [<schema name>.]<table name>
+SET TIER STRATEGY (<tier strategy>)
+```
+
+For example, to set the `customer_order` table's *tier strategy*, to one with
+a below-average *eviction priority* in the
+[RAM Tier](/content/rm/concepts#rm-concepts-tiers-ram):
+
+{/* Source: /examples/sql/resource_management.kisql (lines 46-50) */}
+```sql Set Table Tier Strategy Example
+ALTER TABLE example.customer_order
+SET TIER STRATEGY
+(
+    ( ( VRAM 1, RAM 3, PERSIST 5 ) )
+)
+```
+
+The *tier strategy* can also be reset to the
+[system default strategy](/content/rm/configuration#rm-config-tier-strategy-default).
+
+```sql title="Reset Table Tier Strategy Syntax"
+ALTER TABLE [<schema name>.]<table name>
+RESET TIER STRATEGY
+```
+
+For example, to reset the `customer_order` table's *tier strategy*:
+
+{/* Source: /examples/sql/resource_management.kisql (lines 59-60) */}
+```sql Reset Table Tier Strategy Example
+ALTER TABLE example.customer_order
+RESET TIER STRATEGY
+```
+
+
+<a id="sql-alter-table-manage-sub"></a>
+
+
+## Manage Subscription
+
+
+Any *table* that is subscribed to a streaming
+[external data source](/content/sql/ddl/create-data-source#sql-create-data-source) can have that
+subscription paused, resumed, canceled, or dropped.
+
+```sql title="Manage External Table Subscription Syntax"
+ALTER TABLE [<schema name>.]<table name>
+<PAUSE | RESUME | CANCEL | DROP> SUBSCRIPTION <data source name>
+```
+
+
+<Info>
+Once unsubscribed, there is no way to re-subscribe the table to the
+*data source* via `ALTER TABLE`.  An *external table* will need to be
+re-created, while a table whose subscription was initiated through the
+[LOAD INTO](/content/sql/load#sql-load-file-server) command can have that command
+re-executed.
+</Info>
+
+For example, to manage a subscription on the `ext_product` *external table*
+through the `product_ds` *data source*:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/external_table/external_table.kisql (lines 112-113) */}
+```sql Pause Subscription
+ALTER TABLE example.ext_product
+PAUSE SUBSCRIPTION example.product_ds
+```
+
+{/* Source: /examples/sql/external_table/external_table.kisql (lines 116-117) */}
+```sql Resume Subscription
+ALTER TABLE example.ext_product
+RESUME SUBSCRIPTION example.product_ds
+```
+
+{/* Source: /examples/sql/external_table/external_table.kisql (lines 120-121) */}
+```sql Cancel Subscription
+ALTER TABLE example.ext_product
+CANCEL SUBSCRIPTION example.product_ds
+```
+
+{/* Source: /examples/sql/external_table/external_table.kisql (lines 124-125) */}
+```sql Drop Subscription
+ALTER TABLE example.ext_product
+DROP SUBSCRIPTION example.product_ds
+```
+
+</CodeGroup>

@@ -1,0 +1,197 @@
+---
+title: ALTER DATA SOURCE
+---
+
+<a id="sql-alter-data-source"></a>
+
+
+Alters the connection parameters of an existing
+[data source](/content/sql/ddl/create-data-source#sql-create-data-source).
+
+```sql title="ALTER DATA SOURCE Syntax"
+ALTER [EXTERNAL] DATA SOURCE [<data source schema name>.]<data source name>
+SET PROPERTY
+    <property name> = '<property value>'[,...]
+```
+
+
+<Info>
+The *data source* will be validated upon alteration, by default, and
+will fail to be altered if an authorized connection cannot be established.
+</Info>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="EXTERNAL" id="external" defaultOpen>
+
+Optional keyword for clarity
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* containing the *data source* to alter
+
+</Accordion>
+
+<Accordion title="&lt;data source name&gt;" id="<data-source-name>" defaultOpen>
+
+Name of the *data source* to alter
+
+</Accordion>
+
+<Accordion title="SET PROPERTY" id="set-property" defaultOpen>
+
+Indicator that a comma-delimited list of alterations to make will follow.
+
+See [Set Properties](/content/sql/ddl/alter-data-source#sql-alter-data-source-prop) for the complete list of properties.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To alter a *data source*, `kin_ds`, updating the username & password:
+
+{/* Source: /examples/sql/data_source/data_source.kisql (lines 40-41 47-48) */}
+```sql ALTER DATA SOURCE Example
+ALTER DATA SOURCE kin_ds
+SET PROPERTY
+    USER = '<new aws access id>',
+    PASSWORD = '<new aws access key>'
+```
+
+
+<a id="sql-alter-data-source-prop"></a>
+
+
+## Set Properties
+
+
+All *data source* properties can be altered via [ALTER DATA SOURCE](/content/sql/ddl/alter-data-source#sql-alter-data-source).
+The following are the property names and descriptions to use when performing an
+alteration.
+
+
+### Provider-Agnostic Properties
+
+
+<AccordionGroup>
+
+<Accordion title="LOCATION" id="location" defaultOpen>
+
+Location of the *data source*; see [Provider-Specific Syntax](/content/sql/ddl/create-data-source#sql-create-data-source-syntax) for details
+
+The *data source* can be from any of the following *providers*:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Provider</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>AZURE</code></td>
+    <td>Microsoft Azure blob storage</td>
+  </tr>
+  <tr>
+    <td><code>CONFLUENT</code></td>
+    <td>Confluent Kafka streaming feed</td>
+  </tr>
+  <tr>
+    <td><code>GCS</code></td>
+    <td>Google Cloud Storage</td>
+  </tr>
+  <tr>
+    <td><code>HDFS</code></td>
+    <td>Apache Hadoop Distributed File System</td>
+  </tr>
+  <tr>
+    <td><code>JDBC</code></td>
+    <td>JDBC connection, where <code>LOCATION</code> is the JDBC or CData JDBC URL. See the [supported list](/content/concepts/jdbc_drivers) for the full list of supported drivers, or specify one with <code>JDBC_DRIVER_JAR_PATH</code> and <code>JDBC_DRIVER_CLASS_NAME</code>.</td>
+  </tr>
+  <tr>
+    <td><code>KAFKA</code></td>
+    <td>Apache Kafka streaming feed</td>
+  </tr>
+  <tr>
+    <td><code>S3</code></td>
+    <td>Amazon S3 bucket</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="USER" id="user" defaultOpen>
+
+User name, given in `<username>`, to use for authenticating to the *data source*
+
+</Accordion>
+
+<Accordion title="PASSWORD" id="password" defaultOpen>
+
+Password, given in `<password>`, to use for authenticating to the *data source*
+
+</Accordion>
+
+<Accordion title="CREDENTIAL" id="credential" defaultOpen>
+
+[Credential](/content/sql/ddl/create-credential#sql-create-credential) object to use to authenticate to the remote system
+
+</Accordion>
+
+<Accordion title="VALIDATE" id="validate" defaultOpen>
+
+Whether to test the connection to the data source upon creation; if `TRUE`, the creation of a
+*data source* that cannot be connected to will fail; if `FALSE`, the *data source* will be
+created regardless of connectivity.  Default is `TRUE`.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+### Provider-Specific Properties
+
+
+| Option | Provider | Description |
+| --- | --- | --- |
+| `WAIT TIMEOUT` | *Any* except `JDBC` | Timeout in seconds for reading from the storage provider |
+| `USE_MANAGED_CREDENTIALS` | `AZURE`, `GCS`, `S3` | Whether to connect to the storage provider with provider-managed credentials <br/> <br/> `AZURE`: Use the *Azure Instance Metadata Service (IMDS)* endpoint local to the Kinetica cluster to acquire credentials *(only for on-prem clusters deployed within Azure)* <br/> <br/> `GCS`: Satisfy the [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) requirements for credentials, making sure any supporting server-side configuration (files, environment variables) is done on every node in the cluster *(only for on-prem clusters deployed within GCS)* <br/> <br/> `S3`: Use the [AWS Default Credential Provider Chain](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html) to acquire credentials, making sure any supporting server-side configuration (files, environment variables) is done on every node in the cluster *(only for on-prem clusters deployed within S3)* |
+| `CONNECTION TIMEOUT` | `HDFS`, `S3` | Timeout in seconds for connecting to a given storage provider |
+| `CONTAINER NAME` | `AZURE` | Azure storage container name |
+| `SAS TOKEN` | `AZURE` | Azure storage account shared access signature token; this should be an account-level access token, not a container-level one |
+| `STORAGE ACCOUNT NAME` | `AZURE` | Azure storage account name *(only used if* `TENANT ID` *is specified)* |
+| `TENANT ID` | `AZURE` | Azure Active Directory tenant identifier |
+| `GCS_BUCKET_NAME` | `GCS` | Name of the GCS bucket to use as the data source |
+| `GCS_PROJECT_ID` | `GCS` | Name of the Google Cloud project to use for request billing |
+| `GCS_SERVICE_ACCOUNT_KEYS` | `GCS` | Text of the JSON key file containing the GCS private key |
+| `DELEGATION TOKEN` | `HDFS` | Optional Kerberos delegation token for *worker nodes*; if not specified, the token will be acquired from HDFS |
+| `KERBEROS KEYTAB` | `HDFS` | Location of the Kerberos keytab file in [KiFS](/content/tools/kifs) |
+| `USE KERBEROS` | `HDFS` | Whether to attempt Kerberos authentication to HDFS |
+| `JDBC_DRIVER_CLASS_NAME` | `JDBC` | JDBC driver class name *(optional, if the name is available in the* *JAR file's manifest)* |
+| `JDBC_DRIVER_JAR_PATH` | `JDBC` | [KiFS](/content/tools/kifs) path of the JDBC driver JAR file to use |
+| `KAFKA_TOPIC_NAME` | `KAFKA`, `CONFLUENT` | Kafka topic to access |
+| `SCHEMA_REGISTRY_CREDENTIAL` | `KAFKA`, `CONFLUENT` | [Credential](/content/sql/ddl/create-credential#sql-create-credential) object to use to authenticate to the Confluent Schema Registry |
+| `SCHEMA_REGISTRY_LOCATION` | `KAFKA`, | Location of the Confluent Schema Registry in format: <br/> <br/> `[storage_path[:storage_port]]` <br/> |
+| `SCHEMA_REGISTRY_PORT` | `KAFKA`, `CONFLUENT` | Port of the Confluent Schema Registry |
+| `BUCKET NAME` | `S3` | Amazon S3 bucket name |
+| `REGION` | `S3` | Amazon S3 region identifier |
+| `S3_AWS_ROLE_ARN` | `S3` | Amazon Resource Name (ARN) specifying the role |
+| `S3_ENCRYPTION_CUSTOMER_ALGORITHM` | `S3` | Algorithm used to encrypt/decrypt data |
+| `S3_ENCRYPTION_CUSTOMER_KEY` | `S3` | Key used to encrypt/decrypt data |
+| `S3_USE_VIRTUAL_ADDRESSING` | `S3` | Whether to use virtual addressing when referencing the S3 sink <br/> <br/> `true`: The requests URI should be specified in virtual-hosted-style format where the bucket name is part of the domain name in the URL <br/> <br/> `false`: Use path-style URI for requests |
+| `S3_VERIFY_SSL` | `S3` | Whether to verify SSL connections <br/> <br/> `true`: Verify SSL connections *(default)* <br/> <br/> `false`: Don't verify SSL connections; for testing purposes, bypassing TLS errors, self-signed certificates, etc. |

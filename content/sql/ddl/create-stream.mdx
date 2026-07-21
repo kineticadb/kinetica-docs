@@ -1,0 +1,326 @@
+---
+title: CREATE STREAM
+---
+
+<a id="sql-create-stream"></a>
+
+
+Creates a new data *stream* (natively, a
+[table monitor](/content/concepts/table_monitors)), which publishes changes
+in a given table to a target.
+
+```sql title="CREATE STREAM Syntax"
+CREATE STREAM [<stream schema name>.]<stream name>
+ON
+<
+    [TABLE] [<table schema name>.]<table name>
+    |
+    [QUERY] (<query>)
+>
+[
+    REFRESH
+    <
+        ON CHANGE |
+        EVERY <number> <SECOND[S] | MINUTE[S] | HOUR[S] | DAY[S]> [STARTING AT '<YYYY-MM-DD [HH:MM[:SS]]>']
+    >
+]
+[WHERE <filter expression>]
+WITH OPTIONS
+(
+    < DATASINK_NAME = '<data sink name>' | DESTINATION = '<destination>' >,
+    <option name> = '<option value>'[,...]
+)
+```
+
+The monitored table can be one of:
+
+* a [table](/content/sql/ddl/create-table#sql-create-table)
+  ([external tables](/content/sql/ddl/create-external-table#sql-create-ext-table) not supported)
+* a [materialized view](/content/sql/ddl/create-materialized-view#sql-create-materialized-view) (insert monitoring only)
+
+The target can be one of:
+
+* an external Apache Kafka broker
+* an external webhook
+* a local database table
+
+By default, a *stream* will publish inserted records to the target.  A *stream*
+can alternatively be configured to monitor for updates or deletes and publish
+the corresponding record counts.  *Streams* that monitor for inserts can have an
+expression applied to only have specific inserts of interest published.
+
+An existing [data sink](/content/sql/ddl/create-data-sink#sql-create-data-sink) can be referenced in
+creating a *stream*, as the target of the streamed data.  Only local tables or
+unauthenticated external targets may be used if not using an existing
+*data sink*; however, in these cases, a *data sink* will automatically be
+created to support the *stream*.
+
+When the source *table* of a *stream* is altered or dropped, the *stream* will
+also be dropped.
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;stream schema name&gt;" id="<stream-schema-name>" defaultOpen>
+
+Name of the *schema* that will contain the created *stream*; if no *schema* is specified, the
+*stream* will be created in the user's [default schema](/content/concepts/schemas#schema-default)
+
+</Accordion>
+
+<Accordion title="&lt;stream name&gt;" id="<stream-name>" defaultOpen>
+
+Name of the *stream* to create; must adhere to the supported
+[naming criteria](/content/sql/naming#sql-naming-criteria)
+
+</Accordion>
+
+<Accordion title="TABLE" id="table" defaultOpen>
+
+Optional keyword for clarity, in creating a *stream* on a *table*.
+
+</Accordion>
+
+<Accordion title="&lt;table schema name&gt;" id="<table-schema-name>" defaultOpen>
+
+Name of the *schema* containing the *table* or *materialized view* to monitor.
+
+</Accordion>
+
+<Accordion title="&lt;table name&gt;" id="<table-name>" defaultOpen>
+
+Name of the *table* or *materialized view* to monitor for changes.
+
+</Accordion>
+
+<Accordion title="QUERY" id="query" defaultOpen>
+
+Optional keyword for clarity, in creating a *stream* on a join.
+
+</Accordion>
+
+<Accordion title="&lt;query&gt;" id="<query>" defaultOpen>
+
+ Join query to which the *stream* will be applied, using the following form:
+
+\{\{&lt; code "sql" "linenos=true" "Query Syntax" &gt;\}\}
+SELECT *
+FROM &lt;delta_table&gt; dt
+LEFT SEMI JOIN &lt;lookup_table&gt; lt
+ON &lt;join_clause&gt;
+\{\{&lt; /code &gt;\}\}
+
+ Here, `<delta_table>` is the data table being monitored and `<lookup_table>` contains the
+ criteria for whether a `<delta_table>` record should be streamed or not, as determined by
+ the given `<join_clause>`.
+
+
+ <Info>
+ The marked *delta table* must be a regular table--it cannot be any of the
+ following:
+
+ * [external table](/content/sql/ddl/create-external-table#sql-create-ext-table)
+ * [filter view](/content/concepts/filtered_views)
+ * [join view](/content/concepts/joins)
+ * [logical view](/content/sql/ddl/create-view#sql-create-view)
+ * [materialized view](/content/sql/ddl/create-materialized-view#sql-create-materialized-view)
+
+ The join must also meet [sharding](/content/concepts/tables#sharding) requirements for joins--either both
+ tables need to have [shard keys](/content/concepts/tables#shard-key) on their equality-based joined
+ columns, or at least one of the tables needs to be [replicated](/content/concepts/tables#replicated).
+
+ See [CREATE TABLE](/content/sql/ddl/create-table#sql-create-table) for syntax for creating a *replicated* table or a
+ *sharded table* with a *shard key* column.
+ </Info>
+
+ See below for a table-driven geofence example using a query-based *stream*.
+
+</Accordion>
+
+<Accordion title="REFRESH" id="refresh" defaultOpen>
+
+Specifies the reporting scheme for monitored changes.   The following schemes are available:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Constant</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>ON CHANGE</code></td>
+    <td>Will cause notifications to be streamed any time a record is added, modified, or deleted from the monitored table</td>
+  </tr>
+  <tr>
+    <td><code>EVERY</code></td>
+    <td>Allows specification of an interval in seconds, minutes, hours, or days, with the optional specification of a starting time at which the first monitor interval will run; if no start time is specified, the default will be an interval's worth of time from the point at which the stream was created</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;filter expression&gt;" id="<filter-expression>" defaultOpen>
+
+Boolean expression that can be used to monitor for only a specific set of inserts.
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Indicator that a comma-delimited list of configuration option/value assignments will follow.
+See [Options](/content/sql/ddl/create-stream#sql-stream-opts) for the full list of options.
+
+
+<Info>
+One of either `DATASINK_NAME` or `DESTINATION` is required.
+</Info>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To create a *stream*, `kin_stream`, that publishes inserts into the
+`order_stream` table of orders over $10,000 via the `kin_dsink` *data sink*:
+
+{/* Source: /examples/sql/stream/stream.kisql (lines 35-37) */}
+```sql CREATE STREAM Example
+CREATE STREAM example.kin_stream ON example.order_stream
+WHERE cost > 10000.00
+WITH OPTIONS (DATASINK_NAME = 'example.kin_dsink')
+```
+
+To create a *stream*, `kin_stream`, that publishes inserts into the
+`order_stream` table of orders, placed within a given string-literal geofence,
+via the `kin_dsink` *data sink*:
+
+{/* Source: /examples/sql/stream/stream.kisql (lines 90-99) */}
+```sql CREATE STREAM Single Geometry Geofence Example
+CREATE STREAM example.kin_stream ON example.order_stream
+REFRESH ON CHANGE
+WHERE STXY_INTERSECTS(lon, lat, 'POLYGON((
+    -108.97203757374318 40.945055425026034,
+    -101.72106101124318 40.945055425026034,
+    -101.72106101124318 36.98324941198095,
+    -108.97203757374318 36.98324941198095,
+    -108.97203757374318 40.945055425026034
+    ))')
+WITH OPTIONS (DATASINK_NAME = 'example.kin_dsink')
+```
+
+To create a *stream*, `kin_stream`, that publishes inserts into the
+`order_stream` table of orders, placed within a table-driven geofence defined
+in `order_location`, via the `kin_dsink` *data sink*; noting that the
+`order_location` table in this example is
+[replicated](/content/concepts/tables#replicated):
+
+{/* Source: /examples/sql/stream/stream.kisql (lines 225-234) */}
+```sql CREATE STREAM Table-Driven Geofence Example
+CREATE STREAM example.kin_stream
+ON QUERY
+(
+	SELECT *
+	FROM example.order_stream os
+	LEFT SEMI JOIN example.order_location ol
+		ON STXY_INTERSECTS(os.lon, os.lat, ol.geom)
+)
+REFRESH ON CHANGE
+WITH OPTIONS (DATASINK_NAME = 'example.kin_dsink')
+```
+
+To create a *stream*, `kin_stream`, that inserts into the local
+`order_target` table any orders over $10,000 inserted into the
+`order_stream` table:
+
+{/* Source: /examples/sql/stream/stream.kisql (lines 121-123) */}
+```sql CREATE STREAM to Local Table Example
+CREATE STREAM example.kin_stream ON example.order_stream
+WHERE cost > 10000.00
+WITH OPTIONS (DESTINATION = 'TABLE://example.order_target')
+```
+
+
+<a id="sql-stream-opts"></a>
+
+
+## Options
+
+
+| Option | Consumer | Description |
+| --- | --- | --- |
+| `DATASINK_NAME` | *Any* | [Data sink](/content/sql/ddl/create-data-sink#sql-create-data-sink) object to use to identify the consumer of this stream; mutually exclusive with `destination` |
+| `DESTINATION` | *Any* | Location of the target when not using a *data sink*; the URL of the consumer to connect to in this format: <br/> <br/> `<consumer>://<target>[:<port>]` <br/> <br/> Supported consumers include: <br/> <br/> `http`: Unsecured webhook <br/> <br/> `https`: Secured webhook <br/> <br/> `kafka`: Apache Kafka broker <br/> <br/> `table`: Local Kinetica table, where `target` is the name of the target table in the following format: <br/> <br/> `[<schema name>.]<table name>` <br/> |
+| `EVENT` | *Any* | Specifies the type of event to monitor <br/> <br/> `insert`: *(default)* Monitor inserts and publish them to the target <br/> <br/> `update`: Monitor updates and publish their counts to the target <br/> <br/> `delete`: Monitor deletes and publish their counts to the target |
+| `INCREASING_COLUMN` | *Any* | Column of the monitored table that contains ever-increasing values for new data; e.g., a timestamp or sequence ID column <br/> <Tip> If such a column can be identified, the performance of the *stream* will improve. </Tip> |
+| `MAX_CONSECUTIVE_FAILURES` | *Any* | Maximum number of failed notification attempts before automatically suspending the the *stream*.  The default, `-1`, disables auto-suspension. |
+| `FAILED_NOTIFICATIONS_TABLE_NAME` | `http` `https` `kafka` | Name of the table to which failed *stream* notifications are written and from which they are replayed when the *stream* is re-enabled from a suspended state. The default is no table for storing/replaying failed *stream* notifications. |
+| `KAFKA_TOPIC_NAME` | `kafka` | Kafka topic to write to, if the target is a Kafka broker |
+
+
+<a id="sql-create-stream-consumers"></a>
+
+
+## Consumer-Specific Syntax
+
+
+Several configurations across multiple consumers are supported.
+
+<CodeGroup>
+
+{/* Source: syntax/streams.sql (lines 28-31) */}
+```sql Data Sink
+CREATE STREAM [<stream schema name>.]<stream name>
+ON [TABLE] [<table schema name>.]<table name>
+[WHERE <filter expression>]
+WITH OPTIONS (DATASINK_NAME = '[<data sink schema name>.]<data sink name>')
+```
+
+{/* Source: syntax/streams.sql (lines 6-9) */}
+```sql HTTP
+CREATE STREAM [<stream schema name>.]<stream name>
+ON [TABLE] [<table schema name>.]<table name>
+[WHERE <filter expression>]
+WITH OPTIONS (DESTINATION = 'http://<host>[:<port>]')
+```
+
+{/* Source: syntax/streams.sql (lines 12-15) */}
+```sql HTTPS
+CREATE STREAM [<stream schema name>.]<stream name>
+ON [TABLE] [<table schema name>.]<table name>
+[WHERE <filter expression>]
+WITH OPTIONS (DESTINATION = 'https://<host>[:<port>]')
+```
+
+{/* Source: syntax/streams.sql (lines 18-25) */}
+```sql Kafka (No auth)
+CREATE STREAM [<stream schema name>.]<stream name>
+ON [TABLE] [<table schema name>.]<table name>
+[WHERE <filter expression>]
+WITH OPTIONS
+(
+	DESTINATION = 'kafka://<host>:<port>',
+	KAFKA_TOPIC_NAME = '<kafka topic name>'
+)
+```
+
+{/* Source: syntax/streams.sql (lines 34-37) */}
+```sql Local Table
+CREATE STREAM [<stream schema name>.]<stream name>
+ON [TABLE] [<source table schema name>.]<source table name>
+[WHERE <filter expression>]
+WITH OPTIONS (DESTINATION = 'table://[<target table schema name>.]<target table name>')
+```
+
+</CodeGroup>

@@ -1,0 +1,154 @@
+---
+title: ALTER MATERIALIZED VIEW
+---
+
+<a id="sql-alter-materialized-view"></a>
+
+
+Alters the configuration of a
+[materialized view](/content/sql/ddl/create-materialized-view#sql-create-materialized-view).
+
+Any of the following facets of a *materialized view* can be altered:
+
+* [Schema](/content/sql/ddl/alter-materialized-view#sql-alter-mview-move)
+* [Access Mode](/content/sql/ddl/alter-materialized-view#sql-alter-mview-set-access-mode)
+* [Execution User](/content/sql/ddl/alter-materialized-view#sql-alter-mview-set-execute-as)
+* [Refresh Mode](/content/sql/ddl/alter-materialized-view#sql-alter-mview-set-refresh-mode)
+* [TTL](/content/sql/ddl/alter-materialized-view#sql-alter-mview-set-ttl)
+
+
+<a id="sql-alter-mview-move"></a>
+
+
+## Move View
+
+
+A *materialized view* can be moved from one schema to another.
+
+```sql title="Move View Syntax"
+ALTER MATERIALIZED VIEW [<schema name>.]<view name>
+< MOVE TO | SET SCHEMA > <new schema name>
+```
+
+All dependent [views](/content/sql/ddl/create-view#sql-create-view),
+[materialized views](/content/sql/ddl/create-materialized-view#sql-create-materialized-view),
+[streams](/content/sql/ddl/create-stream#sql-create-stream), and
+[SQL procedures](/content/sql/procedure#sql-procedures) will be dropped.
+
+For example, to move the `sales_current` *view* from the `example_olap`
+*schema* to the `example_archive` *schema*:
+
+{/* Source: /examples/sql/view/alter_mview.kisql (lines 101-102) */}
+```sql Move Materialized View Example
+ALTER MATERIALIZED VIEW example_olap.sales_current
+MOVE TO example_archive
+```
+
+
+<a id="sql-alter-mview-set-access-mode"></a>
+
+
+## Set Access Mode
+
+
+A *materialized view* can have its global accessibility modified for all users
+in the system, independently from and further restricting any role-based access
+controls in place.
+
+```sql title="Set Materialized View Access Mode Syntax"
+ALTER MATERIALIZED VIEW [<schema name>.]<view name>
+SET ACCESS MODE < NO_ACCESS | READ_ONLY | WRITE_ONLY | READ_WRITE >
+```
+
+
+<Info>
+Changing the access mode cannot *widen* access for users not already
+granted access; it can only *narrow* access for those who already have
+access.  This setting will also trump administrative access to a
+*materialized view*.
+</Info>
+
+<a id="sql-alter-mview-set-execute-as"></a>
+
+
+## Set Execution User
+
+
+A *materialized view* can have its execution user for periodic refreshes
+(`REFRESH` is set to `EVERY ...`) changed to the given user.
+
+```sql title="Set Materialized View Execution User Syntax"
+ALTER MATERIALIZED VIEW [<schema name>.]<view name>
+SET EXECUTE AS '<user name>'
+```
+
+
+<Info>
+If this user doesn't exist at the time of a refresh, the refresh will
+be executed as the creating user, and, failing that, the system
+administration user.
+</Info>
+
+<a id="sql-alter-mview-set-refresh-mode"></a>
+
+
+## Set Refresh Mode
+
+
+The refresh mode of a *materialized view* can be modified.
+
+```sql title="Set Materialized View Refresh Mode Syntax"
+ALTER MATERIALIZED VIEW [<schema name>.]<view name>
+SET REFRESH
+<
+    OFF |
+    ON CHANGE |
+    ON QUERY |
+    EVERY <number> <SECOND[S] | MINUTE[S] | HOUR[S] | DAY[S]>
+        [STARTING AT '<YYYY-MM-DD [HH:MM[:SS]]>']
+        [STOP AFTER < '<YYYY-MM-DD [HH:MM[:SS]]>' | <number> <SECOND[S] | MINUTE[S] | HOUR[S] | DAY[S]> >]
+>
+```
+
+The available refresh modes are:
+
+| Constant | Description |
+| --- | --- |
+| `OFF` | Will prevent the *materialized view* from being automatically refreshed, but will still allow [manual refreshes](/content/sql/ddl/refresh-view#sql-refresh-view) of the data to be requested |
+| `ON CHANGE` | Will cause the *materialized view* to be updated any time a record is added, modified, or deleted from the subtending *tables* in its query |
+| `ON QUERY` | Will cause the *materialized view* to be updated any time it is queried |
+| `EVERY` | Allows specification of an interval in seconds, minutes, hours, or days, at which the *materialized view* should be refreshed.  By default, the first refresh interval will be one interval's worth of time from the point at which the *materialized view* alteration was requested.  This can be modified with the following options: <br/> <br/> * `STARTING AT`:  specify a date or timestamp at which refresh cycles should begin <br/> * `STOP AFTER`:  specify a date, timestamp, or time interval after which refresh cycles should end |
+
+
+For example, to alter the current sales *materialized view* to refresh every 6
+hours:
+
+{/* Source: /examples/sql/view/alter_mview.kisql (lines 39-40) */}
+```sql Set Materialized View Refresh Mode by Hour Example
+ALTER MATERIALIZED VIEW example_olap.sales_current
+SET REFRESH EVERY 6 HOURS
+```
+
+
+{/* Source: /examples/sql/view/alter_mview.kisql (lines 63-66) */}
+```sql Set Materialized View Refresh Mode with Start/Stop Example
+ALTER MATERIALIZED VIEW example_olap.sales_current
+SET REFRESH EVERY 1 MINUTE
+    STARTING AT '2026-01-01 00:00:00'
+    STOP AFTER 31 DAYS
+```
+
+
+<a id="sql-alter-mview-set-ttl"></a>
+
+
+## Set TTL
+
+
+A *materialized view's* [time-to-live (TTL)](/content/concepts/ttl) can be
+altered.
+
+```sql title="Set Materialized View TTL Syntax"
+ALTER MATERIALIZED VIEW [<schema name>.]<view name>
+SET TTL <new ttl>
+```
