@@ -77,6 +77,19 @@ The default value is `false`.
 
 </ParamField>
 
+<ParamField body="enable_inplace_updates">
+
+Applies only when upserting (when *update_on_existing_pk* is *true*). If set to *true*, an existing record matched by primary key is modified in place. If set to *false*, it is updated by deleting the existing record and inserting a replacement (delete and insert), which prevents the change from being reflected in dependent materialized views until they are refreshed.
+
+The default value is `true`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
 <ParamField body="ignore_existing_pk">
 
 Specifies the record collision error-suppression policy for inserting into a table with a [primary key](../../concepts/tables/#primary-keys), only used when not in upsert mode (upsert mode is disabled when *update_on_existing_pk* is *false*).  If set to *true*, any record being inserted that is rejected for having primary key values that match those of an existing table record will be ignored with no error generated.  If *false*, the rejection of any record for having primary key values matching an existing record will result in an error being reported, as determined by *allow_partial_batch* and *return_individual_errors*.  If the specified table does not have a primary key or if upsert mode is in effect (*update_on_existing_pk* is *true*), then this option has no effect.
@@ -156,6 +169,18 @@ The supported values are:
 
 </ParamField>
 
+<ParamField body="error_handling">
+
+Specifies how errors should be handled upon insertion.  When set, this option is authoritative; supplying a contradictory *allow_partial_batch* is an error.
+
+The default value is `abort`.
+
+- **permissive**: Records with bad column values are kept when possible: the offending column is filled with its default value if one exists, otherwise with null if the column is nullable; if neither is possible the record is skipped and reported.
+- **skip**: Records with bad values are skipped and reported; the rest of the batch is inserted.
+- **abort**: Stops the insertion and rejects the remaining batch when any record is incorrect.
+
+</ParamField>
+
 <ParamField body="dry_run">
 
 If set to *true*, no data will be saved and any errors will be returned.
@@ -166,6 +191,22 @@ The supported values are:
 
 - true
 - false
+
+</ParamField>
+
+<ParamField body="request_schema_str">
+
+Type schema of  input parameter *list* (when input parameter *list_encoding* is *binary*), in [["\{column_name\}","\{column_type\}"]] format. When non-empty and different from the table's schema, the server remaps the incoming records to the table's full schema.  Columns present in the table but absent from this schema are filled using their default values, NULL (if nullable), or an error is returned.  If empty, records must match the table's full schema.
+
+The default value is ''.
+
+</ParamField>
+
+<ParamField body="transformations">
+
+Comma-separated expressions, one per target table column.  Each expression is evaluated per record.  Empty entries (two consecutive commas) mean no transformation for that column -- the value is resolved from the input record, table default, NULL, or an error. Expressions may reference input columns by name or by position ($1 for the first input column, $2 for the second, etc.).
+
+The default value is ''.
 
 </ParamField>
 

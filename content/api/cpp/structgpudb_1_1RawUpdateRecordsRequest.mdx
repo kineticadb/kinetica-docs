@@ -251,6 +251,15 @@ Optional parameters.
  The default value is <a className="el" href="/content/api/cpp/namespacegpudb#abb0d038b0eefbedd53545f6ec7e312b6">update\_records\_false</a>. 
 </li>
 <li>
+<a className="el" href="/content/api/cpp/namespacegpudb#abb40caf1f8c69661ca410ffc19ea9d0f">update\_records\_error\_handling</a>: Specifies how record errors are handled during the update's reinsert (including any alternate insert records supplied via <span className="em arg">recordsToInsert\_</span>). When set, this option is authoritative for the reinsert. Primary-key collision behavior is governed by <a className="el" href="/content/api/cpp/namespacegpudb#a7605a7a3a0274ce44efaa471344dcef2">update\_on\_existing\_pk</a> and <a className="el" href="/content/api/cpp/namespacegpudb#aba9511e40d021bad06b9dc8680f20ded">ignore\_existing\_pk</a>. Supported values: 
+<ul>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a6f0b4c7326c0de0eefe77ffc7a2bccb2">update\_records\_permissive</a>: Records with bad column values are kept when possible: the offending column is filled with its default value if one exists, otherwise with null if the column is nullable; if neither is possible the record is skipped and reported. </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#ab629a2a88c015e4833dbec0731799e9a">update\_records\_skip</a>: Records with bad values are skipped and reported; the rest of the batch is applied. </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a512234873c8cc9a421649fbac2fd02b1">update\_records\_abort</a>: Stops the update and rejects the remaining batch when any record is incorrect. </li>
+</ul>
+ The default value is <a className="el" href="/content/api/cpp/namespacegpudb#a512234873c8cc9a421649fbac2fd02b1">update\_records\_abort</a>. 
+</li>
+<li>
 <a className="el" href="/content/api/cpp/namespacegpudb#a7605a7a3a0274ce44efaa471344dcef2">update\_records\_update\_on\_existing\_pk</a>: Specifies the record collision policy for updating a table with a <a href="/content/concepts/tables/#primary-keys" target="_top">primary key</a>. There are two ways that a record collision can occur. The first is an "update collision", which happens when the update changes the value of the updated record's primary key, and that new primary key already exists as the primary key of another record in the table. The second is an "insert collision", which occurs when a given filter in <span className="em arg">expressions\_</span> finds no records to update, and the alternate insert record given in <span className="em arg">recordsToInsert\_</span> (or <span className="em arg">recordsToInsertStr\_</span>) contains a primary key matching that of an existing record in the table. If <a className="el" href="/content/api/cpp/namespacegpudb#a7605a7a3a0274ce44efaa471344dcef2">update\_on\_existing\_pk</a> is set to <a className="el" href="/content/api/cpp/namespacegpudb#a285c1caa5b443115c8d8f7c8638740e6">true</a>, "update collisions" will result in the existing record collided into being removed and the record updated with values specified in <span className="em arg">newValuesMaps\_</span> taking its place; "insert collisions" will result in the collided-into record being updated with the values in <span className="em arg">recordsToInsert\_</span> / <span className="em arg">recordsToInsertStr\_</span> (if given). If set to <a className="el" href="/content/api/cpp/namespacegpudb#abb0d038b0eefbedd53545f6ec7e312b6">false</a>, the existing collided-into record will remain unchanged, while the update will be rejected and the error handled as determined by <a className="el" href="/content/api/cpp/namespacegpudb#aba9511e40d021bad06b9dc8680f20ded">ignore\_existing\_pk</a>. If the specified table does not have a primary key, then this option has no effect. Supported values: 
 <ul>
 <li> <a className="el" href="/content/api/cpp/namespacegpudb#a285c1caa5b443115c8d8f7c8638740e6">update\_records\_true</a>: Overwrite the collided-into record when updating a record's primary key or inserting an alternate record causes a primary key collision between the record being updated/inserted and another existing record in the table </li>
@@ -258,6 +267,8 @@ Optional parameters.
 </ul>
  The default value is <a className="el" href="/content/api/cpp/namespacegpudb#abb0d038b0eefbedd53545f6ec7e312b6">update\_records\_false</a>. 
 </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a2de71c9660b5fe22e9b81a193883b0b2">update\_records\_pk\_conflict\_predicate\_higher</a>: The record with higher value for the column resolves the primary-key insert conflict. The default value is ''. </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a57249f8219482449d3a883f1c1a9073d">update\_records\_pk\_conflict\_predicate\_lower</a>: The record with lower value for the column resolves the primary-key insert conflict. The default value is ''. </li>
 <li>
 <a className="el" href="/content/api/cpp/namespacegpudb#aba9511e40d021bad06b9dc8680f20ded">update\_records\_ignore\_existing\_pk</a>: Specifies the record collision error-suppression policy for updating a table with a <a href="/content/concepts/tables/#primary-keys" target="_top">primary key</a>, only used when primary key record collisions are rejected (<a className="el" href="/content/api/cpp/namespacegpudb#a7605a7a3a0274ce44efaa471344dcef2">update\_on\_existing\_pk</a> is <a className="el" href="/content/api/cpp/namespacegpudb#abb0d038b0eefbedd53545f6ec7e312b6">false</a>). If set to <a className="el" href="/content/api/cpp/namespacegpudb#a285c1caa5b443115c8d8f7c8638740e6">true</a>, any record update that is rejected for resulting in a primary key collision with an existing table record will be ignored with no error generated. If <a className="el" href="/content/api/cpp/namespacegpudb#abb0d038b0eefbedd53545f6ec7e312b6">false</a>, the rejection of any update for resulting in a primary key collision will cause an error to be reported. If the specified table does not have a primary key or if <a className="el" href="/content/api/cpp/namespacegpudb#a7605a7a3a0274ce44efaa471344dcef2">update\_on\_existing\_pk</a> is <a className="el" href="/content/api/cpp/namespacegpudb#a285c1caa5b443115c8d8f7c8638740e6">true</a>, then this option has no effect. Supported values: 
 <ul>
@@ -313,7 +324,7 @@ Optional parameters.
 </table>
 </div>
 </div>
-<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L366">366</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L420">420</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
 </div>
 </div>
 <h2 className="memtitle"><span className="permalink"><a href="#a9ed9cb1c0c27f656b44aa324e0b53334">&#9670;&#160;</a></span>RawUpdateRecordsRequest() <span className="overload">\[3/3\]</span></h2>
@@ -430,6 +441,15 @@ Optional parameters.
  The default value is <a className="el" href="/content/api/cpp/namespacegpudb#abb0d038b0eefbedd53545f6ec7e312b6">update\_records\_false</a>. 
 </li>
 <li>
+<a className="el" href="/content/api/cpp/namespacegpudb#abb40caf1f8c69661ca410ffc19ea9d0f">update\_records\_error\_handling</a>: Specifies how record errors are handled during the update's reinsert (including any alternate insert records supplied via <span className="em arg">recordsToInsert\_</span>). When set, this option is authoritative for the reinsert. Primary-key collision behavior is governed by <a className="el" href="/content/api/cpp/namespacegpudb#a7605a7a3a0274ce44efaa471344dcef2">update\_on\_existing\_pk</a> and <a className="el" href="/content/api/cpp/namespacegpudb#aba9511e40d021bad06b9dc8680f20ded">ignore\_existing\_pk</a>. Supported values: 
+<ul>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a6f0b4c7326c0de0eefe77ffc7a2bccb2">update\_records\_permissive</a>: Records with bad column values are kept when possible: the offending column is filled with its default value if one exists, otherwise with null if the column is nullable; if neither is possible the record is skipped and reported. </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#ab629a2a88c015e4833dbec0731799e9a">update\_records\_skip</a>: Records with bad values are skipped and reported; the rest of the batch is applied. </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a512234873c8cc9a421649fbac2fd02b1">update\_records\_abort</a>: Stops the update and rejects the remaining batch when any record is incorrect. </li>
+</ul>
+ The default value is <a className="el" href="/content/api/cpp/namespacegpudb#a512234873c8cc9a421649fbac2fd02b1">update\_records\_abort</a>. 
+</li>
+<li>
 <a className="el" href="/content/api/cpp/namespacegpudb#a7605a7a3a0274ce44efaa471344dcef2">update\_records\_update\_on\_existing\_pk</a>: Specifies the record collision policy for updating a table with a <a href="/content/concepts/tables/#primary-keys" target="_top">primary key</a>. There are two ways that a record collision can occur. The first is an "update collision", which happens when the update changes the value of the updated record's primary key, and that new primary key already exists as the primary key of another record in the table. The second is an "insert collision", which occurs when a given filter in <span className="em arg">expressions\_</span> finds no records to update, and the alternate insert record given in <span className="em arg">recordsToInsert\_</span> (or <span className="em arg">recordsToInsertStr\_</span>) contains a primary key matching that of an existing record in the table. If <a className="el" href="/content/api/cpp/namespacegpudb#a7605a7a3a0274ce44efaa471344dcef2">update\_on\_existing\_pk</a> is set to <a className="el" href="/content/api/cpp/namespacegpudb#a285c1caa5b443115c8d8f7c8638740e6">true</a>, "update collisions" will result in the existing record collided into being removed and the record updated with values specified in <span className="em arg">newValuesMaps\_</span> taking its place; "insert collisions" will result in the collided-into record being updated with the values in <span className="em arg">recordsToInsert\_</span> / <span className="em arg">recordsToInsertStr\_</span> (if given). If set to <a className="el" href="/content/api/cpp/namespacegpudb#abb0d038b0eefbedd53545f6ec7e312b6">false</a>, the existing collided-into record will remain unchanged, while the update will be rejected and the error handled as determined by <a className="el" href="/content/api/cpp/namespacegpudb#aba9511e40d021bad06b9dc8680f20ded">ignore\_existing\_pk</a>. If the specified table does not have a primary key, then this option has no effect. Supported values: 
 <ul>
 <li> <a className="el" href="/content/api/cpp/namespacegpudb#a285c1caa5b443115c8d8f7c8638740e6">update\_records\_true</a>: Overwrite the collided-into record when updating a record's primary key or inserting an alternate record causes a primary key collision between the record being updated/inserted and another existing record in the table </li>
@@ -437,6 +457,8 @@ Optional parameters.
 </ul>
  The default value is <a className="el" href="/content/api/cpp/namespacegpudb#abb0d038b0eefbedd53545f6ec7e312b6">update\_records\_false</a>. 
 </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a2de71c9660b5fe22e9b81a193883b0b2">update\_records\_pk\_conflict\_predicate\_higher</a>: The record with higher value for the column resolves the primary-key insert conflict. The default value is ''. </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a57249f8219482449d3a883f1c1a9073d">update\_records\_pk\_conflict\_predicate\_lower</a>: The record with lower value for the column resolves the primary-key insert conflict. The default value is ''. </li>
 <li>
 <a className="el" href="/content/api/cpp/namespacegpudb#aba9511e40d021bad06b9dc8680f20ded">update\_records\_ignore\_existing\_pk</a>: Specifies the record collision error-suppression policy for updating a table with a <a href="/content/concepts/tables/#primary-keys" target="_top">primary key</a>, only used when primary key record collisions are rejected (<a className="el" href="/content/api/cpp/namespacegpudb#a7605a7a3a0274ce44efaa471344dcef2">update\_on\_existing\_pk</a> is <a className="el" href="/content/api/cpp/namespacegpudb#abb0d038b0eefbedd53545f6ec7e312b6">false</a>). If set to <a className="el" href="/content/api/cpp/namespacegpudb#a285c1caa5b443115c8d8f7c8638740e6">true</a>, any record update that is rejected for resulting in a primary key collision with an existing table record will be ignored with no error generated. If <a className="el" href="/content/api/cpp/namespacegpudb#abb0d038b0eefbedd53545f6ec7e312b6">false</a>, the rejection of any update for resulting in a primary key collision will cause an error to be reported. If the specified table does not have a primary key or if <a className="el" href="/content/api/cpp/namespacegpudb#a7605a7a3a0274ce44efaa471344dcef2">update\_on\_existing\_pk</a> is <a className="el" href="/content/api/cpp/namespacegpudb#a285c1caa5b443115c8d8f7c8638740e6">true</a>, then this option has no effect. Supported values: 
 <ul>
@@ -492,7 +514,7 @@ Optional parameters.
 </table>
 </div>
 </div>
-<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L701">701</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L809">809</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
 </div>
 </div>
 <h2 className="groupheader">Member Data Documentation</h2>
@@ -507,7 +529,7 @@ Optional parameters.
 </div>
 <div className="memdoc">
 <p>A list of the actual predicates, one for each update; format should follow the guidelines <a className="el" href="/content/api/cpp/classgpudb_1_1GPUdb#ad975f31cd9d87d805ebb0513f652eca6">here</a>. </p>
-<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L726">726</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L834">834</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
 </div>
 </div>
 <h2 className="memtitle"><span className="permalink"><a href="#a08649327276a2c1ecfef5f0a574e4a95">&#9670;&#160;</a></span>newValuesMaps</h2>
@@ -522,7 +544,7 @@ Optional parameters.
 <div className="memdoc">
 <p>List of new values for the matching records. </p>
 <p>Each element is a map with (key, value) pairs where the keys are the names of the columns whose values are to be updated; the values are the new values. The number of elements in the list should match the length of <a className="el" href="#a031d78b85f296b946451f91c739b23e7">expressions</a>. </p>
-<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L735">735</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L843">843</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
 </div>
 </div>
 <h2 className="memtitle"><span className="permalink"><a href="#a1414565b5a00d5872f69b34a4b37abac">&#9670;&#160;</a></span>options</h2>
@@ -547,6 +569,15 @@ Optional parameters.
  The default value is <a className="el" href="/content/api/cpp/namespacegpudb#abb0d038b0eefbedd53545f6ec7e312b6">update\_records\_false</a>. 
 </li>
 <li>
+<a className="el" href="/content/api/cpp/namespacegpudb#abb40caf1f8c69661ca410ffc19ea9d0f">update\_records\_error\_handling</a>: Specifies how record errors are handled during the update's reinsert (including any alternate insert records supplied via <a className="el" href="#a23c7df2a854b5f84f5ac489843c0f4fc">recordsToInsert</a>). When set, this option is authoritative for the reinsert. Primary-key collision behavior is governed by <a className="el" href="/content/api/cpp/namespacegpudb#a7605a7a3a0274ce44efaa471344dcef2">update\_on\_existing\_pk</a> and <a className="el" href="/content/api/cpp/namespacegpudb#aba9511e40d021bad06b9dc8680f20ded">ignore\_existing\_pk</a>. Supported values: 
+<ul>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a6f0b4c7326c0de0eefe77ffc7a2bccb2">update\_records\_permissive</a>: Records with bad column values are kept when possible: the offending column is filled with its default value if one exists, otherwise with null if the column is nullable; if neither is possible the record is skipped and reported. </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#ab629a2a88c015e4833dbec0731799e9a">update\_records\_skip</a>: Records with bad values are skipped and reported; the rest of the batch is applied. </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a512234873c8cc9a421649fbac2fd02b1">update\_records\_abort</a>: Stops the update and rejects the remaining batch when any record is incorrect. </li>
+</ul>
+ The default value is <a className="el" href="/content/api/cpp/namespacegpudb#a512234873c8cc9a421649fbac2fd02b1">update\_records\_abort</a>. 
+</li>
+<li>
 <a className="el" href="/content/api/cpp/namespacegpudb#a7605a7a3a0274ce44efaa471344dcef2">update\_records\_update\_on\_existing\_pk</a>: Specifies the record collision policy for updating a table with a <a href="/content/concepts/tables/#primary-keys" target="_top">primary key</a>. There are two ways that a record collision can occur. The first is an "update collision", which happens when the update changes the value of the updated record's primary key, and that new primary key already exists as the primary key of another record in the table. The second is an "insert collision", which occurs when a given filter in <a className="el" href="#a031d78b85f296b946451f91c739b23e7">expressions</a> finds no records to update, and the alternate insert record given in <a className="el" href="#a23c7df2a854b5f84f5ac489843c0f4fc">recordsToInsert</a> (or <a className="el" href="#a0710eccfd30460f5f136873a07483ec9">recordsToInsertStr</a>) contains a primary key matching that of an existing record in the table. If <a className="el" href="/content/api/cpp/namespacegpudb#a7605a7a3a0274ce44efaa471344dcef2">update\_on\_existing\_pk</a> is set to <a className="el" href="/content/api/cpp/namespacegpudb#a285c1caa5b443115c8d8f7c8638740e6">true</a>, "update collisions" will result in the existing record collided into being removed and the record updated with values specified in <a className="el" href="#a08649327276a2c1ecfef5f0a574e4a95">newValuesMaps</a> taking its place; "insert collisions" will result in the collided-into record being updated with the values in <a className="el" href="#a23c7df2a854b5f84f5ac489843c0f4fc">recordsToInsert</a> / <a className="el" href="#a0710eccfd30460f5f136873a07483ec9">recordsToInsertStr</a> (if given). If set to <a className="el" href="/content/api/cpp/namespacegpudb#abb0d038b0eefbedd53545f6ec7e312b6">false</a>, the existing collided-into record will remain unchanged, while the update will be rejected and the error handled as determined by <a className="el" href="/content/api/cpp/namespacegpudb#aba9511e40d021bad06b9dc8680f20ded">ignore\_existing\_pk</a>. If the specified table does not have a primary key, then this option has no effect. Supported values: 
 <ul>
 <li> <a className="el" href="/content/api/cpp/namespacegpudb#a285c1caa5b443115c8d8f7c8638740e6">update\_records\_true</a>: Overwrite the collided-into record when updating a record's primary key or inserting an alternate record causes a primary key collision between the record being updated/inserted and another existing record in the table </li>
@@ -554,6 +585,8 @@ Optional parameters.
 </ul>
  The default value is <a className="el" href="/content/api/cpp/namespacegpudb#abb0d038b0eefbedd53545f6ec7e312b6">update\_records\_false</a>. 
 </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a2de71c9660b5fe22e9b81a193883b0b2">update\_records\_pk\_conflict\_predicate\_higher</a>: The record with higher value for the column resolves the primary-key insert conflict. The default value is ''. </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a57249f8219482449d3a883f1c1a9073d">update\_records\_pk\_conflict\_predicate\_lower</a>: The record with lower value for the column resolves the primary-key insert conflict. The default value is ''. </li>
 <li>
 <a className="el" href="/content/api/cpp/namespacegpudb#aba9511e40d021bad06b9dc8680f20ded">update\_records\_ignore\_existing\_pk</a>: Specifies the record collision error-suppression policy for updating a table with a <a href="/content/concepts/tables/#primary-keys" target="_top">primary key</a>, only used when primary key record collisions are rejected (<a className="el" href="/content/api/cpp/namespacegpudb#a7605a7a3a0274ce44efaa471344dcef2">update\_on\_existing\_pk</a> is <a className="el" href="/content/api/cpp/namespacegpudb#abb0d038b0eefbedd53545f6ec7e312b6">false</a>). If set to <a className="el" href="/content/api/cpp/namespacegpudb#a285c1caa5b443115c8d8f7c8638740e6">true</a>, any record update that is rejected for resulting in a primary key collision with an existing table record will be ignored with no error generated. If <a className="el" href="/content/api/cpp/namespacegpudb#abb0d038b0eefbedd53545f6ec7e312b6">false</a>, the rejection of any update for resulting in a primary key collision will cause an error to be reported. If the specified table does not have a primary key or if <a className="el" href="/content/api/cpp/namespacegpudb#a7605a7a3a0274ce44efaa471344dcef2">update\_on\_existing\_pk</a> is <a className="el" href="/content/api/cpp/namespacegpudb#a285c1caa5b443115c8d8f7c8638740e6">true</a>, then this option has no effect. Supported values: 
 <ul>
@@ -604,7 +637,7 @@ Optional parameters.
 <li> <a className="el" href="/content/api/cpp/namespacegpudb#a7e44ada8bf08b366e29972017837ba70">update\_records\_record\_id</a>: ID of a single record to be updated (returned in the call to <a className="el" href="/content/api/cpp/classgpudb_1_1GPUdb#a1ec81d92f949358379266d42ae12bae7">GPUdb::insertRecordsRaw</a> or <a className="el" href="/content/api/cpp/classgpudb_1_1GPUdb#a15a7bd6a0d065b5528141f8e00a91305">GPUdb::getRecordsFromCollectionRaw</a>). </li>
 </ul>
 <p>The default value is an empty map. </p>
-<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L957">957</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L1102">1102</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
 </div>
 </div>
 <h2 className="memtitle"><span className="permalink"><a href="#aaba84a2e58dba662c53606c5253a082a">&#9670;&#160;</a></span>recordEncoding</h2>
@@ -624,7 +657,7 @@ Optional parameters.
 <li> <a className="el" href="/content/api/cpp/namespacegpudb#ade011c735985af5ff567320f4c991435">update\_records\_json</a> </li>
 </ul>
 <p>The default value is <a className="el" href="/content/api/cpp/namespacegpudb#a575235660b98ca97defbf3e99011182a">update\_records\_binary</a>. </p>
-<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L764">764</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L872">872</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
 </div>
 </div>
 <h2 className="memtitle"><span className="permalink"><a href="#a23c7df2a854b5f84f5ac489843c0f4fc">&#9670;&#160;</a></span>recordsToInsert</h2>
@@ -639,7 +672,7 @@ Optional parameters.
 <div className="memdoc">
 <p>An <span className="em">optional</span> list of new binary-avro encoded records to insert, one for each update. </p>
 <p>If one of <a className="el" href="#a031d78b85f296b946451f91c739b23e7">expressions</a> does not yield a matching record to be updated, then the corresponding element from this list will be added to the table. The default value is an empty vector. </p>
-<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L744">744</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L852">852</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
 </div>
 </div>
 <h2 className="memtitle"><span className="permalink"><a href="#a0710eccfd30460f5f136873a07483ec9">&#9670;&#160;</a></span>recordsToInsertStr</h2>
@@ -654,7 +687,7 @@ Optional parameters.
 <div className="memdoc">
 <p>An optional list of JSON encoded objects to insert, one for each update, to be added if the particular update did not match any objects. </p>
 <p>The default value is an empty vector. </p>
-<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L751">751</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L859">859</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
 </div>
 </div>
 <h2 className="memtitle"><span className="permalink"><a href="#aa500a4b3c2eea89cb574d4610d0cd642">&#9670;&#160;</a></span>tableName</h2>
@@ -669,7 +702,7 @@ Optional parameters.
 <div className="memdoc">
 <p>Name of table to be updated, in \[ schema\_name. \]table\_name format, using standard <a href="/content/concepts/tables/#table-name-resolution" target="_top">name resolution rules</a>. </p>
 <p>Must be a currently existing table and not a view. </p>
-<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L719">719</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h#L827">827</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/update_records.h">update\_records.h</a>.</p>
 </div>
 </div>
 <hr />

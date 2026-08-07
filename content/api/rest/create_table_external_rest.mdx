@@ -308,7 +308,8 @@ Specifies how errors should be handled upon insertion.
 The default value is `abort`.
 
 - **permissive**: Records with missing columns are populated with nulls if possible; otherwise, the malformed records are skipped.
-- **ignore_bad_records**: Malformed records are skipped.
+- **skip**: Malformed records are skipped.
+- **ignore_bad_records**: Deprecated. Alias for *skip*.
 - **abort**: Stops current insertion and aborts entire operation when an error is encountered.  Primary key collisions are considered abortable errors in this mode.
 
 </ParamField>
@@ -353,6 +354,22 @@ The default value is `false`.
 <ParamField body="gdal_configuration_options">
 
 Comma separated list of gdal conf options, for the specific requests: key=value.
+
+</ParamField>
+
+<ParamField body="pk_conflict_predicate_higher">
+
+The record with higher value for the column resolves the primary-key insert conflict.
+
+The default value is ''.
+
+</ParamField>
+
+<ParamField body="pk_conflict_predicate_lower">
+
+The record with lower value for the column resolves the primary-key insert conflict.
+
+The default value is ''.
 
 </ParamField>
 
@@ -466,6 +483,12 @@ Apply an offset to Avro local timestamp columns.
 <ParamField body="max_records_to_load">
 
 Limit the number of records to load in this request: if this number is larger than *batch_size*, then the number of records loaded will be limited to the next whole number of *batch_size* (per working thread).
+
+</ParamField>
+
+<ParamField body="name_columns_from_file">
+
+Specifies a comma-delimited list of column names to be used as the source-data column names.  If the file has a header row (i.e., *text_has_header* is *true*), these names override the file's header names. If the file has no header row, these names are used as the source-data column names. Either way, the i-th name in this list applies to the i-th column in the file, enabling name-based matching against the target table's columns (and use with *columns_to_load* / *columns_to_skip*).
 
 </ParamField>
 
@@ -661,6 +684,14 @@ Set the minimum column size for strings to apply the 'text_search' property to. 
 
 </ParamField>
 
+<ParamField body="transformations">
+
+Comma-separated expressions, one per target table column.  Each expression is evaluated per record.  Empty entries (two consecutive commas) mean no transformation for that column -- the value is resolved from the input record, table default, NULL, or an error. Expressions may reference input columns by name or by position ($1 for the first input column, $2 for the second, etc.).
+
+The default value is ''.
+
+</ParamField>
+
 <ParamField body="trim_space">
 
 If set to *true*, remove leading or trailing space from fields.
@@ -737,6 +768,19 @@ Column on subscribed remote query result that will increase for new records (e.g
 <ParamField body="remote_query_partition_column">
 
 Alias name for *remote_query_filter_column*.
+
+</ParamField>
+
+<ParamField body="enable_inplace_updates">
+
+Applies only when upserting (when update_on_existing_pk is true). If set to true (the default), an existing record matched by primary key is modified in place. If set to false, the matched record is updated by deleting it and inserting a replacement (delete and insert), which prevents the change from being reflected in dependent materialized views until they are refreshed.
+
+The default value is `true`.
+
+The supported values are:
+
+- true
+- false
 
 </ParamField>
 
@@ -846,6 +890,7 @@ Additional information.
 
 <ResponseField name="files" type="array of strings">
 
+The list of source files used to create the external table.
 
 </ResponseField>
 

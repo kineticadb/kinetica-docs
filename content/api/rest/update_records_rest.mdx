@@ -113,6 +113,18 @@ The supported values are:
 
 </ParamField>
 
+<ParamField body="error_handling">
+
+Specifies how record errors are handled during the update's reinsert (including any alternate insert records supplied via input parameter *records_to_insert*).  When set, this option is authoritative for the reinsert.  Primary-key collision behavior is governed by *update_on_existing_pk* and *ignore_existing_pk*.
+
+The default value is `abort`.
+
+- **permissive**: Records with bad column values are kept when possible: the offending column is filled with its default value if one exists, otherwise with null if the column is nullable; if neither is possible the record is skipped and reported.
+- **skip**: Records with bad values are skipped and reported; the rest of the batch is applied.
+- **abort**: Stops the update and rejects the remaining batch when any record is incorrect.
+
+</ParamField>
+
 <ParamField body="update_on_existing_pk">
 
 Specifies the record collision policy for updating a table with a [primary key](../../concepts/tables/#primary-keys). There are two ways that a record collision can occur.
@@ -132,6 +144,22 @@ The default value is `false`.
 
 </ParamField>
 
+<ParamField body="pk_conflict_predicate_higher">
+
+The record with higher value for the column resolves the primary-key insert conflict.
+
+The default value is ''.
+
+</ParamField>
+
+<ParamField body="pk_conflict_predicate_lower">
+
+The record with lower value for the column resolves the primary-key insert conflict.
+
+The default value is ''.
+
+</ParamField>
+
 <ParamField body="ignore_existing_pk">
 
 Specifies the record collision error-suppression policy for updating a table with a [primary key](../../concepts/tables/#primary-keys), only used when primary key record collisions are rejected (*update_on_existing_pk* is *false*). If set to *true*, any record update that is rejected for resulting in a primary key collision with an existing table record will be ignored with no error generated.  If *false*, the rejection of any update for resulting in a primary key collision will cause an error to be reported.  If the specified table does not have a primary key or if *update_on_existing_pk* is *true*, then this option has no effect.
@@ -148,6 +176,30 @@ The default value is `false`.
 Force qualifying records to be deleted and reinserted so their partition membership will be reevaluated.
 
 The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="enable_inplace_updates">
+
+If set to *true*, qualifying records are modified in place. If set to *false*, they are updated by deleting the existing record and inserting a replacement (delete and insert), which prevents the change from being reflected in dependent materialized views until they are refreshed.
+
+The default value is `true`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="enable_worker_oop_update">
+
+For an out-of-place update (delete and insert), controls where the replacement records are reinserted. If set to *true*, the workers that own the data reinsert them directly, avoiding a round trip through the head node; a shard-key change reshards the replacements to their new owning workers. If set to *false*, the replacement records are reinserted from the head node. Overrides the \{feature.enable_worker_oop_update\}@ configuration default.
 
 The supported values are:
 

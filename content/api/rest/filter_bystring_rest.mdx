@@ -44,6 +44,7 @@ The string filtering mode to apply. See below for details.
 - **contains**: Partial substring match (not accelerated).  If the column is a string type (non-charN) and the number of records is too large, it will return 0.
 - **starts_with**: Strings that start with the given expression (not accelerated). If the column is a string type (non-charN) and the number of records is too large, it will return 0.
 - **regex**: Full regular expression search (not accelerated). If the column is a string type (non-charN) and the number of records is too large, it will return 0.
+- **search_stats**: Cross-shard BM25 corpus statistics for one (column, query) pair. Returns the merged BM25 statistics (max_doc, doc_count, sum_total_term_freq, per-term doc_freq / total_term_freq) needed by callers that score documents themselves (e.g. text_match_bm25_global SQL function pre-pass). Requires *column_names* to contain exactly one column with text search enabled. The *view_name* field is ignored — this mode does not produce a result table.
 
 </ParamField>
 
@@ -153,6 +154,14 @@ The fully qualified name of the view (i.e. including the schema).
 </ResponseField>
 
 </Expandable>
+
+</ResponseField>
+
+<ResponseField name="stats_data" type="bytes">
+
+Serialized cross-shard BM25 corpus statistics, populated for *search_stats* mode and empty otherwise. Wire format matches the merged BM25GlobalStats blob the BM25 stats worker produces internally (max_doc, doc_count, sum_total_term_freq, sum_doc_freq, num_terms, then per term: term, doc_freq, total_term_freq). Clients that consume this perform their own scoring; the gpudb client library will expose a parser as a future convenience.
+
+The default value is ''.
 
 </ResponseField>
 

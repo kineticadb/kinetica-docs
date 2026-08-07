@@ -188,6 +188,15 @@ Optional parameters.
 <li> <a className="el" href="/content/api/cpp/namespacegpudb#a2f1dbdc4c899b222e30af6b5556a052e">append\_records\_expression</a>: Filter expression to apply to the <span className="em arg">sourceTableName\_</span>. The default value is ''. </li>
 <li> <a className="el" href="/content/api/cpp/namespacegpudb#a07602ab890c84b3862164232fe78d6ec">append\_records\_order\_by</a>: Comma-separated list of the columns to be sorted by from source table (specified by <span className="em arg">sourceTableName\_</span>), e.g., 'timestamp asc, x desc'. The <a className="el" href="/content/api/cpp/namespacegpudb#a07602ab890c84b3862164232fe78d6ec">order\_by</a> columns do not have to be present in <span className="em arg">fieldMap\_</span>. The default value is ''. </li>
 <li>
+<a className="el" href="/content/api/cpp/namespacegpudb#a6846d34da4d90dbaf91c3fadbe480e68">append\_records\_error\_handling</a>: Specifies how record errors are handled while appending source table records into the target table. Currently this governs primary-key collision behavior: <a className="el" href="/content/api/cpp/namespacegpudb#a30355488a5940174966e9f91e6b6c2d6">skip</a> and <a className="el" href="/content/api/cpp/namespacegpudb#a13aaa87c4c4c2d34d895111ba44938f0">permissive</a> drop the colliding source records and continue, while <a className="el" href="/content/api/cpp/namespacegpudb#ab3a13dce9bd21fff14a7cb408362cfc6">abort</a> rejects the batch. Explicit <a className="el" href="/content/api/cpp/namespacegpudb#a20a1fe73ce67985b994e3f7e2b0fe62b">update\_on\_existing\_pk</a> or <a className="el" href="/content/api/cpp/namespacegpudb#a9316eeb63a5e01730174d5b39e4cdc07">ignore\_existing\_pk</a> take precedence over this option. Supported values: 
+<ul>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a13aaa87c4c4c2d34d895111ba44938f0">append\_records\_permissive</a>: Source records that cannot be appended (e.g. a primary-key collision) are skipped and reported; the rest of the batch is appended. </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a30355488a5940174966e9f91e6b6c2d6">append\_records\_skip</a>: Source records that cannot be appended are skipped and reported; the rest of the batch is appended. </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#ab3a13dce9bd21fff14a7cb408362cfc6">append\_records\_abort</a>: A source record that cannot be appended (e.g. a primary-key collision) raises an error. This is the default. </li>
+</ul>
+ The default value is <a className="el" href="/content/api/cpp/namespacegpudb#ab3a13dce9bd21fff14a7cb408362cfc6">append\_records\_abort</a>. 
+</li>
+<li>
 <a className="el" href="/content/api/cpp/namespacegpudb#a20a1fe73ce67985b994e3f7e2b0fe62b">append\_records\_update\_on\_existing\_pk</a>: Specifies the record collision policy for inserting source table records (specified by <span className="em arg">sourceTableName\_</span>) into a target table (specified by <span className="em arg">tableName\_</span>) with a <a href="/content/concepts/tables/#primary-keys" target="_top">primary key</a>. If set to <a className="el" href="/content/api/cpp/namespacegpudb#a4dc510a6c94513c747849fccae2921f1">true</a>, any existing table record with primary key values that match those of a source table record being inserted will be replaced by that new record (the new data will be "upserted"). If set to <a className="el" href="/content/api/cpp/namespacegpudb#a2a6ce357b6b7f28848b9cb643c21ddc9">false</a>, any existing table record with primary key values that match those of a source table record being inserted will remain unchanged, while the source record will be rejected and an error handled as determined by <a className="el" href="/content/api/cpp/namespacegpudb#a9316eeb63a5e01730174d5b39e4cdc07">ignore\_existing\_pk</a>. If the specified table does not have a primary key, then this option has no effect. Supported values: 
 <ul>
 <li> <a className="el" href="/content/api/cpp/namespacegpudb#a4dc510a6c94513c747849fccae2921f1">append\_records\_true</a>: Upsert new records when primary keys match existing records. </li>
@@ -228,7 +237,7 @@ Optional parameters.
 </table>
 </div>
 </div>
-<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h#L252">252</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h">append\_records.h</a>.</p>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h#L297">297</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h">append\_records.h</a>.</p>
 </div>
 </div>
 <h2 className="groupheader">Member Data Documentation</h2>
@@ -244,7 +253,7 @@ Optional parameters.
 <div className="memdoc">
 <p>Contains the mapping of column names from the target table (specified by <a className="el" href="#a1f38b6189aefb233a3a6820263f063ac">tableName</a>) as the keys, and corresponding column names or expressions (e.g., 'col\_name+1') from the source table (specified by <a className="el" href="#a007088ffb6142dd12803205edb8772ff">sourceTableName</a>). </p>
 <p>Must be existing column names in source table and target table, and their types must be matched. For details on using expressions, see <a href="/content/concepts/expressions/" target="_top">Expressions</a>. </p>
-<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h#L286">286</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h">append\_records.h</a>.</p>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h#L331">331</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h">append\_records.h</a>.</p>
 </div>
 </div>
 <h2 className="memtitle"><span className="permalink"><a href="#a7bec9687774ce42831ebafd16410a1a7">&#9670;&#160;</a></span>options</h2>
@@ -263,6 +272,15 @@ Optional parameters.
 <li> <a className="el" href="/content/api/cpp/namespacegpudb#afe4f2882fd7e45971a280abe883ea6ac">append\_records\_limit</a>: A positive integer indicating the maximum number of results to be returned from <a className="el" href="#a007088ffb6142dd12803205edb8772ff">sourceTableName</a>. Or END\_OF\_SET (-9999) to indicate that the max number of results should be returned. The default value is '-9999'. </li>
 <li> <a className="el" href="/content/api/cpp/namespacegpudb#a2f1dbdc4c899b222e30af6b5556a052e">append\_records\_expression</a>: Filter expression to apply to the <a className="el" href="#a007088ffb6142dd12803205edb8772ff">sourceTableName</a>. The default value is ''. </li>
 <li> <a className="el" href="/content/api/cpp/namespacegpudb#a07602ab890c84b3862164232fe78d6ec">append\_records\_order\_by</a>: Comma-separated list of the columns to be sorted by from source table (specified by <a className="el" href="#a007088ffb6142dd12803205edb8772ff">sourceTableName</a>), e.g., 'timestamp asc, x desc'. The <a className="el" href="/content/api/cpp/namespacegpudb#a07602ab890c84b3862164232fe78d6ec">order\_by</a> columns do not have to be present in <a className="el" href="#a2cf9a4beaa61e288eaf21061283eeb2c">fieldMap</a>. The default value is ''. </li>
+<li>
+<a className="el" href="/content/api/cpp/namespacegpudb#a6846d34da4d90dbaf91c3fadbe480e68">append\_records\_error\_handling</a>: Specifies how record errors are handled while appending source table records into the target table. Currently this governs primary-key collision behavior: <a className="el" href="/content/api/cpp/namespacegpudb#a30355488a5940174966e9f91e6b6c2d6">skip</a> and <a className="el" href="/content/api/cpp/namespacegpudb#a13aaa87c4c4c2d34d895111ba44938f0">permissive</a> drop the colliding source records and continue, while <a className="el" href="/content/api/cpp/namespacegpudb#ab3a13dce9bd21fff14a7cb408362cfc6">abort</a> rejects the batch. Explicit <a className="el" href="/content/api/cpp/namespacegpudb#a20a1fe73ce67985b994e3f7e2b0fe62b">update\_on\_existing\_pk</a> or <a className="el" href="/content/api/cpp/namespacegpudb#a9316eeb63a5e01730174d5b39e4cdc07">ignore\_existing\_pk</a> take precedence over this option. Supported values: 
+<ul>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a13aaa87c4c4c2d34d895111ba44938f0">append\_records\_permissive</a>: Source records that cannot be appended (e.g. a primary-key collision) are skipped and reported; the rest of the batch is appended. </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#a30355488a5940174966e9f91e6b6c2d6">append\_records\_skip</a>: Source records that cannot be appended are skipped and reported; the rest of the batch is appended. </li>
+<li> <a className="el" href="/content/api/cpp/namespacegpudb#ab3a13dce9bd21fff14a7cb408362cfc6">append\_records\_abort</a>: A source record that cannot be appended (e.g. a primary-key collision) raises an error. This is the default. </li>
+</ul>
+ The default value is <a className="el" href="/content/api/cpp/namespacegpudb#ab3a13dce9bd21fff14a7cb408362cfc6">append\_records\_abort</a>. 
+</li>
 <li>
 <a className="el" href="/content/api/cpp/namespacegpudb#a20a1fe73ce67985b994e3f7e2b0fe62b">append\_records\_update\_on\_existing\_pk</a>: Specifies the record collision policy for inserting source table records (specified by <a className="el" href="#a007088ffb6142dd12803205edb8772ff">sourceTableName</a>) into a target table (specified by <a className="el" href="#a1f38b6189aefb233a3a6820263f063ac">tableName</a>) with a <a href="/content/concepts/tables/#primary-keys" target="_top">primary key</a>. If set to <a className="el" href="/content/api/cpp/namespacegpudb#a4dc510a6c94513c747849fccae2921f1">true</a>, any existing table record with primary key values that match those of a source table record being inserted will be replaced by that new record (the new data will be "upserted"). If set to <a className="el" href="/content/api/cpp/namespacegpudb#a2a6ce357b6b7f28848b9cb643c21ddc9">false</a>, any existing table record with primary key values that match those of a source table record being inserted will remain unchanged, while the source record will be rejected and an error handled as determined by <a className="el" href="/content/api/cpp/namespacegpudb#a9316eeb63a5e01730174d5b39e4cdc07">ignore\_existing\_pk</a>. If the specified table does not have a primary key, then this option has no effect. Supported values: 
 <ul>
@@ -299,7 +317,7 @@ Optional parameters.
 </li>
 </ul>
 <p>The default value is an empty map. </p>
-<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h#L421">421</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h">append\_records.h</a>.</p>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h#L496">496</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h">append\_records.h</a>.</p>
 </div>
 </div>
 <h2 className="memtitle"><span className="permalink"><a href="#a007088ffb6142dd12803205edb8772ff">&#9670;&#160;</a></span>sourceTableName</h2>
@@ -314,7 +332,7 @@ Optional parameters.
 <div className="memdoc">
 <p>The source table name to get records from, in \[ schema\_name. </p>
 <p>\\ \]table\_name format, using standard <a href="/content/concepts/tables/#table-name-resolution" target="_top">name resolution rules</a>. Must be an existing table name. </p>
-<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h#L275">275</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h">append\_records.h</a>.</p>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h#L320">320</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h">append\_records.h</a>.</p>
 </div>
 </div>
 <h2 className="memtitle"><span className="permalink"><a href="#a1f38b6189aefb233a3a6820263f063ac">&#9670;&#160;</a></span>tableName</h2>
@@ -329,7 +347,7 @@ Optional parameters.
 <div className="memdoc">
 <p>The table name for the records to be appended, in \[ schema\_name. </p>
 <p>\\ \]table\_name format, using standard <a href="/content/concepts/tables/#table-name-resolution" target="_top">name resolution rules</a>. Must be an existing table. </p>
-<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h#L266">266</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h">append\_records.h</a>.</p>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h#L311">311</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cpp/blob/master/gpudb/protocol/append_records.h">append\_records.h</a>.</p>
 </div>
 </div>
 <hr />

@@ -74,6 +74,18 @@ The default value is ''.
 
 </ParamField>
 
+<ParamField body="error_handling">
+
+Specifies how record errors are handled while appending source table records into the target table.  Currently this governs primary-key collision behavior: *skip* and *permissive* drop the colliding source records and continue, while *abort* rejects the batch.  Explicit *update_on_existing_pk* or *ignore_existing_pk* take precedence over this option.
+
+The default value is `abort`.
+
+- **permissive**: Source records that cannot be appended (e.g. a primary-key collision) are skipped and reported; the rest of the batch is appended.
+- **skip**: Source records that cannot be appended are skipped and reported; the rest of the batch is appended.
+- **abort**: A source record that cannot be appended (e.g. a primary-key collision) raises an error.  This is the default.
+
+</ParamField>
+
 <ParamField body="update_on_existing_pk">
 
 Specifies the record collision policy for inserting source table records (specified by input parameter *source_table_name*) into a target table (specified by input parameter *table_name*) with a [primary key](../../concepts/tables/#primary-keys). If set to *true*, any existing table record with primary key values that match those of a source table record being inserted will be replaced by that new record (the new data will be "upserted"). If set to *false*, any existing table record with primary key values that match those of a source table record being inserted will remain unchanged, while the source record will be rejected and an error handled as determined by *ignore_existing_pk*.  If the specified table does not have a primary key, then this option has no effect.
@@ -82,6 +94,19 @@ The default value is `false`.
 
 - **true**: Upsert new records when primary keys match existing records.
 - **false**: Reject new records when primary keys match existing records.
+
+</ParamField>
+
+<ParamField body="enable_inplace_updates">
+
+Applies only when upserting (when *update_on_existing_pk* is *true*). If set to *true*, an existing record matched by primary key is modified in place. If set to *false*, it is updated by deleting the existing record and inserting a replacement (delete and insert), which prevents the change from being reflected in dependent materialized views until they are refreshed.
+
+The default value is `true`.
+
+The supported values are:
+
+- true
+- false
 
 </ParamField>
 
@@ -166,6 +191,7 @@ This embedded JSON represents the result of the /append/records endpoint:
 
 <ResponseField name="table_name" type="string">
 
+The name of the table to which the records were appended.
 
 </ResponseField>
 

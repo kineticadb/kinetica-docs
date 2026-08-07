@@ -21,8 +21,8 @@ Kinetica supports both global & scoped hints:
 ## Scoped Hints
 
 
-Scoped hints may appear anywhere in the query.  Scoped hints must be in a
-comment block in the form:
+Scoped hints must appear in designated places in the query.  Scoped hints must
+be in a comment block in the form:
 
 ```
 /*+ <HINT>[,<HINT>...] */
@@ -36,6 +36,17 @@ JOIN example.geo_zone gz ON STXY_INTERSECTS(lon, lat, zone)
 ```
 
 <AccordionGroup>
+
+<Accordion title="KI_HINT_DELTA_QUERY" id="ki_hint_delta_query" defaultOpen>
+
+Designates the corresponding query as a
+[delta table](/content/sql/ddl/create-materialized-view#sql-create-materialized-view-delta), within the
+context of a [CREATE MATERIALIZED VIEW](/content/sql/ddl/create-materialized-view#sql-create-materialized-view) statement.
+
+This hint must be placed immediately after the `SELECT` keyword of the
+query to which it applies.
+
+</Accordion>
 
 <Accordion title="KI_HINT_DELTA_TABLE" id="ki_hint_delta_table" defaultOpen>
 
@@ -64,8 +75,8 @@ If any of the grouped-on expressions are nullable, no
 primary key will be applied.
 </Info>
 
-This hint may be placed either immediately after the `SELECT`
-keyword or immediately after the `FROM <table>` clause.
+This hint must be placed immediately after the `SELECT` keyword of the
+query to which it applies.
 
 </Accordion>
 
@@ -98,6 +109,24 @@ sub-queries.
 
 This scoped must be placed immediately after the `SELECT` keyword, like
 the first `SELECT` keyword in the union.
+
+</Accordion>
+
+<Accordion title="KI_HINT_RECORD_ID_SCAN" id="ki_hint_record_id_scan" defaultOpen>
+
+Improves the performance of record deletion when the `DELETE` statement
+is of the form:
+
+```
+DELETE FROM big_table
+WHERE (groupId, batchId, ki_record_id(groupId)) IN
+(
+    SELECT groupId, batchId, ki_record_id
+    FROM tmp_table /*+ ki_hint_record_id_scan(ki_record_id) */
+)
+```
+This hint must be placed immediately after the `FROM <table>` clause to
+which it applies, but before any table alias specified for that table.
 
 </Accordion>
 

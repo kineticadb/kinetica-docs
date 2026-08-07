@@ -204,8 +204,25 @@ Specifies how errors should be handled upon insertion.
 The default value is `abort`.
 
 - **permissive**: Records with missing columns are populated with nulls if possible; otherwise, the malformed records are skipped.
-- **ignore_bad_records**: Malformed records are skipped.
+- **skip**: Malformed records are skipped.
+- **ignore_bad_records**: Deprecated. Alias for *skip*.
 - **abort**: Stops current insertion and aborts entire operation when an error is encountered.  Primary key collisions are considered abortable errors in this mode.
+
+</ParamField>
+
+<ParamField body="pk_conflict_predicate_higher">
+
+The record with higher value for the column resolves the primary-key insert conflict.
+
+The default value is ''.
+
+</ParamField>
+
+<ParamField body="pk_conflict_predicate_lower">
+
+The record with lower value for the column resolves the primary-key insert conflict.
+
+The default value is ''.
 
 </ParamField>
 
@@ -345,6 +362,19 @@ The default value is ''.
 If set to *true*, truncate string values that are longer than the column's type size.
 
 The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="enable_inplace_updates">
+
+Applies only when upserting (when update_on_existing_pk is true). If set to true (the default), an existing record matched by primary key is modified in place. If set to false, the matched record is updated by deleting it and inserting a replacement (delete and insert), which prevents the change from being reflected in dependent materialized views until they are refreshed.
+
+The default value is `true`.
 
 The supported values are:
 
