@@ -238,19 +238,45 @@ See *default_column_formats* for valid format syntax.
 
 <ParamField body="columns_to_load">
 
-Specifies a comma-delimited list of columns from the source data to load. If more than one file is being loaded, this list applies to all files.
-
-Column numbers can be specified discretely or as a range.  For example, a value of '5,7,1..3' will insert values from the fifth column in the source data into the first column in the target table, from the seventh column in the source data into the second column in the target table, and from the first through third columns in the source data into the third through fifth columns in the target table.
-
-If the source data contains a header, column names matching the file header names may be provided instead of column numbers.  If the target table doesn't exist, the table will be created with the columns in this order.  If the target table does exist with columns in a different order than the source data, this list can be used to match the order of the target table.  For example, a value of 'C, B, A' will create a three column table with column C, followed by column B, followed by column A; or will insert those fields in that order into a table created with columns in that order.  If the target table exists, the column names must match the source data field names for a name-mapping to be successful.
+Specifies a comma-delimited list of source-data columns that supply the target table's columns. If more than one file is being loaded, this list applies to all files.
 
 Mutually exclusive with *columns_to_skip*.
+
+This list is a positional mapping onto the target table rather than a filter: the i-th entry identifies the source column that feeds the i-th column of the target table.
+
+Entries may be column numbers, column names, or empty.
+
+Column numbers are 1-based, specified discretely or as a range. For example, '5,7,,1..3' inserts the fifth source column into the first target column, the seventh into the second, null into the third, and the first through third into the fourth through sixth. A range may descend ('3..1') to reverse that group's order.  Zero is not a valid column number. Numbers are supported only for delimited-text and Avro sources.
+
+Column names are strings, matching the source-data field names -- either the file's header names or the names supplied by *name_columns_from_file*. Requires that the source data have column names. Names are matched case-sensitively, and a name not present in the source will fail.
+
+An empty entry, acting as a placeholder meaning that no source column feeds the corresponding target column.
+
+Numbers and names cannot be mixed: a single non-numeric entry causes the entire list to be interpreted as names.
+
+If the external table has no column definition, it is created with these columns in this order, and the list may name any subset of the source columns.
+
+If the external table has a column definition, the number of entries must equal the table's column count. Use empty entries to pad the list to the table's width. Because the mapping is positional, this option can also reorder source columns into the table's column order -- for example 'C, B, A' for an external table whose columns are C, B, A.
+
+Note: specifying *columns_to_load* disables server-side population of target columns that no source column feeds. Such columns receive NULL instead of their default value, 'init_with_now', or 'init_with_uuid' value; if the column is non-nullable, the record is rejected. To have unfed target columns take their defaults, omit *columns_to_load* and rely on name-based matching, optionally with *columns_to_skip*.
 
 </ParamField>
 
 <ParamField body="columns_to_skip">
 
-Specifies a comma-delimited list of columns from the source data to skip. Mutually exclusive with *columns_to_load*.
+Specifies a comma-delimited list of source-data columns to exclude from the load. If more than one file is being loaded, this list applies to all files.
+
+Mutually exclusive with *columns_to_load*.
+
+Entries may be column names matching the source-data field names (the file's header names, or the names supplied by *name_columns_from_file*, matched case-sensitively), or 1-based column numbers. Numbers are supported only for delimited-text sources. Name-based entries require the source data to have column names.
+
+If the external table has no column definition, the non-excluded source columns define the external table's columns, in source-data order.
+
+If the external table has a column definition, the non-excluded source columns are matched to its columns by name, case-insensitively — unlike *columns_to_load*, this option does not change how that matching is done. The order and number of source columns therefore need not correspond to the external table's columns, and source columns matching none of them need not be listed; they are ignored.
+
+Excluding a source column that corresponds to a target table column causes that target column to be populated from its default value, 'init_with_*' property, or null.  This makes *columns_to_skip* the means of preferring a target column's default over a value present in the source data.
+
+If the external table has a column definition and the source data has no column names (no header row and no *name_columns_from_file*), the non-excluded source columns are matched to its columns by position rather than by name; the source column count must then equal the external table's column count plus the number of columns skipped.
 
 </ParamField>
 
@@ -488,7 +514,15 @@ Limit the number of records to load in this request: if this number is larger th
 
 <ParamField body="name_columns_from_file">
 
-Specifies a comma-delimited list of column names to be used as the source-data column names.  If the file has a header row (i.e., *text_has_header* is *true*), these names override the file's header names. If the file has no header row, these names are used as the source-data column names. Either way, the i-th name in this list applies to the i-th column in the file, enabling name-based matching against the target table's columns (and use with *columns_to_load* / *columns_to_skip*).
+Specifies a comma-delimited list of column names to be used as the source-data column names. Supported for delimited-text sources only.
+
+The i-th name in this list applies to the i-th column in the file. If the file has a header row (i.e., *text_has_header* is *true*), these names override the file's header names. If the file has no header row, these names become the source-data column names.
+
+Naming the source columns enables name-based matching against the target table's columns, and permits name-based *columns_to_load* / *columns_to_skip*, which otherwise require a header row.
+
+Note: for a source with no header row, supplying this option changes how source columns are matched to target columns -- from positional matching to matching by name. Target columns with no matching source column are then populated from their defaults or null rather than being filled positionally.
+
+The list is not validated against the file's actual column count. If it is shorter, the trailing source columns are left unnamed.
 
 </ParamField>
 

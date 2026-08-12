@@ -87,12 +87,12 @@ A set of string constants for the <a href="/content/api/java/com/gpudb/protocol/
 <div className="col-first even-row-color"><code>static final <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></code></div>
 <div className="col-second even-row-color"><code><a href="#COLUMNS_TO_LOAD" className="member-name-link">COLUMNS\_TO\_LOAD</a></code></div>
 <div className="col-last even-row-color">
-<div className="block">Specifies a comma-delimited list of columns from the source data to load.</div>
+<div className="block">Specifies a comma-delimited list of source-data columns that supply the target table's columns.</div>
 </div>
 <div className="col-first odd-row-color"><code>static final <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></code></div>
 <div className="col-second odd-row-color"><code><a href="#COLUMNS_TO_SKIP" className="member-name-link">COLUMNS\_TO\_SKIP</a></code></div>
 <div className="col-last odd-row-color">
-<div className="block">Specifies a comma-delimited list of columns from the source data to skip.</div>
+<div className="block">Specifies a comma-delimited list of source-data columns to exclude from the load.</div>
 </div>
 <div className="col-first even-row-color"><code>static final <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></code></div>
 <div className="col-second even-row-color"><code><a href="#COMPRESSION_TYPE" className="member-name-link">COMPRESSION\_TYPE</a></code></div>
@@ -518,10 +518,17 @@ For each target column specified, applies the column-property-bound format to th
 <h3>COLUMNS\_TO\_LOAD</h3>
 <div className="member-signature"><span className="modifiers">public static final</span>&nbsp;<span className="return-type"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></span>&nbsp;<span className="element-name">COLUMNS\_TO\_LOAD</span></div>
 <div className="block">
-Specifies a comma-delimited list of columns from the source data to load. If more than one file is being loaded, this list applies to all files. 
-<p> Column numbers can be specified discretely or as a range. For example, a value of '5,7,1..3' will insert values from the fifth column in the source data into the first column in the target table, from the seventh column in the source data into the second column in the target table, and from the first through third columns in the source data into the third through fifth columns in the target table. </p>
-<p> If the source data contains a header, column names matching the file header names may be provided instead of column numbers. If the target table doesn't exist, the table will be created with the columns in this order. If the target table does exist with columns in a different order than the source data, this list can be used to match the order of the target table. For example, a value of 'C, B, A' will create a three column table with column C, followed by column B, followed by column A; or will insert those fields in that order into a table created with columns in that order. If the target table exists, the column names must match the source data field names for a name-mapping to be successful. </p>
-<p> Mutually exclusive with <a href="#COLUMNS_TO_SKIP"><code>COLUMNS\_TO\_SKIP</code></a>.</p>
+Specifies a comma-delimited list of source-data columns that supply the target table's columns. If more than one file is being loaded, this list applies to all files. 
+<p> Mutually exclusive with <a href="#COLUMNS_TO_SKIP"><code>COLUMNS\_TO\_SKIP</code></a>. </p>
+<p> This list is a positional mapping onto the target table rather than a filter: the i-th entry identifies the source column that feeds the i-th column of the target table. </p>
+<p> Entries may be column numbers, column names, or empty. </p>
+<p> Column numbers are 1-based, specified discretely or as a range. For example, '5,7,,1..3' inserts the fifth source column into the first target column, the seventh into the second, null into the third, and the first through third into the fourth through sixth. A range may descend ('3..1') to reverse that group's order. Zero is not a valid column number. Numbers are supported only for delimited-text and Avro sources. </p>
+<p> Column names are strings, matching the source-data field names -- either the file's header names or the names supplied by <a href="#NAME_COLUMNS_FROM_FILE"><code>NAME\_COLUMNS\_FROM\_FILE</code></a>. Requires that the source data have column names. Names are matched case-sensitively, and a name not present in the source will fail. </p>
+<p> An empty entry, acting as a placeholder meaning that no source column feeds the corresponding target column. </p>
+<p> Numbers and names cannot be mixed: a single non-numeric entry causes the entire list to be interpreted as names. </p>
+<p> If the target table does not exist, it is created with these columns in this order, and the list may name any subset of the source columns. </p>
+<p> If the target table already exists, the number of entries must equal the target table's column count. Use empty entries to pad the list to the target's width. Because the mapping is positional, this option can also reorder source columns into the target's column order -- for example 'C, B, A' for a target table whose columns are C, B, A. </p>
+<p> Note: specifying <a href="#COLUMNS_TO_LOAD"><code>COLUMNS\_TO\_LOAD</code></a> disables server-side population of target columns that no source column feeds. Such columns receive NULL instead of their default value, 'init\_with\_now', or 'init\_with\_uuid' value; if the column is non-nullable, the record is rejected. To have unfed target columns take their defaults, omit <a href="#COLUMNS_TO_LOAD"><code>COLUMNS\_TO\_LOAD</code></a> and rely on name-based matching, optionally with <a href="#COLUMNS_TO_SKIP"><code>COLUMNS\_TO\_SKIP</code></a>.</p>
 </div>
 <div className="dl notes">
 <div className="dt">See Also:</div>
@@ -537,7 +544,16 @@ Specifies a comma-delimited list of columns from the source data to load. If mor
 <div className="section detail" id="COLUMNS_TO_SKIP">
 <h3>COLUMNS\_TO\_SKIP</h3>
 <div className="member-signature"><span className="modifiers">public static final</span>&nbsp;<span className="return-type"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></span>&nbsp;<span className="element-name">COLUMNS\_TO\_SKIP</span></div>
-<div className="block">Specifies a comma-delimited list of columns from the source data to skip. Mutually exclusive with <a href="#COLUMNS_TO_LOAD"><code>COLUMNS\_TO\_LOAD</code></a>.</div>
+<div className="block">
+Specifies a comma-delimited list of source-data columns to exclude from the load. If more than one file is being loaded, this list applies to all files. 
+<p> Mutually exclusive with <a href="#COLUMNS_TO_LOAD"><code>COLUMNS\_TO\_LOAD</code></a>. </p>
+<p> Entries may be column names matching the source-data field names (the file's header names, or the names supplied by <a href="#NAME_COLUMNS_FROM_FILE"><code>NAME\_COLUMNS\_FROM\_FILE</code></a>, matched case-sensitively), or 1-based column numbers. Numbers are supported only for delimited-text sources. Name-based entries require the source data to have column names. </p>
+<p> Unlike <a href="#COLUMNS_TO_LOAD"><code>COLUMNS\_TO\_LOAD</code></a>, this option does not change how the remaining source columns are matched to the target table. Matching remains by name and is case-insensitive, so the order and number of source columns need not correspond to the target table's columns. </p>
+<p> Excluding a source column that corresponds to a target table column causes that target column to be populated from its default value, 'init\_with\_\*' property, or null. This makes <a href="#COLUMNS_TO_SKIP"><code>COLUMNS\_TO\_SKIP</code></a> the means of preferring a target column's default over a value present in the source data. </p>
+<p> Source columns that don't correspond to any target table column need not be listed; they are ignored. </p>
+<p> If the target table does not exist, the non-excluded source columns define the new table's columns, in source-data order. </p>
+<p> If the source data has no column names (no header row and no <a href="#NAME_COLUMNS_FROM_FILE"><code>NAME\_COLUMNS\_FROM\_FILE</code></a>) and this option is given as numbers, the remaining source columns are matched to target columns by position; the source column count must then equal the target table's column count plus the number of columns skipped.</p>
+</div>
 <div className="dl notes">
 <div className="dt">See Also:</div>
 <div className="dd">
@@ -1164,7 +1180,13 @@ A single worker process on each node loads all files that are available to it. T
 <div className="section detail" id="NAME_COLUMNS_FROM_FILE">
 <h3>NAME\_COLUMNS\_FROM\_FILE</h3>
 <div className="member-signature"><span className="modifiers">public static final</span>&nbsp;<span className="return-type"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></span>&nbsp;<span className="element-name">NAME\_COLUMNS\_FROM\_FILE</span></div>
-<div className="block">Specifies a comma-delimited list of column names to be used as the source-data column names. If the payload has a header row (i.e., <a href="#TEXT_HAS_HEADER"><code>TEXT\_HAS\_HEADER</code></a> is <a href="#TRUE"><code>TRUE</code></a>), these names override the payload's header names. If the payload has no header row, these names are used as the source-data column names. Either way, the i-th name in this list applies to the i-th column in the payload, enabling name-based matching against the target table's columns (and use with <a href="#COLUMNS_TO_LOAD"><code>COLUMNS\_TO\_LOAD</code></a> / <a href="#COLUMNS_TO_SKIP"><code>COLUMNS\_TO\_SKIP</code></a>).</div>
+<div className="block">
+Specifies a comma-delimited list of column names to be used as the source-data column names. Supported for delimited-text sources only. 
+<p> The i-th name in this list applies to the i-th column in the file. If the file has a header row (i.e., <a href="#TEXT_HAS_HEADER"><code>TEXT\_HAS\_HEADER</code></a> is <a href="#TRUE"><code>TRUE</code></a>), these names override the file's header names. If the file has no header row, these names become the source-data column names. </p>
+<p> Naming the source columns enables name-based matching against the target table's columns, and permits name-based <a href="#COLUMNS_TO_LOAD"><code>COLUMNS\_TO\_LOAD</code></a> / <a href="#COLUMNS_TO_SKIP"><code>COLUMNS\_TO\_SKIP</code></a>, which otherwise require a header row. </p>
+<p> Note: for a source with no header row, supplying this option changes how source columns are matched to target columns -- from positional matching to matching by name. Target columns with no matching source column are then populated from their defaults or null rather than being filled positionally. </p>
+<p> The list is not validated against the file's actual column count. If it is shorter, the trailing source columns are left unnamed.</p>
+</div>
 <div className="dl notes">
 <div className="dt">See Also:</div>
 <div className="dd">
