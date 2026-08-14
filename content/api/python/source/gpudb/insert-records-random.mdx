@@ -1,0 +1,122 @@
+---
+title: "insert_records_random"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.insert_records_random"> <span className="sig-name descname"><span className="pre">insert\_records\_random</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">count</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L35694"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Generates a specified number of random records and adds them to the given table. There is an optional parameter that allows the user to customize the ranges of the column values. It also allows the user to specify linear profiles for some or all columns in which case linear values are generated rather than random ones. Only individual tables are supported for this operation.</p>
+<p>This operation is synchronous, meaning that a response will not be returned until all random records are fully available.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Table to which random records will be added, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>. Must be an existing table, not a view.</p>
+</div>
+<div className="dt">count (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>Number of records to generate.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to dicts of str to floats</span>) –</div>
+<div className="dd">
+<p>Optional parameter to pass in specifications for the randomness of the values. This map is different from the <span className="em">options</span> parameter of most other endpoints in that it is a map of string to map of string to doubles, while most others are maps of string to string. In this map, the top level keys represent which column’s parameters are being specified, while the internal keys represents which parameter is being specified. These parameters take on different meanings depending on the type of the column. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>seed</strong> – If provided, the internal random number generator will be initialized with the given value. The minimum is 0. This allows for the same set of random numbers to be generated across invocation of this endpoint in case the user wants to repeat the test. Since input parameter <span className="em">options</span>, is a map of maps, we need an internal map to provide the seed value. For example, to pass 100 as the seed value through this parameter, you need something equivalent to: ‘options’ = {"{"}‘seed’: {"{"} ‘value’: 100 {"}"} {"}"}. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>value</strong> – The seed value to use.</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>all</strong> – This key indicates that the specifications relayed in the internal map are to be applied to all columns of the records. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>min</strong> – For numerical columns, the minimum of the generated values is set to this value. Default is -99999. For point, shape, and track columns, min for numeric ‘x’ and ‘y’ columns needs to be within \[-180, 180\] and \[-90, 90\], respectively. The default minimum possible values for these columns in such cases are -180.0 and -90.0. For the ‘TIMESTAMP’ column, the default minimum corresponds to Jan 1, 2010.</p>
+<p>For string columns, the minimum length of the randomly generated strings is set to this value (default is 0). If both minimum and maximum are provided, minimum must be less than or equal to max.</p>
+<p>If the min is outside the accepted ranges for strings columns and ‘x’ and ‘y’ columns for point/shape/track, then those parameters will not be set; however, an error will not be thrown in such a case. It is the responsibility of the user to use the <span className="em">all</span> parameter judiciously.</p>
+</li>
+<li>
+<p><strong>max</strong> – For numerical columns, the maximum of the generated values is set to this value. Default is 99999. For point, shape, and track columns, max for numeric ‘x’ and ‘y’ columns needs to be within \[-180, 180\] and \[-90, 90\], respectively. The default minimum possible values for these columns in such cases are 180.0 and 90.0.</p>
+<p>For string columns, the maximum length of the randomly generated strings. If both minimum and maximum are provided, <span className="em">max</span> must be greater than or equal to <span className="em">min</span>.</p>
+<p>If the <span className="em">max</span> is outside the accepted ranges for strings columns and ‘x’ and ‘y’ columns for point/shape/track, then those parameters will not be set; however, an error will not be thrown in such a case. It is the responsibility of the user to use the <span className="em">all</span> parameter judiciously.</p>
+</li>
+<li>
+<p><strong>interval</strong> – If specified, generate values for all columns evenly spaced with the given interval value. If a max value is specified for a given column the data is randomly generated between min and max and decimated down to the interval. If no max is provided the data is linearly generated starting at the minimum value (instead of generating random data). For non-decimated string-type columns the interval value is ignored. Instead the values are generated following the pattern: ‘attrname\_creationIndex#’, i.e. the column name suffixed with an underscore and a running counter (starting at 0). For string types with limited size (e.g. char4) the prefix is dropped. No nulls will be generated for nullable columns.</p>
+</li>
+<li>
+<p><strong>null\_percentage</strong> – If specified, then generate the given percentage of the count as nulls for all nullable columns. This option will be ignored for non-nullable columns. The value must be within the range \[0, 1.0\]. The default value is 5% (0.05).</p>
+</li>
+<li>
+<p><strong>cardinality</strong> – If specified, limit the randomly generated values to a fixed set. Not allowed on a column with interval specified, and is not applicable to WKT or Track-specific columns. The value must be greater than 0. This option is disabled by default.</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>attr\_name</strong> – Use the desired column name in place of <span className="em">attr\_name</span>, and set the following parameters for the column specified. This overrides any parameter set by <span className="em">all</span>. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>min</strong> – For numerical columns, the minimum of the generated values is set to this value. Default is -99999. For point, shape, and track columns, min for numeric ‘x’ and ‘y’ columns needs to be within \[-180, 180\] and \[-90, 90\], respectively. The default minimum possible values for these columns in such cases are -180.0 and -90.0. For the ‘TIMESTAMP’ column, the default minimum corresponds to Jan 1, 2010.</p>
+<p>For string columns, the minimum length of the randomly generated strings is set to this value (default is 0). If both minimum and maximum are provided, minimum must be less than or equal to max.</p>
+<p>If the min is outside the accepted ranges for strings columns and ‘x’ and ‘y’ columns for point/shape/track, then those parameters will not be set; however, an error will not be thrown in such a case. It is the responsibility of the user to use the <span className="em">all</span> parameter judiciously.</p>
+</li>
+<li>
+<p><strong>max</strong> – For numerical columns, the maximum of the generated values is set to this value. Default is 99999. For point, shape, and track columns, max for numeric ‘x’ and ‘y’ columns needs to be within \[-180, 180\] and \[-90, 90\], respectively. The default minimum possible values for these columns in such cases are 180.0 and 90.0.</p>
+<p>For string columns, the maximum length of the randomly generated strings. If both minimum and maximum are provided, <span className="em">max</span> must be greater than or equal to <span className="em">min</span>.</p>
+<p>If the <span className="em">max</span> is outside the accepted ranges for strings columns and ‘x’ and ‘y’ columns for point/shape/track, then those parameters will not be set; however, an error will not be thrown in such a case. It is the responsibility of the user to use the <span className="em">all</span> parameter judiciously.</p>
+</li>
+<li>
+<p><strong>interval</strong> – If specified, generate values for all columns evenly spaced with the given interval value. If a max value is specified for a given column the data is randomly generated between min and max and decimated down to the interval. If no max is provided the data is linearly generated starting at the minimum value (instead of generating random data). For non-decimated string-type columns the interval value is ignored. Instead the values are generated following the pattern: ‘attrname\_creationIndex#’, i.e. the column name suffixed with an underscore and a running counter (starting at 0). For string types with limited size (e.g. char4) the prefix is dropped. No nulls will be generated for nullable columns.</p>
+</li>
+<li>
+<p><strong>null\_percentage</strong> – If specified and if this column is nullable, then generate the given percentage of the count as nulls. This option will result in an error if the column is not nullable. The value must be within the range \[0, 1.0\]. The default value is 5% (0.05).</p>
+</li>
+<li>
+<p><strong>cardinality</strong> – If specified, limit the randomly generated values to a fixed set. Not allowed on a column with interval specified, and is not applicable to WKT or Track-specific columns. The value must be greater than 0. This option is disabled by default.</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>track\_length</strong> – This key-map pair is only valid for track data sets (an error is thrown otherwise). No nulls would be generated for nullable columns. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>min</strong> – Minimum possible length for generated series; default is 100 records per series. Must be an integral value within the range \[1, 500\]. If both min and max are specified, min must be less than or equal to max. The minimum allowed value is 1. The maximum allowed value is 500.</p>
+</li>
+<li>
+<p><strong>max</strong> – Maximum possible length for generated series; default is 500 records per series. Must be an integral value within the range \[1, 500\]. If both min and max are specified, max must be greater than or equal to min. The minimum allowed value is 1. The maximum allowed value is 500.</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Value of input parameter <span className="em">table\_name</span>.</p>
+</div>
+<div className="dt">count (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>Number of records inserted.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

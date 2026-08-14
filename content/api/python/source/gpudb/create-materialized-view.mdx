@@ -1,0 +1,139 @@
+---
+title: "create_materialized_view"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.create_materialized_view"> <span className="sig-name descname"><span className="pre">create\_materialized\_view</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L23084"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Initiates the process of creating a materialized view, reserving the view’s name to prevent other views or tables from being created with that name.</p>
+<p>For materialized view details and examples, see <a className="reference external" href="/content/concepts/materialized_views/">Materialized Views</a>.</p>
+<p>The response contains output parameter <span className="em">view\_id</span>, which is used to tag each subsequent operation (projection, union, aggregation, filter, or join) that will compose the view.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the table to be created that is the top-level table of the materialized view, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a> and meeting <a className="reference external" href="/content/concepts/tables/#table-naming-criteria">table naming criteria</a>.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>collection\_name</strong> – \[DEPRECATED–please specify the containing schema for the materialized view as part of input parameter <span className="em">table\_name</span> and use <a className="reference internal" href="#gpudb.GPUdb.create_schema" title="gpudb.GPUdb.create_schema"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_schema()</span></code></a> to create the schema if non-existent\] Name of a schema which is to contain the newly created view. If the schema provided is non-existent, it will be automatically created.</p>
+</li>
+<li>
+<p><strong>execute\_as</strong> – User name to use to run the refresh job.</p>
+</li>
+<li>
+<p><strong>build\_materialized\_view\_policy</strong> – Sets startup materialized view rebuild scheme. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>always</strong> – Rebuild as many materialized views as possible before accepting requests.</p>
+</li>
+<li>
+<p><strong>lazy</strong> – Rebuild the necessary materialized views at start, and load the remainder lazily.</p>
+</li>
+<li>
+<p><strong>on\_demand</strong> – Rebuild materialized views as requests use them.</p>
+</li>
+<li>
+<p><strong>system</strong> – Rebuild materialized views using the system-configured default.</p>
+</li>
+</ul>
+<p>The default value is ‘system’.</p>
+</li>
+<li>
+<p><strong>persist</strong> – If <span className="em">true</span>, then the materialized view specified in input parameter <span className="em">table\_name</span> will be persisted and will not expire unless a <span className="em">ttl</span> is specified. If <span className="em">false</span>, then the materialized view will be an in-memory table and will expire unless a <span className="em">ttl</span> is specified otherwise. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>enable\_mv\_input\_wrappers</strong> – If <span className="em">true</span>, each base table the view reads is accessed through a wrapper view so an in-progress out-of-place update cannot make a record momentarily disappear from the view, and a long refresh does not block updates to the base tables. Overrides the {"{"}gaia.enable\_mv\_input\_wrappers{"}"} configuration default when set. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>refresh\_span</strong> – Sets the future time-offset(in seconds) at which periodic refresh stops.</p>
+</li>
+<li>
+<p><strong>refresh\_stop\_time</strong> – When <span className="em">refresh\_method</span> is <span className="em">periodic</span>, specifies the time at which a periodic refresh is stopped. Value is a datetime string with format ‘YYYY-MM-DD HH:MM:SS’.</p>
+</li>
+<li>
+<p><strong>refresh\_method</strong> – Method by which the join can be refreshed when the data in underlying member tables have changed. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>manual</strong> – Refresh only occurs when manually requested by calling <a className="reference internal" href="#gpudb.GPUdb.alter_table" title="gpudb.GPUdb.alter_table"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.alter\_table()</span></code></a> with an ‘action’ of ‘refresh’.</p>
+</li>
+<li>
+<p><strong>on\_query</strong> – Refresh any time the view is queried.</p>
+</li>
+<li>
+<p><strong>on\_change</strong> – If possible, incrementally refresh (refresh just those records added) whenever an insert, update, delete or refresh of input table is done. A full refresh is done if an incremental refresh is not possible.</p>
+</li>
+<li>
+<p><strong>periodic</strong> – Refresh table periodically at rate specified by <span className="em">refresh\_period</span>.</p>
+</li>
+</ul>
+<p>The default value is ‘manual’.</p>
+</li>
+<li>
+<p><strong>refresh\_period</strong> – When <span className="em">refresh\_method</span> is <span className="em">periodic</span>, specifies the period in seconds at which refresh occurs.</p>
+</li>
+<li>
+<p><strong>refresh\_start\_time</strong> – When <span className="em">refresh\_method</span> is <span className="em">periodic</span>, specifies the first time at which a refresh is to be done. Value is a datetime string with format ‘YYYY-MM-DD HH:MM:SS’.</p>
+</li>
+<li>
+<p><strong>ttl</strong> – Sets the <a className="reference external" href="/content/concepts/ttl/">TTL</a> of the table specified in input parameter <span className="em">table\_name</span>.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Value of input parameter <span className="em">table\_name</span>.</p>
+</div>
+<div className="dt">view\_id (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Value of view\_id.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>qualified\_table\_name</strong> – The fully qualified name of the result table (i.e. including the schema).</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

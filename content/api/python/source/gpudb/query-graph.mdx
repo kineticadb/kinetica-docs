@@ -1,0 +1,134 @@
+---
+title: "query_graph"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.query_graph"> <span className="sig-name descname"><span className="pre">query\_graph</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">graph\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">queries</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">restrictions</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">\[\]</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">adjacency\_table</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">''</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">rings</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">1</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L37054"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Employs a topological query on a graph generated a-priori by <a className="reference internal" href="#gpudb.GPUdb.create_graph" title="gpudb.GPUdb.create_graph"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_graph()</span></code></a> and returns a list of adjacent edge(s) or node(s), also known as an adjacency list, depending on what’s been provided to the endpoint; providing edges will return nodes and providing nodes will return edges.</p>
+<p>To determine the node(s) or edge(s) adjacent to a value from a given column, provide a list of values to input parameter <span className="em">queries</span>. This field can be populated with column values from any table as long as the type is supported by the given identifier. See <a className="reference external" href="/content/graph_solver/network_graph_solver/#query-identifiers">Query Identifiers</a> for more information.</p>
+<p>To return the adjacency list in the response, leave input parameter <span className="em">adjacency\_table</span> empty.</p>
+<p>IMPORTANT: It’s highly recommended that you review the <a className="reference external" href="/content/graph_solver/network_graph_solver/">Graphs and Solvers</a> concepts documentation, the <a className="reference external" href="/content/guides/graph_rest_guide/">Graph REST Tutorial</a>, and/or some <a className="reference external" href="/content/guides/tags/graph-query">/match/graph examples</a> before using this endpoint.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">graph\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the graph resource to query.</p>
+</div>
+<div className="dt">queries (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>Nodes or edges to be queried specified using <a className="reference external" href="/content/graph_solver/network_graph_solver/#query-identifiers">query identifiers</a>. Identifiers can be used with existing column names, e.g., ‘table.column AS QUERY\_NODE\_ID’, raw values, e.g., ‘{"{"}0, 2{"}"} AS QUERY\_NODE\_ID’, or expressions, e.g., ‘ST\_MAKEPOINT(table.x, table.y) AS QUERY\_NODE\_WKTPOINT’. Multiple values can be provided as long as the same identifier is used for all values. If using raw values in an identifier combination, the number of values specified must match across the combination. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">restrictions (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>Additional restrictions to apply to the nodes/edges of an existing graph. Restrictions must be specified using <a className="reference external" href="/content/graph_solver/network_graph_solver/#identifiers">identifiers</a>; identifiers are grouped as <a className="reference external" href="/content/graph_solver/network_graph_solver/#id-combos">combinations</a>. Identifiers can be used with existing column names, e.g., ‘table.column AS RESTRICTIONS\_EDGE\_ID’, expressions, e.g., ‘column/2 AS RESTRICTIONS\_VALUECOMPARED’, or raw values, e.g., ‘{"{"}0, 0, 0, 1{"}"} AS RESTRICTIONS\_ONOFFCOMPARED’. If using raw values in an identifier combination, the number of values specified must match across the combination. The default value is an empty list ( \[\] ). The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">adjacency\_table (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the table to store the resulting adjacencies, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a> and meeting <a className="reference external" href="/content/concepts/tables/#table-naming-criteria">table naming criteria</a>. If left blank, the query results are instead returned in the response. If the ‘QUERY\_TARGET\_NODE\_LABEL’ <a className="reference external" href="/content/graph_solver/network_graph_solver/#query-identifiers">query identifier</a> is used in input parameter <span className="em">queries</span>, then two additional columns will be available: ‘PATH\_ID’ and ‘RING\_ID’. See <a className="reference external" href="/content/graph_solver/network_graph_solver/#using-labels">Using Labels</a> for more information. The default value is ‘’.</p>
+</div>
+<div className="dt">rings (<span className="em">int</span>) –</div>
+<div className="dd">
+<p>Sets the number of rings around the node to query for adjacency, with ‘1’ being the edges directly attached to the queried node. Also known as number of hops. For example, if it is set to ‘2’, the edge(s) directly attached to the queried node(s) will be returned; in addition, the edge(s) attached to the node(s) attached to the initial ring of edge(s) surrounding the queried node(s) will be returned. If the value is set to ‘0’, any nodes that meet the criteria in input parameter <span className="em">queries</span> and input parameter <span className="em">restrictions</span> will be returned. This parameter is only applicable when querying nodes. The default value is 1.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>force\_undirected</strong> – If set to <span className="em">true</span>, all inbound edges and outbound edges relative to the node will be returned. If set to <span className="em">false</span>, only outbound edges relative to the node will be returned. This parameter is only applicable if the queried graph input parameter <span className="em">graph\_name</span> is directed and when querying nodes. Consult <a className="reference external" href="/content/graph_solver/network_graph_solver/#directed-graphs">Directed Graphs</a> for more details. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>limit</strong> – When specified (&gt;0), limits the number of query results. The size of the nodes table will be limited by the <span className="em">limit</span> value. The default value is ‘0’.</p>
+</li>
+<li>
+<p><strong>output\_wkt\_path</strong> – If true then concatenated wkt line segments will be added as the WKT column of the adjacency table. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>and\_labels</strong> – If set to <span className="em">true</span>, the result of the query has entities that satisfy all of the target labels, instead of any. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>server\_id</strong> – Indicates which graph server(s) to send the request to. Default is to send to the server, amongst those containing the corresponding graph, that has the most computational bandwidth.</p>
+</li>
+<li>
+<p><strong>output\_charn\_length</strong> – When specified (&gt;0 and &lt;=256), limits the number of char length on the output tables for string based nodes. The default length is 64. The default value is ‘64’.</p>
+</li>
+<li>
+<p><strong>find\_common\_labels</strong> – If set to true, for many-to-many queries or multi-level traversals, it lists the common labels between the source and target nodes and edge labels in each path. Otherwise (zero rings), it’ll list all labels of the node(s) queried. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">result (<span className="em">bool</span>) –</div>
+<div className="dd">
+<p>Indicates a successful query.</p>
+</div>
+<div className="dt">adjacency\_list\_int\_array (<span className="em">list of longs</span>) –</div>
+<div className="dd">
+<p>The adjacency entity integer ID: either edge IDs per node requested (if using QUERY\_EDGE\_ID or QUERY\_NODE1\_ID and QUERY\_NODE2\_ID in the input) or two node IDs per edge requested (if using QUERY\_NODE\_ID in the input).</p>
+</div>
+<div className="dt">adjacency\_list\_string\_array (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>The adjacency entity string ID: either edge IDs per node requested (if using QUERY\_EDGE\_NAME or QUERY\_NODE1\_NAME and QUERY\_NODE2\_NAME in the input) or two node IDs per edge requested (if using QUERY\_NODE\_NAME in the input).</p>
+</div>
+<div className="dt">adjacency\_list\_wkt\_array (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>The adjacency entity WKTPOINT or WKTLINE ID: either edge IDs per node requested (if using QUERY\_EDGE\_WKTLINE or QUERY\_NODE1\_WKTPOINT and QUERY\_NODE2\_WKTPOINT in the input) or two node IDs per edge requested (if using QUERY\_NODE\_WKTPOINT in the input).</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

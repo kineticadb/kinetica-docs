@@ -1,0 +1,305 @@
+---
+title: "execute_sql"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.execute_sql"> <span className="sig-name descname"><span className="pre">execute\_sql</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">statement</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">offset</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">0</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">limit</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">-9999</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">encoding</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">'binary'</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">request\_schema\_str</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">''</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">data</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">\[\]</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L27490"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Execute a SQL statement (query, DML, or DDL).</p>
+<p>See <a className="reference external" href="/content/sql/">SQL Support</a> for the complete set of supported SQL commands.</p>
+<p>When a caller wants all the results from a large query (e.g., more than <a className="reference external" href="/content/config/#config-main-general">max\_get\_records\_size</a> records), they can make multiple calls to this endpoint using the input parameter <span className="em">offset</span> and input parameter <span className="em">limit</span> parameters to page through the results. Normally, this will execute the input parameter <span className="em">statement</span> query each time. To avoid re-executing the query each time and to keep the results in the same order, the caller should specify a <span className="em">paging\_table</span> name to hold the results of the query between calls and specify the <span className="em">paging\_table</span> on subsequent calls. When this is done, the caller should clear the paging table and any other tables in the <span className="em">result\_table\_list</span> (both returned in the response) when they are done paging through the results. Output parameter <span className="em">paging\_table</span> (and <span className="em">result\_table\_list</span>) will be empty if no paging table was created (e.g., when all the query results were returned in the first call).</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">statement (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>SQL statement (query, DML, or DDL) to be executed.</p>
+</div>
+<div className="dt">offset (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>A positive integer indicating the number of initial results to skip (this can be useful for paging through the results). The default value is 0. The minimum allowed value is 0. The maximum allowed value is MAX\_INT.</p>
+</div>
+<div className="dt">limit (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>A positive integer indicating the maximum number of results to be returned, or END\_OF\_SET (-9999) to indicate that the maximum number of results allowed by the server should be returned. The number of records returned will never exceed the server’s own limit, defined by the <a className="reference external" href="/content/config/#config-main-general">max\_get\_records\_size</a> parameter in the server configuration. Use output parameter <span className="em">has\_more\_records</span> to see if more records exist in the result to be fetched, and input parameter <span className="em">offset</span> and input parameter <span className="em">limit</span> to request subsequent pages of results. The default value is -9999.</p>
+</div>
+<div className="dt">encoding (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Specifies the encoding for returned records; either ‘binary’ or ‘json’. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>binary</p>
+</li>
+<li>
+<p>json</p>
+</li>
+</ul>
+<p>The default value is ‘binary’.</p>
+</div>
+<div className="dt">request\_schema\_str (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Avro schema of input parameter <span className="em">data</span>. The default value is ‘’.</p>
+</div>
+<div className="dt">data (<span className="em">list of bytes</span>) –</div>
+<div className="dd">
+<p>An array of binary-encoded data for the records to be binded to the SQL query. Or use <span className="em">query\_parameters</span> to pass the data in JSON format. The default value is an empty list ( \[\] ). The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>cost\_based\_optimization</strong> – If <span className="em">false</span>, disables the cost-based optimization of the given query. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>distributed\_joins</strong> – If <span className="em">true</span>, enables the use of distributed joins in servicing the given query. Any query requiring a distributed join will succeed, though hints can be used in the query to change the distribution of the source data to allow the query to succeed. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>distributed\_operations</strong> – If <span className="em">true</span>, enables the use of distributed operations in servicing the given query. Any query requiring a distributed join will succeed, though hints can be used in the query to change the distribution of the source data to allow the query to succeed. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>ignore\_existing\_pk</strong> – Specifies the record collision error-suppression policy for inserting into or updating a table with a <a className="reference external" href="/content/concepts/tables/#primary-keys">primary key</a>, only used when primary key record collisions are rejected (<span className="em">update\_on\_existing\_pk</span> is <span className="em">false</span>). If set to <span className="em">true</span>, any record insert/update that is rejected for resulting in a primary key collision with an existing table record will be ignored with no error generated. If <span className="em">false</span>, the rejection of any insert/update for resulting in a primary key collision will cause an error to be reported. If the specified table does not have a primary key or if <span className="em">update\_on\_existing\_pk</span> is <span className="em">true</span>, then this option has no effect. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Ignore inserts/updates that result in primary key collisions with existing records.</p>
+</li>
+<li>
+<p><strong>false</strong> – Treat as errors any inserts/updates that result in primary key collisions with existing records.</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>late\_materialization</strong> – If <span className="em">true</span>, Joins/Filters results will always be materialized ( saved to result tables format). Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>paging\_table</strong> – When specified (or <span className="em">paging\_table\_ttl</span> is set), the system will create a paging table to hold the results of the query, when the output has more records than are in the response (i.e., when output parameter <span className="em">has\_more\_records</span> is <span className="em">true</span>). If the specified paging table exists, the records from the paging table are returned without re-evaluating the query. It is the caller’s responsibility to clear the output parameter <span className="em">paging\_table</span> and other tables in the <span className="em">result\_table\_list</span> (both returned in the response) when they are done with this query.</p>
+</li>
+<li>
+<p><strong>paging\_table\_ttl</strong> – Sets the <a className="reference external" href="/content/concepts/ttl/">TTL</a> of the paging table. -1 indicates no timeout. Setting this option will cause a paging table to be generated when needed. The output parameter <span className="em">paging\_table</span> and other tables in the <span className="em">result\_table\_list</span> (both returned in the response) will be automatically cleared after the TTL expires, if set to a positive number. However, it is still recommended that the caller clear these tables when they are done with this query.</p>
+</li>
+<li>
+<p><strong>parallel\_execution</strong> – If <span className="em">false</span>, disables the parallel step execution of the given query. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>plan\_cache</strong> – If <span className="em">false</span>, disables plan caching for the given query. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>prepare\_mode</strong> – If <span className="em">true</span>, compiles a query into an execution plan and saves it in query cache. Query execution is not performed and an empty response will be returned to user. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>preserve\_dict\_encoding</strong> – If <span className="em">true</span>, then columns that were dict encoded in the source table will be dict encoded in the projection table. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>query\_parameters</strong> – Query parameters in JSON array or arrays (for inserting multiple rows). This can be used instead of input parameter <span className="em">data</span> and input parameter <span className="em">request\_schema\_str</span>.</p>
+</li>
+<li>
+<p><strong>results\_caching</strong> – If <span className="em">false</span>, disables caching of the results of the given query. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>rule\_based\_optimization</strong> – If <span className="em">false</span>, disables rule-based rewrite optimizations for the given query. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>ssq\_optimization</strong> – If <span className="em">false</span>, scalar subqueries will be translated into joins. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>ttl</strong> – Sets the <a className="reference external" href="/content/concepts/ttl/">TTL</a> of the intermediate result tables used in query execution.</p>
+</li>
+<li>
+<p><strong>update\_on\_existing\_pk</strong> – Specifies the record collision policy for inserting into or updating a table with a <a className="reference external" href="/content/concepts/tables/#primary-keys">primary key</a>. If set to <span className="em">true</span>, any existing table record with primary key values that match those of a record being inserted or updated will be replaced by that record. If set to <span className="em">false</span>, any such primary key collision will result in the insert/update being rejected and the error handled as determined by <span className="em">ignore\_existing\_pk</span>. If the specified table does not have a primary key, then this option has no effect. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Replace the collided-into record with the record inserted or updated when a new/modified record causes a primary key collision with an existing record.</p>
+</li>
+<li>
+<p><strong>false</strong> – Reject the insert or update when it results in a primary key collision with an existing record.</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>validate\_change\_column</strong> – When changing a column using alter table, validate the change before applying it. If <span className="em">true</span>, then validate all values. A value too large (or too long) for the new type will prevent any change. If <span className="em">false</span>, then when a value is too large or long, it will be truncated. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>current\_schema</strong> – Use the supplied value as the <a className="reference external" href="/content/concepts/schemas/#default-schema">default schema</a> when processing this SQL command.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl">
+<div className="dt">count\_affected (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>The number of objects/records affected.</p>
+</div>
+<div className="dt">response\_schema\_str (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Avro schema of output parameter <span className="em">binary\_encoded\_response</span> or output parameter <span className="em">json\_encoded\_response</span>.</p>
+</div>
+<div className="dt">binary\_encoded\_response (<span className="em">bytes</span>) –</div>
+<div className="dd">
+<p>Avro binary encoded response.</p>
+</div>
+<div className="dt">json\_encoded\_response (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Avro JSON encoded response.</p>
+</div>
+<div className="dt">total\_number\_of\_records (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>Total/Filtered number of records.</p>
+</div>
+<div className="dt">has\_more\_records (<span className="em">bool</span>) –</div>
+<div className="dd">
+<p>Too many records. Returned a partial set. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>True</p>
+</li>
+<li>
+<p>False</p>
+</li>
+</ul>
+</div>
+<div className="dt">paging\_table (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the table that has the result records of the query. Valid, when output parameter <span className="em">has\_more\_records</span> is <span className="em">true</span>. The caller should clear this and all tables in <span className="em">result\_table\_list</span> when they are done querying.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>count</strong> – Number of records without final limits applied.</p>
+</li>
+<li>
+<p><strong>result\_table\_list</strong> – List of tables, comma-separated, in addition to the output parameter <span className="em">paging\_table</span>, created as result of the query. These should be cleared by the caller when they are done querying.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+<div className="dt">record\_type (<code className="xref py py-class docutils literal notranslate"><span className="pre">RecordType</span></code> or None) –</div>
+<div className="dd">
+<p>A <code className="xref py py-class docutils literal notranslate"><span className="pre">RecordType</span></code> object using which the user can decode the binary data by using <a className="reference internal" href="/content/api/python/source/gpudbrecord#gpudb.GPUdbRecord.decode_binary_data" title="gpudb.GPUdbRecord.decode_binary_data"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdbRecord.decode\_binary\_data()</span></code></a>. If JSON encoding is used, then None.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

@@ -1,0 +1,399 @@
+---
+title: "match_graph"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.match_graph"> <span className="sig-name descname"><span className="pre">match\_graph</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">graph\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">sample\_points</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">solve\_method</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">'markov\_chain'</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">solution\_table</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">''</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L36157"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Matches a directed route implied by a given set of latitude/longitude points to an existing underlying road network graph using a given solution type.</p>
+<p>IMPORTANT: It’s highly recommended that you review the <a className="reference external" href="/content/graph_solver/network_graph_solver/">Graphs and Solvers</a> concepts documentation, the <a className="reference external" href="/content/guides/graph_rest_guide/">Graph REST Tutorial</a>, and/or some <a className="reference external" href="/content/guides/tags/graph-match">/match/graph examples</a> before using this endpoint.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">graph\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the underlying geospatial graph resource to match to using input parameter <span className="em">sample\_points</span>.</p>
+</div>
+<div className="dt">sample\_points (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>Sample points used to match to an underlying geospatial graph. Sample points must be specified using <a className="reference external" href="/content/graph_solver/network_graph_solver/#match-identifiers">identifiers</a>; identifiers are grouped as <a className="reference external" href="/content/graph_solver/network_graph_solver/#match-combinations">combinations</a>. Identifiers can be used with: existing column names, e.g., ‘table.column AS SAMPLE\_X’; expressions, e.g., ‘ST\_MAKEPOINT(table.x, table.y) AS SAMPLE\_WKTPOINT’; or constant values, e.g., ‘{"{"}1, 2, 10{"}"} AS SAMPLE\_TRIPID’. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">solve\_method (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>The type of solver to use for graph matching. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>markov\_chain</strong> – Matches input parameter <span className="em">sample\_points</span> to the graph using the Hidden Markov Model (HMM)-based method, which conducts a range-tree closest-edge search to find the best combinations of possible road segments (<span className="em">num\_segments</span>) for each sample point to create the best route. The route is secured one point at a time while looking ahead <span className="em">chain\_width</span> number of points, so the prediction is corrected after each point. This solution type is the most accurate but also the most computationally intensive. Related options: <span className="em">num\_segments</span> and <span className="em">chain\_width</span>.</p>
+</li>
+<li>
+<p><strong>match\_od\_pairs</strong> – Matches input parameter <span className="em">sample\_points</span> to find the most probable path between origin and destination pairs with cost constraints.</p>
+</li>
+<li>
+<p><strong>match\_supply\_demand</strong> – Matches input parameter <span className="em">sample\_points</span> to optimize scheduling multiple supplies (trucks) with varying sizes to varying demand sites with varying capacities per depot. Related options: <span className="em">partial\_loading</span> and <span className="em">max\_combinations</span>.</p>
+</li>
+<li>
+<p><strong>match\_batch\_solves</strong> – Matches input parameter <span className="em">sample\_points</span> source and destination pairs for the shortest path solves in batch mode.</p>
+</li>
+<li>
+<p><strong>match\_loops</strong> – Matches closed loops (Eulerian paths) originating and ending at each graph node within min and max hops (levels).</p>
+</li>
+<li>
+<p><strong>match\_charging\_stations</strong> – Matches an optimal path across a number of ev-charging stations between source and target locations.</p>
+</li>
+<li>
+<p><strong>match\_similarity</strong> – Matches the intersection set(s) by computing the Jaccard similarity score between node pairs.</p>
+</li>
+<li>
+<p><strong>match\_pickup\_dropoff</strong> – Matches the pickups and dropoffs by optimizing the total trip costs.</p>
+</li>
+<li>
+<p><strong>match\_clusters</strong> – Matches the graph nodes with a cluster index using Louvain clustering algorithm.</p>
+</li>
+<li>
+<p><strong>match\_pattern</strong> – Matches a pattern in the graph.</p>
+</li>
+<li>
+<p><strong>match\_embedding</strong> – Creates vector node embeddings.</p>
+</li>
+<li>
+<p><strong>match\_isochrone</strong> – Solves for isochrones for a set of input sources.</p>
+</li>
+<li>
+<p><strong>match\_route\_detour</strong> – Computes detour costs for nearby stations at a mark point along each source-target route.</p>
+</li>
+</ul>
+<p>The default value is ‘markov\_chain’.</p>
+</div>
+<div className="dt">solution\_table (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>The name of the table used to store the results, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a> and meeting <a className="reference external" href="/content/concepts/tables/#table-naming-criteria">table naming criteria</a>. This table contains a <a className="reference external" href="/content/location_intelligence/geo_objects/#geospatial-tracks">track</a> of geospatial points for the matched portion of the graph, a track ID, and a score value. Also outputs a details table containing a trip ID (that matches the track ID), the latitude/longitude pair, the timestamp the point was recorded at, and an edge ID corresponding to the matched road segment. Must not be an existing table of the same name. The default value is ‘’.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>gps\_noise</strong> – GPS noise value (in meters) to remove redundant sample points. Use -1 to disable noise reduction. The default value accounts for 95% of point variation (+ or -5 meters). The default value is ‘5.0’.</p>
+</li>
+<li>
+<p><strong>num\_segments</strong> – Maximum number of potentially matching road segments for each sample point. For the <span className="em">markov\_chain</span> solver, the default is 3. The default value is ‘3’.</p>
+</li>
+<li>
+<p><strong>search\_radius</strong> – Maximum search radius used when snapping sample points onto potentially matching surrounding segments. The default value corresponds to approximately 100 meters. The default value is ‘0.001’.</p>
+</li>
+<li>
+<p><strong>chain\_width</strong> – For the <span className="em">markov\_chain</span> solver only. Length of the sample points lookahead window within the Markov kernel; the larger the number, the more accurate the solution. The default value is ‘9’.</p>
+</li>
+<li>
+<p><strong>source</strong> – WKT starting point from input parameter <span className="em">sample\_points</span> for the solver. The default behavior for the endpoint is to use time to determine the starting point. The default value is ‘POINT NULL’.</p>
+</li>
+<li>
+<p><strong>destination</strong> – WKT ending point from input parameter <span className="em">sample\_points</span> for the solver. The default behavior for the endpoint is to use time to determine the destination point. The default value is ‘POINT NULL’.</p>
+</li>
+<li>
+<p><strong>partial\_loading</strong> – For the <span className="em">match\_supply\_demand</span> solver only. When false (non-default), trucks do not off-load at the demand (store) side if the remainder is less than the store’s need. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Partial off-loading at multiple store (demand) locations.</p>
+</li>
+<li>
+<p><strong>false</strong> – No partial off-loading allowed if supply is less than the store’s demand.</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>max\_combinations</strong> – For the <span className="em">match\_supply\_demand</span> solver only. This is the cutoff for the number of generated combinations for sequencing the demand locations - can increase this up to 2M. The default value is ‘10000’.</p>
+</li>
+<li>
+<p><strong>max\_supply\_combinations</strong> – For the <span className="em">match\_supply\_demand</span> solver only. This is the cutoff for the number of generated combinations for sequencing the supply locations if/when ‘permute\_supplies’ is true. The default value is ‘10000’.</p>
+</li>
+<li>
+<p><strong>left\_turn\_penalty</strong> – This will add an additional weight over the edges labeled as ‘left turn’ if the ‘add\_turn’ option parameter of the <a className="reference internal" href="#gpudb.GPUdb.create_graph" title="gpudb.GPUdb.create_graph"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_graph()</span></code></a> was invoked at graph creation. The default value is ‘0.0’.</p>
+</li>
+<li>
+<p><strong>right\_turn\_penalty</strong> – This will add an additional weight over the edges labeled as’ right turn’ if the ‘add\_turn’ option parameter of the <a className="reference internal" href="#gpudb.GPUdb.create_graph" title="gpudb.GPUdb.create_graph"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_graph()</span></code></a> was invoked at graph creation. The default value is ‘0.0’.</p>
+</li>
+<li>
+<p><strong>intersection\_penalty</strong> – This will add an additional weight over the edges labeled as ‘intersection’ if the ‘add\_turn’ option parameter of the <a className="reference internal" href="#gpudb.GPUdb.create_graph" title="gpudb.GPUdb.create_graph"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_graph()</span></code></a> was invoked at graph creation. The default value is ‘0.0’.</p>
+</li>
+<li>
+<p><strong>sharp\_turn\_penalty</strong> – This will add an additional weight over the edges labeled as ‘sharp turn’ or ‘u-turn’ if the ‘add\_turn’ option parameter of the <a className="reference internal" href="#gpudb.GPUdb.create_graph" title="gpudb.GPUdb.create_graph"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_graph()</span></code></a> was invoked at graph creation. The default value is ‘0.0’.</p>
+</li>
+<li>
+<p><strong>aggregated\_output</strong> – For the <span className="em">match\_supply\_demand</span> solver only. When it is true (default), each record in the output table shows a particular truck’s scheduled cumulative round trip path (MULTILINESTRING) and the corresponding aggregated cost. Otherwise, each record shows a single scheduled truck route (LINESTRING) towards a particular demand location (store id) with its corresponding cost. The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>output\_tracks</strong> – For the <span className="em">match\_supply\_demand</span> solver only. When it is true (non-default), the output will be in tracks format for all the round trips of each truck in which the timestamps are populated directly from the edge weights starting from their originating depots. The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>max\_trip\_cost</strong> – For the <span className="em">match\_supply\_demand</span> and <span className="em">match\_pickup\_dropoff</span> solvers only. If this constraint is greater than zero (default) then the trucks/rides will skip traveling from one demand/pick location to another if the cost between them is greater than this number (distance or time). Zero (default) value means no check is performed. The default value is ‘0.0’.</p>
+</li>
+<li>
+<p><strong>filter\_folding\_paths</strong> – For the <span className="em">markov\_chain</span> solver only. When true (non-default), the paths per sequence combination is checked for folding over patterns and can significantly increase the execution time depending on the chain width and the number of GPS samples. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Filter out the folded paths.</p>
+</li>
+<li>
+<p><strong>false</strong> – Do not filter out the folded paths.</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>unit\_unloading\_cost</strong> – For the <span className="em">match\_supply\_demand</span> solver only. The unit cost per load amount to be delivered. If this value is greater than zero (default) then the additional cost of this unit load multiplied by the total dropped load will be added over to the trip cost to the demand location. The default value is ‘0.0’.</p>
+</li>
+<li>
+<p><strong>max\_num\_threads</strong> – For the <span className="em">markov\_chain</span> solver only. If specified (greater than zero), the maximum number of threads will not be greater than the specified value. It can be lower due to the memory and the number cores available. Default value of zero allows the algorithm to set the maximal number of threads within these constraints. The default value is ‘0’.</p>
+</li>
+<li>
+<p><strong>service\_limit</strong> – For the <span className="em">match\_supply\_demand</span> solver only. If specified (greater than zero), any supply actor’s total service cost (distance or time) will be limited by the specified value including multiple rounds (if set). The default value is ‘0.0’.</p>
+</li>
+<li>
+<p><strong>enable\_reuse</strong> – For the <span className="em">match\_supply\_demand</span> solver only. If specified (true), all supply actors can be scheduled for second rounds from their originating depots. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Allows reusing supply actors (trucks, e.g.) for scheduling again.</p>
+</li>
+<li>
+<p><strong>false</strong> – Supply actors are scheduled only once from their depots.</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>max\_stops</strong> – For the <span className="em">match\_supply\_demand</span> solver only. If specified (greater than zero), a supply actor (truck) can at most have this many stops (demand locations) in one round trip. Otherwise, it is unlimited. If ‘enable\_truck\_reuse’ is on, this condition will be applied separately at each round trip use of the same truck. The default value is ‘0’.</p>
+</li>
+<li>
+<p><strong>service\_radius</strong> – For the <span className="em">match\_supply\_demand</span> and <span className="em">match\_pickup\_dropoff</span> solvers only. If specified (greater than zero), it filters the demands/picks outside this radius centered around the supply actor/ride’s originating location (distance or time). The default value is ‘0.0’.</p>
+</li>
+<li>
+<p><strong>permute\_supplies</strong> – For the <span className="em">match\_supply\_demand</span> solver only. If specified (true), supply side actors are permuted for the demand combinations during MSDO optimization - note that this option increases optimization time significantly - use of ‘max\_combinations’ option is recommended to prevent prohibitively long runs. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Generates sequences over supply side permutations if total supply is less than twice the total demand.</p>
+</li>
+<li>
+<p><strong>false</strong> – Permutations are not performed, rather a specific order of supplies based on capacity is computed.</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>batch\_tsm\_mode</strong> – For the <span className="em">match\_supply\_demand</span> solver only. When enabled, it sets the number of visits on each demand location by a single salesman at each trip is considered to be (one) 1, otherwise there is no bound. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Sets only one visit per demand location by a salesman (TSM mode).</p>
+</li>
+<li>
+<p><strong>false</strong> – No preset limit (usual MSDO mode).</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>round\_trip</strong> – For the <span className="em">match\_supply\_demand</span> solver only. When enabled, the supply will have to return back to the origination location. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – The optimization is done for trips in round trip manner always returning to originating locations.</p>
+</li>
+<li>
+<p><strong>false</strong> – Supplies do not have to come back to their originating locations in their routes. The routes are considered finished at the final dropoff.</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>num\_cycles</strong> – For the <span className="em">match\_clusters</span> solver only. Terminates the cluster exchange iterations across 2-step-cycles (outer loop) when quality does not improve during iterations. The default value is ‘10’.</p>
+</li>
+<li>
+<p><strong>num\_loops\_per\_cycle</strong> – For the <span className="em">match\_clusters</span> and <span className="em">match\_embedding</span> solvers only. Terminates the cluster exchanges within the first step iterations of a cycle (inner loop) unless convergence is reached. The default value is ‘10’.</p>
+</li>
+<li>
+<p><strong>num\_output\_clusters</strong> – For the <span className="em">match\_clusters</span> solver only. Limits the output to the top ‘num\_output\_clusters’ clusters based on density. Default value of zero outputs all clusters. The default value is ‘0’.</p>
+</li>
+<li>
+<p><strong>max\_num\_clusters</strong> – For the <span className="em">match\_clusters</span> and <span className="em">match\_embedding</span> solvers only. If set (value greater than zero), it terminates when the number of clusters goes below than this number. For embedding solver the default is 8. The default value is ‘0’.</p>
+</li>
+<li>
+<p><strong>cluster\_quality\_metric</strong> – For the <span className="em">match\_clusters</span> solver only. The quality metric for Louvain modularity optimization solver. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>girvan</strong> – Uses the Newman Girvan quality metric for cluster solver.</p>
+</li>
+<li>
+<p><strong>spectral</strong> – Applies recursive spectral bisection (RSB) partitioning solver.</p>
+</li>
+</ul>
+<p>The default value is ‘girvan’.</p>
+</li>
+<li>
+<p><strong>restricted\_type</strong> – For the <span className="em">match\_supply\_demand</span> solver only. Optimization is performed by restricting routes labeled by ‘MSDO\_ODDEVEN\_RESTRICTED’ only for this supply actor (truck) type. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>odd</strong> – Applies odd/even rule restrictions to odd tagged vehicles.</p>
+</li>
+<li>
+<p><strong>even</strong> – Applies odd/even rule restrictions to even tagged vehicles.</p>
+</li>
+<li>
+<p><strong>none</strong> – Does not apply odd/even rule restrictions to any vehicles.</p>
+</li>
+</ul>
+<p>The default value is ‘none’.</p>
+</li>
+<li>
+<p><strong>server\_id</strong> – Indicates which graph server(s) to send the request to. Default is to send to the server, amongst those containing the corresponding graph, that has the most computational bandwidth. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>inverse\_solve</strong> – For the <span className="em">match\_batch\_solves</span> solver only. Solves source-destination pairs using inverse shortest path solver. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Solves using inverse shortest path solver.</p>
+</li>
+<li>
+<p><strong>false</strong> – Solves using direct shortest path solver.</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>min\_loop\_level</strong> – For the <span className="em">match\_loops</span> solver only. Finds closed loops around each node deducible not less than this minimal hop (level) deep. The default value is ‘0’.</p>
+</li>
+<li>
+<p><strong>max\_loop\_level</strong> – For the <span className="em">match\_loops</span> solver only. Finds closed loops around each node deducible not more than this maximal hop (level) deep. The default value is ‘5’.</p>
+</li>
+<li>
+<p><strong>search\_limit</strong> – For the <span className="em">match\_loops</span> solver only. Searches within this limit of nodes per vertex to detect loops. The value zero means there is no limit. The default value is ‘10000’.</p>
+</li>
+<li>
+<p><strong>output\_batch\_size</strong> – For the <span className="em">match\_loops</span> solver only. Uses this value as the batch size of the number of loops in flushing(inserting) to the output table. The default value is ‘1000’.</p>
+</li>
+<li>
+<p><strong>multi\_step</strong> – For the <span className="em">match\_supply\_demand</span> solver only. Runs multiple supply demand solver repeatedly in a multi step cycle by switching supplies to demands until it reaches the main hub supply. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>charging\_capacity</strong> – For the <span className="em">match\_charging\_stations</span> solver only. This is the maximum ev-charging capacity of a vehicle (distance in meters or time in seconds depending on the unit of the graph weights). The default value is ‘300000.0’.</p>
+</li>
+<li>
+<p><strong>charging\_candidates</strong> – For the <span className="em">match\_charging\_stations</span> solver only. Solver searches for this many number of stations closest around each base charging location found by capacity. The default value is ‘10’.</p>
+</li>
+<li>
+<p><strong>charging\_penalty</strong> – For the <span className="em">match\_charging\_stations</span> solver only. This is the penalty for full charging. The default value is ‘30000.0’.</p>
+</li>
+<li>
+<p><strong>detour\_mark\_cost</strong> – For the <span className="em">match\_route\_detour</span> solver only. Cost along the route at which to search for nearby stations If zero, it solves along the trip sliding the 3 SSSP cycle kernel by radius amount. The default value is ‘3600.0’.</p>
+</li>
+<li>
+<p><strong>detour\_reentry\_factor</strong> – For the <span className="em">match\_route\_detour</span> solver only. Multiplier on detour\_mark\_cost to determine the reentry point on the route (default 1.2 means 20% further along). The default value is ‘1.2’.</p>
+</li>
+<li>
+<p><strong>detour\_search\_radius</strong> – For the <span className="em">match\_route\_detour</span> solver only. Search radius around the mark point for finding nearby prospective stations (e.g. cafes, pit stops, EV charging stations). The default value is ‘600.0’.</p>
+</li>
+<li>
+<p><strong>detour\_search\_limit</strong> – For the <span className="em">match\_route\_detour</span> solver only. Maximum number of nearby stations to consider within the search radius around the mark point. The default value is ‘10’.</p>
+</li>
+<li>
+<p><strong>max\_hops</strong> – For the <span className="em">match\_similarity</span> and <span className="em">match\_embedding</span> solvers only. Searches within this maximum hops for source and target node pairs to compute the Jaccard scores. The default value is ‘3’.</p>
+</li>
+<li>
+<p><strong>traversal\_node\_limit</strong> – For the <span className="em">match\_similarity</span> solver only. Limits the traversal depth if it reaches this many number of nodes. The default value is ‘1000’.</p>
+</li>
+<li>
+<p><strong>paired\_similarity</strong> – For the <span className="em">match\_similarity</span> solver only. If true, it computes Jaccard score between each pair, otherwise it will compute Jaccard from the intersection set between the source and target nodes. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>force\_undirected</strong> – For the <span className="em">match\_pattern</span> and <span className="em">match\_embedding</span> solvers only. Pattern matching will be using both pattern and graph as undirected if set to true. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>max\_vector\_dimension</strong> – For the <span className="em">match\_embedding</span> solver only. Limits the number of dimensions in node vector embeddings. The default value is ‘1000’.</p>
+</li>
+<li>
+<p><strong>optimize\_embedding\_weights</strong> – For the <span className="em">match\_embedding</span> solvers only. Solves to find the optimal weights per sub feature in vector embeddings. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>embedding\_weights</strong> – For the <span className="em">match\_embedding</span> solver only. User specified weights per sub feature in vector embeddings. The string contains the comma separated float values for each sub-feature in the vector space. These values will ONLY be used if ‘optimize\_embedding\_weights’ is false. The default value is ‘1.0,1.0,1.0,1.0’.</p>
+</li>
+<li>
+<p><strong>optimization\_sampling\_size</strong> – For the <span className="em">match\_embedding</span> solver only. Sets the number of random nodes from the graph for solving the weights using stochastic gradient descent. The default value is ‘1000’.</p>
+</li>
+<li>
+<p><strong>optimization\_max\_iterations</strong> – For the <span className="em">match\_embedding</span> solver only. When the iterations (epochs) for the convergence of the stochastic gradient descent algorithm reaches this number it bails out unless relative error between consecutive iterations is below the ‘optimization\_error\_tolerance’ option. The default value is ‘1000’.</p>
+</li>
+<li>
+<p><strong>optimization\_error\_tolerance</strong> – For the <span className="em">match\_embedding</span> solver only. When the relative error between all of the weights’ consecutive iterations falls below this threshold the optimization cycle is interrupted unless the number of iterations reaches the limit set by the option ‘max\_optimization\_iterations’. The default value is ‘0.001’.</p>
+</li>
+<li>
+<p><strong>optimization\_iteration\_rate</strong> – For the <span className="em">match\_embedding</span> solver only. It is otherwise known as the learning rate, which is the proportionality constant in front of the gradient term in successive iterations. The default value is ‘0.3’.</p>
+</li>
+<li>
+<p><strong>max\_radius</strong> – For the <span className="em">match\_isochrone</span> solver only. Sets the maximal reachability limit for computing isochrones. Zero means no limit. The default value is ‘0.0’.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">result (<span className="em">bool</span>) –</div>
+<div className="dd">
+<p>Indicates a successful solution.</p>
+</div>
+<div className="dt">match\_score (<span className="em">float</span>) –</div>
+<div className="dd">
+<p>The mean square error calculation representing the map matching score. Values closer to zero are better.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

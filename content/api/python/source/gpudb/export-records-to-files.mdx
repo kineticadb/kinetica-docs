@@ -1,0 +1,186 @@
+---
+title: "export_records_to_files"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.export_records_to_files"> <span className="sig-name descname"><span className="pre">export\_records\_to\_files</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">filepath</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L28348"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Export records from a table to files. All tables can be exported, in full or partial (see <span className="em">columns\_to\_export</span> and <span className="em">columns\_to\_skip</span>). Additional filtering can be applied when using export table with expression through SQL. Default destination is KIFS, though other storage types (Azure, S3, GCS, and HDFS) are supported through <span className="em">datasink\_name</span>; see <a className="reference internal" href="#gpudb.GPUdb.create_datasink" title="gpudb.GPUdb.create_datasink"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_datasink()</span></code></a>.</p>
+<p>Server’s local file system is not supported. Default file format is delimited text. See options for different file types and different options for each file type. Table is saved to a single file if within max file size limits (may vary depending on datasink type). If not, then table is split into multiple files; these may be smaller than the max size limit.</p>
+<p>All filenames created are returned in the response.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>The name of the table whose records are to be exported.</p>
+</div>
+<div className="dt">filepath (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Path to data export target. If input parameter <span className="em">filepath</span> has a file extension, it is read as the name of a file. If input parameter <span className="em">filepath</span> is a directory, then the source table name with a random UUID appended will be used as the name of each exported file, all written to that directory. If filepath is a filename, then all exported files will have a random UUID appended to the given name. In either case, the target directory specified or implied must exist. The names of all exported files are returned in the response.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>batch\_size</strong> – Number of records to be exported as a batch. The default value is ‘1000000’.</p>
+</li>
+<li>
+<p><strong>column\_formats</strong> – For each source column specified, applies the column-property-bound format. Currently supported column properties include date, time, and datetime. The parameter value must be formatted as a JSON string of maps of column names to maps of column properties to their corresponding column formats, e.g., ‘{"{"} “order\_date” : {"{"} “date” : “%Y.%m.%d” {"}"}, “order\_time” : {"{"} “time” : “%H:%M:%S” {"}"} {"}"}’.</p>
+<p>See <span className="em">default\_column\_formats</span> for valid format syntax.</p>
+</li>
+<li>
+<p><strong>columns\_to\_export</strong> – Specifies a comma-delimited list of columns from the source table to export, written to the output file in the order they are given.</p>
+<p>Column names can be provided, in which case the target file will use those names as the column headers as well.</p>
+<p>Alternatively, column numbers can be specified–discretely or as a range. For example, a value of ‘5,7,1..3’ will write values from the fifth column in the source table into the first column in the target file, from the seventh column in the source table into the second column in the target file, and from the first through third columns in the source table into the third through fifth columns in the target file.</p>
+<p>Mutually exclusive with <span className="em">columns\_to\_skip</span>.</p>
+</li>
+<li>
+<p><strong>columns\_to\_skip</strong> – Comma-separated list of column names or column numbers to not export. All columns in the source table not specified will be written to the target file in the order they appear in the table definition. Mutually exclusive with <span className="em">columns\_to\_export</span>.</p>
+</li>
+<li>
+<p><strong>datasink\_name</strong> – Datasink name, created using <a className="reference internal" href="#gpudb.GPUdb.create_datasink" title="gpudb.GPUdb.create_datasink"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_datasink()</span></code></a>.</p>
+</li>
+<li>
+<p><strong>default\_column\_formats</strong> – Specifies the default format to use to write data. Currently supported column properties include date, time, and datetime. This default column-property-bound format can be overridden by specifying a column property and format for a given source column in <span className="em">column\_formats</span>. For each specified annotation, the format will apply to all columns with that annotation unless custom <span className="em">column\_formats</span> for that annotation are specified.</p>
+<p>The parameter value must be formatted as a JSON string that is a map of column properties to their respective column formats, e.g., ‘{"{"} “date” : “%Y.%m.%d”, “time” : “%H:%M:%S” {"}"}’. Column formats are specified as a string of control characters and plain text. The supported control characters are ‘Y’, ‘m’, ‘d’, ‘H’, ‘M’, ‘S’, and ‘s’, which follow the Linux ‘strptime()’ specification, as well as ‘s’, which specifies seconds and fractional seconds (though the fractional component will be truncated past milliseconds).</p>
+<p>Formats for the ‘date’ annotation must include the ‘Y’, ‘m’, and ‘d’ control characters. Formats for the ‘time’ annotation must include the ‘H’, ‘M’, and either ‘S’ or ‘s’ (but not both) control characters. Formats for the ‘datetime’ annotation meet both the ‘date’ and ‘time’ control character requirements. For example, ‘{"{"}“datetime” : “%m/%d/%Y %H:%M:%S” {"}"}’ would be used to write text as “05/04/2000 12:12:11”</p>
+</li>
+<li>
+<p><strong>export\_ddl</strong> – Save DDL to a separate file. The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>file\_extension</strong> – Extension to give the export file. The default value is ‘.csv’.</p>
+</li>
+<li>
+<p><strong>file\_type</strong> – Specifies the file format to use when exporting data. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>delimited\_text</strong> – Delimited text file format; e.g., CSV, TSV, PSV, etc.</p>
+</li>
+<li>
+<p>parquet</p>
+</li>
+</ul>
+<p>The default value is ‘delimited\_text’.</p>
+</li>
+<li>
+<p><strong>kinetica\_header</strong> – Whether to include a Kinetica proprietary header. Will not be written if <span className="em">text\_has\_header</span> is <span className="em">false</span>. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>kinetica\_header\_delimiter</strong> – If a Kinetica proprietary header is included, then specify a property separator. Different from column delimiter. The default value is ‘|’.</p>
+</li>
+<li>
+<p><strong>compression\_type</strong> – File compression type. GZip can be applied to text and Parquet files. Snappy can only be applied to Parquet files, and is the default compression for them. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>uncompressed</p>
+</li>
+<li>
+<p>snappy</p>
+</li>
+<li>
+<p>gzip</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>single\_file</strong> – Save records to a single file. This option may be ignored if file size exceeds internal file size limits (this limit will differ on different targets). Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+<li>
+<p>overwrite</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>single\_file\_max\_size</strong> – Max file size (in MB) to allow saving to a single file. May be overridden by target limitations. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>text\_delimiter</strong> – Specifies the character to write out to delimit field values and field names in the header (if present).</p>
+<p>For <span className="em">delimited\_text</span> <span className="em">file\_type</span> only. The default value is ‘,’.</p>
+</li>
+<li>
+<p><strong>text\_has\_header</strong> – Indicates whether to write out a header row.</p>
+<p>For <span className="em">delimited\_text</span> <span className="em">file\_type</span> only. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>text\_null\_string</strong> – Specifies the character string that should be written out for the null value in the data.</p>
+<p>For <span className="em">delimited\_text</span> <span className="em">file\_type</span> only. The default value is ‘\\N’.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of source table.</p>
+</div>
+<div className="dt">count\_exported (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>Number of source table records exported.</p>
+</div>
+<div className="dt">count\_skipped (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>Number of source table records skipped.</p>
+</div>
+<div className="dt">files (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>Names of all exported files.</p>
+</div>
+<div className="dt">last\_timestamp (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>Timestamp of last file scanned.</p>
+</div>
+<div className="dt">data\_text (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>\[Not used\].</p>
+</div>
+<div className="dt">data\_bytes (<span className="em">list of bytes</span>) –</div>
+<div className="dd">
+<p>\[Not used\].</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

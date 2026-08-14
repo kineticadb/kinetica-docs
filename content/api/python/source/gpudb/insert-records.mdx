@@ -1,0 +1,209 @@
+---
+title: "insert_records"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.insert_records"> <span className="sig-name descname"><span className="pre">insert\_records</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">data</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">list\_encoding</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">record\_type</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L33143"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Adds multiple records to the specified table. The operation is synchronous, meaning that a response will not be returned until all the records are fully inserted and available. The response payload provides the counts of the number of records actually inserted and/or updated, and can provide the unique identifier of each added record.</p>
+<p>The input parameter <span className="em">options</span> parameter can be used to customize this function’s behavior.</p>
+<p>The <span className="em">update\_on\_existing\_pk</span> option specifies the record collision policy for inserting into a table with a <a className="reference external" href="/content/concepts/tables/#primary-keys">primary key</a>, but is ignored if no primary key exists.</p>
+<p>The <span className="em">return\_record\_ids</span> option indicates that the database should return the unique identifiers of inserted records.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of table to which the records are to be added, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>. Must be an existing table.</p>
+</div>
+<div className="dt">data (<span className="em">list of Records</span>) –</div>
+<div className="dd">
+<p>An array of <span className="em">binary</span> or <span className="em">json</span> encoded data, or <code className="xref py py-class docutils literal notranslate"><span className="pre">Record</span></code> objects for the records to be added. The user can provide a single element (which will be automatically promoted to a list internally) or a list. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">list\_encoding (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>The encoding of the records to be inserted. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>binary</p>
+</li>
+<li>
+<p>json</p>
+</li>
+</ul>
+<p>The default value is ‘binary’.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>update\_on\_existing\_pk</strong> – Specifies the record collision policy for inserting into a table with a <a className="reference external" href="/content/concepts/tables/#primary-keys">primary key</a>. If set to <span className="em">true</span>, any existing table record with primary key values that match those of a record being inserted will be replaced by that new record (the new data will be “upserted”). If set to <span className="em">false</span>, any existing table record with primary key values that match those of a record being inserted will remain unchanged, while the new record will be rejected and the error handled as determined by <span className="em">ignore\_existing\_pk</span>, <span className="em">allow\_partial\_batch</span>, and <span className="em">return\_individual\_errors</span>. If the specified table does not have a primary key, then this option has no effect. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Upsert new records when primary keys match existing records.</p>
+</li>
+<li>
+<p><strong>false</strong> – Reject new records when primary keys match existing records.</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>enable\_inplace\_updates</strong> – Applies only when upserting (when <span className="em">update\_on\_existing\_pk</span> is <span className="em">true</span>). If set to <span className="em">true</span>, an existing record matched by primary key is modified in place. If set to <span className="em">false</span>, it is updated by deleting the existing record and inserting a replacement (delete and insert), which prevents the change from being reflected in dependent materialized views until they are refreshed. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>ignore\_existing\_pk</strong> – Specifies the record collision error-suppression policy for inserting into a table with a <a className="reference external" href="/content/concepts/tables/#primary-keys">primary key</a>, only used when not in upsert mode (upsert mode is disabled when <span className="em">update\_on\_existing\_pk</span> is <span className="em">false</span>). If set to <span className="em">true</span>, any record being inserted that is rejected for having primary key values that match those of an existing table record will be ignored with no error generated. If <span className="em">false</span>, the rejection of any record for having primary key values matching an existing record will result in an error being reported, as determined by <span className="em">allow\_partial\_batch</span> and <span className="em">return\_individual\_errors</span>. If the specified table does not have a primary key or if upsert mode is in effect (<span className="em">update\_on\_existing\_pk</span> is <span className="em">true</span>), then this option has no effect. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Ignore new records whose primary key values collide with those of existing records.</p>
+</li>
+<li>
+<p><strong>false</strong> – Treat as errors any new records whose primary key values collide with those of existing records.</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>pk\_conflict\_predicate\_higher</strong> – The record with higher value for the column resolves the primary-key insert conflict. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>pk\_conflict\_predicate\_lower</strong> – The record with lower value for the column resolves the primary-key insert conflict. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>return\_record\_ids</strong> – If <span className="em">true</span> then return the internal record id along for each inserted record. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>truncate\_strings</strong> – If set to <span className="em">true</span>, any strings which are too long for their target charN string columns will be truncated to fit. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>return\_individual\_errors</strong> – If set to <span className="em">true</span>, success will always be returned, and any errors found will be included in the info map. The “bad\_record\_indices” entry is a comma-separated list of bad records (0-based). If so, there will also be an “error\_N” entry for each record with an error, where N is the index (0-based). Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>allow\_partial\_batch</strong> – If set to <span className="em">true</span>, all correct records will be inserted and incorrect records will be rejected and reported. Otherwise, the entire batch will be rejected if any records are incorrect. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>error\_handling</strong> – Specifies how errors should be handled upon insertion. When set, this option is authoritative; supplying a contradictory <span className="em">allow\_partial\_batch</span> is an error. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>permissive</strong> – Records with bad column values are kept when possible: the offending column is filled with its default value if one exists, otherwise with null if the column is nullable; if neither is possible the record is skipped and reported.</p>
+</li>
+<li>
+<p><strong>skip</strong> – Records with bad values are skipped and reported; the rest of the batch is inserted.</p>
+</li>
+<li>
+<p><strong>abort</strong> – Stops the insertion and rejects the remaining batch when any record is incorrect.</p>
+</li>
+</ul>
+<p>The default value is ‘abort’.</p>
+</li>
+<li>
+<p><strong>dry\_run</strong> – If set to <span className="em">true</span>, no data will be saved and any errors will be returned. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>request\_schema\_str</strong> – Type schema of input parameter <span className="em">list</span> (when input parameter <span className="em">list\_encoding</span> is <span className="em">binary</span>), in \[\[“{"{"}column\_name{"}"}”,”{"{"}column\_type{"}"}”\]\] format. When non-empty and different from the table’s schema, the server remaps the incoming records to the table’s full schema. Columns present in the table but absent from this schema are filled using their default values, NULL (if nullable), or an error is returned. If empty, records must match the table’s full schema. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>transformations</strong> – Comma-separated expressions, one per target table column. Each expression is evaluated per record. Empty entries (two consecutive commas) mean no transformation for that column – the value is resolved from the input record, table default, NULL, or an error. Expressions may reference input columns by name or by position ($1 for the first input column, $2 for the second, etc.). The default value is ‘’.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+<div className="dt">record\_type (<span className="em">RecordType</span>) –</div>
+<div className="dd">
+<p>A <code className="xref py py-class docutils literal notranslate"><span className="pre">RecordType</span></code> object using which the binary data will be encoded. If None, then it is assumed that the data is already encoded, and no further encoding will occur. Default is None.</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">record\_ids (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>An array containing the IDs with which the added records are identified internally.</p>
+</div>
+<div className="dt">count\_inserted (<span className="em">int</span>) –</div>
+<div className="dd">
+<p>The number of records inserted.</p>
+</div>
+<div className="dt">count\_updated (<span className="em">int</span>) –</div>
+<div className="dd">
+<p>The number of records updated.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>bad\_record\_indices</strong> – If return\_individual\_errors option is specified or implied, returns a comma-separated list of invalid indices (0-based).</p>
+</li>
+<li>
+<p><strong>error\_N</strong> – Error message for record at index N (0-based).</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

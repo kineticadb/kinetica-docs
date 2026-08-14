@@ -1,0 +1,77 @@
+---
+title: "admin_add_ranks"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.admin_add_ranks"> <span className="sig-name descname"><span className="pre">admin\_add\_ranks</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">hosts</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">config\_params</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L14401"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Add one or more ranks to an existing Kinetica cluster. The new ranks will not contain any data initially (other than replicated tables) and will not be assigned any shards. To rebalance data and shards across the cluster, use <a className="reference internal" href="#gpudb.GPUdb.admin_rebalance" title="gpudb.GPUdb.admin_rebalance"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.admin\_rebalance()</span></code></a>.</p>
+<p>The database must be offline for this operation, see <a className="reference internal" href="#gpudb.GPUdb.admin_offline" title="gpudb.GPUdb.admin_offline"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.admin\_offline()</span></code></a></p>
+<p>For example, if attempting to add three new ranks (two ranks on host 172.123.45.67 and one rank on host 172.123.45.68) to a Kinetica cluster with additional configuration parameters:</p>
+<ul className="simple">
+<li>
+<p>input parameter <span className="em">hosts</span> would be an array including 172.123.45.67 in the first two indices (signifying two ranks being added to host 172.123.45.67) and 172.123.45.68 in the last index (signifying one rank being added to host 172.123.45.67)</p>
+</li>
+<li>
+<p>input parameter <span className="em">config\_params</span> would be an array of maps, with each map corresponding to the ranks being added in input parameter <span className="em">hosts</span>. The key of each map would be the configuration parameter name and the value would be the parameter’s value, e.g. ‘{"{"}“rank.gpu”:”1”{"}"}’</p>
+</li>
+</ul>
+<p>This endpoint’s processing includes copying all replicated table data to the new rank(s) and therefore could take a long time. The API call may time out if run directly. It is recommended to run this endpoint asynchronously via <a className="reference internal" href="#gpudb.GPUdb.create_job" title="gpudb.GPUdb.create_job"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_job()</span></code></a>.</p>
+<div className="admonition note">
+<p className="admonition-title">Note</p>
+<p>This method should be used for on-premise deployments only.</p>
+</div>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">hosts (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>Array of host IP addresses (matching a hostN.address from the gpudb.conf file), or host identifiers (e.g. ‘host0’ from the gpudb.conf file), on which to add ranks to the cluster. The hosts must already be in the cluster. If needed beforehand, to add a new host to the cluster use <a className="reference internal" href="#gpudb.GPUdb.admin_add_host" title="gpudb.GPUdb.admin_add_host"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.admin\_add\_host()</span></code></a>. Include the same entry as many times as there are ranks to add to the cluster, e.g., if two ranks on host 172.123.45.67 should be added, input parameter <span className="em">hosts</span> could look like ‘\[“172.123.45.67”, “172.123.45.67”\]’. All ranks will be added simultaneously, i.e. they’re not added in the order of this array. Each entry in this array corresponds to the entry at the same index in the input parameter <span className="em">config\_params</span>. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">config\_params (<span className="em">list of dicts of str to str</span>) –</div>
+<div className="dd">
+<p>Array of maps containing configuration parameters to apply to the new ranks found in input parameter <span className="em">hosts</span>. For example, ‘{"{"}“rank.gpu”:”2”, “tier.ram.rank.limit”:”10000000000”{"}"}’. Currently, the available parameters are rank-specific parameters in the <a className="reference external" href="/content/config/#config-main-network">Network</a>, <a className="reference external" href="/content/config/#config-main-hardware">Hardware</a>, <a className="reference external" href="/content/config/#config-main-text-search">Text Search</a>, and <a className="reference external" href="/content/config/#config-main-ram-tier">RAM Tiered Storage</a> sections in the gpudb.conf file, with the key exception of the ‘rankN.host’ settings in the Network section that will be determined by input parameter <span className="em">hosts</span> instead. Though many of these configuration parameters typically are affixed with ‘rankN’ in the gpudb.conf file (where N is the rank number), the ‘N’ should be omitted in input parameter <span className="em">config\_params</span> as the new rank number(s) are not allocated until the ranks have been added to the cluster. Each entry in this array corresponds to the entry at the same index in the input parameter <span className="em">hosts</span>. This array must either be completely empty or have the same number of elements as the input parameter <span className="em">hosts</span>. An empty input parameter <span className="em">config\_params</span> array will result in the new ranks being set with default parameters. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>dry\_run</strong> – If <span className="em">true</span>, only validation checks will be performed. No ranks are added. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">added\_ranks (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>The number assigned to each added rank, formatted as ‘rankN’, in the same order as the ranks in input parameter <span className="em">hosts</span> and input parameter <span className="em">config\_params</span>.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

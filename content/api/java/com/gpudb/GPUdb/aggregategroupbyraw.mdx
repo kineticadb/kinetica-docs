@@ -1,0 +1,36 @@
+---
+title: "aggregateGroupByRaw"
+---
+
+<div className="kinetica-javadoc">
+<ul className="member-list">
+<li>
+<div className="section detail" id="aggregateGroupByRaw(com.gpudb.protocol.AggregateGroupByRequest)">
+<h3>aggregateGroupByRaw</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type"><a href="/content/api/java/com/gpudb/protocol/RawAggregateGroupByResponse" title="class in com.gpudb.protocol">RawAggregateGroupByResponse</a></span>&nbsp;<span className="element-name">aggregateGroupByRaw</span><wbr /><span className="parameters">(<a href="/content/api/java/com/gpudb/protocol/AggregateGroupByRequest" title="class in com.gpudb.protocol">AggregateGroupByRequest</a>&nbsp;request)</span> throws <span className="exceptions"><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></span></div>
+<div className="block">
+Calculates unique combinations (groups) of values for the given columns in a given table or view and computes aggregates on each unique combination. This is somewhat analogous to an SQL-style SELECT...GROUP BY. 
+<p> For aggregation details and examples, see <a href="/content/concepts/aggregation/" target="_top">Aggregation</a>. For limitations, see <a href="/content/concepts/aggregation/#limitations" target="_top">Aggregation Limitations</a>. </p>
+<p> Any column(s) can be grouped on, and all column types except unrestricted-length strings may be used for computing applicable aggregates. </p>
+<p> The results can be paged via the <a href="/content/api/java/com/gpudb/protocol/AggregateGroupByRequest#getOffset()"><code>offset</code></a> and <a href="/content/api/java/com/gpudb/protocol/AggregateGroupByRequest#getLimit()"><code>limit</code></a> parameters. For example, to get 10 groups with the largest counts the inputs would be: limit=10, options={"{"}"sort\_order":"descending", "sort\_by":"value"{"}"}. </p>
+<p> <a href="/content/api/java/com/gpudb/protocol/AggregateGroupByRequest#getOptions()"><code>options</code></a> can be used to customize behavior of this call e.g.&nbsp;filtering or sorting the results. </p>
+<p> To group by columns 'x' and 'y' and compute the number of objects within each group, use: column\_names=\['x','y','count(\*)'\]. </p>
+<p> To also compute the sum of 'z' over each group, use: column\_names=\['x','y','count(\*)','sum(z)'\]. </p>
+<p> Available <a href="/content/concepts/expressions/#aggregate-expressions" target="_top">aggregation functions</a> are: count(\*), sum, min, max, avg, mean, stddev, stddev\_pop, stddev\_samp, var, var\_pop, var\_samp, arg\_min, arg\_max and count\_distinct. </p>
+<p> Available grouping functions are <a href="/content/concepts/rollup/" target="_top">Rollup</a>, <a href="/content/concepts/cube/" target="_top">Cube</a>, and <a href="/content/concepts/grouping_sets/" target="_top">Grouping Sets</a> </p>
+<p> This service also provides support for <a href="/content/concepts/pivot/" target="_top">Pivot</a> operations. </p>
+<p> Filtering on aggregates is supported via expressions using <a href="/content/concepts/expressions/#aggregate-expressions" target="_top">aggregation functions</a> supplied to <a href="/content/api/java/com/gpudb/protocol/AggregateGroupByRequest.Options#HAVING"><code>HAVING</code></a>. </p>
+<p> The response is returned as a dynamic schema. For details see: <a href="/content/api/concepts/#dynamic-schemas" target="_top">dynamic schemas documentation</a>. </p>
+<p> If a <a href="/content/api/java/com/gpudb/protocol/AggregateGroupByRequest.Options#RESULT_TABLE"><code>RESULT\_TABLE</code></a> name is specified in the <a href="/content/api/java/com/gpudb/protocol/AggregateGroupByRequest#getOptions()"><code>options</code></a>, the results are stored in a new table with that name--no results are returned in the response. Both the table name and resulting column names must adhere to <a href="/content/concepts/tables/#table" target="_top">standard naming conventions</a>; column/aggregation expressions will need to be aliased. If the source table's <a href="/content/concepts/tables/#shard-keys" target="_top">shard key</a> is used as the grouping column(s) and all result records are selected (<a href="/content/api/java/com/gpudb/protocol/AggregateGroupByRequest#getOffset()"><code>offset</code></a> is 0 and <a href="/content/api/java/com/gpudb/protocol/AggregateGroupByRequest#getLimit()"><code>limit</code></a> is -9999), the result table will be sharded, in all other cases it will be replicated. Sorting will properly function only if the result table is replicated or if there is only one processing node and should not be relied upon in other cases. Not available when any of the values of <a href="/content/api/java/com/gpudb/protocol/AggregateGroupByRequest#getColumnNames()"><code>columnNames</code></a> is an unrestricted-length string.</p>
+</div>
+<div className="dl notes">
+<div className="dt">Parameters:</div>
+<div className="dd"><code>request</code> - <a href="/content/api/java/com/gpudb/protocol/AggregateGroupByRequest" title="class in com.gpudb.protocol"><code>Request</code></a> object containing the parameters for the operation.</div>
+<div className="dt">Returns:</div>
+<div className="dd"><a href="/content/api/java/com/gpudb/protocol/RawAggregateGroupByResponse" title="class in com.gpudb.protocol"><code>Response</code></a> object containing the results of the operation.</div>
+<div className="dt">Throws:</div>
+<div className="dd"><code><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></code> - if an error occurs during the operation.</div>
+</div>
+</div>
+</li></ul>
+</div>

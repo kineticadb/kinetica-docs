@@ -1,0 +1,343 @@
+---
+title: "uploadFiles"
+---
+
+<div className="kinetica-doxygen">
+<div id="a54cd2d5f1210b8884e0bade8c24487fa"></div>
+<h2 className="memtitle"><span className="permalink"><a href="#a54cd2d5f1210b8884e0bade8c24487fa">&#9670;&#160;</a></span>uploadFiles() <span className="overload">\[1/2\]</span></h2>
+<div className="memitem">
+<div className="memproto">
+<table className="mlabels">
+<tr>
+<td className="mlabels-left">
+<table className="memname">
+<tr>
+<td className="memname"><a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesResponse">UploadFilesResponse</a> kinetica.Kinetica.uploadFiles </td>
+<td>(</td>
+<td className="paramtype">IList&lt; string &gt;</td>
+<td className="paramname"><span className="paramname"><span className="em">file\_names</span></span>, </td>
+</tr>
+<tr>
+<td className="paramkey"></td>
+<td></td>
+<td className="paramtype">IList&lt; byte\[\]&gt;</td>
+<td className="paramname"><span className="paramname"><span className="em">file\_data</span></span>, </td>
+</tr>
+<tr>
+<td className="paramkey"></td>
+<td></td>
+<td className="paramtype">IDictionary&lt; string, string &gt;</td>
+<td className="paramname"><span className="paramname"><span className="em">options</span></span><span className="paramdefsep"> = </span><span className="paramdefval">null</span>&#160;)</td>
+</tr>
+</table>
+</td>
+<td className="mlabels-right"> <span className="mlabels"><span className="mlabel inline">inline</span></span> </td>
+</tr>
+</table>
+</div>
+<div className="memdoc">
+<p>Uploads one or more files to <a href="/content/tools/kifs/" target="_top">KiFS</a>. </p>
+<p>There are two methods for uploading files: load files in their entirety, or load files in parts. The latter is recommended for files of approximately 60 MB or larger.</p>
+<p>To upload files in their entirety, populate <span className="em">file\_names</span> with the file names to upload into on KiFS, and their respective byte content in <span className="em">file\_data</span> .</p>
+<p>Multiple steps are involved when uploading in multiple parts. Only one file at a time can be uploaded in this manner. A user-provided UUID is utilized to tie all the upload steps together for a given file. To upload a file in multiple parts:</p>
+<p>1. Provide the file name in <span className="em">file\_names</span> , the UUID in the <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa7deca070961d9411808b20da75f6e72">MULTIPART\_UPLOAD\_UUID</a> key in <span className="em">options</span> , and a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a88175c7ae4545611d3fc12abc36d9ad4">INIT</a>.</p>
+<p>2. Upload one or more parts by providing the file name, the part data in <span className="em">file\_data</span> , the UUID, a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aecfe1b69ba6c3567b3467ba8d404cc88">UPLOAD\_PART</a>, and the part number in the <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aaec11fbee473009aa1db5a259453020a">MULTIPART\_UPLOAD\_PART\_NUMBER</a>. The part numbers must start at 1 and increase incrementally. Parts may not be uploaded out of order.</p>
+<p>3. Complete the upload by providing the file name, the UUID, and a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa0acfc9a23fe208447a0e1b5aa7df849">COMPLETE</a>.</p>
+<p>Multipart uploads in progress may be canceled by providing the file name, the UUID, and a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a02d273cd333b86c54cce52610938a8a5">CANCEL</a>. If an new upload is initialized with a different UUID for an existing upload in progress, the pre-existing upload is automatically canceled in favor of the new upload.</p>
+<p>The multipart upload must be completed for the file to be usable in KiFS. Information about multipart uploads in progress is available in <a className="el" href="#a93dfc6db9b1c849e502d17376ef74b7b">showFiles</a>.</p>
+<p>File data may be pre-encoded using base64 encoding. This should be indicated using the <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a68ccbdcc50d19d87c4fbea946006e330">FILE\_ENCODING</a> option, and is recommended when using JSON serialization.</p>
+<p>Each file path must reside in a top-level KiFS directory, i.e. one of the directories listed in <a className="el" href="#aaa58a3b9936ce10ae690e2cd59c3ff94">showDirectories</a>. The user must have write permission on the directory. Nested directories are permitted in file name paths. Directories are delineated with the directory separator of '/'. For example, given the file path '/a/b/c/d.txt', 'a' must be a KiFS directory.</p>
+<p>These characters are allowed in file name paths: letters, numbers, spaces, the path delimiter of '/', and the characters: '.' '-' ':' '\[' '\]' '(' ')' '#' '='.</p>
+<div className="dl params">
+<div className="dt">Parameters</div>
+<div className="dd">
+<table className="params">
+<tr>
+<td className="paramname">file\_names</td>
+<td>An array of full file name paths to be used for the files uploaded to KiFS. File names may have any number of nested directories in their paths, but the top-level directory must be an existing KiFS directory. Each file must reside in or under a top-level directory. A full file name path cannot be larger than 1024 characters.</td>
+</tr>
+<tr>
+<td className="paramname">file\_data</td>
+<td>File data for the files being uploaded, for the respective files in <span className="em">file\_names</span> .</td>
+</tr>
+<tr>
+<td className="paramname">options</td>
+<td>
+Optional parameters. 
+<ul>
+<li>
+<a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a68ccbdcc50d19d87c4fbea946006e330">FILE\_ENCODING</a>: Encoding that has been applied to the uploaded file data. When using JSON serialization it is recommended to utilize <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#ae65391162a18854ea94809862a7a60ce">BASE64</a>. The caller is responsible for encoding the data provided in this payload. Supported values: 
+<ul>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#ae65391162a18854ea94809862a7a60ce">BASE64</a>: Specifies that the file data being uploaded has been base64 encoded. </li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa94eb9d89c0f3bec75adf10428fa0c3d">NONE</a>: The uploaded file data has not been encoded. </li>
+</ul>
+ The default value is <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa94eb9d89c0f3bec75adf10428fa0c3d">NONE</a>. 
+</li>
+<li>
+<a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a>: Multipart upload operation to perform. Supported values: 
+<ul>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa94eb9d89c0f3bec75adf10428fa0c3d">NONE</a>: Default, indicates this is not a multipart upload. </li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a88175c7ae4545611d3fc12abc36d9ad4">INIT</a>: Initialize a multipart file upload. </li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aecfe1b69ba6c3567b3467ba8d404cc88">UPLOAD\_PART</a>: Uploads a part of the specified multipart file upload. </li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa0acfc9a23fe208447a0e1b5aa7df849">COMPLETE</a>: Complete the specified multipart file upload. </li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a02d273cd333b86c54cce52610938a8a5">CANCEL</a>: Cancel the specified multipart file upload. </li>
+</ul>
+ The default value is <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa94eb9d89c0f3bec75adf10428fa0c3d">NONE</a>. 
+</li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa7deca070961d9411808b20da75f6e72">MULTIPART\_UPLOAD\_UUID</a>: UUID to uniquely identify a multipart upload. </li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aaec11fbee473009aa1db5a259453020a">MULTIPART\_UPLOAD\_PART\_NUMBER</a>: Incremental part number for each part in a multipart upload. Part numbers start at 1, increment by 1, and must be uploaded sequentially </li>
+<li>
+<a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a468100216486215b36dc7a892e7dfb03">DELETE\_IF\_EXISTS</a>: If <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#af740f2f0ac73b8b9f9cb1f37c827413b">TRUE</a>, any existing files specified in <span className="em">file\_names</span> will be deleted prior to start of upload. Otherwise the file is replaced once the upload completes. Rollback of the original file is no longer possible if the upload is cancelled, aborted or fails if the file was deleted beforehand. Supported values: 
+<ul>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#af740f2f0ac73b8b9f9cb1f37c827413b">TRUE</a> </li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#ae2448bd856d90d525bdd218e8a729892">FALSE</a> </li>
+</ul>
+ The default value is <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#ae2448bd856d90d525bdd218e8a729892">FALSE</a>. 
+</li>
+</ul>
+ The default value is an empty Dictionary.
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div className="dl section return">
+<div className="dt">Returns</div>
+<div className="dd">Response object containing the result of the operation. </div>
+</div>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cs/blob/master/Kinetica/KineticaFunctions.cs#L65708">65708</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cs/blob/master/Kinetica/KineticaFunctions.cs">KineticaFunctions.cs</a>.</p>
+</div>
+</div>
+<div id="aa2236808ac435d52ef3ac560cd210ce4"></div>
+<h2 className="memtitle"><span className="permalink"><a href="#aa2236808ac435d52ef3ac560cd210ce4">&#9670;&#160;</a></span>uploadFiles() <span className="overload">\[2/2\]</span></h2>
+<div className="memitem">
+<div className="memproto">
+<table className="mlabels">
+<tr>
+<td className="mlabels-left">
+<table className="memname">
+<tr>
+<td className="memname"><a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesResponse">UploadFilesResponse</a> kinetica.Kinetica.uploadFiles </td>
+<td>(</td>
+<td className="paramtype"><a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesRequest">UploadFilesRequest</a></td>
+<td className="paramname"><span className="paramname"><span className="em">request\_</span></span></td>
+<td>)</td>
+<td></td>
+</tr>
+</table>
+</td>
+<td className="mlabels-right"> <span className="mlabels"><span className="mlabel inline">inline</span></span> </td>
+</tr>
+</table>
+</div>
+<div className="memdoc">
+<p>Uploads one or more files to <a href="/content/tools/kifs/" target="_top">KiFS</a>. </p>
+<p>There are two methods for uploading files: load files in their entirety, or load files in parts. The latter is recommended for files of approximately 60 MB or larger.</p>
+<p>To upload files in their entirety, populate <a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesRequest#a32804f91cd5afc1559152f243381aa14">file\_names</a> with the file names to upload into on KiFS, and their respective byte content in <a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesRequest#a1bfe8b6a328028e6dcefddbd8c38a27d">file\_data</a>.</p>
+<p>Multiple steps are involved when uploading in multiple parts. Only one file at a time can be uploaded in this manner. A user-provided UUID is utilized to tie all the upload steps together for a given file. To upload a file in multiple parts:</p>
+<p>1. Provide the file name in <a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesRequest#a32804f91cd5afc1559152f243381aa14">file\_names</a>, the UUID in the <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa7deca070961d9411808b20da75f6e72">MULTIPART\_UPLOAD\_UUID</a> key in <a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesRequest#a694b6a07eb6af4a6aa593de76fa9a90a">options</a>, and a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a88175c7ae4545611d3fc12abc36d9ad4">INIT</a>.</p>
+<p>2. Upload one or more parts by providing the file name, the part data in <a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesRequest#a1bfe8b6a328028e6dcefddbd8c38a27d">file\_data</a>, the UUID, a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aecfe1b69ba6c3567b3467ba8d404cc88">UPLOAD\_PART</a>, and the part number in the <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aaec11fbee473009aa1db5a259453020a">MULTIPART\_UPLOAD\_PART\_NUMBER</a>. The part numbers must start at 1 and increase incrementally. Parts may not be uploaded out of order.</p>
+<p>3. Complete the upload by providing the file name, the UUID, and a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa0acfc9a23fe208447a0e1b5aa7df849">COMPLETE</a>.</p>
+<p>Multipart uploads in progress may be canceled by providing the file name, the UUID, and a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a02d273cd333b86c54cce52610938a8a5">CANCEL</a>. If an new upload is initialized with a different UUID for an existing upload in progress, the pre-existing upload is automatically canceled in favor of the new upload.</p>
+<p>The multipart upload must be completed for the file to be usable in KiFS. Information about multipart uploads in progress is available in <a className="el" href="#a93dfc6db9b1c849e502d17376ef74b7b">showFiles</a>.</p>
+<p>File data may be pre-encoded using base64 encoding. This should be indicated using the <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a68ccbdcc50d19d87c4fbea946006e330">FILE\_ENCODING</a> option, and is recommended when using JSON serialization.</p>
+<p>Each file path must reside in a top-level KiFS directory, i.e. one of the directories listed in <a className="el" href="#aaa58a3b9936ce10ae690e2cd59c3ff94">showDirectories</a>. The user must have write permission on the directory. Nested directories are permitted in file name paths. Directories are delineated with the directory separator of '/'. For example, given the file path '/a/b/c/d.txt', 'a' must be a KiFS directory.</p>
+<p>These characters are allowed in file name paths: letters, numbers, spaces, the path delimiter of '/', and the characters: '.' '-' ':' '\[' '\]' '(' ')' '#' '='.</p>
+<div className="dl params">
+<div className="dt">Parameters</div>
+<div className="dd">
+<table className="params">
+<tr>
+<td className="paramname">request\_</td>
+<td>Request object containing the parameters for the operation.</td>
+</tr>
+</table>
+</div>
+</div>
+<div className="dl section return">
+<div className="dt">Returns</div>
+<div className="dd">Response object containing the result of the operation. </div>
+</div>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cs/blob/master/Kinetica/KineticaFunctions.cs#L65435">65435</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cs/blob/master/Kinetica/KineticaFunctions.cs">KineticaFunctions.cs</a>.</p>
+</div>
+</div>
+<div id="ad8be2b0cc75b32f8d22eb1a8065ca57a"></div>
+<h2 className="memtitle"><span className="permalink"><a href="#ad8be2b0cc75b32f8d22eb1a8065ca57a">&#9670;&#160;</a></span>UploadFilesAsync() <span className="overload">\[1/2\]</span></h2>
+<div className="memitem">
+<div className="memproto">
+<table className="mlabels">
+<tr>
+<td className="mlabels-left">
+<table className="memname">
+<tr>
+<td className="memname">async System.Threading.Tasks.Task&lt; <a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesResponse">UploadFilesResponse</a> &gt; kinetica.Kinetica.UploadFilesAsync </td>
+<td>(</td>
+<td className="paramtype">IList&lt; string &gt;</td>
+<td className="paramname"><span className="paramname"><span className="em">file\_names</span></span>, </td>
+</tr>
+<tr>
+<td className="paramkey"></td>
+<td></td>
+<td className="paramtype">IList&lt; byte\[\]&gt;</td>
+<td className="paramname"><span className="paramname"><span className="em">file\_data</span></span>, </td>
+</tr>
+<tr>
+<td className="paramkey"></td>
+<td></td>
+<td className="paramtype">IDictionary&lt; string, string &gt;</td>
+<td className="paramname"><span className="paramname"><span className="em">options</span></span><span className="paramdefsep"> = </span><span className="paramdefval">null</span>, </td>
+</tr>
+<tr>
+<td className="paramkey"></td>
+<td></td>
+<td className="paramtype">System.Threading.CancellationToken</td>
+<td className="paramname"><span className="paramname"><span className="em">cancellationToken</span></span><span className="paramdefsep"> = </span><span className="paramdefval">default</span>&#160;)</td>
+</tr>
+</table>
+</td>
+<td className="mlabels-right"> <span className="mlabels"><span className="mlabel inline">inline</span></span> </td>
+</tr>
+</table>
+</div>
+<div className="memdoc">
+<p>Uploads one or more files to <a href="/content/tools/kifs/" target="_top">KiFS</a>. </p>
+<p>(async) </p>
+<p>There are two methods for uploading files: load files in their entirety, or load files in parts. The latter is recommended for files of approximately 60 MB or larger.</p>
+<p>To upload files in their entirety, populate <span className="em">file\_names</span> with the file names to upload into on KiFS, and their respective byte content in <span className="em">file\_data</span> .</p>
+<p>Multiple steps are involved when uploading in multiple parts. Only one file at a time can be uploaded in this manner. A user-provided UUID is utilized to tie all the upload steps together for a given file. To upload a file in multiple parts:</p>
+<p>1. Provide the file name in <span className="em">file\_names</span> , the UUID in the <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa7deca070961d9411808b20da75f6e72">MULTIPART\_UPLOAD\_UUID</a> key in <span className="em">options</span> , and a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a88175c7ae4545611d3fc12abc36d9ad4">INIT</a>.</p>
+<p>2. Upload one or more parts by providing the file name, the part data in <span className="em">file\_data</span> , the UUID, a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aecfe1b69ba6c3567b3467ba8d404cc88">UPLOAD\_PART</a>, and the part number in the <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aaec11fbee473009aa1db5a259453020a">MULTIPART\_UPLOAD\_PART\_NUMBER</a>. The part numbers must start at 1 and increase incrementally. Parts may not be uploaded out of order.</p>
+<p>3. Complete the upload by providing the file name, the UUID, and a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa0acfc9a23fe208447a0e1b5aa7df849">COMPLETE</a>.</p>
+<p>Multipart uploads in progress may be canceled by providing the file name, the UUID, and a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a02d273cd333b86c54cce52610938a8a5">CANCEL</a>. If an new upload is initialized with a different UUID for an existing upload in progress, the pre-existing upload is automatically canceled in favor of the new upload.</p>
+<p>The multipart upload must be completed for the file to be usable in KiFS. Information about multipart uploads in progress is available in <a className="el" href="#a93dfc6db9b1c849e502d17376ef74b7b">showFiles</a>.</p>
+<p>File data may be pre-encoded using base64 encoding. This should be indicated using the <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a68ccbdcc50d19d87c4fbea946006e330">FILE\_ENCODING</a> option, and is recommended when using JSON serialization.</p>
+<p>Each file path must reside in a top-level KiFS directory, i.e. one of the directories listed in <a className="el" href="#aaa58a3b9936ce10ae690e2cd59c3ff94">showDirectories</a>. The user must have write permission on the directory. Nested directories are permitted in file name paths. Directories are delineated with the directory separator of '/'. For example, given the file path '/a/b/c/d.txt', 'a' must be a KiFS directory.</p>
+<p>These characters are allowed in file name paths: letters, numbers, spaces, the path delimiter of '/', and the characters: '.' '-' ':' '\[' '\]' '(' ')' '#' '='.</p>
+<div className="dl params">
+<div className="dt">Parameters</div>
+<div className="dd">
+<table className="params">
+<tr>
+<td className="paramname">file\_names</td>
+<td>An array of full file name paths to be used for the files uploaded to KiFS. File names may have any number of nested directories in their paths, but the top-level directory must be an existing KiFS directory. Each file must reside in or under a top-level directory. A full file name path cannot be larger than 1024 characters.</td>
+</tr>
+<tr>
+<td className="paramname">file\_data</td>
+<td>File data for the files being uploaded, for the respective files in <span className="em">file\_names</span> .</td>
+</tr>
+<tr>
+<td className="paramname">options</td>
+<td>
+Optional parameters. 
+<ul>
+<li>
+<a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a68ccbdcc50d19d87c4fbea946006e330">FILE\_ENCODING</a>: Encoding that has been applied to the uploaded file data. When using JSON serialization it is recommended to utilize <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#ae65391162a18854ea94809862a7a60ce">BASE64</a>. The caller is responsible for encoding the data provided in this payload. Supported values: 
+<ul>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#ae65391162a18854ea94809862a7a60ce">BASE64</a>: Specifies that the file data being uploaded has been base64 encoded. </li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa94eb9d89c0f3bec75adf10428fa0c3d">NONE</a>: The uploaded file data has not been encoded. </li>
+</ul>
+ The default value is <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa94eb9d89c0f3bec75adf10428fa0c3d">NONE</a>. 
+</li>
+<li>
+<a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a>: Multipart upload operation to perform. Supported values: 
+<ul>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa94eb9d89c0f3bec75adf10428fa0c3d">NONE</a>: Default, indicates this is not a multipart upload. </li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a88175c7ae4545611d3fc12abc36d9ad4">INIT</a>: Initialize a multipart file upload. </li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aecfe1b69ba6c3567b3467ba8d404cc88">UPLOAD\_PART</a>: Uploads a part of the specified multipart file upload. </li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa0acfc9a23fe208447a0e1b5aa7df849">COMPLETE</a>: Complete the specified multipart file upload. </li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a02d273cd333b86c54cce52610938a8a5">CANCEL</a>: Cancel the specified multipart file upload. </li>
+</ul>
+ The default value is <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa94eb9d89c0f3bec75adf10428fa0c3d">NONE</a>. 
+</li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa7deca070961d9411808b20da75f6e72">MULTIPART\_UPLOAD\_UUID</a>: UUID to uniquely identify a multipart upload. </li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aaec11fbee473009aa1db5a259453020a">MULTIPART\_UPLOAD\_PART\_NUMBER</a>: Incremental part number for each part in a multipart upload. Part numbers start at 1, increment by 1, and must be uploaded sequentially </li>
+<li>
+<a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a468100216486215b36dc7a892e7dfb03">DELETE\_IF\_EXISTS</a>: If <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#af740f2f0ac73b8b9f9cb1f37c827413b">TRUE</a>, any existing files specified in <span className="em">file\_names</span> will be deleted prior to start of upload. Otherwise the file is replaced once the upload completes. Rollback of the original file is no longer possible if the upload is cancelled, aborted or fails if the file was deleted beforehand. Supported values: 
+<ul>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#af740f2f0ac73b8b9f9cb1f37c827413b">TRUE</a> </li>
+<li> <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#ae2448bd856d90d525bdd218e8a729892">FALSE</a> </li>
+</ul>
+ The default value is <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#ae2448bd856d90d525bdd218e8a729892">FALSE</a>. 
+</li>
+</ul>
+ The default value is an empty Dictionary.
+</td>
+</tr>
+<tr>
+<td className="paramname">cancellationToken</td>
+<td>Cancellation token to cancel the operation.</td>
+</tr>
+</table>
+</div>
+</div>
+<div className="dl section return">
+<div className="dt">Returns</div>
+<div className="dd">Task that returns the response object containing the result of the operation.</div>
+</div>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cs/blob/master/Kinetica/KineticaFunctions.cs#L65909">65909</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cs/blob/master/Kinetica/KineticaFunctions.cs">KineticaFunctions.cs</a>.</p>
+</div>
+</div>
+<div id="a83041d6076cb9194df648ec25a350748"></div>
+<h2 className="memtitle"><span className="permalink"><a href="#a83041d6076cb9194df648ec25a350748">&#9670;&#160;</a></span>UploadFilesAsync() <span className="overload">\[2/2\]</span></h2>
+<div className="memitem">
+<div className="memproto">
+<table className="mlabels">
+<tr>
+<td className="mlabels-left">
+<table className="memname">
+<tr>
+<td className="memname">async System.Threading.Tasks.Task&lt; <a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesResponse">UploadFilesResponse</a> &gt; kinetica.Kinetica.UploadFilesAsync </td>
+<td>(</td>
+<td className="paramtype"><a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesRequest">UploadFilesRequest</a></td>
+<td className="paramname"><span className="paramname"><span className="em">request\_</span></span>, </td>
+</tr>
+<tr>
+<td className="paramkey"></td>
+<td></td>
+<td className="paramtype">System.Threading.CancellationToken</td>
+<td className="paramname"><span className="paramname"><span className="em">cancellationToken</span></span><span className="paramdefsep"> = </span><span className="paramdefval">default</span>&#160;)</td>
+</tr>
+</table>
+</td>
+<td className="mlabels-right"> <span className="mlabels"><span className="mlabel inline">inline</span></span> </td>
+</tr>
+</table>
+</div>
+<div className="memdoc">
+<p>Uploads one or more files to <a href="/content/tools/kifs/" target="_top">KiFS</a>. </p>
+<p>(async) </p>
+<p>There are two methods for uploading files: load files in their entirety, or load files in parts. The latter is recommended for files of approximately 60 MB or larger.</p>
+<p>To upload files in their entirety, populate <a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesRequest#a32804f91cd5afc1559152f243381aa14">file\_names</a> with the file names to upload into on KiFS, and their respective byte content in <a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesRequest#a1bfe8b6a328028e6dcefddbd8c38a27d">file\_data</a>.</p>
+<p>Multiple steps are involved when uploading in multiple parts. Only one file at a time can be uploaded in this manner. A user-provided UUID is utilized to tie all the upload steps together for a given file. To upload a file in multiple parts:</p>
+<p>1. Provide the file name in <a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesRequest#a32804f91cd5afc1559152f243381aa14">file\_names</a>, the UUID in the <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa7deca070961d9411808b20da75f6e72">MULTIPART\_UPLOAD\_UUID</a> key in <a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesRequest#a694b6a07eb6af4a6aa593de76fa9a90a">options</a>, and a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a88175c7ae4545611d3fc12abc36d9ad4">INIT</a>.</p>
+<p>2. Upload one or more parts by providing the file name, the part data in <a className="el" href="/content/api/cs/classkinetica_1_1UploadFilesRequest#a1bfe8b6a328028e6dcefddbd8c38a27d">file\_data</a>, the UUID, a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aecfe1b69ba6c3567b3467ba8d404cc88">UPLOAD\_PART</a>, and the part number in the <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aaec11fbee473009aa1db5a259453020a">MULTIPART\_UPLOAD\_PART\_NUMBER</a>. The part numbers must start at 1 and increase incrementally. Parts may not be uploaded out of order.</p>
+<p>3. Complete the upload by providing the file name, the UUID, and a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aa0acfc9a23fe208447a0e1b5aa7df849">COMPLETE</a>.</p>
+<p>Multipart uploads in progress may be canceled by providing the file name, the UUID, and a <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#aebfe06ae81c1c18519ad14e5f2f3399c">MULTIPART\_OPERATION</a> value of <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a02d273cd333b86c54cce52610938a8a5">CANCEL</a>. If an new upload is initialized with a different UUID for an existing upload in progress, the pre-existing upload is automatically canceled in favor of the new upload.</p>
+<p>The multipart upload must be completed for the file to be usable in KiFS. Information about multipart uploads in progress is available in <a className="el" href="#a93dfc6db9b1c849e502d17376ef74b7b">showFiles</a>.</p>
+<p>File data may be pre-encoded using base64 encoding. This should be indicated using the <a className="el" href="/content/api/cs/structkinetica_1_1UploadFilesRequest_1_1Options#a68ccbdcc50d19d87c4fbea946006e330">FILE\_ENCODING</a> option, and is recommended when using JSON serialization.</p>
+<p>Each file path must reside in a top-level KiFS directory, i.e. one of the directories listed in <a className="el" href="#aaa58a3b9936ce10ae690e2cd59c3ff94">showDirectories</a>. The user must have write permission on the directory. Nested directories are permitted in file name paths. Directories are delineated with the directory separator of '/'. For example, given the file path '/a/b/c/d.txt', 'a' must be a KiFS directory.</p>
+<p>These characters are allowed in file name paths: letters, numbers, spaces, the path delimiter of '/', and the characters: '.' '-' ':' '\[' '\]' '(' ')' '#' '='.</p>
+<div className="dl params">
+<div className="dt">Parameters</div>
+<div className="dd">
+<table className="params">
+<tr>
+<td className="paramname">request\_</td>
+<td>Request object containing the parameters for the operation.</td>
+</tr>
+<tr>
+<td className="paramname">cancellationToken</td>
+<td>Cancellation token to cancel the operation.</td>
+</tr>
+</table>
+</div>
+</div>
+<div className="dl section return">
+<div className="dt">Returns</div>
+<div className="dd">Task that returns the response object containing the result of the operation.</div>
+</div>
+<p className="definition">Definition at line <a className="el" href="https://github.com/kineticadb/kinetica-api-cs/blob/master/Kinetica/KineticaFunctions.cs#L65508">65508</a> of file <a className="el" href="https://github.com/kineticadb/kinetica-api-cs/blob/master/Kinetica/KineticaFunctions.cs">KineticaFunctions.cs</a>.</p>
+</div>
+</div>
+
+</div>

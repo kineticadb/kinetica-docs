@@ -1,0 +1,472 @@
+---
+title: "show_table"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.show_table"> <span className="sig-name descname"><span className="pre">show\_table</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L39670"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Retrieves detailed information about a table, view, or schema, specified in input parameter <span className="em">table\_name</span>. If the supplied input parameter <span className="em">table\_name</span> is a schema the call can return information about either the schema itself or the tables and views it contains. If input parameter <span className="em">table\_name</span> is empty, information about all schemas will be returned.</p>
+<p>If the option <span className="em">get\_sizes</span> is set to <span className="em">true</span>, then the number of records in each table is returned (in output parameter <span className="em">sizes</span> and output parameter <span className="em">full\_sizes</span>), along with the total number of objects across all requested tables (in output parameter <span className="em">total\_size</span> and output parameter <span className="em">total\_full\_size</span>).</p>
+<p>For a schema, setting the <span className="em">show\_children</span> option to <span className="em">false</span> returns only information about the schema itself; setting <span className="em">show\_children</span> to <span className="em">true</span> returns a list of tables and views contained in the schema, along with their corresponding detail.</p>
+<p>To retrieve a list of every table, view, and schema in the database, set input parameter <span className="em">table\_name</span> to ‘\*’ and <span className="em">show\_children</span> to <span className="em">true</span>. When doing this, the returned output parameter <span className="em">total\_size</span> and output parameter <span className="em">total\_full\_size</span> will not include the sizes of non-base tables (e.g., filters, views, joins, etc.).</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the table for which to retrieve the information, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>. If blank, then returns information about all tables and views.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>dependencies</strong> – Include view dependencies in the output. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>force\_synchronous</strong> – If <span className="em">true</span> then the table sizes will wait for read lock before returning. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>get\_access\_data</strong> – If <span className="em">true</span> then data about the last read, write, alter and create will be returned. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>get\_cached\_sizes</strong> – If <span className="em">true</span> then the number of records in each table, along with a cumulative count, will be returned; blank, otherwise. This version will return the sizes cached at rank 0, which may be stale if there is a multihead insert occurring. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>get\_sizes</strong> – If <span className="em">true</span> then the number of records in each table, along with a cumulative count, will be returned; blank, otherwise. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>referencing\_materialized\_views</strong> – Include materialized views using this table as a source in the output. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>skip\_additional\_info</strong> – If <span className="em">true</span> then the response will not populate the additional\_info field. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>no\_error\_if\_not\_exists</strong> – If <span className="em">false</span> will return an error if the provided input parameter <span className="em">table\_name</span> does not exist. If <span className="em">true</span> then it will return an empty result. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>skip\_temp\_schemas</strong> – If <span className="em">true</span> then the table list will not include tables from SYS\_TEMP and other system temporary schemas. This is the default behavior for non-admin users. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>show\_children</strong> – If input parameter <span className="em">table\_name</span> is a schema, then <span className="em">true</span> will return information about the tables and views in the schema, and <span className="em">false</span> will return information about the schema itself. If input parameter <span className="em">table\_name</span> is a table or view, <span className="em">show\_children</span> must be <span className="em">false</span>. If input parameter <span className="em">table\_name</span> is empty, then <span className="em">show\_children</span> must be <span className="em">true</span>. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>get\_column\_info</strong> – If <span className="em">true</span> then column info (memory usage, etc) will be returned. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Value of input parameter <span className="em">table\_name</span>.</p>
+</div>
+<div className="dt">table\_names (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>If input parameter <span className="em">table\_name</span> is a table or view, then the single element of the array is input parameter <span className="em">table\_name</span>. If input parameter <span className="em">table\_name</span> is a schema and <span className="em">show\_children</span> is set to <span className="em">true</span>, then this array is populated with the names of all tables and views in the given schema; if <span className="em">show\_children</span> is <span className="em">false</span>, then this array will only include the schema name itself. If input parameter <span className="em">table\_name</span> is an empty string, then the array contains the names of all tables in the user’s default schema.</p>
+</div>
+<div className="dt">table\_descriptions (<span className="em">list of lists of str</span>) –</div>
+<div className="dd">
+<p>List of descriptions for the respective tables in output parameter <span className="em">table\_names</span>. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>COLLECTION</p>
+</li>
+<li>
+<p>JOIN</p>
+</li>
+<li>
+<p>LOGICAL\_EXTERNAL\_TABLE</p>
+</li>
+<li>
+<p>LOGICAL\_VIEW</p>
+</li>
+<li>
+<p>MATERIALIZED\_EXTERNAL\_TABLE</p>
+</li>
+<li>
+<p>MATERIALIZED\_VIEW</p>
+</li>
+<li>
+<p>MATERIALIZED\_VIEW\_MEMBER</p>
+</li>
+<li>
+<p>MATERIALIZED\_VIEW\_UNDER\_CONSTRUCTION</p>
+</li>
+<li>
+<p>REPLICATED</p>
+</li>
+<li>
+<p>RESULT\_TABLE</p>
+</li>
+<li>
+<p>SCHEMA</p>
+</li>
+<li>
+<p>VIEW</p>
+</li>
+</ul>
+</div>
+<div className="dt">type\_ids (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>Type IDs of the respective tables in output parameter <span className="em">table\_names</span>.</p>
+</div>
+<div className="dt">type\_schemas (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>Type schemas of the respective tables in output parameter <span className="em">table\_names</span>.</p>
+</div>
+<div className="dt">type\_labels (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>Type labels of the respective tables in output parameter <span className="em">table\_names</span>.</p>
+</div>
+<div className="dt">properties (<span className="em">list of dicts of str to lists of str</span>) –</div>
+<div className="dd">
+<p>Property maps of the respective tables in output parameter <span className="em">table\_names</span>.</p>
+</div>
+<div className="dt">additional\_info (<span className="em">list of dicts of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information about the respective tables in output parameter <span className="em">table\_names</span>. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>request\_avro\_type</strong> – Method by which this table was created. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>create\_table</p>
+</li>
+<li>
+<p>create\_projection</p>
+</li>
+<li>
+<p>create\_union</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>request\_avro\_json</strong> – The JSON representation of request creating this table. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>protected</strong> – No longer used. Indicated whether the respective table was protected or not. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>record\_bytes</strong> – The number of in-memory bytes per record which is the sum of the byte sizes of all columns with property ‘data’.</p>
+</li>
+<li>
+<p><strong>total\_bytes</strong> – The total size in bytes of all data stored in the table.</p>
+</li>
+<li>
+<p><strong>collection\_names</strong> – \[DEPRECATED–use schema\_name instead\] This will now contain the name of the schema for the table. There can only be one schema for a table.</p>
+</li>
+<li>
+<p><strong>schema\_name</strong> – The name of the schema for the table. There can only be one schema for a table.</p>
+</li>
+<li>
+<p><strong>table\_ttl</strong> – The value of the <a className="reference external" href="/content/concepts/ttl/">time-to-live</a> setting. Not present for schemas.</p>
+</li>
+<li>
+<p><strong>remaining\_table\_ttl</strong> – The remaining <a className="reference external" href="/content/concepts/ttl/">time-to-live</a>, in minutes, before the respective table expires (-1 if it will never expire). Not present for schemas.</p>
+</li>
+<li>
+<p><strong>primary\_key\_type</strong> – The primary key type of the table (if it has a primary key). Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>memory</strong> – In-memory primary key.</p>
+</li>
+<li>
+<p><strong>disk</strong> – On-disk primary key.</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>foreign\_keys</strong> – Semicolon-separated list of <a className="reference external" href="/content/concepts/tables/#foreign-key">foreign keys</a>, of the format ‘source\_column references target\_table(primary\_key\_column)’. Not present for schemas. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>foreign\_shard\_key</strong> – Foreign shard key description of the format: &lt;fk\_foreign\_key&gt; references &lt;pk\_column\_name&gt; from &lt;pk\_table\_name&gt;(&lt;pk\_primary\_key&gt;). Not present for schemas. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>partition\_type</strong> – <a className="reference external" href="/content/concepts/tables/#partitioning">Partitioning</a> scheme used for this table. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>RANGE</strong> – Using <a className="reference external" href="/content/concepts/tables/#partitioning-by-range">range partitioning</a>.</p>
+</li>
+<li>
+<p><strong>INTERVAL</strong> – Using <a className="reference external" href="/content/concepts/tables/#partitioning-by-interval">interval partitioning</a>.</p>
+</li>
+<li>
+<p><strong>LIST</strong> – Using <a className="reference external" href="/content/concepts/tables/#partitioning-by-list-manual">manual list partitioning</a>.</p>
+</li>
+<li>
+<p><strong>HASH</strong> – Using <a className="reference external" href="/content/concepts/tables/#partitioning-by-hash">hash partitioning</a>.</p>
+</li>
+<li>
+<p><strong>SERIES</strong> – Using <a className="reference external" href="/content/concepts/tables/#partitioning-by-series">series partitioning</a>.</p>
+</li>
+<li>
+<p><strong>NONE</strong> – Using no partitioning.</p>
+</li>
+</ul>
+<p>The default value is ‘NONE’.</p>
+</li>
+<li>
+<p><strong>partition\_keys</strong> – Comma-separated list of partition keys. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>partition\_definitions</strong> – Comma-separated list of partition definitions, whose format depends on the partition\_type. See <a className="reference external" href="/content/concepts/tables/#partitioning">partitioning</a> documentation for details. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>is\_automatic\_partition</strong> – True if partitions will be created for LIST VALUES which don’t fall into existing partitions. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>attribute\_indexes</strong> – Semicolon-separated list of indexes. For <a className="reference external" href="/content/concepts/indexes/#column-index">column (attribute) indexes</a>, only the indexed column name will be listed. For other index types, the index type will be listed with the colon-delimited indexed column(s) and the comma-delimited index option(s) using the form: &lt;index\_type&gt;&#64;&lt;column\_list&gt;&#64;&lt;column\_options&gt;. Not present for schemas. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>column\_info</strong> – JSON-encoded string representing a map of column name to information including memory usage if the <span className="em">get\_column\_info</span> option is <span className="em">true</span>. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>global\_access\_mode</strong> – Returns the global access mode (i.e. lock status) for the table. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>no\_access</strong> – No read/write operations are allowed on this table.</p>
+</li>
+<li>
+<p><strong>read\_only</strong> – Only read operations are allowed on this table.</p>
+</li>
+<li>
+<p><strong>write\_only</strong> – Only write operations are allowed on this table.</p>
+</li>
+<li>
+<p><strong>read\_write</strong> – All read/write operations are allowed on this table.</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>view\_table\_name</strong> – For materialized view the name of the view this member table is part of - if same as the table\_name then this is the root of the view. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>is\_view\_persisted</strong> – True if the view named view\_table\_name is persisted - reported for each view member. Means method of recreating this member is saved - not the members data. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>is\_dirty</strong> – True if some input table of the materialized view that affects this member table has been modified since the last refresh. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>refresh\_method</strong> – For materialized view current refresh\_method - one of manual, periodic, on\_change. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>refresh\_start\_time</strong> – For materialized view with periodic refresh\_method the initial datetime string that periodic refreshes began. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>refresh\_stop\_time</strong> – Time at which the periodic view refresh stops. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>refresh\_period</strong> – For materialized view with periodic refresh\_method the current refresh period in seconds. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>last\_refresh\_time</strong> – For materialized view the datetime string indicating the last time the view was refreshed. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>next\_refresh\_time</strong> – For materialized view with periodic refresh\_method a datetime string indicating the next time the view is to be refreshed. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>user\_chunk\_size</strong> – User-specified number of records per chunk, if provided at table creation time. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>user\_chunk\_column\_max\_memory</strong> – User-specified target max bytes per column in a chunk, if provided at table creation time. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>user\_chunk\_max\_memory</strong> – User-specified target max bytes for all columns in a chunk, if provided at table creation time. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>owner\_resource\_group</strong> – Name of the owner resource group. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>alternate\_shard\_keys</strong> – Semicolon-separated list of shard keys that were equated in joins (applicable for join tables). The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>datasource\_subscriptions</strong> – Semicolon-separated list of datasource names the table has subscribed to. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>null\_modifying\_columns</strong> – Comma-separated list of null modifying column names. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>compression\_codec</strong> – Default <a className="reference external" href="/content/concepts/column_compression/">compression codec</a> for the table. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>created\_by</strong> – User that created this table or view. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>created\_time</strong> – Time (UTC) when this table or view was created. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>last\_read\_by</strong> – User that last read this table or view. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>last\_read\_time</strong> – Time (UTC) when this table or view was last read. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>read\_count</strong> – Count of times this table or view was read. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>last\_write\_by</strong> – User that last wrote to this table. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>last\_write\_time</strong> – Time (UTC) when this table was last written. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>write\_count</strong> – Count of times this table was written. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>last\_alter\_by</strong> – User that last altered this table or view. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>last\_alter\_time</strong> – Time (UTC) when this table or view was last altered. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>alter\_count</strong> – Count of times this table or view was altered. The default value is ‘’.</p>
+</li>
+</ul>
+</div>
+<div className="dt">sizes (<span className="em">list of longs</span>) –</div>
+<div className="dd">
+<p>If <span className="em">get\_sizes</span> is <span className="em">true</span>, an array containing the number of records of each corresponding table in output parameter <span className="em">table\_names</span>. Otherwise, an empty array.</p>
+</div>
+<div className="dt">full\_sizes (<span className="em">list of longs</span>) –</div>
+<div className="dd">
+<p>If <span className="em">get\_sizes</span> is <span className="em">true</span>, an array containing the number of records of each corresponding table in output parameter <span className="em">table\_names</span> (same values as output parameter <span className="em">sizes</span>). Otherwise, an empty array.</p>
+</div>
+<div className="dt">join\_sizes (<span className="em">list of floats</span>) –</div>
+<div className="dd">
+<p>If <span className="em">get\_sizes</span> is <span className="em">true</span>, an array containing the number of unfiltered records in the cross product of the sub-tables of each corresponding join-table in output parameter <span className="em">table\_names</span>. For simple tables, this number will be the same as output parameter <span className="em">sizes</span>. For join-tables, this value gives the number of joined-table rows that must be processed by any aggregate functions operating on the table. Otherwise, (if <span className="em">get\_sizes</span> is <span className="em">false</span>), an empty array.</p>
+</div>
+<div className="dt">total\_size (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>If <span className="em">get\_sizes</span> is <span className="em">true</span>, the sum of the elements of output parameter <span className="em">sizes</span>. Otherwise, -1.</p>
+</div>
+<div className="dt">total\_full\_size (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>If <span className="em">get\_sizes</span> is <span className="em">true</span>, the sum of the elements of output parameter <span className="em">full\_sizes</span> (same value as output parameter <span className="em">total\_size</span>). Otherwise, -1.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

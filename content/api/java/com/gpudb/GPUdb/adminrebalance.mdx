@@ -1,0 +1,98 @@
+---
+title: "adminRebalance"
+---
+
+<div className="kinetica-javadoc">
+<ul className="member-list">
+<li>
+<div className="section detail" id="adminRebalance(com.gpudb.protocol.AdminRebalanceRequest)">
+<h3>adminRebalance</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type"><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceResponse" title="class in com.gpudb.protocol">AdminRebalanceResponse</a></span>&nbsp;<span className="element-name">adminRebalance</span><wbr /><span className="parameters">(<a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest" title="class in com.gpudb.protocol">AdminRebalanceRequest</a>&nbsp;request)</span> throws <span className="exceptions"><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></span></div>
+<div className="block">
+Rebalance the data in the cluster so that all nodes contain an equal number of records approximately and/or rebalance the shards to be equally distributed (as much as possible) across all the ranks. 
+<p> The database must be offline for this operation, see <a href="#adminOffline(com.gpudb.protocol.AdminOfflineRequest)"><code>adminOffline</code></a> </p>
+<p> \* If <a href="#adminRebalance(com.gpudb.protocol.AdminRebalanceRequest)"><code>adminRebalance</code></a> is invoked after a change is made to the cluster, e.g., a host was added or removed, <a href="/content/concepts/tables/#sharding" target="_top">sharded data</a> will be evenly redistributed across the cluster by number of shards per rank while unsharded data will be redistributed across the cluster by data size per rank </p>
+<p> \* If <a href="#adminRebalance(com.gpudb.protocol.AdminRebalanceRequest)"><code>adminRebalance</code></a> is invoked at some point when unsharded data (a.k.a. <a href="/content/concepts/tables/#random-sharding" target="_top">randomly-sharded</a>) in the cluster is unevenly distributed over time, sharded data will not move while unsharded data will be redistributed across the cluster by data size per rank </p>
+<p> NOTE: Replicated data will not move as a result of this call </p>
+<p> This endpoint's processing time depends on the amount of data in the system, thus the API call may time out if run directly. It is recommended to run this endpoint asynchronously via <a href="#createJob(com.gpudb.protocol.CreateJobRequest)"><code>createJob</code></a>.</p>
+</div>
+<div className="dl notes">
+<div className="dt">Parameters:</div>
+<div className="dd"><code>request</code> - <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest" title="class in com.gpudb.protocol"><code>Request</code></a> object containing the parameters for the operation.</div>
+<div className="dt">Returns:</div>
+<div className="dd"><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceResponse" title="class in com.gpudb.protocol"><code>Response</code></a> object containing the results of the operation.</div>
+<div className="dt">Throws:</div>
+<div className="dd"><code><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></code> - if an error occurs during the operation.</div>
+</div>
+</div>
+</li><li>
+<div className="section detail" id="adminRebalance(java.util.Map)">
+<h3>adminRebalance</h3>
+<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type"><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceResponse" title="class in com.gpudb.protocol">AdminRebalanceResponse</a></span>&nbsp;<span className="element-name">adminRebalance</span><wbr /><span className="parameters">(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html" title="class or interface in java.util" className="external-link">Map</a>&lt;<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>,<wbr /><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&gt;&nbsp;options)</span> throws <span className="exceptions"><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></span></div>
+<div className="block">
+Rebalance the data in the cluster so that all nodes contain an equal number of records approximately and/or rebalance the shards to be equally distributed (as much as possible) across all the ranks. 
+<p> The database must be offline for this operation, see <a href="#adminOffline(boolean,java.util.Map)"><code>adminOffline</code></a> </p>
+<p> \* If <a href="#adminRebalance(java.util.Map)"><code>adminRebalance</code></a> is invoked after a change is made to the cluster, e.g., a host was added or removed, <a href="/content/concepts/tables/#sharding" target="_top">sharded data</a> will be evenly redistributed across the cluster by number of shards per rank while unsharded data will be redistributed across the cluster by data size per rank </p>
+<p> \* If <a href="#adminRebalance(java.util.Map)"><code>adminRebalance</code></a> is invoked at some point when unsharded data (a.k.a. <a href="/content/concepts/tables/#random-sharding" target="_top">randomly-sharded</a>) in the cluster is unevenly distributed over time, sharded data will not move while unsharded data will be redistributed across the cluster by data size per rank </p>
+<p> NOTE: Replicated data will not move as a result of this call </p>
+<p> This endpoint's processing time depends on the amount of data in the system, thus the API call may time out if run directly. It is recommended to run this endpoint asynchronously via <a href="#createJob(java.lang.String,java.lang.String,java.nio.ByteBuffer,java.lang.String,java.util.Map)"><code>createJob</code></a>.</p>
+</div>
+<div className="dl notes">
+<div className="dt">Parameters:</div>
+<div className="dd">
+<code>options</code> - Optional parameters. 
+<ul>
+<li>
+<a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#REBALANCE_SHARDED_DATA"><code>REBALANCE\_SHARDED\_DATA</code></a>: If <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TRUE"><code>TRUE</code></a>, <a href="/content/concepts/tables/#sharding" target="_top">sharded data</a> will be rebalanced approximately equally across the cluster. Note that for clusters with large amounts of sharded data, this data transfer could be time consuming and result in delayed query responses. Supported values: 
+<ul>
+<li><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TRUE"><code>TRUE</code></a> </li>
+<li><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#FALSE"><code>FALSE</code></a> </li>
+</ul>
+ The default value is <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TRUE"><code>TRUE</code></a>. 
+</li>
+<li>
+<a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#REBALANCE_UNSHARDED_DATA"><code>REBALANCE\_UNSHARDED\_DATA</code></a>: If <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TRUE"><code>TRUE</code></a>, unsharded data (a.k.a. <a href="/content/concepts/tables/#random-sharding" target="_top">randomly-sharded</a>) will be rebalanced approximately equally across the cluster. Note that for clusters with large amounts of unsharded data, this data transfer could be time consuming and result in delayed query responses. Supported values: 
+<ul>
+<li><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TRUE"><code>TRUE</code></a> </li>
+<li><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#FALSE"><code>FALSE</code></a> </li>
+</ul>
+ The default value is <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TRUE"><code>TRUE</code></a>. 
+</li>
+<li><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TABLE_INCLUDES"><code>TABLE\_INCLUDES</code></a>: Comma-separated list of unsharded table names to rebalance. Not applicable to sharded tables because they are always rebalanced. Cannot be used simultaneously with <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TABLE_EXCLUDES"><code>TABLE\_EXCLUDES</code></a>. This parameter is ignored if <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#REBALANCE_UNSHARDED_DATA"><code>REBALANCE\_UNSHARDED\_DATA</code></a> is <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#FALSE"><code>FALSE</code></a>. </li>
+<li><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TABLE_EXCLUDES"><code>TABLE\_EXCLUDES</code></a>: Comma-separated list of unsharded table names to not rebalance. Not applicable to sharded tables because they are always rebalanced. Cannot be used simultaneously with <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TABLE_INCLUDES"><code>TABLE\_INCLUDES</code></a>. This parameter is ignored if <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#REBALANCE_UNSHARDED_DATA"><code>REBALANCE\_UNSHARDED\_DATA</code></a> is <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#FALSE"><code>FALSE</code></a>. </li>
+<li><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#AGGRESSIVENESS"><code>AGGRESSIVENESS</code></a>: Influences how much data is moved at a time during rebalance. A higher <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#AGGRESSIVENESS"><code>AGGRESSIVENESS</code></a> will complete the rebalance faster. A lower <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#AGGRESSIVENESS"><code>AGGRESSIVENESS</code></a> will take longer but allow for better interleaving between the rebalance and other queries. Valid values are constants from 1 (lowest) to 10 (highest). The default value is '10'. </li>
+<li>
+<a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#COMPACT_AFTER_REBALANCE"><code>COMPACT\_AFTER\_REBALANCE</code></a>: Perform compaction of deleted records once the rebalance completes to reclaim memory and disk space. Default is <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TRUE"><code>TRUE</code></a>, unless <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#REPAIR_INCORRECTLY_SHARDED_DATA"><code>REPAIR\_INCORRECTLY\_SHARDED\_DATA</code></a> is set to <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TRUE"><code>TRUE</code></a>. Supported values: 
+<ul>
+<li><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TRUE"><code>TRUE</code></a> </li>
+<li><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#FALSE"><code>FALSE</code></a> </li>
+</ul>
+ The default value is <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TRUE"><code>TRUE</code></a>. 
+</li>
+<li>
+<a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#COMPACT_ONLY"><code>COMPACT\_ONLY</code></a>: If set to <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TRUE"><code>TRUE</code></a>, ignore rebalance options and attempt to perform compaction of deleted records to reclaim memory and disk space without rebalancing first. Supported values: 
+<ul>
+<li><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TRUE"><code>TRUE</code></a> </li>
+<li><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#FALSE"><code>FALSE</code></a> </li>
+</ul>
+ The default value is <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#FALSE"><code>FALSE</code></a>. 
+</li>
+<li>
+<a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#REPAIR_INCORRECTLY_SHARDED_DATA"><code>REPAIR\_INCORRECTLY\_SHARDED\_DATA</code></a>: Scans for any data sharded incorrectly and re-routes the data to the correct location. Only necessary if <a href="#adminVerifyDb(java.util.Map)"><code>adminVerifyDb</code></a> reports an error in sharding alignment. This can be done as part of a typical rebalance after expanding the cluster or in a standalone fashion when it is believed that data is sharded incorrectly somewhere in the cluster. Compaction will not be performed by default when this is enabled. If this option is set to <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TRUE"><code>TRUE</code></a>, the time necessary to rebalance and the memory used by the rebalance may increase. Supported values: 
+<ul>
+<li><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#TRUE"><code>TRUE</code></a> </li>
+<li><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#FALSE"><code>FALSE</code></a> </li>
+</ul>
+ The default value is <a href="/content/api/java/com/gpudb/protocol/AdminRebalanceRequest.Options#FALSE"><code>FALSE</code></a>. 
+</li>
+</ul>
+ The default value is an empty <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/Map.html" title="class or interface in java.util" className="external-link"><code>Map</code></a>.
+</div>
+<div className="dt">Returns:</div>
+<div className="dd"><a href="/content/api/java/com/gpudb/protocol/AdminRebalanceResponse" title="class in com.gpudb.protocol"><code>Response</code></a> object containing the results of the operation.</div>
+<div className="dt">Throws:</div>
+<div className="dd"><code><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></code> - if an error occurs during the operation.</div>
+</div>
+</div>
+</li></ul>
+</div>

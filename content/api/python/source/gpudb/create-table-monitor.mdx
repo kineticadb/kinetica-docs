@@ -1,0 +1,145 @@
+---
+title: "create_table_monitor"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.create_table_monitor"> <span className="sig-name descname"><span className="pre">create\_table\_monitor</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L25197"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Creates a monitor that watches for a single table modification event type (insert, update, or delete) on a particular table (identified by input parameter <span className="em">table\_name</span>) and forwards event notifications to subscribers via ZMQ. After this call completes, subscribe to the returned output parameter <span className="em">topic\_id</span> on the ZMQ table monitor port (default 9002). Each time an operation of the given type on the table completes, a multipart message is published for that topic; the first part contains only the topic ID, and each subsequent part contains one binary-encoded Avro object that corresponds to the event and can be decoded using output parameter <span className="em">type\_schema</span>. The monitor will continue to run (regardless of whether or not there are any subscribers) until deactivated with <a className="reference internal" href="#gpudb.GPUdb.clear_table_monitor" title="gpudb.GPUdb.clear_table_monitor"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.clear\_table\_monitor()</span></code></a>.</p>
+<p>For more information on table monitors, see <a className="reference external" href="/content/concepts/table_monitors/">Table Monitors</a>.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the table to monitor, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>event</strong> – Type of modification event on the target table to be monitored by this table monitor. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>insert</strong> – Get notifications of new record insertions. The new row images are forwarded to the subscribers.</p>
+</li>
+<li>
+<p><strong>update</strong> – Get notifications of update operations. The modified row count information is forwarded to the subscribers.</p>
+</li>
+<li>
+<p><strong>delete</strong> – Get notifications of delete operations. The deleted row count information is forwarded to the subscribers.</p>
+</li>
+</ul>
+<p>The default value is ‘insert’.</p>
+</li>
+<li>
+<p><strong>monitor\_id</strong> – ID to use for this monitor instead of a randomly generated one.</p>
+</li>
+<li>
+<p><strong>datasink\_name</strong> – Name of an existing <a className="reference external" href="/content/concepts/data_sinks/">data sink</a> to send change data notifications to.</p>
+</li>
+<li>
+<p><strong>max\_consecutive\_failures</strong> – Maximum number of consecutive failed notification attempts before suspending the stream. A value of -1 (default) disables auto-suspend. This value is by rank and not overall.</p>
+</li>
+<li>
+<p><strong>failed\_notifications\_table\_name</strong> – Name of a <a className="reference external" href="/content/concepts/tables/">table</a> to which failed stream notifications are written when the stream is suspended. The database will attempt to send notifications persisted in this table when the stream is resumed. The table has the following columns: rank (long), job\_id (long), uuid (uuid), timestamp (timestamp), error\_msg (string), payload (bytes). Leave this option empty to disable persisting failed notification events.</p>
+</li>
+<li>
+<p><strong>destination</strong> – Destination for the output data in format ‘destination\_type://path\[:port\]’. Supported destination types are ‘http’, ‘https’ and ‘kafka’.</p>
+</li>
+<li>
+<p><strong>kafka\_topic\_name</strong> – Name of the Kafka topic to publish to if <span className="em">destination</span> in input parameter <span className="em">options</span> is specified and is a Kafka broker.</p>
+</li>
+<li>
+<p><strong>increasing\_column</strong> – Column on subscribed table that will increase for new records (e.g., TIMESTAMP).</p>
+</li>
+<li>
+<p><strong>expression</strong> – Filter expression to limit records for notification.</p>
+</li>
+<li>
+<p><strong>join\_table\_names</strong> – A comma-separated list of tables (optionally with aliases) to include in the join. The monitored table input parameter <span className="em">table\_name</span> must be included, representing only the newly inserted rows (deltas) since the last notification. Other tables can be any existing tables or views. Aliases can be used with the ‘table\_name as alias’ syntax.</p>
+</li>
+<li>
+<p><strong>join\_column\_names</strong> – A comma-separated list of columns or expressions to include from the joined tables. Column references can use table names or aliases defined in ‘join\_table\_names’. Each column can optionally be aliased using ‘as’. The selected columns will also appear in the notification output.</p>
+</li>
+<li>
+<p><strong>join\_expressions</strong> – Filter or join expressions to apply when combining the tables. Expressions are standard SQL-style conditions and can reference any table or alias listed in ‘join\_table\_names’. This corresponds to the WHERE clause of the underlying join, and can include conditions to filter the delta rows.</p>
+</li>
+<li>
+<p><strong>refresh\_method</strong> – Method controlling when the table monitor reports changes to the input parameter <span className="em">table\_name</span>. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>on\_change</strong> – Report changes as they occur.</p>
+</li>
+<li>
+<p><strong>periodic</strong> – Report changes periodically at rate specified by <span className="em">refresh\_period</span>.</p>
+</li>
+</ul>
+<p>The default value is ‘on\_change’.</p>
+</li>
+<li>
+<p><strong>refresh\_period</strong> – When <span className="em">refresh\_method</span> is <span className="em">periodic</span>, specifies the period in seconds at which changes are reported.</p>
+</li>
+<li>
+<p><strong>refresh\_start\_time</strong> – When <span className="em">refresh\_method</span> is <span className="em">periodic</span>, specifies the first time at which changes are reported. Value is a datetime string with format ‘YYYY-MM-DD HH:MM:SS’.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl">
+<div className="dt">topic\_id (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>The ZMQ topic ID to subscribe to for table events.</p>
+</div>
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Value of input parameter <span className="em">table\_name</span>.</p>
+</div>
+<div className="dt">type\_schema (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>JSON Avro schema of the table, for use in decoding published records.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>ttl</strong> – For insert\_table/delete\_table events, the ttl of the table.</p>
+</li>
+<li>
+<p><strong>insert\_topic\_id</strong> – The topic id for ‘insert’ <span className="em">event</span> in input parameter <span className="em">options</span>.</p>
+</li>
+<li>
+<p><strong>update\_topic\_id</strong> – The topic id for ‘update’ <span className="em">event</span> in input parameter <span className="em">options</span>.</p>
+</li>
+<li>
+<p><strong>delete\_topic\_id</strong> – The topic id for ‘delete’ <span className="em">event</span> in input parameter <span className="em">options</span>.</p>
+</li>
+<li>
+<p><strong>insert\_type\_schema</strong> – The JSON Avro schema of the table in output parameter <span className="em">table\_name</span>.</p>
+</li>
+<li>
+<p><strong>update\_type\_schema</strong> – The JSON Avro schema for ‘update’ events.</p>
+</li>
+<li>
+<p><strong>delete\_type\_schema</strong> – The JSON Avro schema for ‘delete’ events.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

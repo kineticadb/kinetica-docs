@@ -1,0 +1,202 @@
+---
+title: "create_union"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.create_union"> <span className="sig-name descname"><span className="pre">create\_union</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">table\_names</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">input\_column\_names</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">output\_column\_names</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L25896"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Merges data from one or more tables with comparable data types into a new table.</p>
+<p>The following merges are supported:</p>
+<p>UNION (DISTINCT/ALL) - For data set union details and examples, see <a className="reference external" href="/content/concepts/unions/">Union</a>. For limitations, see <a className="reference external" href="/content/concepts/unions/#limitations-and-cautions">Union Limitations and Cautions</a>.</p>
+<p>INTERSECT (DISTINCT/ALL) - For data set intersection details and examples, see <a className="reference external" href="/content/concepts/intersect/">Intersect</a>. For limitations, see <a className="reference external" href="/content/concepts/intersect/#limitations">Intersect Limitations</a>.</p>
+<p>EXCEPT (DISTINCT/ALL) - For data set subtraction details and examples, see <a className="reference external" href="/content/concepts/except/">Except</a>. For limitations, see <a className="reference external" href="/content/concepts/except/#limitations">Except Limitations</a>.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the table to be created, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a> and meeting <a className="reference external" href="/content/concepts/tables/#table-naming-criteria">table naming criteria</a>.</p>
+</div>
+<div className="dt">table\_names (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>The list of table names to merge, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>. Must contain the names of one or more existing tables. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">input\_column\_names (<span className="em">list of lists of str</span>) –</div>
+<div className="dd">
+<p>The list of columns from each of the corresponding input tables. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">output\_column\_names (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>The list of names of the columns to be stored in the output table. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>create\_temp\_table</strong> – If <span className="em">true</span>, a unique temporary table name will be generated in the sys\_temp schema and used in place of input parameter <span className="em">table\_name</span>. If <span className="em">persist</span> is <span className="em">false</span> (or unspecified), then this is always allowed even if the caller does not have permission to create tables. The generated name is returned in <span className="em">qualified\_table\_name</span>. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>collection\_name</strong> – \[DEPRECATED–please specify the containing schema for the projection as part of input parameter <span className="em">table\_name</span> and use <a className="reference internal" href="#gpudb.GPUdb.create_schema" title="gpudb.GPUdb.create_schema"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_schema()</span></code></a> to create the schema if non-existent\] Name of the schema for the output table. If the schema provided is non-existent, it will be automatically created. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>mode</strong> – The mode describes what rows of the tables being unioned will be retained. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>union\_all</strong> – Retains all rows from the specified tables.</p>
+</li>
+<li>
+<p><strong>union</strong> – Retains all unique rows from the specified tables (synonym for <span className="em">union\_distinct</span>).</p>
+</li>
+<li>
+<p><strong>union\_distinct</strong> – Retains all unique rows from the specified tables.</p>
+</li>
+<li>
+<p><strong>except</strong> – Retains all unique rows from the first table that do not appear in the second table (only works on 2 tables).</p>
+</li>
+<li>
+<p><strong>except\_all</strong> – Retains all rows(including duplicates) from the first table that do not appear in the second table (only works on 2 tables).</p>
+</li>
+<li>
+<p><strong>intersect</strong> – Retains all unique rows that appear in both of the specified tables (only works on 2 tables).</p>
+</li>
+<li>
+<p><strong>intersect\_all</strong> – Retains all rows(including duplicates) that appear in both of the specified tables (only works on 2 tables).</p>
+</li>
+</ul>
+<p>The default value is ‘union\_all’.</p>
+</li>
+<li>
+<p><strong>chunk\_size</strong> – Indicates the number of records per chunk to be used for this output table.</p>
+</li>
+<li>
+<p><strong>chunk\_column\_max\_memory</strong> – Indicates the target maximum data size for each column in a chunk to be used for this output table.</p>
+</li>
+<li>
+<p><strong>chunk\_max\_memory</strong> – Indicates the target maximum data size for all columns in a chunk to be used for this output table.</p>
+</li>
+<li>
+<p><strong>create\_indexes</strong> – Comma-separated list of columns on which to create indexes on the output table. The columns specified must be present in input parameter <span className="em">output\_column\_names</span>.</p>
+</li>
+<li>
+<p><strong>partition\_type</strong> – <a className="reference external" href="/content/concepts/tables/#partitioning">Partitioning</a> scheme to use for the output table. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>RANGE</strong> – Use <a className="reference external" href="/content/concepts/tables/#partitioning-by-range">range partitioning</a>.</p>
+</li>
+<li>
+<p><strong>INTERVAL</strong> – Use <a className="reference external" href="/content/concepts/tables/#partitioning-by-interval">interval partitioning</a>.</p>
+</li>
+<li>
+<p><strong>LIST</strong> – Use <a className="reference external" href="/content/concepts/tables/#partitioning-by-list">list partitioning</a>.</p>
+</li>
+<li>
+<p><strong>HASH</strong> – Use <a className="reference external" href="/content/concepts/tables/#partitioning-by-hash">hash partitioning</a>.</p>
+</li>
+<li>
+<p><strong>SERIES</strong> – Use <a className="reference external" href="/content/concepts/tables/#partitioning-by-series">series partitioning</a>.</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>partition\_keys</strong> – Comma-separated list of partition keys, which are the columns or column expressions by which records will be assigned to partitions defined by <span className="em">partition\_definitions</span>.</p>
+</li>
+<li>
+<p><strong>partition\_definitions</strong> – Comma-separated list of partition definitions, whose format depends on the choice of <span className="em">partition\_type</span>. See <a className="reference external" href="/content/concepts/tables/#partitioning-by-range">range partitioning</a>, <a className="reference external" href="/content/concepts/tables/#partitioning-by-interval">interval partitioning</a>, <a className="reference external" href="/content/concepts/tables/#partitioning-by-list">list partitioning</a>, <a className="reference external" href="/content/concepts/tables/#partitioning-by-hash">hash partitioning</a>, or <a className="reference external" href="/content/concepts/tables/#partitioning-by-series">series partitioning</a> for example formats.</p>
+</li>
+<li>
+<p><strong>is\_automatic\_partition</strong> – If <span className="em">true</span>, a new partition will be created for values which don’t fall into an existing partition. Currently only supported for <a className="reference external" href="/content/concepts/tables/#partitioning-by-list">list partitions</a>. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>ttl</strong> – Sets the <a className="reference external" href="/content/concepts/ttl/">TTL</a> of the output table specified in input parameter <span className="em">table\_name</span>.</p>
+</li>
+<li>
+<p><strong>persist</strong> – If <span className="em">true</span>, then the output table specified in input parameter <span className="em">table\_name</span> will be persisted and will not expire unless a <span className="em">ttl</span> is specified. If <span className="em">false</span>, then the output table will be an in-memory table and will expire unless a <span className="em">ttl</span> is specified otherwise. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>view\_id</strong> – ID of view of which this output table is a member. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>force\_replicated</strong> – If <span className="em">true</span>, then the output table specified in input parameter <span className="em">table\_name</span> will be replicated even if the source tables are not. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>strategy\_definition</strong> – The <a className="reference external" href="/content/rm/concepts/#tier-strategies">tier strategy</a> for the table and its columns.</p>
+</li>
+<li>
+<p><strong>compression\_codec</strong> – The default <a className="reference external" href="/content/concepts/column_compression/">compression codec</a> for this table’s columns.</p>
+</li>
+<li>
+<p><strong>no\_count</strong> – Return a count of 0 for the union table response to avoid the cost of counting; optimization needed for many chunk virtual unions. The default value is ‘false’.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Value of input parameter <span className="em">table\_name</span>.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>count</strong> – Number of records in the final table.</p>
+</li>
+<li>
+<p><strong>qualified\_table\_name</strong> – The fully qualified name of the result table (i.e. including the schema).</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

@@ -1,0 +1,290 @@
+---
+title: "alter_table"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.alter_table"> <span className="sig-name descname"><span className="pre">alter\_table</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">action</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">value</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L19969"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Apply various modifications to a table or view. The available modifications include the following:</p>
+<p>Manage a table’s columns–a column can be added, removed, or have its <a className="reference external" href="/content/concepts/types/">type and properties</a> modified, including whether it is <a className="reference external" href="/content/concepts/dictionary_encoding/">dictionary encoded</a> or not.</p>
+<p>External tables cannot be modified except for their refresh method.</p>
+<p>Create or delete a <a className="reference external" href="/content/concepts/indexes/#column-index">column</a>, <a className="reference external" href="/content/concepts/indexes/#low-cardinality-index">low-cardinality index</a>, <a className="reference external" href="/content/concepts/indexes/#chunk-skip-index">chunk skip</a>, <a className="reference external" href="/content/concepts/indexes/#geospatial-index">geospatial</a>, <a className="reference external" href="/content/concepts/indexes/#cagra-index">CAGRA</a>, or <a className="reference external" href="/content/concepts/indexes/#hnsw-index">HNSW</a> index. This can speed up certain operations when using expressions containing equality or relational operators on indexed columns. This only applies to tables.</p>
+<p>Create or delete a <a className="reference external" href="/content/concepts/tables/#foreign-key">foreign key</a> on a particular column.</p>
+<p>Manage a <a className="reference external" href="/content/concepts/tables/#partitioning-by-range">range-partitioned</a> or a <a className="reference external" href="/content/concepts/tables/#partitioning-by-list-manual">manual list-partitioned</a> table’s partitions.</p>
+<p>Set (or reset) the <a className="reference external" href="/content/rm/concepts/#tier-strategies">tier strategy</a> of a table or view.</p>
+<p>Refresh and manage the refresh mode of a <a className="reference external" href="/content/concepts/materialized_views/">materialized view</a> or an <a className="reference external" href="/content/concepts/external_tables/">external table</a>.</p>
+<p>Set the <a className="reference external" href="/content/concepts/ttl/">time-to-live (TTL)</a>. This can be applied to tables or views.</p>
+<p>Set the global access mode (i.e. locking) for a table. This setting trumps any role-based access controls that may be in place; e.g., a user with write access to a table marked read-only will not be able to insert records into it. The mode can be set to read-only, write-only, read/write, and no access.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Table on which the operation will be performed, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>. Must be an existing table or view.</p>
+</div>
+<div className="dt">action (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Modification operation to be applied. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>create\_index</strong> – Creates a <a className="reference external" href="/content/concepts/indexes/#column-index">column (attribute) index</a>, <a className="reference external" href="/content/concepts/indexes/#low-cardinality-index">low-cardinality index</a>, <a className="reference external" href="/content/concepts/indexes/#chunk-skip-index">chunk skip index</a>, <a className="reference external" href="/content/concepts/indexes/#geospatial-index">geospatial index</a>, <a className="reference external" href="/content/concepts/indexes/#cagra-index">CAGRA index</a>, or <a className="reference external" href="/content/concepts/indexes/#hnsw-index">HNSW index</a> (depending on the specified <span className="em">index\_type</span>), on the column name specified in input parameter <span className="em">value</span>. If this column already has the specified index, an error will be returned.</p>
+</li>
+<li>
+<p><strong>refresh\_index</strong> – Refreshes an index identified by <span className="em">index\_type</span>, on the column name specified in input parameter <span className="em">value</span>. Currently applicable only to CAGRA indices.</p>
+</li>
+<li>
+<p><strong>delete\_index</strong> – Deletes a <a className="reference external" href="/content/concepts/indexes/#column-index">column (attribute) index</a>, <a className="reference external" href="/content/concepts/indexes/#low-cardinality-index">low-cardinality index</a>, <a className="reference external" href="/content/concepts/indexes/#chunk-skip-index">chunk skip index</a>, <a className="reference external" href="/content/concepts/indexes/#geospatial-index">geospatial index</a>, <a className="reference external" href="/content/concepts/indexes/#cagra-index">CAGRA index</a>, or <a className="reference external" href="/content/concepts/indexes/#hnsw-index">HNSW index</a> (depending on the specified <span className="em">index\_type</span>), on the column name specified in input parameter <span className="em">value</span>. If this column does not have the specified index, an error will be returned.</p>
+</li>
+<li>
+<p><strong>move\_to\_collection</strong> – \[DEPRECATED–please use <span className="em">move\_to\_schema</span> and use <a className="reference internal" href="#gpudb.GPUdb.create_schema" title="gpudb.GPUdb.create_schema"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_schema()</span></code></a> to create the schema if non-existent\] Moves a table or view into a schema named input parameter <span className="em">value</span>. If the schema provided is non-existent, it will be automatically created.</p>
+</li>
+<li>
+<p><strong>move\_to\_schema</strong> – Moves a table or view into a schema named input parameter <span className="em">value</span>. If the schema provided is nonexistent, an error will be thrown. If input parameter <span className="em">value</span> is empty, then the table or view will be placed in the user’s default schema.</p>
+</li>
+<li>
+<p><strong>protected</strong> – No longer used. Previously set whether the given input parameter <span className="em">table\_name</span> should be protected or not. The input parameter <span className="em">value</span> would have been either ‘true’ or ‘false’.</p>
+</li>
+<li>
+<p><strong>rename\_table</strong> – Renames a table or view to input parameter <span className="em">value</span>. Has the same naming restrictions as <a className="reference external" href="/content/concepts/tables/">tables</a>.</p>
+</li>
+<li>
+<p><strong>ttl</strong> – Sets the <a className="reference external" href="/content/concepts/ttl/">time-to-live</a> in minutes of the table or view specified in input parameter <span className="em">table\_name</span>.</p>
+</li>
+<li>
+<p><strong>add\_comment</strong> – Adds the comment specified in input parameter <span className="em">value</span> to the table specified in input parameter <span className="em">table\_name</span>. Use <span className="em">column\_name</span> to set the comment for a column.</p>
+</li>
+<li>
+<p><strong>add\_column</strong> – Adds the column specified in input parameter <span className="em">value</span> to the table specified in input parameter <span className="em">table\_name</span>. Use <span className="em">column\_type</span> and <span className="em">column\_properties</span> in input parameter <span className="em">options</span> to set the column’s type and properties, respectively.</p>
+</li>
+<li>
+<p><strong>change\_column</strong> – Changes type and properties of the column specified in input parameter <span className="em">value</span>. Use <span className="em">column\_type</span> and <span className="em">column\_properties</span> in input parameter <span className="em">options</span> to set the column’s type and properties, respectively. Note that primary key and/or shard key columns cannot be changed. All unchanging column properties must be listed for the change to take place, e.g., to add dictionary encoding to an existing ‘char4’ column, both ‘char4’ and ‘dict’ must be specified in the input parameter <span className="em">options</span> map.</p>
+</li>
+<li>
+<p><strong>delete\_column</strong> – Deletes the column specified in input parameter <span className="em">value</span> from the table specified in input parameter <span className="em">table\_name</span>.</p>
+</li>
+<li>
+<p><strong>set\_default</strong> – Sets or replaces the default value expression for the column specified in input parameter <span className="em">value</span>. The new default is taken from <span className="em">add\_column\_expression</span>. Existing properties on the column are preserved.</p>
+</li>
+<li>
+<p><strong>delete\_default</strong> – Removes the default value expression from the column specified in input parameter <span className="em">value</span>. Other column properties are preserved.</p>
+</li>
+<li>
+<p><strong>create\_foreign\_key</strong> – Creates a <a className="reference external" href="/content/concepts/tables/#foreign-key">foreign key</a> specified in input parameter <span className="em">value</span> using the format ‘(source\_column\_name \[, …\]) references target\_table\_name(primary\_key\_column\_name \[, …\]) \[as foreign\_key\_name\]’.</p>
+</li>
+<li>
+<p><strong>delete\_foreign\_key</strong> – Deletes a <a className="reference external" href="/content/concepts/tables/#foreign-key">foreign key</a>. The input parameter <span className="em">value</span> should be the foreign\_key\_name specified when creating the key or the complete string used to define it.</p>
+</li>
+<li>
+<p><strong>add\_partition</strong> – Adds the partition specified in input parameter <span className="em">value</span>, to either a <a className="reference external" href="/content/concepts/tables/#partitioning-by-range">range-partitioned</a> or <a className="reference external" href="/content/concepts/tables/#partitioning-by-list-manual">manual list-partitioned</a> table.</p>
+</li>
+<li>
+<p><strong>remove\_partition</strong> – Removes the partition specified in input parameter <span className="em">value</span> (and relocates all of its data to the default partition) from either a <a className="reference external" href="/content/concepts/tables/#partitioning-by-range">range-partitioned</a> or <a className="reference external" href="/content/concepts/tables/#partitioning-by-list-manual">manual list-partitioned</a> table.</p>
+</li>
+<li>
+<p><strong>delete\_partition</strong> – Deletes the partition specified in input parameter <span className="em">value</span> (and all of its data) from either a <a className="reference external" href="/content/concepts/tables/#partitioning-by-range">range-partitioned</a> or <a className="reference external" href="/content/concepts/tables/#partitioning-by-list-manual">manual list-partitioned</a> table.</p>
+</li>
+<li>
+<p><strong>set\_global\_access\_mode</strong> – Sets the global access mode (i.e. locking) for the table specified in input parameter <span className="em">table\_name</span>. Specify the access mode in input parameter <span className="em">value</span>. Valid modes are ‘no\_access’, ‘read\_only’, ‘write\_only’ and ‘read\_write’.</p>
+</li>
+<li>
+<p><strong>refresh</strong> – For a <a className="reference external" href="/content/concepts/materialized_views/">materialized view</a>, replays all the table creation commands required to create the view. For an <a className="reference external" href="/content/concepts/external_tables/">external table</a>, reloads all data in the table from its associated source files or <a className="reference external" href="/content/concepts/data_sources/">data source</a>.</p>
+</li>
+<li>
+<p><strong>set\_refresh\_method</strong> – For a <a className="reference external" href="/content/concepts/materialized_views/">materialized view</a>, sets the method by which the view is refreshed to the method specified in input parameter <span className="em">value</span> - one of ‘manual’, ‘periodic’, or ‘on\_change’. For an <a className="reference external" href="/content/concepts/external_tables/">external table</a>, sets the method by which the table is refreshed to the method specified in input parameter <span className="em">value</span> - either ‘manual’ or ‘on\_start’.</p>
+</li>
+<li>
+<p><strong>set\_refresh\_start\_time</strong> – Sets the time to start periodic refreshes of this <a className="reference external" href="/content/concepts/materialized_views/">materialized view</a> to the datetime string specified in input parameter <span className="em">value</span> with format ‘YYYY-MM-DD HH:MM:SS’. Subsequent refreshes occur at the specified time + N \* the refresh period.</p>
+</li>
+<li>
+<p><strong>set\_refresh\_stop\_time</strong> – Sets the time to stop periodic refreshes of this <a className="reference external" href="/content/concepts/materialized_views/">materialized view</a> to the datetime string specified in input parameter <span className="em">value</span> with format ‘YYYY-MM-DD HH:MM:SS’.</p>
+</li>
+<li>
+<p><strong>set\_refresh\_period</strong> – Sets the time interval in seconds at which to refresh this <a className="reference external" href="/content/concepts/materialized_views/">materialized view</a> to the value specified in input parameter <span className="em">value</span>. Also, sets the refresh method to periodic if not already set.</p>
+</li>
+<li>
+<p><strong>set\_refresh\_span</strong> – Sets the future time-offset(in seconds) for the view refresh to stop.</p>
+</li>
+<li>
+<p><strong>set\_refresh\_execute\_as</strong> – Sets the user name to refresh this <a className="reference external" href="/content/concepts/materialized_views/">materialized view</a> to the value specified in input parameter <span className="em">value</span>.</p>
+</li>
+<li>
+<p><strong>remove\_text\_search\_attributes</strong> – Removes <a className="reference external" href="/content/concepts/full_text_search/">text search</a> attribute from all columns.</p>
+</li>
+<li>
+<p><strong>remove\_shard\_keys</strong> – Removes the shard key property from all columns, so that the table will be considered randomly sharded. The data is not moved. The input parameter <span className="em">value</span> is ignored.</p>
+</li>
+<li>
+<p><strong>set\_strategy\_definition</strong> – Sets the <a className="reference external" href="/content/rm/concepts/#tier-strategies">tier strategy</a> for the table and its columns to the one specified in input parameter <span className="em">value</span>, replacing the existing tier strategy in its entirety.</p>
+</li>
+<li>
+<p><strong>cancel\_datasource\_subscription</strong> – Permanently unsubscribe a data source that is loading continuously as a stream. The data source can be Kafka / S3 / Azure / GCS.</p>
+</li>
+<li>
+<p><strong>drop\_datasource\_subscription</strong> – Permanently delete a cancelled data source subscription.</p>
+</li>
+<li>
+<p><strong>pause\_datasource\_subscription</strong> – Temporarily unsubscribe a data source that is loading continuously as a stream. The data source can be Kafka / S3 / Azure / GCS.</p>
+</li>
+<li>
+<p><strong>resume\_datasource\_subscription</strong> – Resubscribe to a paused data source subscription. The data source can be Kafka / S3 / Azure / GCS.</p>
+</li>
+<li>
+<p><strong>change\_owner</strong> – Change the owner resource group of the table.</p>
+</li>
+<li>
+<p><strong>set\_load\_vectors\_policy</strong> – Set startup data loading scheme for the table; see description of ‘load\_vectors\_policy’ in <a className="reference internal" href="#gpudb.GPUdb.create_table" title="gpudb.GPUdb.create_table"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_table()</span></code></a> for possible values for input parameter <span className="em">value</span>.</p>
+</li>
+<li>
+<p><strong>set\_build\_pk\_index\_policy</strong> – Set startup primary key generation scheme for the table; see description of ‘build\_pk\_index\_policy’ in <a className="reference internal" href="#gpudb.GPUdb.create_table" title="gpudb.GPUdb.create_table"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_table()</span></code></a> for possible values for input parameter <span className="em">value</span>.</p>
+</li>
+<li>
+<p><strong>set\_build\_materialized\_view\_policy</strong> – Set startup rebuilding scheme for the materialized view; see description of ‘build\_materialized\_view\_policy’ in <a className="reference internal" href="#gpudb.GPUdb.create_materialized_view" title="gpudb.GPUdb.create_materialized_view"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_materialized\_view()</span></code></a> for possible values for input parameter <span className="em">value</span>.</p>
+</li>
+<li>
+<p><strong>rebuild\_text\_search\_index</strong> – Drops and rebuilds the <a className="reference external" href="/content/concepts/full_text_search/">text search</a> index for the table from current type metadata and chunk storage. Use this to repair a text-search index left incomplete by an interrupted or failed rebuild (for example, after a crash during an add-column that requested text search): re-running the original add\_column will not work because the column already exists. This action is also dispatched automatically by <a className="reference internal" href="#gpudb.GPUdb.alter_table_columns" title="gpudb.GPUdb.alter_table_columns"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.alter\_table\_columns()</span></code></a> after add\_column completions that require a full re-index. The input parameter <span className="em">value</span> is ignored.</p>
+</li>
+</ul>
+</div>
+<div className="dt">value (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>The value of the modification, depending on input parameter <span className="em">action</span>. For example, if input parameter <span className="em">action</span> is <span className="em">add\_column</span>, this would be the column name; while the column’s definition would be covered by the <span className="em">column\_type</span>, <span className="em">column\_properties</span>, <span className="em">column\_default\_value</span>, and <span className="em">add\_column\_expression</span> in input parameter <span className="em">options</span>. If input parameter <span className="em">action</span> is <span className="em">ttl</span>, it would be the number of minutes for the new TTL. If input parameter <span className="em">action</span> is <span className="em">refresh</span>, this field would be blank.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p>action</p>
+</li>
+<li>
+<p>column\_name</p>
+</li>
+<li>
+<p>table\_name</p>
+</li>
+<li>
+<p><strong>column\_default\_value</strong> – When adding a column, set a literal default value for existing records. For nullable columns, the default value will be null, regardless of data type. Also persisted as the column’s default for future inserts that omit the column.</p>
+</li>
+<li>
+<p><strong>column\_properties</strong> – When adding or changing a column, set the column properties (strings, separated by a comma: data, text\_search, char8, int8 etc).</p>
+</li>
+<li>
+<p><strong>column\_type</strong> – When adding or changing a column, set the column type (strings, separated by a comma: int, double, string, null etc).</p>
+</li>
+<li>
+<p><strong>copy\_values\_from\_column</strong> – \[DEPRECATED\] Please use <span className="em">add\_column\_expression</span> instead.</p>
+</li>
+<li>
+<p><strong>rename\_column</strong> – When changing a column, specify new column name.</p>
+</li>
+<li>
+<p><strong>validate\_change\_column</strong> – When changing a column, validate the change before applying it (or not). Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Validate all values. A value too large (or too long) for the new type will prevent any change.</p>
+</li>
+<li>
+<p><strong>false</strong> – When a value is too large or long, it will be truncated.</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>update\_last\_access\_time</strong> – Indicates whether the <a className="reference external" href="/content/concepts/ttl/">time-to-live</a> (TTL) expiration countdown timer should be reset to the table’s TTL. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Reset the expiration countdown timer to the table’s configured TTL.</p>
+</li>
+<li>
+<p><strong>false</strong> – Don’t reset the timer; expiration countdown will continue from where it is, as if the table had not been accessed.</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>add\_column\_expression</strong> – When adding a column or setting a new default with input parameter <span className="em">action</span> set to <span className="em">set\_default</span>, the new default expression (GPUdb-syntax) for the column. Any valid expression may be used, including one containing references to existing columns in the same table. Persisted as the column’s default for future inserts that omit the column; for add\_column, also used to backfill existing rows.</p>
+</li>
+<li>
+<p><strong>add\_column\_expression\_sql</strong> – Optional SQL-syntax form of <span className="em">add\_column\_expression</span>, used only when the SQL syntax differs from the GPUdb syntax. Persisted alongside the GPUdb form so SHOW CREATE TABLE / information\_schema can reproduce the original SQL.</p>
+</li>
+<li>
+<p><strong>strategy\_definition</strong> – Parameter for specifying the <a className="reference external" href="/content/rm/concepts/#tier-strategies">tier strategy</a> for the table and its columns when input parameter <span className="em">action</span> is <span className="em">set\_strategy\_definition</span>, replacing the existing tier strategy in its entirety.</p>
+</li>
+<li>
+<p><strong>index\_type</strong> – Type of index to create, when input parameter <span className="em">action</span> is <span className="em">create\_index</span>; to refresh, when input parameter <span className="em">action</span> is <span className="em">refresh\_index</span>; or to delete, when input parameter <span className="em">action</span> is <span className="em">delete\_index</span>. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>column</strong> – Create or delete a <a className="reference external" href="/content/concepts/indexes/#column-index">column (attribute) index</a>.</p>
+</li>
+<li>
+<p><strong>low\_cardinality</strong> – Create a <a className="reference external" href="/content/concepts/indexes/#low-cardinality-index">low-cardinality column (attribute) index</a>.</p>
+</li>
+<li>
+<p><strong>chunk\_skip</strong> – Create or delete a <a className="reference external" href="/content/concepts/indexes/#chunk-skip-index">chunk skip index</a>.</p>
+</li>
+<li>
+<p><strong>geospatial</strong> – Create or delete a <a className="reference external" href="/content/concepts/indexes/#geospatial-index">geospatial index</a>.</p>
+</li>
+<li>
+<p><strong>cagra</strong> – Create or delete a <a className="reference external" href="/content/concepts/indexes/#cagra-index">CAGRA index</a> on a <a className="reference external" href="/content/vector_search/#vector-type">vector column</a>.</p>
+</li>
+<li>
+<p><strong>hnsw</strong> – Create or delete an <a className="reference external" href="/content/concepts/indexes/#hnsw-index">HNSW index</a> on a <a className="reference external" href="/content/vector_search/#vector-type">vector column</a>.</p>
+</li>
+</ul>
+<p>The default value is ‘column’.</p>
+</li>
+<li>
+<p><strong>index\_options</strong> – Options to use when creating an index, in the format “key: value \[, key: value \[, …\]\]”. Valid options vary by index type.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Table on which the operation was performed.</p>
+</div>
+<div className="dt">action (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Modification operation that was performed.</p>
+</div>
+<div className="dt">value (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>The value of the modification that was performed.</p>
+</div>
+<div className="dt">type\_id (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Return the type\_id (when changing a table, a new type may be created).</p>
+</div>
+<div className="dt">type\_definition (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Return the type\_definition (when changing a table, a new type may be created).</p>
+</div>
+<div className="dt">properties (<span className="em">dict of str to lists of str</span>) –</div>
+<div className="dd">
+<p>Return the type properties (when changing a table, a new type may be created).</p>
+</div>
+<div className="dt">label (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Return the type label (when changing a table, a new type may be created).</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

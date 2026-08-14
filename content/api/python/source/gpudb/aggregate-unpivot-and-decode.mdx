@@ -1,0 +1,184 @@
+---
+title: "aggregate_unpivot_and_decode"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.aggregate_unpivot_and_decode"> <span className="sig-name descname"><span className="pre">aggregate\_unpivot\_and\_decode</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">column\_names</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">variable\_column\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">''</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">value\_column\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">''</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">pivoted\_columns</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">encoding</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">'binary'</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">record\_type</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">force\_primitive\_return\_types</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">True</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">get\_column\_major</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">True</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L18293"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Rotate the column values into rows values.</p>
+<p>For unpivot details and examples, see <a className="reference external" href="/content/concepts/unpivot/">Unpivot</a>. For limitations, see <a className="reference external" href="/content/concepts/unpivot/#limitations">Unpivot Limitations</a>.</p>
+<p>Unpivot is used to normalize tables that are built for cross tabular reporting purposes. The unpivot operator rotates the column values for all the pivoted columns. A variable column, value column and all columns from the source table except the unpivot columns are projected into the result table. The variable column and value columns in the result table indicate the pivoted column name and values respectively.</p>
+<p>The response is returned as a dynamic schema. For details see: <a className="reference external" href="/content/api/concepts/#dynamic-schemas">dynamic schemas documentation</a>.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the table on which the operation will be performed. Must be an existing table/view, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>.</p>
+</div>
+<div className="dt">column\_names (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>List of column names or expressions. A wildcard ‘\*’ can be used to include all the non-pivoted columns from the source table. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">variable\_column\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Specifies the variable/parameter column name. The default value is ‘’.</p>
+</div>
+<div className="dt">value\_column\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Specifies the value column name. The default value is ‘’.</p>
+</div>
+<div className="dt">pivoted\_columns (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>List of one or more values typically the column names of the input table. All the columns in the source table must have the same data type. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">encoding (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Specifies the encoding for returned records. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>binary</strong> – Indicates that the returned records should be binary encoded.</p>
+</li>
+<li>
+<p><strong>json</strong> – Indicates that the returned records should be JSON-encoded.</p>
+</li>
+</ul>
+<p>The default value is ‘binary’.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>create\_temp\_table</strong> – If <span className="em">true</span>, a unique temporary table name will be generated in the sys\_temp schema and used in place of <span className="em">result\_table</span>. If <span className="em">result\_table\_persist</span> is <span className="em">false</span> (or unspecified), then this is always allowed even if the caller does not have permission to create tables. The generated name is returned in <span className="em">qualified\_result\_table\_name</span>. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>collection\_name</strong> – \[DEPRECATED–please specify the containing schema as part of <span className="em">result\_table</span> and use <a className="reference internal" href="#gpudb.GPUdb.create_schema" title="gpudb.GPUdb.create_schema"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_schema()</span></code></a> to create the schema if non-existent\] Name of a schema which is to contain the table specified in <span className="em">result\_table</span>. If the schema is non-existent, it will be automatically created.</p>
+</li>
+<li>
+<p><strong>result\_table</strong> – The name of a table used to store the results, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a> and meeting <a className="reference external" href="/content/concepts/tables/#table-naming-criteria">table naming criteria</a>. If present, no results are returned in the response.</p>
+</li>
+<li>
+<p><strong>result\_table\_persist</strong> – If <span className="em">true</span>, then the result table specified in <span className="em">result\_table</span> will be persisted and will not expire unless a <span className="em">ttl</span> is specified. If <span className="em">false</span>, then the result table will be an in-memory table and will expire unless a <span className="em">ttl</span> is specified otherwise. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>expression</strong> – Filter expression to apply to the table prior to unpivot processing.</p>
+</li>
+<li>
+<p><strong>order\_by</strong> – Comma-separated list of the columns to be sorted by; e.g. ‘timestamp asc, x desc’. The columns specified must be present in input table. If any alias is given for any column name, the alias must be used, rather than the original column name. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>chunk\_size</strong> – Indicates the number of records per chunk to be used for the result table. Must be used in combination with the <span className="em">result\_table</span> option.</p>
+</li>
+<li>
+<p><strong>chunk\_column\_max\_memory</strong> – Indicates the target maximum data size for each column in a chunk to be used for the result table. Must be used in combination with the <span className="em">result\_table</span> option.</p>
+</li>
+<li>
+<p><strong>chunk\_max\_memory</strong> – Indicates the target maximum data size for all columns in a chunk to be used for the result table. Must be used in combination with the <span className="em">result\_table</span> option.</p>
+</li>
+<li>
+<p><strong>compression\_codec</strong> – The default <a className="reference external" href="/content/concepts/column_compression/">compression codec</a> for the result table’s columns.</p>
+</li>
+<li>
+<p><strong>limit</strong> – The number of records to keep. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>ttl</strong> – Sets the <a className="reference external" href="/content/concepts/ttl/">TTL</a> of the table specified in <span className="em">result\_table</span>.</p>
+</li>
+<li>
+<p><strong>view\_id</strong> – View this result table is part of. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>create\_indexes</strong> – Comma-separated list of columns on which to create indexes on the table specified in <span className="em">result\_table</span>. The columns specified must be present in output column names. If any alias is given for any column name, the alias must be used, rather than the original column name.</p>
+</li>
+<li>
+<p><strong>result\_table\_force\_replicated</strong> – Force the result table to be replicated (ignores any sharding). Must be used in combination with the <span className="em">result\_table</span> option. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+<div className="dt">record\_type (<code className="xref py py-class docutils literal notranslate"><span className="pre">RecordType</span></code> or None) –</div>
+<div className="dd">
+<p>The record type expected in the results, or None to determine the appropriate type automatically. If known, providing this may improve performance in binary mode. Not used in JSON mode. The default value is None.</p>
+</div>
+<div className="dt">force\_primitive\_return\_types (<span className="em">bool</span>) –</div>
+<div className="dd">
+<p>If <span className="cite">True</span>, then <span className="cite">OrderedDict</span> objects will be returned, where string sub-type columns will have their values converted back to strings; for example, the Python <span className="cite">datetime</span> structs, used for datetime type columns would have their values returned as strings. If <span className="cite">False</span>, then <code className="xref py py-class docutils literal notranslate"><span className="pre">Record</span></code> objects will be returned, which for string sub-types, will return native or custom structs; no conversion to string takes place. String conversions, when returning <span className="cite">OrderedDicts</span>, incur a speed penalty, and it is strongly recommended to use the <code className="xref py py-class docutils literal notranslate"><span className="pre">Record</span></code> object option instead. If <span className="cite">True</span>, but none of the returned columns require a conversion, then the original <code className="xref py py-class docutils literal notranslate"><span className="pre">Record</span></code> objects will be returned. Default value is True.</p>
+</div>
+<div className="dt">get\_column\_major (<span className="em">bool</span>) –</div>
+<div className="dd">
+<p>Indicates if the decoded records will be transposed to be column-major or returned as is (row-major). Default value is True.</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Typically shows the result-table name if provided in the request (Ignore otherwise).</p>
+</div>
+<div className="dt">response\_schema\_str (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Avro schema of output parameter <span className="em">binary\_encoded\_response</span> or output parameter <span className="em">json\_encoded\_response</span>.</p>
+</div>
+<div className="dt">total\_number\_of\_records (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>Total/Filtered number of records.</p>
+</div>
+<div className="dt">has\_more\_records (<span className="em">bool</span>) –</div>
+<div className="dd">
+<p>Too many records. Returned a partial set.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>qualified\_result\_table\_name</strong> – The fully qualified name of the table (i.e. including the schema) used to store the results.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+<div className="dt">records (list of <code className="xref py py-class docutils literal notranslate"><span className="pre">Record</span></code>) –</div>
+<div className="dd">
+<p>A list of <code className="xref py py-class docutils literal notranslate"><span className="pre">Record</span></code> objects which contain the decoded records.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

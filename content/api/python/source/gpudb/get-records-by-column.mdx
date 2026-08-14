@@ -1,0 +1,135 @@
+---
+title: "get_records_by_column"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.get_records_by_column"> <span className="sig-name descname"><span className="pre">get\_records\_by\_column</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">column\_names</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">offset</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">0</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">limit</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">-9999</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">encoding</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">'binary'</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L31064"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>For a given table, retrieves the values from the requested column(s). Maps of column name to the array of values as well as the column data type are returned. This endpoint supports pagination with the input parameter <span className="em">offset</span> and input parameter <span className="em">limit</span> parameters.</p>
+<p><a className="reference external" href="/content/concepts/window/">Window functions</a>, which can perform operations like moving averages, are available through this endpoint as well as <a className="reference internal" href="#gpudb.GPUdb.create_projection" title="gpudb.GPUdb.create_projection"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_projection()</span></code></a>.</p>
+<p>When using pagination, if the table (or the underlying table in the case of a view) is modified (records are inserted, updated, or deleted) during a call to the endpoint, the records or values retrieved may differ between calls based on the type of the update, e.g., the contiguity across pages cannot be relied upon.</p>
+<p>If input parameter <span className="em">table\_name</span> is empty, selection is performed against a single-row virtual table. This can be useful in executing temporal (<a className="reference external" href="/content/concepts/expressions/#date-time-functions">NOW()</a>), identity (<a className="reference external" href="/content/concepts/expressions/#user-security-functions">USER()</a>), or constant-based functions (<a className="reference external" href="/content/concepts/expressions/#scalar-functions">GEODIST(-77.11, 38.88, -71.06, 42.36)</a>).</p>
+<p>The response is returned as a dynamic schema. For details see: <a className="reference external" href="/content/api/concepts/#dynamic-schemas">dynamic schemas documentation</a>.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the table or view on which this operation will be performed, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>. An empty table name retrieves one record from a single-row virtual table, where columns specified should be constants or constant expressions.</p>
+</div>
+<div className="dt">column\_names (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>The list of column values to retrieve. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">offset (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>A positive integer indicating the number of initial results to skip (this can be useful for paging through the results). The default value is 0. The minimum allowed value is 0. The maximum allowed value is MAX\_INT.</p>
+</div>
+<div className="dt">limit (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>A positive integer indicating the maximum number of results to be returned, or END\_OF\_SET (-9999) to indicate that the maximum number of results allowed by the server should be returned. The number of records returned will never exceed the server’s own limit, defined by the <a className="reference external" href="/content/config/#config-main-general">max\_get\_records\_size</a> parameter in the server configuration. Use output parameter <span className="em">has\_more\_records</span> to see if more records exist in the result to be fetched, and input parameter <span className="em">offset</span> and input parameter <span className="em">limit</span> to request subsequent pages of results. The default value is -9999.</p>
+</div>
+<div className="dt">encoding (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Specifies the encoding for returned records; either <span className="em">binary</span> or <span className="em">json</span>. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>binary</p>
+</li>
+<li>
+<p>json</p>
+</li>
+</ul>
+<p>The default value is ‘binary’.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>expression</strong> – Filter expression to apply to the table.</p>
+</li>
+<li>
+<p><strong>sort\_by</strong> – Column that the data should be sorted by. Used in conjunction with <span className="em">sort\_order</span>. The <span className="em">order\_by</span> option can be used in lieu of <span className="em">sort\_by</span> / <span className="em">sort\_order</span>. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>sort\_order</strong> – String indicating how the returned values should be sorted - <span className="em">ascending</span> or <span className="em">descending</span>. If <span className="em">sort\_order</span> is provided, <span className="em">sort\_by</span> has to be provided. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>ascending</p>
+</li>
+<li>
+<p>descending</p>
+</li>
+</ul>
+<p>The default value is ‘ascending’.</p>
+</li>
+<li>
+<p><strong>order\_by</strong> – Comma-separated list of the columns to be sorted by as well as the sort direction, e.g., ‘timestamp asc, x desc’. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>convert\_wkts\_to\_wkbs</strong> – If <span className="em">true</span>, then WKT string columns will be returned as WKB bytes. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>route\_to\_tom</strong> – For multihead record retrieval without shard key expression - specifies from which tom to retrieve data.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>The same table name as was passed in the parameter list.</p>
+</div>
+<div className="dt">response\_schema\_str (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Avro schema of output parameter <span className="em">binary\_encoded\_response</span> or output parameter <span className="em">json\_encoded\_response</span>.</p>
+</div>
+<div className="dt">binary\_encoded\_response (<span className="em">bytes</span>) –</div>
+<div className="dd">
+<p>Avro binary encoded response.</p>
+</div>
+<div className="dt">json\_encoded\_response (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Avro JSON encoded response.</p>
+</div>
+<div className="dt">total\_number\_of\_records (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>Total/Filtered number of records.</p>
+</div>
+<div className="dt">has\_more\_records (<span className="em">bool</span>) –</div>
+<div className="dd">
+<p>Too many records. Returned a partial set.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+<div className="dt">record\_type (<code className="xref py py-class docutils literal notranslate"><span className="pre">RecordType</span></code> or None) –</div>
+<div className="dd">
+<p>A <code className="xref py py-class docutils literal notranslate"><span className="pre">RecordType</span></code> object using which the user can decode the binary data by using <a className="reference internal" href="/content/api/python/source/gpudbrecord#gpudb.GPUdbRecord.decode_binary_data" title="gpudb.GPUdbRecord.decode_binary_data"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdbRecord.decode\_binary\_data()</span></code></a>. If JSON encoding is used, then None.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

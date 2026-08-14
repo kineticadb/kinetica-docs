@@ -1,0 +1,101 @@
+---
+title: "execute_proc"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.execute_proc"> <span className="sig-name descname"><span className="pre">execute\_proc</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">proc\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">params</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">bin\_params</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">input\_table\_names</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">\[\]</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">input\_column\_names</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">output\_table\_names</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">\[\]</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L27338"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Executes a proc. This endpoint is asynchronous and does not wait for the proc to complete before returning.</p>
+<p>If the proc being executed is distributed, input parameter <span className="em">input\_table\_names</span> and input parameter <span className="em">input\_column\_names</span> may be passed to the proc to use for reading data, and input parameter <span className="em">output\_table\_names</span> may be passed to the proc to use for writing data.</p>
+<p>If the proc being executed is non-distributed, these table parameters will be ignored.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">proc\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the proc to execute. Must be the name of a currently existing proc.</p>
+</div>
+<div className="dt">params (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>A map containing named parameters to pass to the proc. Each key/value pair specifies the name of a parameter and its value. The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+<div className="dt">bin\_params (<span className="em">dict of str to bytes</span>) –</div>
+<div className="dd">
+<p>A map containing named binary parameters to pass to the proc. Each key/value pair specifies the name of a parameter and its value. The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+<div className="dt">input\_table\_names (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>Names of the tables containing data to be passed to the proc. Each name specified must be the name of a currently existing table, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>. If no table names are specified, no data will be passed to the proc. This parameter is ignored if the proc has a non-distributed execution mode. The default value is an empty list ( \[\] ). The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">input\_column\_names (<span className="em">dict of str to lists of str</span>) –</div>
+<div className="dd">
+<p>Map of table names from input parameter <span className="em">input\_table\_names</span> to lists of names of columns from those tables that will be passed to the proc. Each column name specified must be the name of an existing column in the corresponding table. If a table name from input parameter <span className="em">input\_table\_names</span> is not included, all columns from that table will be passed to the proc. This parameter is ignored if the proc has a non-distributed execution mode. The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+<div className="dt">output\_table\_names (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>Names of the tables to which output data from the proc will be written, each in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a> and meeting <a className="reference external" href="/content/concepts/tables/#table-naming-criteria">table naming criteria</a>. If a specified table does not exist, it will automatically be created with the same schema as the corresponding table (by order) from input parameter <span className="em">input\_table\_names</span>, excluding any primary and shard keys. If a specified table is a non-persistent result table, it must not have primary or shard keys. If no table names are specified, no output data can be returned from the proc. This parameter is ignored if the proc has a non-distributed execution mode. The default value is an empty list ( \[\] ). The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>cache\_input</strong> – No longer supported; option will be ignored. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>use\_cached\_input</strong> – No longer supported; option will be ignored. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>run\_tag</strong> – A string that, if not empty, can be used in subsequent calls to <a className="reference internal" href="#gpudb.GPUdb.show_proc_status" title="gpudb.GPUdb.show_proc_status"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.show\_proc\_status()</span></code></a> or <a className="reference internal" href="#gpudb.GPUdb.kill_proc" title="gpudb.GPUdb.kill_proc"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.kill\_proc()</span></code></a> to identify the proc instance. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>max\_output\_lines</strong> – The maximum number of lines of output from stdout and stderr to return via <a className="reference internal" href="#gpudb.GPUdb.show_proc_status" title="gpudb.GPUdb.show_proc_status"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.show\_proc\_status()</span></code></a>. If the number of lines output exceeds the maximum, earlier lines are discarded. The default value is ‘100’.</p>
+</li>
+<li>
+<p><strong>execute\_at\_startup</strong> – If <span className="em">true</span>, an instance of the proc will run when the database is started instead of running immediately. The output parameter <span className="em">run\_id</span> can be retrieved using <a className="reference internal" href="#gpudb.GPUdb.show_proc" title="gpudb.GPUdb.show_proc"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.show\_proc()</span></code></a> and used in <a className="reference internal" href="#gpudb.GPUdb.show_proc_status" title="gpudb.GPUdb.show_proc_status"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.show\_proc\_status()</span></code></a>. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>execute\_at\_startup\_as</strong> – Sets the alternate user name to execute this proc instance as when <span className="em">execute\_at\_startup</span> is <span className="em">true</span>. The default value is ‘’.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl">
+<div className="dt">run\_id (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>The run ID of the running proc instance. This may be passed to <a className="reference internal" href="#gpudb.GPUdb.show_proc_status" title="gpudb.GPUdb.show_proc_status"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.show\_proc\_status()</span></code></a> to obtain status information, or <a className="reference internal" href="#gpudb.GPUdb.kill_proc" title="gpudb.GPUdb.kill_proc"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.kill\_proc()</span></code></a> to kill the proc instance.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>deferred\_tables</strong> – &lt;DEVELOPER&gt;</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

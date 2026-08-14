@@ -1,0 +1,132 @@
+---
+title: "get_records_and_decode"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.get_records_and_decode"> <span className="sig-name descname"><span className="pre">get\_records\_and\_decode</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">offset</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">0</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">limit</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">-9999</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">encoding</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">'binary'</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">record\_type</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">force\_primitive\_return\_types</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">True</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L30881"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Retrieves records from a given table, optionally filtered by an expression and/or sorted by a column. This operation can be performed on tables and views. Records can be returned encoded as binary, json, or geojson.</p>
+<p>This operation supports paging through the data via the input parameter <span className="em">offset</span> and input parameter <span className="em">limit</span> parameters. Note that when paging through a table, if the table (or the underlying table in case of a view) is updated (records are inserted, deleted or modified) the records retrieved may differ between calls based on the updates applied.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the table or view from which the records will be fetched, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>.</p>
+</div>
+<div className="dt">offset (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>A positive integer indicating the number of initial results to skip (this can be useful for paging through the results). The default value is 0. The minimum allowed value is 0. The maximum allowed value is MAX\_INT.</p>
+</div>
+<div className="dt">limit (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>A positive integer indicating the maximum number of results to be returned, or END\_OF\_SET (-9999) to indicate that the maximum number of results allowed by the server should be returned. The number of records returned will never exceed the server’s own limit, defined by the <a className="reference external" href="/content/config/#config-main-general">max\_get\_records\_size</a> parameter in the server configuration. Use output parameter <span className="em">has\_more\_records</span> to see if more records exist in the result to be fetched, and input parameter <span className="em">offset</span> and input parameter <span className="em">limit</span> to request subsequent pages of results. The default value is -9999.</p>
+</div>
+<div className="dt">encoding (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Specifies the encoding for returned records; one of <span className="em">binary</span>, <span className="em">json</span>, or <span className="em">geojson</span>. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>binary</p>
+</li>
+<li>
+<p>json</p>
+</li>
+<li>
+<p>geojson</p>
+</li>
+<li>
+<p>arrow</p>
+</li>
+</ul>
+<p>The default value is ‘binary’.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>expression</strong> – Filter expression to apply to the table.</p>
+</li>
+<li>
+<p><strong>fast\_index\_lookup</strong> – Indicates if indexes should be used to perform the lookup for a given expression if possible. Only applicable if there is no sorting, the expression contains only equivalence comparisons based on existing tables indexes and the range of requested values is from \[0 to END\_OF\_SET\]. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>sort\_by</strong> – Column that the data should be sorted by. Empty by default (i.e. no sorting is applied).</p>
+</li>
+<li>
+<p><strong>sort\_order</strong> – String indicating how the returned values should be sorted - ascending or descending. If sort\_order is provided, sort\_by has to be provided. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>ascending</p>
+</li>
+<li>
+<p>descending</p>
+</li>
+</ul>
+<p>The default value is ‘ascending’.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+<div className="dt">record\_type (<code className="xref py py-class docutils literal notranslate"><span className="pre">RecordType</span></code> or None) –</div>
+<div className="dd">
+<p>The record type expected in the results, or None to determine the appropriate type automatically. If known, providing this may improve performance in binary mode. Not used in JSON mode. The default value is None.</p>
+</div>
+<div className="dt">force\_primitive\_return\_types (<span className="em">bool</span>) –</div>
+<div className="dd">
+<p>If <span className="cite">True</span>, then <span className="cite">OrderedDict</span> objects will be returned, where string sub-type columns will have their values converted back to strings; for example, the Python <span className="cite">datetime</span> structs, used for datetime type columns would have their values returned as strings. If <span className="cite">False</span>, then <code className="xref py py-class docutils literal notranslate"><span className="pre">Record</span></code> objects will be returned, which for string sub-types, will return native or custom structs; no conversion to string takes place. String conversions, when returning <span className="cite">OrderedDicts</span>, incur a speed penalty, and it is strongly recommended to use the <code className="xref py py-class docutils literal notranslate"><span className="pre">Record</span></code> object option instead. If <span className="cite">True</span>, but none of the returned columns require a conversion, then the original <code className="xref py py-class docutils literal notranslate"><span className="pre">Record</span></code> objects will be returned. Default value is True.</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Value of input parameter <span className="em">table\_name</span>.</p>
+</div>
+<div className="dt">type\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>The name of the type of the returned records.</p>
+</div>
+<div className="dt">type\_schema (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Avro schema of output parameter <span className="em">records\_binary</span> or output parameter <span className="em">records\_json</span>.</p>
+</div>
+<div className="dt">total\_number\_of\_records (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>Total/Filtered number of records.</p>
+</div>
+<div className="dt">has\_more\_records (<span className="em">bool</span>) –</div>
+<div className="dd">
+<p>Too many records. Returned a partial set.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+<div className="dt">records (list of <code className="xref py py-class docutils literal notranslate"><span className="pre">Record</span></code>) –</div>
+<div className="dd">
+<p>A list of <code className="xref py py-class docutils literal notranslate"><span className="pre">Record</span></code> objects which contain the decoded records.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

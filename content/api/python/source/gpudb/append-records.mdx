@@ -1,0 +1,135 @@
+---
+title: "append_records"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.append_records"> <span className="sig-name descname"><span className="pre">append\_records</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">source\_table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">field\_map</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L20978"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Append (or insert) all records from a source table (specified by input parameter <span className="em">source\_table\_name</span>) to a particular target table (specified by input parameter <span className="em">table\_name</span>). The field map (specified by input parameter <span className="em">field\_map</span>) holds the user specified map of target table column names with their mapped source column names.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>The table name for the records to be appended, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>. Must be an existing table.</p>
+</div>
+<div className="dt">source\_table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>The source table name to get records from, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>. Must be an existing table name.</p>
+</div>
+<div className="dt">field\_map (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Contains the mapping of column names from the target table (specified by input parameter <span className="em">table\_name</span>) as the keys, and corresponding column names or expressions (e.g., ‘col\_name+1’) from the source table (specified by input parameter <span className="em">source\_table\_name</span>). Must be existing column names in source table and target table, and their types must be matched. For details on using expressions, see <a className="reference external" href="/content/concepts/expressions/">Expressions</a>.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>offset</strong> – A positive integer indicating the number of initial results to skip from input parameter <span className="em">source\_table\_name</span>. Default is 0. The minimum allowed value is 0. The maximum allowed value is MAX\_INT. The default value is ‘0’.</p>
+</li>
+<li>
+<p><strong>limit</strong> – A positive integer indicating the maximum number of results to be returned from input parameter <span className="em">source\_table\_name</span>. Or END\_OF\_SET (-9999) to indicate that the max number of results should be returned. The default value is ‘-9999’.</p>
+</li>
+<li>
+<p><strong>expression</strong> – Filter expression to apply to the input parameter <span className="em">source\_table\_name</span>. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>order\_by</strong> – Comma-separated list of the columns to be sorted by from source table (specified by input parameter <span className="em">source\_table\_name</span>), e.g., ‘timestamp asc, x desc’. The <span className="em">order\_by</span> columns do not have to be present in input parameter <span className="em">field\_map</span>. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>error\_handling</strong> – Specifies how record errors are handled while appending source table records into the target table. Currently this governs primary-key collision behavior: <span className="em">skip</span> and <span className="em">permissive</span> drop the colliding source records and continue, while <span className="em">abort</span> rejects the batch. Explicit <span className="em">update\_on\_existing\_pk</span> or <span className="em">ignore\_existing\_pk</span> take precedence over this option. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>permissive</strong> – Source records that cannot be appended (e.g. a primary-key collision) are skipped and reported; the rest of the batch is appended.</p>
+</li>
+<li>
+<p><strong>skip</strong> – Source records that cannot be appended are skipped and reported; the rest of the batch is appended.</p>
+</li>
+<li>
+<p><strong>abort</strong> – A source record that cannot be appended (e.g. a primary-key collision) raises an error. This is the default.</p>
+</li>
+</ul>
+<p>The default value is ‘abort’.</p>
+</li>
+<li>
+<p><strong>update\_on\_existing\_pk</strong> – Specifies the record collision policy for inserting source table records (specified by input parameter <span className="em">source\_table\_name</span>) into a target table (specified by input parameter <span className="em">table\_name</span>) with a <a className="reference external" href="/content/concepts/tables/#primary-keys">primary key</a>. If set to <span className="em">true</span>, any existing table record with primary key values that match those of a source table record being inserted will be replaced by that new record (the new data will be “upserted”). If set to <span className="em">false</span>, any existing table record with primary key values that match those of a source table record being inserted will remain unchanged, while the source record will be rejected and an error handled as determined by <span className="em">ignore\_existing\_pk</span>. If the specified table does not have a primary key, then this option has no effect. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Upsert new records when primary keys match existing records.</p>
+</li>
+<li>
+<p><strong>false</strong> – Reject new records when primary keys match existing records.</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>enable\_inplace\_updates</strong> – Applies only when upserting (when <span className="em">update\_on\_existing\_pk</span> is <span className="em">true</span>). If set to <span className="em">true</span>, an existing record matched by primary key is modified in place. If set to <span className="em">false</span>, it is updated by deleting the existing record and inserting a replacement (delete and insert), which prevents the change from being reflected in dependent materialized views until they are refreshed. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>ignore\_existing\_pk</strong> – Specifies the record collision error-suppression policy for inserting source table records (specified by input parameter <span className="em">source\_table\_name</span>) into a target table (specified by input parameter <span className="em">table\_name</span>) with a <a className="reference external" href="/content/concepts/tables/#primary-keys">primary key</a>, only used when not in upsert mode (upsert mode is disabled when <span className="em">update\_on\_existing\_pk</span> is <span className="em">false</span>). If set to <span className="em">true</span>, any source table record being inserted that is rejected for having primary key values that match those of an existing target table record will be ignored with no error generated. If <span className="em">false</span>, the rejection of any source table record for having primary key values matching an existing target table record will result in an error being raised. If the specified table does not have a primary key or if upsert mode is in effect (<span className="em">update\_on\_existing\_pk</span> is <span className="em">true</span>), then this option has no effect. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Ignore source table records whose primary key values collide with those of target table records.</p>
+</li>
+<li>
+<p><strong>false</strong> – Raise an error for any source table record whose primary key values collide with those of a target table record.</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>pk\_conflict\_predicate\_higher</strong> – The record with higher value for the column resolves the primary-key insert conflict. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>pk\_conflict\_predicate\_lower</strong> – The record with lower value for the column resolves the primary-key insert conflict. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>truncate\_strings</strong> – If set to <span className="em">true</span>, it allows inserting longer strings into smaller charN string columns by truncating the longer strings to fit. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>The name of the table to which the records were appended.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information. The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

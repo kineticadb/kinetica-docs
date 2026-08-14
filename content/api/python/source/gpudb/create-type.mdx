@@ -1,0 +1,208 @@
+---
+title: "create_type"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.create_type"> <span className="sig-name descname"><span className="pre">create\_type</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">type\_definition</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">label</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">properties</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L25552"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Creates a new type describing the columns of a table. The type definition is specified as a list of columns, each specified as a list of the column name, data type, and any column attributes.</p>
+<p>Example of a type definition with some parameters:</p>
+<div className="highlight-default notranslate">
+<div>
+
+```
+[
+    ["id", "int8", "primary_key"],
+    ["dept_id", "int8", "primary_key", "shard_key"],
+    ["manager_id", "int8", "nullable"],
+    ["first_name", "char32"],
+    ["last_name", "char64"],
+    ["salary", "decimal"],
+    ["hire_date", "date"]
+]
+```
+
+</div>
+</div>
+<p>Each column definition consists of the column name (which should meet the standard <a className="reference external" href="/content/concepts/tables/#table-naming-criteria">column naming criteria</a>), the column’s <a className="reference external" href="/content/concepts/types/#types-chart">specific type</a> (int, long, float, double, string, bytes, or any of the possible values for input parameter <span className="em">properties</span>), and any <a className="reference external" href="/content/concepts/types/#types-data-handling">data handling</a>, <a className="reference external" href="/content/concepts/types/#types-data-keys">data key</a>, or <a className="reference external" href="/content/concepts/types/#types-data-replace">data replacement</a> properties.</p>
+<p>Note that some properties are mutually exclusive–i.e. they cannot be specified for any given column simultaneously. One example of mutually exclusive properties are <span className="em">primary\_key</span> and <span className="em">nullable</span>.</p>
+<p>A single <a className="reference external" href="/content/concepts/tables/#primary-keys">primary key</a> and/or single <a className="reference external" href="/content/concepts/tables/#shard-keys">shard key</a> can be set across one or more columns. If a primary key is specified, then a uniqueness constraint is enforced, in that only a single object can exist with a given primary key column value (or set of values for the key columns, if using a composite primary key). When <a className="reference internal" href="#gpudb.GPUdb.insert_records" title="gpudb.GPUdb.insert_records"><code className="xref py py-meth docutils literal notranslate"><span className="pre">inserting</span></code></a> data into a table with a primary key, depending on the parameters in the request, incoming objects with primary key values that match existing objects will either overwrite (i.e. update) the existing object or will be skipped and not added into the set.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">type\_definition (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>JSON string defining the columns of the type to be registered, as described above.</p>
+</div>
+<div className="dt">label (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>A user-defined description string which can be used to differentiate between tables and types with otherwise identical schemas.</p>
+</div>
+<div className="dt">properties (<span className="em">dict of str to lists of str</span>) –</div>
+<div className="dd">
+<p>\[DEPRECATED–please use these property values in the input parameter <span className="em">type\_definition</span> directly, as described at the top, instead\] Each key-value pair specifies the properties to use for a given column where the key is the column name. All keys used must be relevant column names for the given table. Specifying any property overrides the default properties for that column (which is based on the column’s data type). Allowed values are:</p>
+<ul>
+<li>
+<p><strong>data</strong> – Default property for all numeric and string type columns; makes the column available for GPU queries.</p>
+</li>
+<li>
+<p><strong>text\_search</strong> – Valid only for select ‘string’ columns. Enables full text search–see <a className="reference external" href="/content/concepts/full_text_search/">Full Text Search</a> for details and applicable string column types.</p>
+</li>
+<li>
+<p><strong>timestamp</strong> – Valid only for ‘long’ columns. Indicates that this field represents a timestamp and will be provided in milliseconds since the Unix epoch: 00:00:00 Jan 1 1970. Dates represented by a timestamp must fall between the year 1000 and the year 2900.</p>
+</li>
+<li>
+<p><strong>ulong</strong> – Valid only for ‘string’ columns. It represents an unsigned long integer data type. The string can only be interpreted as an unsigned long data type with minimum value of zero, and maximum value of 18446744073709551615.</p>
+</li>
+<li>
+<p><strong>uuid</strong> – Valid only for ‘string’ columns. It represents an uuid data type. Internally, it is stored as a 128-bit integer.</p>
+</li>
+<li>
+<p><strong>decimal</strong> – Valid only for ‘string’ columns. It represents a SQL type NUMERIC(19, 4) data type. There can be up to 15 digits before the decimal point and up to four digits in the fractional part. The value can be positive or negative (indicated by a minus sign at the beginning). This property is mutually exclusive with the <span className="em">text\_search</span> property.</p>
+</li>
+<li>
+<p><strong>date</strong> – Valid only for ‘string’ columns. Indicates that this field represents a date and will be provided in the format ‘YYYY-MM-DD’. The allowable range is 1000-01-01 through 2900-01-01. This property is mutually exclusive with the <span className="em">text\_search</span> property.</p>
+</li>
+<li>
+<p><strong>time</strong> – Valid only for ‘string’ columns. Indicates that this field represents a time-of-day and will be provided in the format ‘HH:MM:SS.mmm’. The allowable range is 00:00:00.000 through 23:59:59.999. This property is mutually exclusive with the <span className="em">text\_search</span> property.</p>
+</li>
+<li>
+<p><strong>datetime</strong> – Valid only for ‘string’ columns. Indicates that this field represents a datetime and will be provided in the format ‘YYYY-MM-DD HH:MM:SS.mmm’. The allowable range is 1000-01-01 00:00:00.000 through 2900-01-01 23:59:59.999. This property is mutually exclusive with the <span className="em">text\_search</span> property.</p>
+</li>
+<li>
+<p><strong>char1</strong> – This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 1 character.</p>
+</li>
+<li>
+<p><strong>char2</strong> – This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 2 characters.</p>
+</li>
+<li>
+<p><strong>char4</strong> – This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 4 characters.</p>
+</li>
+<li>
+<p><strong>char8</strong> – This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 8 characters.</p>
+</li>
+<li>
+<p><strong>char16</strong> – This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 16 characters.</p>
+</li>
+<li>
+<p><strong>char32</strong> – This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 32 characters.</p>
+</li>
+<li>
+<p><strong>char64</strong> – This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 64 characters.</p>
+</li>
+<li>
+<p><strong>char128</strong> – This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 128 characters.</p>
+</li>
+<li>
+<p><strong>char256</strong> – This property provides optimized memory, disk and query performance for string columns. Strings with this property must be no longer than 256 characters.</p>
+</li>
+<li>
+<p><strong>boolean</strong> – This property provides optimized memory and query performance for int columns. Ints with this property must be between 0 and 1(inclusive)</p>
+</li>
+<li>
+<p><strong>int8</strong> – This property provides optimized memory and query performance for int columns. Ints with this property must be between -128 and +127 (inclusive)</p>
+</li>
+<li>
+<p><strong>int16</strong> – This property provides optimized memory and query performance for int columns. Ints with this property must be between -32768 and +32767 (inclusive)</p>
+</li>
+<li>
+<p><strong>ipv4</strong> – This property provides optimized memory, disk and query performance for string columns representing IPv4 addresses (i.e. 192.168.1.1). Strings with this property must be of the form: A.B.C.D where A, B, C and D are in the range of 0-255.</p>
+</li>
+<li>
+<p><strong>array</strong> – Valid only for ‘string’ columns. Indicates that this field contains an array. The value type and (optionally) the item count should be specified in parenthesis; e.g., ‘array(int, 10)’ for a 10-integer array. Both ‘array(int)’ and ‘array(int, -1)’ will designate an unlimited-length integer array, though no bounds checking is performed on arrays of any length.</p>
+</li>
+<li>
+<p><strong>json</strong> – Valid only for ‘string’ columns. Indicates that this field contains values in JSON format.</p>
+</li>
+<li>
+<p><strong>vector</strong> – Valid only for ‘bytes’ columns. Indicates that this field contains a vector of floats. The length should be specified in parenthesis, e.g., ‘vector(1000)’.</p>
+</li>
+<li>
+<p><strong>wkt</strong> – Valid only for ‘string’ and ‘bytes’ columns. Indicates that this field contains geospatial geometry objects in Well-Known Text (WKT) or Well-Known Binary (WKB) format.</p>
+</li>
+<li>
+<p><strong>primary\_key</strong> – This property indicates that this column will be part of (or the entire) <a className="reference external" href="/content/concepts/tables/#primary-keys">primary key</a>.</p>
+</li>
+<li>
+<p><strong>soft\_primary\_key</strong> – This property indicates that this column will be part of (or the entire) <a className="reference external" href="/content/concepts/tables/#soft-primary-keys">soft primary key</a>.</p>
+</li>
+<li>
+<p><strong>shard\_key</strong> – This property indicates that this column will be part of (or the entire) <a className="reference external" href="/content/concepts/tables/#shard-keys">shard key</a>.</p>
+</li>
+<li>
+<p><strong>nullable</strong> – This property indicates that this column is nullable. However, setting this property is insufficient for making the column nullable. The user must declare the type of the column as a union between its regular type and ‘null’ in the Avro schema for the record type in input parameter <span className="em">type\_definition</span>. For example, if a column is of type integer and is nullable, then the entry for the column in the Avro schema must be: \[‘int’, ‘null’\].</p>
+<p>The C++, C#, Java, and Python APIs have built-in convenience for bypassing setting the Avro schema by hand. For those languages, one can use this property as usual and not have to worry about the Avro schema for the record.</p>
+</li>
+<li>
+<p><strong>compress</strong> – This property indicates that this column should be <a className="reference external" href="/content/concepts/column_compression/">compressed</a> with the given codec and optional level; e.g., ‘compress(snappy)’ for Snappy compression and ‘compress(zstd(7))’ for zstd level 7 compression. This property is primarily used in order to save disk space.</p>
+</li>
+<li>
+<p><strong>dict</strong> – This property indicates that this column should be <a className="reference external" href="/content/concepts/dictionary_encoding/">dictionary encoded</a>. It can only be used in conjunction with restricted string (charN), int, long or date columns. Dictionary encoding is best for columns where the cardinality (the number of unique values) is expected to be low. This property can save a large amount of memory.</p>
+</li>
+<li>
+<p><strong>init\_with\_now</strong> – For ‘date’, ‘time’, ‘datetime’, or ‘timestamp’ column types, replace empty strings and invalid timestamps with ‘NOW()’ upon insert.</p>
+</li>
+<li>
+<p><strong>init\_with\_uuid</strong> – For ‘uuid’ type, replace empty strings and invalid UUID values with randomly-generated UUIDs upon insert.</p>
+</li>
+<li>
+<p><strong>update\_with\_now</strong> – For ‘date’, ‘time’, ‘datetime’, or ‘timestamp’ column types, update the field with ‘NOW()’ upon any update.</p>
+</li>
+<li>
+<p><strong>update\_with\_user</strong> – For ‘charN’ or ‘string’ column types, update the field with the current user’s name upon any update.</p>
+</li>
+<li>
+<p><strong>default</strong> – Sets a default value expression for this column, e.g. ‘default(0)’, ‘default(‘’pending’’)’, or ‘default(NOW())’. When the column is omitted from an insert via request\_schema\_str, the expression is evaluated and the result is used as the column value.</p>
+</li>
+<li>
+<p><strong>default\_sql</strong> – Sets a default value expression for this column with SQL syntax, e.g. ‘default(0)’, ‘default(‘’pending’’)’, or ‘default(NOW())’. Only used for showing the expression when generating SQL DDL.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>compression\_codec</strong> – The default <a className="reference external" href="/content/concepts/column_compression/">compression codec</a> for this type’s columns.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">type\_id (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>An identifier representing the created type. This type\_id can be used in subsequent calls to <a className="reference internal" href="#gpudb.GPUdb.create_table" title="gpudb.GPUdb.create_table"><code className="xref py py-meth docutils literal notranslate"><span className="pre">create</span> <span className="pre">a</span> <span className="pre">table</span></code></a>.</p>
+</div>
+<div className="dt">type\_definition (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Value of input parameter <span className="em">type\_definition</span>.</p>
+</div>
+<div className="dt">label (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Value of input parameter <span className="em">label</span>.</p>
+</div>
+<div className="dt">properties (<span className="em">dict of str to lists of str</span>) –</div>
+<div className="dd">
+<p>Value of input parameter <span className="em">properties</span>.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

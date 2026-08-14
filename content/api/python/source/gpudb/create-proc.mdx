@@ -1,0 +1,78 @@
+---
+title: "create_proc"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.create_proc"> <span className="sig-name descname"><span className="pre">create\_proc</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">proc\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">execution\_mode</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">'distributed'</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">files</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">command</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">''</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">args</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">\[\]</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L23249"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Creates an instance (proc) of the <a className="reference external" href="/content/concepts/udf/">user-defined functions</a> (UDF) specified by the given command, options, and files, and makes it available for execution.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">proc\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the proc to be created. Must not be the name of a currently existing proc.</p>
+</div>
+<div className="dt">execution\_mode (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>The execution mode of the proc. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>distributed</strong> – Input table data will be divided into data segments that are distributed across all nodes in the cluster, and the proc command will be invoked once per data segment in parallel. Output table data from each invocation will be saved to the same node as the corresponding input data.</p>
+</li>
+<li>
+<p><strong>nondistributed</strong> – The proc command will be invoked only once per execution, and will not have direct access to any tables named as input or output table parameters in the call to <a className="reference internal" href="#gpudb.GPUdb.execute_proc" title="gpudb.GPUdb.execute_proc"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.execute\_proc()</span></code></a>. It will, however, be able to access the database using native API calls.</p>
+</li>
+</ul>
+<p>The default value is ‘distributed’.</p>
+</div>
+<div className="dt">files (<span className="em">dict of str to bytes</span>) –</div>
+<div className="dd">
+<p>A map of the files that make up the proc. The keys of the map are file names, and the values are the binary contents of the files. The file names may include subdirectory names (e.g. ‘subdir/file’) but must not resolve to a directory above the root for the proc.</p>
+<p>Files may be loaded from existing files in KiFS. Those file names should be prefixed with the uri kifs:// and the values in the map should be empty. The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+<div className="dt">command (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>The command (excluding arguments) that will be invoked when the proc is executed. It will be invoked from the directory containing the proc input parameter <span className="em">files</span> and may be any command that can be resolved from that directory. It need not refer to a file actually in that directory; for example, it could be ‘java’ if the proc is a Java application; however, any necessary external programs must be preinstalled on every database node. If the command refers to a file in that directory, it must be preceded with ‘./’ as per Linux convention. If not specified, and exactly one file is provided in input parameter <span className="em">files</span>, that file will be invoked. The default value is ‘’.</p>
+</div>
+<div className="dt">args (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>An array of command-line arguments that will be passed to input parameter <span className="em">command</span> when the proc is executed. The default value is an empty list ( \[\] ). The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>max\_concurrency\_per\_node</strong> – The maximum number of concurrent instances of the proc that will be executed per node. 0 allows unlimited concurrency. The default value is ‘0’.</p>
+</li>
+<li>
+<p><strong>set\_environment</strong> – A python environment to use when executing the proc. Must be an existing environment, else an error will be returned. The default value is ‘’.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">proc\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Value of input parameter <span className="em">proc\_name</span>.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

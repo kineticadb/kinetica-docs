@@ -1,0 +1,113 @@
+---
+title: "get_graph_entities"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.get_graph_entities"> <span className="sig-name descname"><span className="pre">get\_graph\_entities</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">graph\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">offset</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">0</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">limit</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">10000</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L30410"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Retrieves node or edge entities from an existing graph, with pagination support via offset and limit. Use <a className="reference internal" href="#gpudb.GPUdb.show_graph" title="gpudb.GPUdb.show_graph"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.show\_graph()</span></code></a> to obtain the total number of nodes and edges.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">graph\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the graph from which to retrieve entities.</p>
+</div>
+<div className="dt">offset (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>Starting index of the entities to retrieve (0-based). The default value is 0.</p>
+</div>
+<div className="dt">limit (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>Number of entities to retrieve starting from input parameter <span className="em">offset</span>. A value of -1 returns all entities from the offset to the end. Note: the output parameter <span className="em">entities\_int</span> or output parameter <span className="em">entities\_string</span> array size will be 2x this value for nodes (stride 2) or 4x for edges (stride 4). The default value is 10000.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>entity\_type</strong> – The type of entity to retrieve. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>edge</strong> – Retrieve edge entities (default).</p>
+</li>
+<li>
+<p><strong>node</strong> – Retrieve node entities.</p>
+</li>
+</ul>
+<p>The default value is ‘edge’.</p>
+</li>
+<li>
+<p><strong>server\_id</strong> – Indicates which graph server to send the request to. Required when the graph is distributed across multiple servers. The default value is ‘0’.</p>
+</li>
+<li>
+<p><strong>concise\_edge\_connectivity</strong> – When true, edges are emitted in a compact connectivity form regardless of the graph’s identifier type: Output parameter <span className="em">entities\_int</span> contains stride-4 records \[edge\_id, node1\_index, node2\_index, edge\_label\_index\] where node1\_index/node2\_index are 0-based positions into the node array (obtained from a node-entity call on the same graph). When requesting nodes with this option, the response includes tombstoned (deleted) slots in order to keep position indices stable so edge indices resolve correctly; deleted slots carry id=0 for integer graphs or an empty identifier for string/WKT graphs. For paginated node calls, subtract input parameter <span className="em">offset</span> from an edge endpoint index to locate it within the returned page. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Compact integer connectivity for edges; deleted node slots included in node output.</p>
+</li>
+<li>
+<p><strong>false</strong> – Default: edges emit node identifiers (int/string/WKT) matching the graph; deleted nodes are skipped.</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>include\_weights</strong> – When true and input parameter <span className="em">options entity\_type</span> is ‘edge’, the response output parameter <span className="em">entities\_weight</span> array is populated with one float weight per emitted edge (aligned 1:1 with the edge records in output parameter <span className="em">entities\_int</span> or output parameter <span className="em">entities\_string</span>). Empty when the graph has no weights component or when requesting nodes. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Populate output parameter <span className="em">entities\_weight</span> with per-edge weights (edge requests only).</p>
+</li>
+<li>
+<p><strong>false</strong> – Default: Output parameter <span className="em">entities\_weight</span> is empty.</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">result (<span className="em">bool</span>) –</div>
+<div className="dd">
+<p>Indicates a successful retrieval.</p>
+</div>
+<div className="dt">entities\_int (<span className="em">list of longs</span>) –</div>
+<div className="dd">
+<p>Flat array of entity data for integer-identifier graphs with a repeating stride. For node entities (stride 2): \[node\_id, label\_index, …\]. For edge entities (stride 4): \[edge\_id, node1\_id, node2\_id, label\_index, …\]. Populated when the graph uses integer identifiers; empty otherwise. The label\_index is a 1-based index into the output parameter <span className="em">labels</span> array; 0 indicates no label. When the request option ‘concise\_edge\_connectivity’ is ‘true’, this array is also used (regardless of graph identifier type) for edge entities and carries \[edge\_id, node1\_index, node2\_index, edge\_label\_index\] where node1\_index/node2\_index are 0-based positions into the node array returned from a paired node call on the same graph.</p>
+</div>
+<div className="dt">entities\_string (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>Flat array of entity data for name-identifier (string) graphs only. For node entities (stride 2): \[node\_name, label\_index, …\]. For edge entities (stride 4): \[edge\_id, node1\_name, node2\_name, label\_index, …\]. Populated only when the graph uses string identifiers. Empty for integer-identifier graphs (data goes to output parameter <span className="em">entities\_int</span>) and for WKT/geo-XY graphs (data always goes to output parameter <span className="em">entities\_double</span> — ‘POINT(x y)’ strings are never emitted). The label\_index is a string representation of a 1-based index into the output parameter <span className="em">labels</span> array; ‘0’ indicates no label.</p>
+</div>
+<div className="dt">entities\_double (<span className="em">list of floats</span>) –</div>
+<div className="dd">
+<p>Compact double-packed payload for WKT (geo/XY) graphs. WKT graphs ALWAYS use this array — ‘POINT(x y)’ strings are never emitted anywhere. Stride 3 for nodes: \[x, y, label\_index, …\]. Stride 6 for edges (non-concise): \[edge\_id, x0, y0, x1, y1, label\_index, …\]. Empty for non-WKT graphs and when concise mode emits edges into output parameter <span className="em">entities\_int</span> instead. label\_index/edge\_id occupy double slots (representable exactly up to 2^53). When ‘concise\_edge\_connectivity’ is ‘true’ and entity\_type is ‘node’, tombstoned (deleted) WKT slots emit \[0.0, 0.0, 0.0\] to keep position indices stable. Roughly 4x smaller on the wire than ‘POINT(x y)’ strings and avoids any client-side regex parse.</p>
+</div>
+<div className="dt">entities\_weight (<span className="em">list of floats</span>) –</div>
+<div className="dd">
+<p>Per-edge weight values, populated only when the request option ‘include\_weights’ is ‘true’ and input parameter <span className="em">options entity\_type</span> is ‘edge’. Stride 1, aligned 1:1 with the edge records emitted in output parameter <span className="em">entities\_int</span> or output parameter <span className="em">entities\_string</span> (i.e. the i-th weight corresponds to the i-th edge record). Empty when the graph has no weights component, when requesting nodes, or when the option is not set. Single-precision float matches the graph server’s native weight storage.</p>
+</div>
+<div className="dt">labels (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>Array of distinct label strings. The label\_index values in output parameter <span className="em">entities\_int</span>, output parameter <span className="em">entities\_string</span>, or output parameter <span className="em">entities\_double</span> are 1-based indexes into this array; index 0 means no label.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information map. Contains the following keys: ‘identifier\_type’ — describes the graph’s native node identifier type: ‘int’, ‘string’, or ‘wkt’ (geo/XY graph). ‘payload\_type’ — describes which array actually holds this response payload: ‘int’ (output parameter <span className="em">entities\_int</span>), ‘string’ (output parameter <span className="em">entities\_string</span>), or ‘double’ (output parameter <span className="em">entities\_double</span>). WKT graphs ALWAYS use ‘double’ for both nodes and edges — ‘POINT(x y)’ strings are never emitted. In concise edge mode payload\_type is ‘int’ regardless of graph type. Clients should dispatch on ‘payload\_type’, not ‘identifier\_type’, to parse the response. ‘total\_count’ — total number of entities available in the graph for the requested entity\_type, used for pagination; this is the live (non-deleted) count by default, or the raw count (including deleted slots) when ‘concise\_edge\_connectivity’ is true for a node request. ‘status\_message’ — set to ‘Cancelled’ if the request was cancelled mid-iteration (with output parameter <span className="em">result</span> set to false). ‘concise\_edge\_connectivity’ — set to ‘true’ when the response was produced with the concise option (edges emitted as \[edge\_id, v0\_index, v1\_index, label\_idx\] in output parameter <span className="em">entities\_int</span>; WKT-graph nodes emitted as \[x, y, label\_idx\] in output parameter <span className="em">entities\_double</span>; non-WKT nodes still in their native array; node output includes deleted slots to keep indices stable). ‘include\_weights’ — set to ‘true’ when output parameter <span className="em">entities\_weight</span> is populated.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

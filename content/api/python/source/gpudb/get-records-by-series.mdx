@@ -1,0 +1,90 @@
+---
+title: "get_records_by_series"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.get_records_by_series"> <span className="sig-name descname"><span className="pre">get\_records\_by\_series</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">world\_table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">offset</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">0</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">limit</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">250</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">encoding</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">'binary'</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L31477"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Retrieves the complete series/track records from the given input parameter <span className="em">world\_table\_name</span> based on the partial track information contained in the input parameter <span className="em">table\_name</span>.</p>
+<p>This operation supports paging through the data via the input parameter <span className="em">offset</span> and input parameter <span className="em">limit</span> parameters.</p>
+<p>In contrast to <a className="reference internal" href="#gpudb.GPUdb.get_records" title="gpudb.GPUdb.get_records"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.get\_records()</span></code></a> this returns records grouped by series/track. So if input parameter <span className="em">offset</span> is 0 and input parameter <span className="em">limit</span> is 5 this operation would return the first 5 series/tracks in input parameter <span className="em">table\_name</span>. Each series/track will be returned sorted by their TIMESTAMP column.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the table or view for which series/tracks will be fetched, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>.</p>
+</div>
+<div className="dt">world\_table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the table containing the complete series/track information to be returned for the tracks present in the input parameter <span className="em">table\_name</span>, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>. Typically this is used when retrieving series/tracks from a view (which contains partial series/tracks) but the user wants to retrieve the entire original series/tracks. Can be blank.</p>
+</div>
+<div className="dt">offset (<span className="em">int</span>) –</div>
+<div className="dd">
+<p>A positive integer indicating the number of initial series/tracks to skip (useful for paging through the results). The default value is 0. The minimum allowed value is 0. The maximum allowed value is MAX\_INT.</p>
+</div>
+<div className="dt">limit (<span className="em">int</span>) –</div>
+<div className="dd">
+<p>A positive integer indicating the maximum number of series/tracks to be returned. Or END\_OF\_SET (-9999) to indicate that the max number of results should be returned. The default value is 250.</p>
+</div>
+<div className="dt">encoding (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Specifies the encoding for returned records; either <span className="em">binary</span> or <span className="em">json</span>. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>binary</p>
+</li>
+<li>
+<p>json</p>
+</li>
+</ul>
+<p>The default value is ‘binary’.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">table\_names (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>The table name (one per series/track) of the returned series/tracks.</p>
+</div>
+<div className="dt">type\_names (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>The type IDs (one per series/track) of the returned series/tracks.</p>
+</div>
+<div className="dt">type\_schemas (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>The type schemas (one per series/track) of the returned series/tracks.</p>
+</div>
+<div className="dt">list\_records\_binary (<span className="em">list of lists of bytes</span>) –</div>
+<div className="dd">
+<p>If the encoding parameter of the request was ‘binary’ then this list-of-lists contains the binary encoded records for each object (inner list) in each series/track (outer list). Otherwise, empty list-of-lists.</p>
+</div>
+<div className="dt">list\_records\_json (<span className="em">list of lists of str</span>) –</div>
+<div className="dd">
+<p>If the encoding parameter of the request was ‘json’ then this list-of-lists contains the JSON-encoded records for each object (inner list) in each series/track (outer list). Otherwise, empty list-of-lists.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+<div className="dt">record\_types (list of <code className="xref py py-class docutils literal notranslate"><span className="pre">RecordType</span></code>) –</div>
+<div className="dd">
+<p>A list of <code className="xref py py-class docutils literal notranslate"><span className="pre">RecordType</span></code> objects using which the user can decode the binary data by using <a className="reference internal" href="/content/api/python/source/gpudbrecord#gpudb.GPUdbRecord.decode_binary_data" title="gpudb.GPUdbRecord.decode_binary_data"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdbRecord.decode\_binary\_data()</span></code></a> per record.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

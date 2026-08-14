@@ -1,0 +1,220 @@
+---
+title: "update_records"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.update_records"> <span className="sig-name descname"><span className="pre">update\_records</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">expressions</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">new\_values\_maps</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">records\_to\_insert</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">\[\]</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">records\_to\_insert\_str</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">\[\]</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">record\_encoding</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">'binary'</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">record\_type</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L40994"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Runs multiple predicate-based updates in a single call. With the list of given expressions, any matching record’s column values will be updated as provided in input parameter <span className="em">new\_values\_maps</span>. There is also an optional ‘upsert’ capability where if a particular predicate doesn’t match any existing record, then a new record can be inserted.</p>
+<p>Note that this operation can only be run on an original table and not on a result view.</p>
+<p>This operation can update primary key values. By default only ‘pure primary key’ predicates are allowed when updating primary key values. If the primary key for a table is the column ‘attr1’, then the operation will only accept predicates of the form: “attr1 == ‘foo’” if the attr1 column is being updated. For a composite primary key (e.g. columns ‘attr1’ and ‘attr2’) then this operation will only accept predicates of the form: “(attr1 == ‘foo’) and (attr2 == ‘bar’)”. Meaning, all primary key columns must appear in an equality predicate in the expressions. Furthermore each ‘pure primary key’ predicate must be unique within a given request. These restrictions can be removed by utilizing some available options through input parameter <span className="em">options</span>.</p>
+<p>The <span className="em">update\_on\_existing\_pk</span> option specifies the record primary key collision policy for tables with a <a className="reference external" href="/content/concepts/tables/#primary-keys">primary key</a>, while <span className="em">ignore\_existing\_pk</span> specifies the record primary key collision error-suppression policy when those collisions result in the update being rejected. Both are ignored on tables with no primary key.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of table to be updated, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>. Must be a currently existing table and not a view.</p>
+</div>
+<div className="dt">expressions (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>A list of the actual predicates, one for each update; format should follow the guidelines <a className="reference internal" href="#gpudb.GPUdb.filter" title="gpudb.GPUdb.filter"><code className="xref py py-meth docutils literal notranslate"><span className="pre">here</span></code></a>. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">new\_values\_maps (<span className="em">list of dicts of str to optional str</span>) –</div>
+<div className="dd">
+<p>List of new values for the matching records. Each element is a map with (key, value) pairs where the keys are the names of the columns whose values are to be updated; the values are the new values. The number of elements in the list should match the length of input parameter <span className="em">expressions</span>. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">records\_to\_insert (<span className="em">list of bytes</span>) –</div>
+<div className="dd">
+<p>An <span className="em">optional</span> list of new binary-avro encoded records to insert, one for each update. If one of input parameter <span className="em">expressions</span> does not yield a matching record to be updated, then the corresponding element from this list will be added to the table. The default value is an empty list ( \[\] ). The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">records\_to\_insert\_str (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>An optional list of JSON encoded objects to insert, one for each update, to be added if the particular update did not match any objects. The default value is an empty list ( \[\] ). The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">record\_encoding (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Identifies which of input parameter <span className="em">records\_to\_insert</span> and input parameter <span className="em">records\_to\_insert\_str</span> should be used. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>binary</p>
+</li>
+<li>
+<p>json</p>
+</li>
+</ul>
+<p>The default value is ‘binary’.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>global\_expression</strong> – An optional global expression to reduce the search space of the predicates listed in input parameter <span className="em">expressions</span>. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>bypass\_safety\_checks</strong> – When set to <span className="em">true</span>, all predicates are available for primary key updates. Keep in mind that it is possible to destroy data in this case, since a single predicate may match multiple objects (potentially all of records of a table), and then updating all of those records to have the same primary key will, due to the primary key uniqueness constraints, effectively delete all but one of those updated records. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>error\_handling</strong> – Specifies how record errors are handled during the update’s reinsert (including any alternate insert records supplied via input parameter <span className="em">records\_to\_insert</span>). When set, this option is authoritative for the reinsert. Primary-key collision behavior is governed by <span className="em">update\_on\_existing\_pk</span> and <span className="em">ignore\_existing\_pk</span>. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>permissive</strong> – Records with bad column values are kept when possible: the offending column is filled with its default value if one exists, otherwise with null if the column is nullable; if neither is possible the record is skipped and reported.</p>
+</li>
+<li>
+<p><strong>skip</strong> – Records with bad values are skipped and reported; the rest of the batch is applied.</p>
+</li>
+<li>
+<p><strong>abort</strong> – Stops the update and rejects the remaining batch when any record is incorrect.</p>
+</li>
+</ul>
+<p>The default value is ‘abort’.</p>
+</li>
+<li>
+<p><strong>update\_on\_existing\_pk</strong> – Specifies the record collision policy for updating a table with a <a className="reference external" href="/content/concepts/tables/#primary-keys">primary key</a>. There are two ways that a record collision can occur.</p>
+<p>The first is an “update collision”, which happens when the update changes the value of the updated record’s primary key, and that new primary key already exists as the primary key of another record in the table.</p>
+<p>The second is an “insert collision”, which occurs when a given filter in input parameter <span className="em">expressions</span> finds no records to update, and the alternate insert record given in input parameter <span className="em">records\_to\_insert</span> (or input parameter <span className="em">records\_to\_insert\_str</span>) contains a primary key matching that of an existing record in the table.</p>
+<p>If <span className="em">update\_on\_existing\_pk</span> is set to <span className="em">true</span>, “update collisions” will result in the existing record collided into being removed and the record updated with values specified in input parameter <span className="em">new\_values\_maps</span> taking its place; “insert collisions” will result in the collided-into record being updated with the values in input parameter <span className="em">records\_to\_insert</span> / input parameter <span className="em">records\_to\_insert\_str</span> (if given).</p>
+<p>If set to <span className="em">false</span>, the existing collided-into record will remain unchanged, while the update will be rejected and the error handled as determined by <span className="em">ignore\_existing\_pk</span>. If the specified table does not have a primary key, then this option has no effect. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Overwrite the collided-into record when updating a record’s primary key or inserting an alternate record causes a primary key collision between the record being updated/inserted and another existing record in the table</p>
+</li>
+<li>
+<p><strong>false</strong> – Reject updates which cause primary key collisions between the record being updated/inserted and an existing record in the table</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>pk\_conflict\_predicate\_higher</strong> – The record with higher value for the column resolves the primary-key insert conflict. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>pk\_conflict\_predicate\_lower</strong> – The record with lower value for the column resolves the primary-key insert conflict. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>ignore\_existing\_pk</strong> – Specifies the record collision error-suppression policy for updating a table with a <a className="reference external" href="/content/concepts/tables/#primary-keys">primary key</a>, only used when primary key record collisions are rejected (<span className="em">update\_on\_existing\_pk</span> is <span className="em">false</span>). If set to <span className="em">true</span>, any record update that is rejected for resulting in a primary key collision with an existing table record will be ignored with no error generated. If <span className="em">false</span>, the rejection of any update for resulting in a primary key collision will cause an error to be reported. If the specified table does not have a primary key or if <span className="em">update\_on\_existing\_pk</span> is <span className="em">true</span>, then this option has no effect. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>true</strong> – Ignore updates that result in primary key collisions with existing records.</p>
+</li>
+<li>
+<p><strong>false</strong> – Treat as errors any updates that result in primary key collisions with existing records.</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>update\_partition</strong> – Force qualifying records to be deleted and reinserted so their partition membership will be reevaluated. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>enable\_inplace\_updates</strong> – If set to <span className="em">true</span>, qualifying records are modified in place. If set to <span className="em">false</span>, they are updated by deleting the existing record and inserting a replacement (delete and insert), which prevents the change from being reflected in dependent materialized views until they are refreshed. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
+</li>
+<li>
+<p><strong>enable\_worker\_oop\_update</strong> – For an out-of-place update (delete and insert), controls where the replacement records are reinserted. If set to <span className="em">true</span>, the workers that own the data reinsert them directly, avoiding a round trip through the head node; a shard-key change reshards the replacements to their new owning workers. If set to <span className="em">false</span>, the replacement records are reinserted from the head node. Overrides the {"{"}feature.enable\_worker\_oop\_update{"}"}&#64; configuration default. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+</li>
+<li>
+<p><strong>truncate\_strings</strong> – If set to <span className="em">true</span>, any strings which are too long for their charN string fields will be truncated to fit. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>use\_expressions\_in\_new\_values\_maps</strong> – When set to <span className="em">true</span>, all new values in input parameter <span className="em">new\_values\_maps</span> are considered as expression values. When set to <span className="em">false</span>, all new values in input parameter <span className="em">new\_values\_maps</span> are considered as constants. NOTE: When <span className="em">true</span>, string constants will need to be quoted to avoid being evaluated as expressions. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>record\_id</strong> – ID of a single record to be updated (returned in the call to <a className="reference internal" href="#gpudb.GPUdb.insert_records" title="gpudb.GPUdb.insert_records"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.insert\_records()</span></code></a> or <a className="reference internal" href="#gpudb.GPUdb.get_records_from_collection" title="gpudb.GPUdb.get_records_from_collection"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.get\_records\_from\_collection()</span></code></a>).</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+<div className="dt">record\_type (<span className="em">RecordType</span>) –</div>
+<div className="dd">
+<p>A <code className="xref py py-class docutils literal notranslate"><span className="pre">RecordType</span></code> object using which the binary data will be encoded. If None, then it is assumed that the data is already encoded, and no further encoding will occur. Default is None.</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">count\_updated (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>Total number of records updated.</p>
+</div>
+<div className="dt">counts\_updated (<span className="em">list of longs</span>) –</div>
+<div className="dd">
+<p>Total number of records updated per predicate in input parameter <span className="em">expressions</span>.</p>
+</div>
+<div className="dt">count\_inserted (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>Total number of records inserted (due to expressions not matching any existing records).</p>
+</div>
+<div className="dt">counts\_inserted (<span className="em">list of longs</span>) –</div>
+<div className="dd">
+<p>Total number of records inserted per predicate in input parameter <span className="em">expressions</span> (will be either 0 or 1 for each expression).</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

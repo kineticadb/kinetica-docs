@@ -1,0 +1,123 @@
+---
+title: "create_join_table"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.create_join_table"> <span className="sig-name descname"><span className="pre">create\_join\_table</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">join\_table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">table\_names</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">column\_names</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">expressions</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">\[\]</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L22911"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Creates a table that is the result of a SQL JOIN.</p>
+<p>For join details and examples see: <a className="reference external" href="/content/concepts/joins/">Joins</a>. For limitations, see <a className="reference external" href="/content/concepts/joins/#limitations-cautions">Join Limitations and Cautions</a>.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">join\_table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the join table to be created, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a> and meeting <a className="reference external" href="/content/concepts/tables/#table-naming-criteria">table naming criteria</a>.</p>
+</div>
+<div className="dt">table\_names (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>The list of table names composing the join, each in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>. Corresponds to a SQL statement FROM clause. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">column\_names (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>List of member table columns or column expressions to be included in the join. Columns can be prefixed with ‘table\_id.column\_name’, where ‘table\_id’ is the table name or alias. Columns can be aliased via the syntax ‘column\_name as alias’. Wild cards ‘\*’ can be used to include all columns across member tables or ‘table\_id.\*’ for all of a single table’s columns. Columns and column expressions composing the join must be uniquely named or aliased–therefore, the ‘\*’ wild card cannot be used if column names aren’t unique across all tables. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">expressions (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>An optional list of expressions to combine and filter the joined tables. Corresponds to a SQL statement WHERE clause. For details see: <a className="reference external" href="/content/concepts/expressions/">expressions</a>. The default value is an empty list ( \[\] ). The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>create\_temp\_table</strong> – If <span className="em">true</span>, a unique temporary table name will be generated in the sys\_temp schema and used in place of input parameter <span className="em">join\_table\_name</span>. This is always allowed even if the caller does not have permission to create tables. The generated name is returned in <span className="em">qualified\_join\_table\_name</span>. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>collection\_name</strong> – \[DEPRECATED–please specify the containing schema for the join as part of input parameter <span className="em">join\_table\_name</span> and use <a className="reference internal" href="#gpudb.GPUdb.create_schema" title="gpudb.GPUdb.create_schema"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_schema()</span></code></a> to create the schema if non-existent\] Name of a schema for the join. If the schema is non-existent, it will be automatically created. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>max\_query\_dimensions</strong> – No longer used.</p>
+</li>
+<li>
+<p><strong>strategy\_definition</strong> – The <a className="reference external" href="/content/rm/concepts/#tier-strategies">tier strategy</a> for the table and its columns.</p>
+</li>
+<li>
+<p><strong>ttl</strong> – Sets the <a className="reference external" href="/content/concepts/ttl/">TTL</a> of the join table specified in input parameter <span className="em">join\_table\_name</span>.</p>
+</li>
+<li>
+<p><strong>view\_id</strong> – View this projection is part of. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>no\_count</strong> – Return a count of 0 for the join table for logging and for <a className="reference internal" href="#gpudb.GPUdb.show_table" title="gpudb.GPUdb.show_table"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.show\_table()</span></code></a>; optimization needed for large overlapped equi-join stencils. The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>chunk\_size</strong> – Maximum number of records per joined-chunk for this table. Defaults to the gpudb.conf file chunk size.</p>
+</li>
+<li>
+<p><strong>enable\_virtual\_chunking</strong> – Collect chunks with accumulated size less than chunk\_size into a single chunk. The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>max\_virtual\_chunk\_size</strong> – Maximum number of records per virtual-chunk. When set, enables virtual chunking. Defaults to chunk\_size if virtual chunking otherwise enabled.</p>
+</li>
+<li>
+<p><strong>min\_virtual\_chunk\_size</strong> – Minimum number of records per virtual-chunk. When set, enables virtual chunking. Defaults to chunk\_size if virtual chunking otherwise enabled.</p>
+</li>
+<li>
+<p><strong>enable\_sparse\_virtual\_chunking</strong> – Materialize virtual chunks with only non-deleted values. The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>enable\_equi\_join\_lazy\_result\_store</strong> – Allow using the lazy result store to cache computation of one side of a multichunk equi-join. Reduces computation but also reduces parallelism to the number of chunks on the other side of the equi-join.</p>
+</li>
+<li>
+<p><strong>enable\_predicate\_equi\_join\_lazy\_result\_store</strong> – Allow using the lazy result store to cache computation of one side of a multichunk predicate-equi-join. Reduces computation but also reduces parallelism to the number of chunks on the other side of the equi-join.</p>
+</li>
+<li>
+<p><strong>enable\_pk\_equi\_join</strong> – Use equi-join to do primary key joins rather than using primary key index.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl">
+<div className="dt">join\_table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Value of input parameter <span className="em">join\_table\_name</span>.</p>
+</div>
+<div className="dt">count (<span className="em">long</span>) –</div>
+<div className="dd">
+<p>The number of records in the join table filtered by the given select expression.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>qualified\_join\_table\_name</strong> – The fully qualified name of the join table (i.e. including the schema).</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

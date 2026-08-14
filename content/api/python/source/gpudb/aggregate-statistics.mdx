@@ -1,0 +1,111 @@
+---
+title: "aggregate_statistics"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.aggregate_statistics"> <span className="sig-name descname"><span className="pre">aggregate\_statistics</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">column\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">stats</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L17199"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Calculates the requested statistics of the given column(s) in a given table.</p>
+<p>The available statistics are: <span className="em">count</span> (number of total objects), <span className="em">mean</span>, <span className="em">stdv</span> (standard deviation), <span className="em">variance</span>, <span className="em">skew</span>, <span className="em">kurtosis</span>, <span className="em">sum</span>, <span className="em">min</span>, <span className="em">max</span>, <span className="em">weighted\_average</span>, <span className="em">cardinality</span> (unique count), <span className="em">estimated\_cardinality</span>, <span className="em">percentile</span>, and <span className="em">percentile\_rank</span>.</p>
+<p>Estimated cardinality is calculated by using the hyperloglog approximation technique.</p>
+<p>Percentiles and percentile ranks are approximate and are calculated using the t-digest algorithm. They must include the desired <span className="em">percentile</span>/<span className="em">percentile\_rank</span>. To compute multiple percentiles each value must be specified separately (i.e. ‘percentile(75.0),percentile(99.0),percentile\_rank(1234.56),percentile\_rank(-5)’).</p>
+<p>A second, comma-separated value can be added to the <span className="em">percentile</span> statistic to calculate percentile resolution, e.g., a 50th percentile with 200 resolution would be ‘percentile(50,200)’.</p>
+<p>The weighted average statistic requires a weight column to be specified in <span className="em">weight\_column\_name</span>. The weighted average is then defined as the sum of the products of input parameter <span className="em">column\_name</span> times the <span className="em">weight\_column\_name</span> values divided by the sum of the <span className="em">weight\_column\_name</span> values.</p>
+<p>Additional columns can be used in the calculation of statistics via <span className="em">additional\_column\_names</span>. Values in these columns will be included in the overall aggregate calculation–individual aggregates will not be calculated per additional column. For instance, requesting the <span className="em">count</span> and <span className="em">mean</span> of input parameter <span className="em">column\_name</span> x and <span className="em">additional\_column\_names</span> y and z, where x holds the numbers 1-10, y holds 11-20, and z holds 21-30, would return the total number of x, y, and z values (30), and the single average value across all x, y, and z values (15.5).</p>
+<p>The response includes a list of key/value pairs of each statistic requested and its corresponding value.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the table on which the statistics operation will be performed, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>.</p>
+</div>
+<div className="dt">column\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the primary column for which the statistics are to be calculated.</p>
+</div>
+<div className="dt">stats (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Comma separated list of the statistics to calculate, e.g. “sum,mean”. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>count</strong> – Number of objects (independent of the given column(s)).</p>
+</li>
+<li>
+<p><strong>mean</strong> – Arithmetic mean (average), equivalent to sum/count.</p>
+</li>
+<li>
+<p><strong>stdv</strong> – Sample standard deviation (denominator is count-1).</p>
+</li>
+<li>
+<p><strong>variance</strong> – Unbiased sample variance (denominator is count-1).</p>
+</li>
+<li>
+<p><strong>skew</strong> – Skewness (third standardized moment).</p>
+</li>
+<li>
+<p><strong>kurtosis</strong> – Kurtosis (fourth standardized moment).</p>
+</li>
+<li>
+<p><strong>sum</strong> – Sum of all values in the column(s).</p>
+</li>
+<li>
+<p><strong>min</strong> – Minimum value of the column(s).</p>
+</li>
+<li>
+<p><strong>max</strong> – Maximum value of the column(s).</p>
+</li>
+<li>
+<p><strong>weighted\_average</strong> – Weighted arithmetic mean (using the option <span className="em">weight\_column\_name</span> as the weighting column).</p>
+</li>
+<li>
+<p><strong>cardinality</strong> – Number of unique values in the column(s).</p>
+</li>
+<li>
+<p><strong>estimated\_cardinality</strong> – Estimate (via hyperloglog technique) of the number of unique values in the column(s).</p>
+</li>
+<li>
+<p><strong>percentile</strong> – Estimate (via t-digest) of the given percentile of the column(s) (percentile(50.0) will be an approximation of the median). Add a second, comma-separated value to calculate percentile resolution, e.g., ‘percentile(75,150)’.</p>
+</li>
+<li>
+<p><strong>percentile\_rank</strong> – Estimate (via t-digest) of the percentile rank of the given value in the column(s) (if the given value is the median of the column(s), percentile\_rank(&lt;median&gt;) will return approximately 50.0).</p>
+</li>
+</ul>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>additional\_column\_names</strong> – A list of comma separated column names over which statistics can be accumulated along with the primary column. All columns listed and input parameter <span className="em">column\_name</span> must be of the same type. Must not include the column specified in input parameter <span className="em">column\_name</span> and no column can be listed twice.</p>
+</li>
+<li>
+<p><strong>weight\_column\_name</strong> – Name of column used as weighting attribute for the weighted average statistic.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">stats (<span className="em">dict of str to floats</span>) –</div>
+<div className="dd">
+<p>(statistic name, double value) pairs of the requested statistics, including the total count by default.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

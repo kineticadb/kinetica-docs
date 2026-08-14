@@ -1,0 +1,115 @@
+---
+title: "upload_files"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.upload_files"> <span className="sig-name descname"><span className="pre">upload\_files</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">file\_names</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">file\_data</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L41343"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Uploads one or more files to <a className="reference external" href="/content/tools/kifs/">KiFS</a>. There are two methods for uploading files: load files in their entirety, or load files in parts. The latter is recommended for files of approximately 60 MB or larger.</p>
+<p>To upload files in their entirety, populate input parameter <span className="em">file\_names</span> with the file names to upload into on KiFS, and their respective byte content in input parameter <span className="em">file\_data</span>.</p>
+<p>Multiple steps are involved when uploading in multiple parts. Only one file at a time can be uploaded in this manner. A user-provided UUID is utilized to tie all the upload steps together for a given file. To upload a file in multiple parts:</p>
+<ol className="arabic simple">
+<li>
+<p>Provide the file name in input parameter <span className="em">file\_names</span>, the UUID in the <span className="em">multipart\_upload\_uuid</span> key in input parameter <span className="em">options</span>, and a <span className="em">multipart\_operation</span> value of <span className="em">init</span>.</p>
+</li>
+<li>
+<p>Upload one or more parts by providing the file name, the part data in input parameter <span className="em">file\_data</span>, the UUID, a <span className="em">multipart\_operation</span> value of <span className="em">upload\_part</span>, and the part number in the <span className="em">multipart\_upload\_part\_number</span>. The part numbers must start at 1 and increase incrementally. Parts may not be uploaded out of order.</p>
+</li>
+<li>
+<p>Complete the upload by providing the file name, the UUID, and a <span className="em">multipart\_operation</span> value of <span className="em">complete</span>.</p>
+</li>
+</ol>
+<p>Multipart uploads in progress may be canceled by providing the file name, the UUID, and a <span className="em">multipart\_operation</span> value of <span className="em">cancel</span>. If an new upload is initialized with a different UUID for an existing upload in progress, the pre-existing upload is automatically canceled in favor of the new upload.</p>
+<p>The multipart upload must be completed for the file to be usable in KiFS. Information about multipart uploads in progress is available in <a className="reference internal" href="#gpudb.GPUdb.show_files" title="gpudb.GPUdb.show_files"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.show\_files()</span></code></a>.</p>
+<p>File data may be pre-encoded using base64 encoding. This should be indicated using the <span className="em">file\_encoding</span> option, and is recommended when using JSON serialization.</p>
+<p>Each file path must reside in a top-level KiFS directory, i.e. one of the directories listed in <a className="reference internal" href="#gpudb.GPUdb.show_directories" title="gpudb.GPUdb.show_directories"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.show\_directories()</span></code></a>. The user must have write permission on the directory. Nested directories are permitted in file name paths. Directories are delineated with the directory separator of ‘/’. For example, given the file path ‘/a/b/c/d.txt’, ‘a’ must be a KiFS directory.</p>
+<p>These characters are allowed in file name paths: letters, numbers, spaces, the path delimiter of ‘/’, and the characters: ‘.’ ‘-’ ‘:’ ‘\[’ ‘\]’ ‘(’ ‘)’ ‘#’ ‘=’.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">file\_names (<span className="em">list of str</span>) –</div>
+<div className="dd">
+<p>An array of full file name paths to be used for the files uploaded to KiFS. File names may have any number of nested directories in their paths, but the top-level directory must be an existing KiFS directory. Each file must reside in or under a top-level directory. A full file name path cannot be larger than 1024 characters. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">file\_data (<span className="em">list of bytes</span>) –</div>
+<div className="dd">
+<p>File data for the files being uploaded, for the respective files in input parameter <span className="em">file\_names</span>. The user can provide a single element (which will be automatically promoted to a list internally) or a list.</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul>
+<li>
+<p><strong>file\_encoding</strong> – Encoding that has been applied to the uploaded file data. When using JSON serialization it is recommended to utilize <span className="em">base64</span>. The caller is responsible for encoding the data provided in this payload. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>base64</strong> – Specifies that the file data being uploaded has been base64 encoded.</p>
+</li>
+<li>
+<p><strong>none</strong> – The uploaded file data has not been encoded.</p>
+</li>
+</ul>
+<p>The default value is ‘none’.</p>
+</li>
+<li>
+<p><strong>multipart\_operation</strong> – Multipart upload operation to perform. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p><strong>none</strong> – Default, indicates this is not a multipart upload.</p>
+</li>
+<li>
+<p><strong>init</strong> – Initialize a multipart file upload.</p>
+</li>
+<li>
+<p><strong>upload\_part</strong> – Uploads a part of the specified multipart file upload.</p>
+</li>
+<li>
+<p><strong>complete</strong> – Complete the specified multipart file upload.</p>
+</li>
+<li>
+<p><strong>cancel</strong> – Cancel the specified multipart file upload.</p>
+</li>
+</ul>
+<p>The default value is ‘none’.</p>
+</li>
+<li>
+<p><strong>multipart\_upload\_uuid</strong> – UUID to uniquely identify a multipart upload.</p>
+</li>
+<li>
+<p><strong>multipart\_upload\_part\_number</strong> – Incremental part number for each part in a multipart upload. Part numbers start at 1, increment by 1, and must be uploaded sequentially</p>
+</li>
+<li>
+<p><strong>delete\_if\_exists</strong> – If <span className="em">true</span>, any existing files specified in input parameter <span className="em">file\_names</span> will be deleted prior to start of upload. Otherwise the file is replaced once the upload completes. Rollback of the original file is no longer possible if the upload is cancelled, aborted or fails if the file was deleted beforehand. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

@@ -1,0 +1,88 @@
+---
+title: "aggregate_statistics_by_range"
+---
+
+<div className="kinetica-pydoc">
+<div className="dl py method">
+<div className="dt sig sig-object py" id="gpudb.GPUdb.aggregate_statistics_by_range"> <span className="sig-name descname"><span className="pre">aggregate\_statistics\_by\_range</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">select\_expression</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">''</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">column\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">value\_column\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">stats</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">start</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">end</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">interval</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L17353"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dd">
+<p>Divides the given set into bins and calculates statistics of the values of a value-column in each bin. The bins are based on the values of a given binning-column. The statistics that may be requested are mean, stdv (standard deviation), variance, skew, kurtosis, sum, min, max, first, last and weighted average. In addition to the requested statistics the count of total samples in each bin is returned. This counts vector is just the histogram of the column used to divide the set members into bins. The weighted average statistic requires a weight column to be specified in <span className="em">weight\_column\_name</span>. The weighted average is then defined as the sum of the products of the value column times the weight column divided by the sum of the weight column.</p>
+<p>There are two methods for binning the set members. In the first, which can be used for numeric valued binning-columns, a min, max and interval are specified. The number of bins, nbins, is the integer upper bound of (max-min)/interval. Values that fall in the range \[min+n\*interval,min+(n+1)\*interval) are placed in the nth bin where n ranges from 0..nbin-2. The final bin is \[min+(nbin-1)\*interval,max\]. In the second method, <span className="em">bin\_values</span> specifies a list of binning column values. Binning-columns whose value matches the nth member of the <span className="em">bin\_values</span> list are placed in the nth bin. When a list is provided, the binning-column must be of type string or int.</p>
+<p>NOTE: The Kinetica instance being accessed must be running a CUDA (GPU-based) build to service this request.</p>
+<p><strong>Parameters</strong></p>
+<div className="blockquote">
+<div>
+<div className="dl">
+<div className="dt">table\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the table on which the ranged-statistics operation will be performed, in \[schema\_name.\]table\_name format, using standard <a className="reference external" href="/content/concepts/tables/#table-name-resolution">name resolution rules</a>.</p>
+</div>
+<div className="dt">select\_expression (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>For a non-empty expression statistics are calculated for those records for which the expression is true. The default value is ‘’.</p>
+</div>
+<div className="dt">column\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the binning-column used to divide the set samples into bins.</p>
+</div>
+<div className="dt">value\_column\_name (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>Name of the value-column for which statistics are to be computed.</p>
+</div>
+<div className="dt">stats (<span className="em">str</span>) –</div>
+<div className="dd">
+<p>A string of comma separated list of the statistics to calculate, e.g. ‘sum,mean’. Available statistics: mean, stdv (standard deviation), variance, skew, kurtosis, sum.</p>
+</div>
+<div className="dt">start (<span className="em">float</span>) –</div>
+<div className="dd">
+<p>The lower bound of the binning-column.</p>
+</div>
+<div className="dt">end (<span className="em">float</span>) –</div>
+<div className="dd">
+<p>The upper bound of the binning-column.</p>
+</div>
+<div className="dt">interval (<span className="em">float</span>) –</div>
+<div className="dd">
+<p>The interval of a bin. Set members fall into bin i if the binning-column falls in the range \[start+interval\*i, start+interval\*(i+1)).</p>
+</div>
+<div className="dt">options (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Optional parameters. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>additional\_column\_names</strong> – A list of comma separated value-column names over which statistics can be accumulated along with the primary value\_column.</p>
+</li>
+<li>
+<p><strong>bin\_values</strong> – A list of comma separated binning-column values. Values that match the nth bin\_values value are placed in the nth bin.</p>
+</li>
+<li>
+<p><strong>weight\_column\_name</strong> – Name of the column used as weighting column for the weighted\_average statistic.</p>
+</li>
+<li>
+<p><strong>order\_column\_name</strong> – Name of the column used for candlestick charting techniques.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
+</div>
+</div>
+</div>
+</div>
+<p><strong>Returns</strong></p>
+<div className="blockquote">
+<div>
+<p>A dict with the following entries–</p>
+<div className="dl simple">
+<div className="dt">stats (<span className="em">dict of str to lists of floats</span>) –</div>
+<div className="dd">
+<p>A map with a key for each statistic in the stats input parameter having a value that is a vector of the corresponding value-column bin statistics. In a addition the key count has a value that is a histogram of the binning-column.</p>
+</div>
+<div className="dt">info (<span className="em">dict of str to str</span>) –</div>
+<div className="dd">
+<p>Additional information.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
