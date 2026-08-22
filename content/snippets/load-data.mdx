@@ -311,7 +311,28 @@ WITH OPTIONS (FIELDS IGNORED BY NAME(type))
 #### Avro Files
 
 
+*Avro* data that embeds its own schema needs no extra options.  Data consisting
+of records alone must be given the schema, either inline with `AVRO_SCHEMA` or
+by name from a schema registry.
+
 <CodeGroup>
+
+{/* Source: /examples/sql/load/formats.kisql (lines 187-189) */}
+```sql Self-Describing File
+LOAD INTO example.product
+FROM FILE PATHS 'kifs://data/products.avro'
+FORMAT AVRO;
+```
+
+{/* Source: /examples/sql/load/formats.kisql (lines 194-199) */}
+```sql Schemaless File
+LOAD INTO example.product
+FROM FILE PATHS 'kifs://data/products.schemaless.avro'
+FORMAT AVRO
+WITH OPTIONS (
+    AVRO_SCHEMA = '{"type":"record","name":"Product","namespace":"example","fields":[{"name":"id","type":"int"},{"name":"category","type":"string"},{"name":"name","type":"string"},{"name":"description","type":["null","string"],"default":null},{"name":"stock","type":["null","int"],"default":null}]}'
+);
+```
 
 {/* Source: /examples/sql/load/load_into_format_kafka.sql (lines 28-34) */}
 ```sql Embedded Schema

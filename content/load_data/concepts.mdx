@@ -179,7 +179,8 @@ See these example snippets of creating credentials and data sources using SQL:
 
 Kinetica supports the following file formats:
 
-- **Avro**: Serialization format for record data.
+- **Avro**: Serialization format for record data.  See
+  [Avro Schema Handling](/content/load_data/concepts#ingest-avro-schema).
 
 - **GeoJSON**: Stores geographic features along with non-spatial attributes in a
   JSON format.
@@ -198,6 +199,52 @@ Kinetica supports the following file formats:
 
 If your data is not in a compatible format, then you need to convert the file
 into a supported format using a third-party tool.
+
+
+<a id="ingest-avro-schema"></a>
+
+
+### Avro Schema Handling
+
+
+*Avro* data arrives in one of two shapes, and which one you have determines
+whether *Kinetica* needs to be told the schema:
+
+* An **Object Container File** is self-describing: the writer's schema is
+  embedded in the file header.  Nothing extra is required--*Kinetica* reads the
+  schema from the file and infers the target table's columns from it.
+
+* **Schemaless** *Avro* is the encoded records alone, with no header.  Nothing
+  in the data says how to interpret it, so the schema has to be supplied
+  alongside the data, using the [load option](/content/sql/load#sql-load-file-server-load-opt)
+  `AVRO_SCHEMA`.
+
+The schema is given as a JSON string, in the same form *Avro* itself uses:
+
+```
+LOAD INTO example.employee
+FROM FILE PATHS 'kifs://data/employee.avro'
+FORMAT AVRO
+WITH OPTIONS (
+    AVRO_SCHEMA = '{"type": "record", "name": "Employee", "fields": [
+                      {"name": "id",     "type": "int"},
+                      {"name": "name",   "type": "string"},
+                      {"name": "salary", "type": "double"}
+                   ]}'
+)
+```
+
+<Note>
+`AVRO_SCHEMA` is only for data that carries no schema of its
+own.  Supplying it alongside an *Object Container File* will fail
+to decode, because the embedded header is then read as record
+data.  For a container file, omit the option entirely and let
+*Kinetica* read the schema from the file.
+</Note>
+
+By default the target table's columns are inferred from the data.  To derive
+them solely from the *Avro* schema instead, set `AVRO_SCHEMA_NO_INFERENCE` to
+true.
 
 
 <a id="ingest-parquet-limitations"></a>

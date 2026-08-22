@@ -68,15 +68,45 @@ The default value is an empty map ( \{\} ).
 
 <Expandable title="create_table_options">
 
-<ParamField body="type_id">
+<ParamField body="chunk_column_max_memory">
 
-ID of a currently registered [type](../../concepts/types/).
+Indicates the target maximum data size for each column in a chunk to be used for this table.
 
 </ParamField>
 
-<ParamField body="no_error_if_exists">
+<ParamField body="chunk_max_memory">
 
-If *true*, prevents an error from occurring if the table already exists and is of the given type.  If a table with the same name but a different type exists, it is still an error.
+Indicates the target maximum data size for all columns in a chunk to be used for this table.
+
+</ParamField>
+
+<ParamField body="chunk_size">
+
+Indicates the number of records per chunk to be used for this table.
+
+</ParamField>
+
+<ParamField body="compression_codec">
+
+The default [compression codec](../../concepts/column_compression/) for this table's columns.
+
+</ParamField>
+
+<ParamField body="foreign_keys">
+
+Semicolon-separated list of [foreign keys](../../concepts/tables/#foreign-keys), of the format '(source_column_name [, ...]) references target_table_name(primary_key_column_name [, ...]) [as foreign_key_name]'.
+
+</ParamField>
+
+<ParamField body="foreign_shard_key">
+
+Foreign shard key of the format 'source_column references shard_by_column from target_table(primary_key_column)'.
+
+</ParamField>
+
+<ParamField body="is_automatic_partition">
+
+If *true*, a new partition will be created for values which don't fall into an existing partition.  Currently, only supported for [list partitions](../../concepts/tables/#partitioning-by-list).
 
 The default value is `false`.
 
@@ -100,15 +130,41 @@ The supported values are:
 
 </ParamField>
 
-<ParamField body="foreign_keys">
+<ParamField body="is_result_table">
 
-Semicolon-separated list of [foreign keys](../../concepts/tables/#foreign-keys), of the format '(source_column_name [, ...]) references target_table_name(primary_key_column_name [, ...]) [as foreign_key_name]'.
+Indicates whether the table is a [memory-only table](../../concepts/tables_memory_only/). A result table cannot contain columns with text_search [data-handling](../../concepts/types/#data-handling), and it will not be retained if the server is restarted.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
 
 </ParamField>
 
-<ParamField body="foreign_shard_key">
+<ParamField body="no_error_if_exists">
 
-Foreign shard key of the format 'source_column references shard_by_column from target_table(primary_key_column)'.
+If *true*, prevents an error from occurring if the table already exists and is of the given type.  If a table with the same name but a different type exists, it is still an error.
+
+The default value is `false`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
+<ParamField body="partition_definitions">
+
+Comma-separated list of partition definitions, whose format depends on the choice of *partition_type*.  See [range partitioning](../../concepts/tables/#partitioning-by-range), [interval partitioning](../../concepts/tables/#partitioning-by-interval), [list partitioning](../../concepts/tables/#partitioning-by-list), [hash partitioning](../../concepts/tables/#partitioning-by-hash), or [series partitioning](../../concepts/tables/#partitioning-by-series) for example formats.
+
+</ParamField>
+
+<ParamField body="partition_keys">
+
+Comma-separated list of partition keys, which are the columns or column expressions by which records will be assigned to partitions defined by *partition_definitions*.
 
 </ParamField>
 
@@ -124,28 +180,9 @@ Foreign shard key of the format 'source_column references shard_by_column from t
 
 </ParamField>
 
-<ParamField body="partition_keys">
+<ParamField body="strategy_definition">
 
-Comma-separated list of partition keys, which are the columns or column expressions by which records will be assigned to partitions defined by *partition_definitions*.
-
-</ParamField>
-
-<ParamField body="partition_definitions">
-
-Comma-separated list of partition definitions, whose format depends on the choice of *partition_type*.  See [range partitioning](../../concepts/tables/#partitioning-by-range), [interval partitioning](../../concepts/tables/#partitioning-by-interval), [list partitioning](../../concepts/tables/#partitioning-by-list), [hash partitioning](../../concepts/tables/#partitioning-by-hash), or [series partitioning](../../concepts/tables/#partitioning-by-series) for example formats.
-
-</ParamField>
-
-<ParamField body="is_automatic_partition">
-
-If *true*, a new partition will be created for values which don't fall into an existing partition.  Currently, only supported for [list partitions](../../concepts/tables/#partitioning-by-list).
-
-The default value is `false`.
-
-The supported values are:
-
-- true
-- false
+The [tier strategy](../../rm/concepts/#tier-strategies) for the table and its columns.
 
 </ParamField>
 
@@ -155,46 +192,9 @@ Sets the [TTL](../../concepts/ttl/) of the table specified in input parameter *t
 
 </ParamField>
 
-<ParamField body="chunk_size">
+<ParamField body="type_id">
 
-Indicates the number of records per chunk to be used for this table.
-
-</ParamField>
-
-<ParamField body="chunk_column_max_memory">
-
-Indicates the target maximum data size for each column in a chunk to be used for this table.
-
-</ParamField>
-
-<ParamField body="chunk_max_memory">
-
-Indicates the target maximum data size for all columns in a chunk to be used for this table.
-
-</ParamField>
-
-<ParamField body="is_result_table">
-
-Indicates whether the table is a [memory-only table](../../concepts/tables_memory_only/). A result table cannot contain columns with text_search [data-handling](../../concepts/types/#data-handling), and it will not be retained if the server is restarted.
-
-The default value is `false`.
-
-The supported values are:
-
-- true
-- false
-
-</ParamField>
-
-<ParamField body="strategy_definition">
-
-The [tier strategy](../../rm/concepts/#tier-strategies) for the table and its columns.
-
-</ParamField>
-
-<ParamField body="compression_codec">
-
-The default [compression codec](../../concepts/column_compression/) for this table's columns.
+ID of a currently registered [type](../../concepts/types/).
 
 </ParamField>
 
@@ -210,9 +210,15 @@ The default value is an empty map ( \{\} ).
 
 <Expandable title="options">
 
-<ParamField body="bad_record_table_name">
+<ParamField body="avro_schema">
 
-Name of a table to which records that were rejected are written. The bad-record-table has the following columns: line_number (long), line_rejected (string), error_message (string).  When *error_handling* is *abort*, bad records table is not populated.
+String representing the Avro schema, for data that includes only records (i.e. does not embed its own schema).
+
+</ParamField>
+
+<ParamField body="avro_schema_no_inference">
+
+Create table solely from the Avro schema definition, when *avro_schema* exists; do not infer from data.
 
 </ParamField>
 
@@ -227,6 +233,12 @@ The default value is `10000`.
 <ParamField body="bad_record_table_limit_per_input">
 
 For subscriptions, a positive integer indicating the maximum number of records that can be written to the bad-record-table per file/payload. Default value will be *bad_record_table_limit* and total size of the table per rank is limited to *bad_record_table_limit*.
+
+</ParamField>
+
+<ParamField body="bad_record_table_name">
+
+Name of a table to which records that were rejected are written. The bad-record-table has the following columns: line_number (long), line_rejected (string), error_message (string).  When *error_handling* is *abort*, bad records table is not populated.
 
 </ParamField>
 
@@ -321,6 +333,19 @@ Formats for the 'date' annotation must include the 'Y', 'm', and 'd' control cha
 
 </ParamField>
 
+<ParamField body="enable_inplace_updates">
+
+Applies only when upserting (when update_on_existing_pk is true). If set to true (the default), an existing record matched by primary key is modified in place. If set to false, the matched record is updated by deleting it and inserting a replacement (delete and insert), which prevents the change from being reflected in dependent materialized views until they are refreshed.
+
+The default value is `true`.
+
+The supported values are:
+
+- true
+- false
+
+</ParamField>
+
 <ParamField body="error_handling">
 
 Specifies how errors should be handled upon insertion.
@@ -363,22 +388,6 @@ The default value is `false`.
 <ParamField body="gdal_configuration_options">
 
 Comma separated list of gdal conf options, for the specific requests: key=value.
-
-</ParamField>
-
-<ParamField body="pk_conflict_predicate_higher">
-
-The record with higher value for the column resolves the primary-key insert conflict.
-
-The default value is ''.
-
-</ParamField>
-
-<ParamField body="pk_conflict_predicate_lower">
-
-The record with lower value for the column resolves the primary-key insert conflict.
-
-The default value is ''.
 
 </ParamField>
 
@@ -481,6 +490,12 @@ Apply an offset to Avro local timestamp columns.
 
 </ParamField>
 
+<ParamField body="max_consecutive_invalid_schema_failure">
+
+Max records to skip due to schema related errors, before failing.
+
+</ParamField>
+
 <ParamField body="max_records_to_load">
 
 Limit the number of records to load in this request: if this number is larger than *batch_size*, then the number of records loaded will be limited to the next whole number of *batch_size* (per working thread).
@@ -503,7 +518,23 @@ The list is not validated against the file's actual column count. If it is short
 
 <ParamField body="num_tasks_per_rank">
 
-Number of tasks for reading file per rank. Default will be system configuration parameter, external_file_reader_num_tasks.
+Number of tasks for reading file per rank. Default will be system configuration parameter, [external_file_reader_num_tasks](../../config/#config-main-external-files).
+
+</ParamField>
+
+<ParamField body="pk_conflict_predicate_higher">
+
+The record with higher value for the column resolves the primary-key insert conflict.
+
+The default value is ''.
+
+</ParamField>
+
+<ParamField body="pk_conflict_predicate_lower">
+
+The record with lower value for the column resolves the primary-key insert conflict.
+
+The default value is ''.
 
 </ParamField>
 
@@ -536,12 +567,6 @@ Confluent Schema registry connection timeout (in secs).
 <ParamField body="schema_registry_max_consecutive_connection_failures">
 
 Max records to skip due to SR connection failures, before failing.
-
-</ParamField>
-
-<ParamField body="max_consecutive_invalid_schema_failure">
-
-Max records to skip due to schema related errors, before failing.
 
 </ParamField>
 
@@ -682,6 +707,14 @@ Set the minimum column size for strings to apply the 'text_search' property to. 
 
 </ParamField>
 
+<ParamField body="transformations">
+
+Comma-separated expressions, one per target table column.  Each expression is evaluated per record.  Empty entries (two consecutive commas) mean no transformation for that column -- the value is resolved from the input record, table default, NULL, or an error. Expressions may reference input columns by name or by position ($1 for the first input column, $2 for the second, etc.).
+
+The default value is ''.
+
+</ParamField>
+
 <ParamField body="trim_space">
 
 If set to *true*, remove leading or trailing space from fields.
@@ -737,19 +770,6 @@ The default value is `accuracy`.
 
 </ParamField>
 
-<ParamField body="enable_inplace_updates">
-
-Applies only when upserting (when update_on_existing_pk is true). If set to true (the default), an existing record matched by primary key is modified in place. If set to false, the matched record is updated by deleting it and inserting a replacement (delete and insert), which prevents the change from being reflected in dependent materialized views until they are refreshed.
-
-The default value is `true`.
-
-The supported values are:
-
-- true
-- false
-
-</ParamField>
-
 <ParamField body="update_on_existing_pk">
 
 Specifies the record collision policy for inserting into a table with a [primary key](../../concepts/tables/#primary-keys). If set to *true*, any existing table record with primary key values that match those of a record being inserted will be replaced by that new record (the new data will be 'upserted'). If set to *false*, any existing table record with primary key values that match those of a record being inserted will remain unchanged, while the new record will be rejected and the error handled as determined by *ignore_existing_pk* and *error_handling*.  If the specified table does not have a primary key, then this option has no effect.
@@ -758,14 +778,6 @@ The default value is `false`.
 
 - **true**: Upsert new records when primary keys match existing records.
 - **false**: Reject new records when primary keys match existing records.
-
-</ParamField>
-
-<ParamField body="transformations">
-
-Comma-separated expressions, one per target table column.  Each expression is evaluated per record.  Empty entries (two consecutive commas) mean no transformation for that column -- the value is resolved from the input record, table default, NULL, or an error. Expressions may reference input columns by name or by position ($1 for the first input column, $2 for the second, etc.).
-
-The default value is ''.
 
 </ParamField>
 

@@ -4,7 +4,7 @@ title: "insert_records_from_payload"
 
 <div className="kinetica-pydoc">
 <div className="dl py method">
-<div className="dt sig sig-object py" id="gpudb.GPUdb.insert_records_from_payload"> <span className="sig-name descname"><span className="pre">insert\_records\_from\_payload</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">data\_text</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">data\_bytes</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">modify\_columns</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">create\_table\_options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L34429"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dt sig sig-object py" id="gpudb.GPUdb.insert_records_from_payload"> <span className="sig-name descname"><span className="pre">insert\_records\_from\_payload</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_name</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">data\_text</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">data\_bytes</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">modify\_columns</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">create\_table\_options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L34453"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
 <div className="dd">
 <p>Reads from the given text-based or binary payload and inserts the data into a new or existing table. The table will be created if it doesn’t already exist.</p>
 <p>Returns once all records are processed.</p>
@@ -33,10 +33,25 @@ title: "insert_records_from_payload"
 <p>Options used when creating the target table. Includes type to use. The other options match those in <a className="reference internal" href="/content/api/python/source/gpudb/create-table#gpudb.GPUdb.create_table" title="gpudb.GPUdb.create_table"><code className="xref py py-meth docutils literal notranslate"><span className="pre">GPUdb.create\_table()</span></code></a>. Allowed keys are:</p>
 <ul>
 <li>
-<p><strong>type\_id</strong> – ID of a currently registered <a className="reference external" href="/content/concepts/types/">type</a>. The default value is ‘’.</p>
+<p><strong>chunk\_column\_max\_memory</strong> – Indicates the target maximum data size for each column in a chunk to be used for this table.</p>
 </li>
 <li>
-<p><strong>no\_error\_if\_exists</strong> – If <span className="em">true</span>, prevents an error from occurring if the table already exists and is of the given type. If a table with the same ID but a different type exists, it is still an error. Allowed values are:</p>
+<p><strong>chunk\_max\_memory</strong> – Indicates the target maximum data size for all columns in a chunk to be used for this table.</p>
+</li>
+<li>
+<p><strong>chunk\_size</strong> – Indicates the number of records per chunk to be used for this table.</p>
+</li>
+<li>
+<p><strong>compression\_codec</strong> – The default <a className="reference external" href="/content/concepts/column_compression/">compression codec</a> for this table’s columns.</p>
+</li>
+<li>
+<p><strong>foreign\_keys</strong> – Semicolon-separated list of <a className="reference external" href="/content/concepts/tables/#foreign-keys">foreign keys</a>, of the format ‘(source\_column\_name \[, …\]) references target\_table\_name(primary\_key\_column\_name \[, …\]) \[as foreign\_key\_name\]’.</p>
+</li>
+<li>
+<p><strong>foreign\_shard\_key</strong> – Foreign shard key of the format ‘source\_column references shard\_by\_column from target\_table(primary\_key\_column)’.</p>
+</li>
+<li>
+<p><strong>is\_automatic\_partition</strong> – If <span className="em">true</span>, a new partition will be created for values which don’t fall into an existing partition. Currently only supported for <a className="reference external" href="/content/concepts/tables/#partitioning-by-list">list partitions</a>. Allowed values are:</p>
 <ul className="simple">
 <li>
 <p>true</p>
@@ -60,10 +75,34 @@ title: "insert_records_from_payload"
 <p>The default value is ‘false’.</p>
 </li>
 <li>
-<p><strong>foreign\_keys</strong> – Semicolon-separated list of <a className="reference external" href="/content/concepts/tables/#foreign-keys">foreign keys</a>, of the format ‘(source\_column\_name \[, …\]) references target\_table\_name(primary\_key\_column\_name \[, …\]) \[as foreign\_key\_name\]’.</p>
+<p><strong>is\_result\_table</strong> – Indicates whether the table is a <a className="reference external" href="/content/concepts/tables_memory_only/">memory-only table</a>. A result table cannot contain columns with text\_search <a className="reference external" href="/content/concepts/types/#data-handling">data-handling</a>, and it will not be retained if the server is restarted. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
 </li>
 <li>
-<p><strong>foreign\_shard\_key</strong> – Foreign shard key of the format ‘source\_column references shard\_by\_column from target\_table(primary\_key\_column)’.</p>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>no\_error\_if\_exists</strong> – If <span className="em">true</span>, prevents an error from occurring if the table already exists and is of the given type. If a table with the same ID but a different type exists, it is still an error. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
+<p><strong>partition\_definitions</strong> – Comma-separated list of partition definitions, whose format depends on the choice of <span className="em">partition\_type</span>. See <a className="reference external" href="/content/concepts/tables/#partitioning-by-range">range partitioning</a>, <a className="reference external" href="/content/concepts/tables/#partitioning-by-interval">interval partitioning</a>, <a className="reference external" href="/content/concepts/tables/#partitioning-by-list">list partitioning</a>, <a className="reference external" href="/content/concepts/tables/#partitioning-by-hash">hash partitioning</a>, or <a className="reference external" href="/content/concepts/tables/#partitioning-by-series">series partitioning</a> for example formats.</p>
+</li>
+<li>
+<p><strong>partition\_keys</strong> – Comma-separated list of partition keys, which are the columns or column expressions by which records will be assigned to partitions defined by <span className="em">partition\_definitions</span>.</p>
 </li>
 <li>
 <p><strong>partition\_type</strong> – <a className="reference external" href="/content/concepts/tables/#partitioning">Partitioning</a> scheme to use. Allowed values are:</p>
@@ -86,52 +125,13 @@ title: "insert_records_from_payload"
 </ul>
 </li>
 <li>
-<p><strong>partition\_keys</strong> – Comma-separated list of partition keys, which are the columns or column expressions by which records will be assigned to partitions defined by <span className="em">partition\_definitions</span>.</p>
-</li>
-<li>
-<p><strong>partition\_definitions</strong> – Comma-separated list of partition definitions, whose format depends on the choice of <span className="em">partition\_type</span>. See <a className="reference external" href="/content/concepts/tables/#partitioning-by-range">range partitioning</a>, <a className="reference external" href="/content/concepts/tables/#partitioning-by-interval">interval partitioning</a>, <a className="reference external" href="/content/concepts/tables/#partitioning-by-list">list partitioning</a>, <a className="reference external" href="/content/concepts/tables/#partitioning-by-hash">hash partitioning</a>, or <a className="reference external" href="/content/concepts/tables/#partitioning-by-series">series partitioning</a> for example formats.</p>
-</li>
-<li>
-<p><strong>is\_automatic\_partition</strong> – If <span className="em">true</span>, a new partition will be created for values which don’t fall into an existing partition. Currently only supported for <a className="reference external" href="/content/concepts/tables/#partitioning-by-list">list partitions</a>. Allowed values are:</p>
-<ul className="simple">
-<li>
-<p>true</p>
-</li>
-<li>
-<p>false</p>
-</li>
-</ul>
-<p>The default value is ‘false’.</p>
+<p><strong>strategy\_definition</strong> – The <a className="reference external" href="/content/rm/concepts/#tier-strategies">tier strategy</a> for the table and its columns.</p>
 </li>
 <li>
 <p><strong>ttl</strong> – Sets the <a className="reference external" href="/content/concepts/ttl/">TTL</a> of the table specified in input parameter <span className="em">table\_name</span>.</p>
 </li>
 <li>
-<p><strong>chunk\_size</strong> – Indicates the number of records per chunk to be used for this table.</p>
-</li>
-<li>
-<p><strong>chunk\_column\_max\_memory</strong> – Indicates the target maximum data size for each column in a chunk to be used for this table.</p>
-</li>
-<li>
-<p><strong>chunk\_max\_memory</strong> – Indicates the target maximum data size for all columns in a chunk to be used for this table.</p>
-</li>
-<li>
-<p><strong>is\_result\_table</strong> – Indicates whether the table is a <a className="reference external" href="/content/concepts/tables_memory_only/">memory-only table</a>. A result table cannot contain columns with text\_search <a className="reference external" href="/content/concepts/types/#data-handling">data-handling</a>, and it will not be retained if the server is restarted. Allowed values are:</p>
-<ul className="simple">
-<li>
-<p>true</p>
-</li>
-<li>
-<p>false</p>
-</li>
-</ul>
-<p>The default value is ‘false’.</p>
-</li>
-<li>
-<p><strong>strategy\_definition</strong> – The <a className="reference external" href="/content/rm/concepts/#tier-strategies">tier strategy</a> for the table and its columns.</p>
-</li>
-<li>
-<p><strong>compression\_codec</strong> – The default <a className="reference external" href="/content/concepts/column_compression/">compression codec</a> for this table’s columns.</p>
+<p><strong>type\_id</strong> – ID of a currently registered <a className="reference external" href="/content/concepts/types/">type</a>. The default value is ‘’.</p>
 </li>
 </ul>
 <p>The default value is an empty dict ( {"{"}{"}"} ).</p>
@@ -141,13 +141,19 @@ title: "insert_records_from_payload"
 <p>Optional parameters. Allowed keys are:</p>
 <ul>
 <li>
-<p><strong>bad\_record\_table\_name</strong> – Name of a table to which records that were rejected are written. The bad-record-table has the following columns: line\_number (long), line\_rejected (string), error\_message (string).</p>
+<p><strong>avro\_schema</strong> – String representing the Avro schema, for data that includes only records (i.e. does not embed its own schema).</p>
+</li>
+<li>
+<p><strong>avro\_schema\_no\_inference</strong> – Create table solely from the Avro schema definition, when <span className="em">avro\_schema</span> exists; do not infer from data.</p>
 </li>
 <li>
 <p><strong>bad\_record\_table\_limit</strong> – A positive integer indicating the maximum number of records that can be written to the bad-record-table. Default value is 10000.</p>
 </li>
 <li>
 <p><strong>bad\_record\_table\_limit\_per\_input</strong> – For subscriptions: A positive integer indicating the maximum number of records that can be written to the bad-record-table per file/payload. Default value will be ‘bad\_record\_table\_limit’ and total size of the table per rank is limited to ‘bad\_record\_table\_limit’.</p>
+</li>
+<li>
+<p><strong>bad\_record\_table\_name</strong> – Name of a table to which records that were rejected are written. The bad-record-table has the following columns: line\_number (long), line\_rejected (string), error\_message (string).</p>
 </li>
 <li>
 <p><strong>batch\_size</strong> – Internal tuning parameter–number of records per batch when inserting data.</p>
@@ -201,6 +207,18 @@ title: "insert_records_from_payload"
 <p><strong>default\_column\_formats</strong> – Specifies the default format to be applied to source data loaded into columns with the corresponding column property. Currently supported column properties include date, time, and datetime. This default column-property-bound format can be overridden by specifying a column property and format for a given target column in <span className="em">column\_formats</span>. For each specified annotation, the format will apply to all columns with that annotation unless a custom <span className="em">column\_formats</span> for that annotation is specified.</p>
 <p>The parameter value must be formatted as a JSON string that is a map of column properties to their respective column formats, e.g., ‘{"{"} “date” : “%Y.%m.%d”, “time” : “%H:%M:%S” {"}"}’. Column formats are specified as a string of control characters and plain text. The supported control characters are ‘Y’, ‘m’, ‘d’, ‘H’, ‘M’, ‘S’, and ‘s’, which follow the Linux ‘strptime()’ specification, as well as ‘s’, which specifies seconds and fractional seconds (though the fractional component will be truncated past milliseconds).</p>
 <p>Formats for the ‘date’ annotation must include the ‘Y’, ‘m’, and ‘d’ control characters. Formats for the ‘time’ annotation must include the ‘H’, ‘M’, and either ‘S’ or ‘s’ (but not both) control characters. Formats for the ‘datetime’ annotation meet both the ‘date’ and ‘time’ control character requirements. For example, ‘{"{"}“datetime” : “%m/%d/%Y %H:%M:%S” {"}"}’ would be used to interpret text as “05/04/2000 12:12:11”</p>
+</li>
+<li>
+<p><strong>enable\_inplace\_updates</strong> – Applies only when upserting (when update\_on\_existing\_pk is true). If set to true (the default), an existing record matched by primary key is modified in place. If set to false, the matched record is updated by deleting it and inserting a replacement (delete and insert), which prevents the change from being reflected in dependent materialized views until they are refreshed. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘true’.</p>
 </li>
 <li>
 <p><strong>error\_handling</strong> – Specifies how errors should be handled upon insertion. Allowed values are:</p>
@@ -260,12 +278,6 @@ title: "insert_records_from_payload"
 <p><strong>gdal\_configuration\_options</strong> – Comma separated list of gdal conf options, for the specific requests: key=value. The default value is ‘’.</p>
 </li>
 <li>
-<p><strong>pk\_conflict\_predicate\_higher</strong> – The record with higher value for the column resolves the primary-key insert conflict. The default value is ‘’.</p>
-</li>
-<li>
-<p><strong>pk\_conflict\_predicate\_lower</strong> – The record with lower value for the column resolves the primary-key insert conflict. The default value is ‘’.</p>
-</li>
-<li>
 <p><strong>ignore\_existing\_pk</strong> – Specifies the record collision error-suppression policy for inserting into a table with a <a className="reference external" href="/content/concepts/tables/#primary-keys">primary key</a>, only used when not in upsert mode (upsert mode is disabled when <span className="em">update\_on\_existing\_pk</span> is <span className="em">false</span>). If set to <span className="em">true</span>, any record being inserted that is rejected for having primary key values that match those of an existing table record will be ignored with no error generated. If <span className="em">false</span>, the rejection of any record for having primary key values matching an existing record will result in an error being reported, as determined by <span className="em">error\_handling</span>. If the specified table does not have a primary key or if upsert mode is in effect (<span className="em">update\_on\_existing\_pk</span> is <span className="em">true</span>), then this option has no effect. Allowed values are:</p>
 <ul className="simple">
 <li>
@@ -319,6 +331,9 @@ title: "insert_records_from_payload"
 <p><strong>local\_time\_offset</strong> – For Avro local timestamp columns.</p>
 </li>
 <li>
+<p><strong>max\_consecutive\_invalid\_schema\_failure</strong> – Max records to skip due to schema related errors, before failing.</p>
+</li>
+<li>
 <p><strong>max\_records\_to\_load</strong> – Limit the number of records to load in this request: If this number is larger than a batch\_size, then the number of records loaded will be limited to the next whole number of batch\_size (per working thread). The default value is ‘’.</p>
 </li>
 <li>
@@ -329,7 +344,13 @@ title: "insert_records_from_payload"
 <p>The list is not validated against the file’s actual column count. If it is shorter, the trailing source columns are left unnamed.</p>
 </li>
 <li>
-<p><strong>num\_tasks\_per\_rank</strong> – Number of tasks for reading file per rank. Default will be external\_file\_reader\_num\_tasks.</p>
+<p><strong>num\_tasks\_per\_rank</strong> – Number of tasks for reading file per rank. Default will be <a className="reference external" href="/content/config/#config-main-external-files">external\_file\_reader\_num\_tasks</a>.</p>
+</li>
+<li>
+<p><strong>pk\_conflict\_predicate\_higher</strong> – The record with higher value for the column resolves the primary-key insert conflict. The default value is ‘’.</p>
+</li>
+<li>
+<p><strong>pk\_conflict\_predicate\_lower</strong> – The record with lower value for the column resolves the primary-key insert conflict. The default value is ‘’.</p>
 </li>
 <li>
 <p><strong>poll\_interval</strong> – If <span className="em">true</span>, the number of seconds between attempts to load external files into the table. If zero, polling will be continuous as long as data is found. If no data is found, the interval will steadily increase to a maximum of 60 seconds.</p>
@@ -345,9 +366,6 @@ title: "insert_records_from_payload"
 </li>
 <li>
 <p><strong>schema\_registry\_max\_consecutive\_connection\_failures</strong> – Max records to skip due to SR connection failures, before failing.</p>
-</li>
-<li>
-<p><strong>max\_consecutive\_invalid\_schema\_failure</strong> – Max records to skip due to schema related errors, before failing.</p>
 </li>
 <li>
 <p><strong>schema\_registry\_schema\_name</strong> – Name of the Avro schema in the schema registry to use when reading Avro records.</p>
@@ -428,6 +446,9 @@ title: "insert_records_from_payload"
 <p><strong>text\_search\_min\_column\_length</strong> – Set minimum column size. Used only when ‘text\_search\_columns’ has a value.</p>
 </li>
 <li>
+<p><strong>transformations</strong> – Comma-separated expressions, one per target table column. Each expression is evaluated per record. Empty entries (two consecutive commas) mean no transformation for that column – the value is resolved from the input record, table default, NULL, or an error. Expressions may reference input columns by name or by position ($1 for the first input column, $2 for the second, etc.). The default value is ‘’.</p>
+</li>
+<li>
 <p><strong>trim\_space</strong> – If set to <span className="em">true</span>, remove leading or trailing space from fields. Allowed values are:</p>
 <ul className="simple">
 <li>
@@ -479,18 +500,6 @@ title: "insert_records_from_payload"
 <p>The default value is ‘accuracy’.</p>
 </li>
 <li>
-<p><strong>enable\_inplace\_updates</strong> – Applies only when upserting (when update\_on\_existing\_pk is true). If set to true (the default), an existing record matched by primary key is modified in place. If set to false, the matched record is updated by deleting it and inserting a replacement (delete and insert), which prevents the change from being reflected in dependent materialized views until they are refreshed. Allowed values are:</p>
-<ul className="simple">
-<li>
-<p>true</p>
-</li>
-<li>
-<p>false</p>
-</li>
-</ul>
-<p>The default value is ‘true’.</p>
-</li>
-<li>
 <p><strong>update\_on\_existing\_pk</strong> – Specifies the record collision policy for inserting into a table with a <a className="reference external" href="/content/concepts/tables/#primary-keys">primary key</a>. If set to <span className="em">true</span>, any existing table record with primary key values that match those of a record being inserted will be replaced by that new record (the new data will be “upserted”). If set to <span className="em">false</span>, any existing table record with primary key values that match those of a record being inserted will remain unchanged, while the new record will be rejected and the error handled as determined by <span className="em">ignore\_existing\_pk</span> and <span className="em">error\_handling</span>. If the specified table does not have a primary key, then this option has no effect. Allowed values are:</p>
 <ul className="simple">
 <li>
@@ -501,9 +510,6 @@ title: "insert_records_from_payload"
 </li>
 </ul>
 <p>The default value is ‘false’.</p>
-</li>
-<li>
-<p><strong>transformations</strong> – Comma-separated expressions, one per target table column. Each expression is evaluated per record. Empty entries (two consecutive commas) mean no transformation for that column – the value is resolved from the input record, table default, NULL, or an error. Expressions may reference input columns by name or by position ($1 for the first input column, $2 for the second, etc.). The default value is ‘’.</p>
 </li>
 </ul>
 <p>The default value is an empty dict ( {"{"}{"}"} ).</p>
