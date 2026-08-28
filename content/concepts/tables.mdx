@@ -367,7 +367,7 @@ gpudb.GPUdbTable(
 [Table](/content/concepts/tables) data can also be *partitioned*, yielding benefits in terms
 of performance and data management.
 
-The types of supported *partitioning schemes* are:
+The types of supported *partitioning* schemes are:
 
 <CardGroup cols={3}>
   <Card title="Range" href="/content/concepts/tables#partitioning-by-range">
@@ -387,7 +387,7 @@ The types of supported *partitioning schemes* are:
   </Card>
 </CardGroup>
 
-Each *partitioning scheme* requires a *partition key* to be defined, which is a
+Each *partitioning* scheme requires a *partition key* to be defined, which is a
 column or column expression that will be evaluated for each record in a table to
 determine the appropriate partition for the record.
 
@@ -395,7 +395,11 @@ determine the appropriate partition for the record.
 <Note>
 Any record with a *null* value in one or more of its
 *partition key* columns will be placed in the *default partition*, regardless
-of *partitioning scheme*.
+of *partitioning* scheme.  The lone exception is
+[manual list partitioning](/content/concepts/tables#partitioning-by-list-manual), in which
+a *partition* can explicitly claim *null* as one of its values; records with a
+*null* *partition key* value are then placed in that *partition* instead of the
+*default partition*.
 </Note>
 
 [Track tables](/content/location_intelligence/geo_objects#geospatial-tracks) can only be *partitioned* by
@@ -457,7 +461,7 @@ as long as the type of the final expression is one of these:
 
 * numeric types:  *int*, *long*, *float*, *double*, *decimal*, *ulong*
 * date/time types:  *date*, *time*, *datetime*, *timestamp*
-* *charN*
+* string types:  *string*, *charN*
 
 A *table* is *range-partitioned* at creation time, by calling the
 [/create/table](/content/api/rest/create_table_rest) endpoint with a `partition_type` option of
@@ -629,7 +633,6 @@ if not given, the following defaults apply:
 | --- | --- | --- |
 | Numeric | `0` | `1` |
 | Date & Date/Time | *January 1st, 1970* | `1` day |
-| Time | `00:00:00` | *N/A* |
 
 Names are not given to interval *partitions*, so they may not be removed
 directly.  However, deleting all records whose key values fall within a given
@@ -644,6 +647,12 @@ as long as the type of the final expression is one of these:
 
 * numeric types:  *int*, *long*, *float*, *double*, *decimal*, *ulong*
 * date/time types:  *date*, *datetime*, *timestamp*
+
+
+<Note>
+An *interval-partitioned* *table* can have only one
+*partition key*.
+</Note>
 
 A *table* is *interval-partitioned* at creation time, by calling the
 [/create/table](/content/api/rest/create_table_rest) endpoint with a `partition_type` option of
@@ -905,6 +914,11 @@ use an *automatic partitioning* scheme.
 having *partition key* values that are in one of those lists are assigned to
 the corresponding *partition*.  A given list entry cannot exist in more than
 one list, meaning one record cannot qualify for more than one *partition*.
+
+A *partition* can include *null* among its list of values, in which case all
+records with a *null* *partition key* value will be assigned to that
+*partition*, rather than to the *default partition*.  At most one *partition*
+may claim *null*.
 
 All records which don't belong to any of the named *partitions* will be placed
 in the *default partition*.  If a new *partition* is added, any records in the
@@ -1345,12 +1359,25 @@ table = gpudb.GPUdbTable(
 the next.
 
 The following [specific types](/content/concepts/types#types-chart) are supported
-*partition key* data types; other types can be used inside a column expression,
-as long as the type of the final expression is one of these:
+*partition key* data types:
 
 * numeric types:  *int*, *long*, *float*, *double*, *decimal*, *ulong*
 * date/time types:  *date*, *time*, *datetime*, *timestamp*
 * string types:  *string*, *charN*, *uuid*
+
+
+<Note>
+Unlike the other *partitioning* schemes, a
+*series partition key* must be a base column--column expressions cannot be
+used.
+</Note>
+
+
+<Note>
+A *series-partitioned* *table* must either be
+[replicated](/content/concepts/tables#replication) or have its *shard key* columns be a
+subset of its *partition key* columns.
+</Note>
 
 As records associated with new *partition keys* are encountered, they are added
 to the table's only *partition* with an *open partition key set*.  Once that
