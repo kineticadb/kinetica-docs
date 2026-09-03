@@ -266,35 +266,35 @@ Examples:
   </thead>
   <tbody>
   <tr>
-    <td><code>DATEDIFF(DATE('2000-10-10'), DATE('2000-12-31'))</code></td>
+    <td><code>DATEDIFF('2000-10-10', '2000-12-31')</code></td>
     <td><code>82</code></td>
   </tr>
   <tr>
-    <td><code>DATEDIFF(DATE('2000-03-31'), DATE('2000-04-30'))</code></td>
+    <td><code>DATEDIFF('2000-03-31', '2000-04-30')</code></td>
     <td><code>30</code></td>
   </tr>
   <tr>
-    <td><code>DATEDIFF(DATE('2000-12-31'), DATE('2000-10-10'))</code></td>
+    <td><code>DATEDIFF('2000-12-31', '2000-10-10')</code></td>
     <td><code>-82</code></td>
   </tr>
   <tr>
-    <td><code>DATEDIFF(DATETIME('2000-10-10 12:34:56'), 978222896000)</code></td>
+    <td><code>DATEDIFF('2000-10-10 12:34:56', 978222896000)</code></td>
     <td><code>81</code></td>
   </tr>
   <tr>
-    <td><code>DATEDIFF(MONTH, DATE('2000-10-10'), DATE('2000-12-31'))</code></td>
+    <td><code>DATEDIFF(MONTH, '2000-10-10', '2000-12-31')</code></td>
     <td><code>2</code></td>
   </tr>
   <tr>
-    <td><code>DATEDIFF(MONTH, DATE('2000-03-31'), DATE('2000-04-30'))</code></td>
+    <td><code>DATEDIFF(MONTH, '2000-03-31', '2000-04-30')</code></td>
     <td><code>0</code></td>
   </tr>
   <tr>
-    <td><code>DATEDIFF(MONTH, DATE('2000-12-31'), DATE('2000-10-10'))</code></td>
+    <td><code>DATEDIFF(MONTH, '2000-12-31', '2000-10-10')</code></td>
     <td><code>-2</code></td>
   </tr>
   <tr>
-    <td><code>DATEDIFF(HOUR, DATETIME('2000-10-10 12:34:56'), 978222896000)</code></td>
+    <td><code>DATEDIFF(HOUR, '2000-10-10 12:34:56', 978222896000)</code></td>
     <td><code>1956</code></td>
   </tr>
   </tbody>
@@ -915,6 +915,71 @@ e.g., `SLEEP(0.001)` will pause for at least 1 millisecond.  `SLEEP` should be i
 ```
 SELECT SLEEP(0.001)
 ```
+</Accordion>
+
+<Accordion title="TIMEBOUNDARYDIFF ('unit', begin, end)" id="timeboundarydiff-unit-begin-end" defaultOpen>
+
+Calculates the difference between two date/time expressions, returning the result as an
+integral count of the `unit` boundaries crossed going from `begin` to `end`.  Each
+operand is truncated to the `unit` boundary before subtracting, so any finer-grained
+portion of `begin` & `end` is dropped.  This is unlike `TIMESTAMPDIFF`, which
+considers the entirety of both operands and counts only whole intervals elapsed; e.g.,
+between *23:59:59* and *00:00:00* the next morning, this function returns *1* `DAY`
+while `TIMESTAMPDIFF` returns *0*.
+
+
+<Info>
+This *is* symmetric with `TIMESTAMPADD` in all cases, as adding *1*
+`MONTH` to *Mar 31st* results in *Apr 30th*, and the `TIMEBOUNDARYDIFF` in
+`MONTH` units between those two dates is *1*.
+</Info>
+
+Examples:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Function Call</th>
+    <th>Result</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>TIMEBOUNDARYDIFF('MONTH', '2000-10-10', '2000-12-31')</code></td>
+    <td><code>2</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMEBOUNDARYDIFF('MONTH', '2000-03-31', '2000-04-30')</code></td>
+    <td><code>1</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMEBOUNDARYDIFF('MONTH', '2000-12-31', '2000-10-10')</code></td>
+    <td><code>-2</code></td>
+  </tr>
+  <tr>
+    <td><code>TIMEBOUNDARYDIFF('HOUR', '2000-10-10 12:34:56', TIMESTAMP(978222896000))</code></td>
+    <td><code>1956</code></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+<Note>
+This function accepts the same date/time units as `TIMESTAMPADD`, though the units
+must be quoted.
+</Note>
+
+
+<Note>
+This function does not accept time-only string literals (e.g.,
+`'12:34:56'`); cast them first, e.g. `TIME('12:34:56')`.  Date & datetime string
+literals (e.g., `'2000-12-31'`, `'2000-12-31 12:34:56'`) are accepted directly, as
+are `DATE`, `TIME`, `DATETIME` & `TIMESTAMP` values and epoch milliseconds.
+</Note>
+
 </Accordion>
 
 <Accordion title="TIME_BUCKET (width, ts[, offset[, base]])" id="time_bucket-width-ts-offset-base" defaultOpen>
