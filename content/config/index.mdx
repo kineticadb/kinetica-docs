@@ -704,7 +704,7 @@ rank2.taskcalc_gpu = 1</code></pre><br/>
     </tr>
     <tr>
       <td>**allow_alternate_date_formats**</td>
-      <td>Accept additional date formats when ingesting and casting strings to dates, datetimes, and timestamps: `YYYYMMDD`, `YYYY/MM/DD`, and month-name forms like `Aug 20 2026` or `20 August 2026`, each optionally followed by a time of day. Explicit formats given to `TO_DATE()`, etc. are unaffected.</td>
+      <td>Accept additional date formats when ingesting and casting strings to dates, datetimes, and timestamps: **YYYYMMDD**, 'YYYY/MM/DD', and month-name forms like 'Aug 20 2026' or '20 August 2026', each optionally followed by a time of day.  Explicit formats given to TO_DATE(), etc. are unaffected.</td>
     </tr>
     <tr>
       <td>**request_timeout**</td>
@@ -727,8 +727,20 @@ rank2.taskcalc_gpu = 1</code></pre><br/>
       <td>Enable overlapped-equi-join filters.</td>
     </tr>
     <tr>
+      <td>**enable_atomic_updates**</td>
+      <td>Convenience switch for atomic [/update/records](/content/api/rest/update_records_rest).  When true, changes the defaults of enable_inplace_updates (to false), enable_mv_input_wrappers (to true) and enable_predicate_equi_join (to true) so that [/update/records](/content/api/rest/update_records_rest) neither leaks into nor leaves a gap in dependent materialized views.  Any of those three set explicitly below still overrides this default.</td>
+    </tr>
+    <tr>
       <td>**enable_inplace_updates**</td>
-      <td>When false, update_records is performed as a delete and insert rather than an in-place update so the change is not reflected in dependent materialized views until they refresh.  Overridden per-request by the update_records **enable_inplace_updates** option.</td>
+      <td>When false, [/update/records](/content/api/rest/update_records_rest) is performed as a delete and insert rather than an in-place update so the change is not reflected in dependent materialized views until they refresh.  Overridden per-request by the [/update/records](/content/api/rest/update_records_rest) **enable_inplace_updates** option.</td>
+    </tr>
+    <tr>
+      <td>**enable_mv_input_wrappers**</td>
+      <td>Default for whether a materialized view accesses each base table through a wrapper view, so an in-progress out-of-place update cannot make a record momentarily disappear from the view and a long refresh does not block updates to the base tables.  Overridden per-view by the create_materialized_view **enable_mv_input_wrappers** option.</td>
+    </tr>
+    <tr>
+      <td>**enable_persist_fk_indices**</td>
+      <td>Whether foreign-key indexes are saved to disk and reloaded at start-up rather than rebuilt from the table data.  Off by default: each index is rebuilt the first time a join needs it after a start-up and nothing is written to disk.  Turning it on shortens start-up for tables joined on a foreign key, at the cost of the disk space those indexes take and the writes that keep them current.  Turning it off again - including at runtime - deletes every saved index and goes back to rebuilding them in memory; turning it back on resumes saving.  Two hidden settings tune how the saving is done while this is on, feature.enable_fk_index_background_persist and feature.fk_index_persist_access_threshold, and both are ignored while it is off.</td>
     </tr>
     <tr>
       <td>**timeout_startup_subsystem**</td>
@@ -968,51 +980,51 @@ Workbooks in Kinetica.
   <tbody>
     <tr>
       <td>**enable_text_search**</td>
-      <td>Enable text search capability within the database.</td>
-    </tr>
-    <tr>
-      <td>**text_search.indices_per_tom**</td>
-      <td>Number of text indices to start for each rank</td>
+      <td>Enable text search capability within the database. The dot key **text_search.enable** is a deprecated alias for this flat key.</td>
     </tr>
     <tr>
       <td>**text_search.searcher_refresh_interval**</td>
       <td>Searcher refresh intervals - specifies the maximum delay (in seconds) between writing to the text search index and being able to search for the value just written.  A value of `0` insures that writes to the index are immediately available to be searched.  A more nominal value of `100` should improve ingest speed at the cost of some delay in being able to text search newly added values.</td>
     </tr>
     <tr>
+      <td>**text_search.auto_commit_threshold**</td>
+      <td>Pending-writes threshold inside the ki-tantivy writer that triggers an auto-commit. Bounds durability latency for write-heavy workloads where readers don't fire and the periodic GaiaSetManager::syncToDisk path skips the slot (because it's never idle). Lower values give tighter durability at the cost of more fsyncs; higher values amortize fsync but extend the crash-loss window. Range [100, 1000000].</td>
+    </tr>
+    <tr>
+      <td>**text_search.idle_evict_secs**</td>
+      <td>Idle window in seconds after which a text-search index's in-memory handle is dropped to free its writer heap; the on-disk index survives and is re-opened on the next query. `0` disables idle eviction. Larger values keep indexes warm longer at the cost of more resident memory.</td>
+    </tr>
+    <tr>
+      <td>**text_search.eviction_recency_floor_secs**</td>
+      <td>Seconds a text-search index handle is shielded from pressure eviction after its last use, so a handle in active use by an in-flight query or delete is not dropped underneath that operation. `0` disables the shield.</td>
+    </tr>
+    <tr>
+      <td>**text_search.resident_memory_limit**</td>
+      <td>Soft cap, in bytes, on total resident Tantivy memory. When exceeded, idle indexes are dropped coldest-first (LRU) until back under the cap. `-1` disables the cap, leaving footprint bounded only by idle_evict_secs and the RAM tier. Independent of (and checked ahead of) the shared RAM tier.</td>
+    </tr>
+    <tr>
+      <td>**text_search.default_indexer_memory**</td>
+      <td>Default per-index Tantivy writer heap, in MB, used when a table sets no override. Clamped to [16, 128]. Higher values amortize segment flushes during ingest at the cost of more resident memory per open index.</td>
+    </tr>
+    <tr>
+      <td>**text_search.max_stats_terms**</td>
+      <td>Per-TOM cap on the number of distinct query terms the global-BM25 (text_match_bm25_global) statistics prepass may enumerate before it errors out, bounding prepass time and memory for pathological queries. Range [1000, 4000000].</td>
+    </tr>
+    <tr>
       <td>**text_search.default_analyzer**</td>
-      <td>Tantivy tokenizer applied to text columns at index-creation time. Allowed: `en_stem` (default, Snowball English), `default` (lowercase + simple split), `raw` (whole-string single token), `keyword` (raw + lowercase), `whitespace`, `simple`.</td>
+      <td>Tantivy tokenizer applied to text columns at index-creation time. Allowed: `en_stem` (default, Snowball English), `default` (lowercase + simple split), `raw` (whole-string single token), `keyword` (raw + lowercase), `whitespace`, `simple`. Per-table override is planned via TABLE PROPERTIES.</td>
     </tr>
     <tr>
       <td>**text_search.default_index_detail**</td>
       <td>Tantivy index-record detail. Allowed: `positions` (default; supports phrase + BM25), `freqs` (BM25 only, no phrases), `basic` (postings only, no scoring or phrases).</td>
     </tr>
     <tr>
-      <td>**text_search.default_reload_policy**</td>
-      <td>IndexReader reload policy. Allowed: `on_commit_with_delay` (default; coalesces reloads with the delay below), `on_commit` (eager reload after each commit), `manual` (caller must reload).</td>
+      <td>**text_search.commit_policy**</td>
+      <td>Text-search default commit policy (overridable per index via the commit_policy text-index option). `read-visible` (default) commits lazily — the auto_commit_threshold + idle-flush hybrid, plus commit-on-read so a reader sees its own writes. `immediate` commits after each insert/update/delete so writes are immediately queryable, at a higher per-DML cost. `periodic` never commits on read or per-write — only on the threshold or the maintenance sweep — so reads see only already-committed state.</td>
     </tr>
     <tr>
       <td>**text_search.reload_delay_ms**</td>
-      <td>Reload coalescing delay in milliseconds when reload policy is `on_commit_with_delay`. Range [10, 60000].</td>
-    </tr>
-    <tr>
-      <td>**text_search.auto_commit_threshold**</td>
-      <td>Number of buffered documents that triggers an automatic commit of a text index writer. Range [100, 1000000].</td>
-    </tr>
-    <tr>
-      <td>**text_search.idle_evict_secs**</td>
-      <td>Drop an in-memory text index handle after this many seconds idle to free its writer heap (the on-disk index re-opens on next use). `0` disables idle eviction.</td>
-    </tr>
-    <tr>
-      <td>**text_search.resident_memory_limit**</td>
-      <td>Soft cap (in bytes) on resident text-index memory before coldest-first eviction kicks in. `-1` lets the database manage it via the RAM tier.</td>
-    </tr>
-    <tr>
-      <td>**text_search.default_indexer_memory**</td>
-      <td>Default per-index writer heap, in MB, used when a table sets no override. Range [16, 128].</td>
-    </tr>
-    <tr>
-      <td>**text_search.max_stats_terms**</td>
-      <td>Maximum number of per-term statistics carried in a cross-shard BM25 prepass (caps the stats payload size). Range [1000, 4000000].</td>
+      <td>Delay in milliseconds applied when reload policy is `on_commit_with_delay`. Lower values shorten NRT lag at the cost of more frequent searcher rebuilds. Range [10, 60000].</td>
     </tr>
   </tbody>
 </table>
@@ -1040,10 +1052,6 @@ Workbooks in Kinetica.
     <tr>
       <td>**sms_directory**</td>
       <td>Base directory to store hashed strings.</td>
-    </tr>
-    <tr>
-      <td>**text_search.index_directory**</td>
-      <td>Base directory to store the text search index.</td>
     </tr>
     <tr>
       <td>**temp_directory**</td>
@@ -1110,7 +1118,7 @@ Workbooks in Kinetica.
     </tr>
     <tr>
       <td>**wal.text_search_co_commit**</td>
-      <td>If `true`, a table's text-search index is committed in the same pass that flushes its WAL, so a crash cannot leave the durable WAL ahead of the index. Disabling trades that crash-durability guarantee for lower commit overhead.</td>
+      <td>If `true` (default), a chunk's text-search index is committed before its WAL entries are cleared, so a crash always leaves either a committed index or a replayable WAL entry -- flushed rows are never left durable-but-unindexed. If `false`, index commits are decoupled from the WAL flush.</td>
     </tr>
     <tr>
       <td>**compression_codec**</td>
@@ -1190,12 +1198,12 @@ Workbooks in Kinetica.
       <td>Whether or not to enable chunk caching.</td>
     </tr>
     <tr>
-      <td>**shadow_agg_size**</td>
-      <td>The maximum number of bytes in the shadow aggregate cache.</td>
+      <td>**shadow_cube_size**</td>
+      <td>The maximum number of bytes in the shadow cube cache, shared by aggregate and filter responses. Replaces the deprecated shadow_agg_size / shadow_filter_size keys (still honored when set: their sum is used).</td>
     </tr>
     <tr>
-      <td>**shadow_filter_size**</td>
-      <td>The maximum number of bytes in the shadow filter cache.</td>
+      <td>**shadow_cube_probation_percent**</td>
+      <td>The shadow cube probation segment's memory ceiling, as a percent [1,10] of the protected byte budget (shadow_cube_size); bounds how many first-seen query fingerprints are held before the oldest is evicted.</td>
     </tr>
   </tbody>
 </table>
@@ -1588,7 +1596,7 @@ address specified in the relevant section above.
     </tr>
     <tr>
       <td>**postgres_proxy.max_queued_connections**</td>
-      <td>Set max number of queued server connections (default: `1`).</td>
+      <td>Set max number of queued server connections (default: `64`).  Connections arriving while the queue is full are refused outright, so this must cover bursts of simultaneous connections that outpace worker-thread startup.</td>
     </tr>
     <tr>
       <td>**postgres_proxy.idle_connection_timeout**</td>
@@ -1759,11 +1767,11 @@ sql.planner.address  = tcp://HOST_IP:9293</code></pre><br/>Example for local IPC
     </tr>
     <tr>
       <td>**sql.automatic_stats_collection_interval**</td>
-      <td>Interval in seconds between background passes that collect the columns recommended for automatic statistics (only runs when sql.automatic_stats is true, and only when sql.automatic_stats_collection_time is &lt; 0).</td>
+      <td>Schedule for the background pass that collects the columns recommended for automatic statistics (only runs when sql.automatic_stats is true). Set to -1 (the default) for daily collection at sql.automatic_stats_collection_time; set to a positive number of seconds to instead collect on that fixed interval.</td>
     </tr>
     <tr>
       <td>**sql.automatic_stats_collection_time**</td>
-      <td>Local time of day to collect automatic statistics once daily, as minutes past midnight [0, 1439] (e.g. 0 = midnight, 90 = 01:30, 810 = 13:30). When &gt;= 0 this overrides sql.automatic_stats_collection_interval; set to -1 to use the interval instead.</td>
+      <td>Local time of day for daily automatic statistics collection (used when sql.automatic_stats_collection_interval is -1), as minutes past midnight [0, 1439] (e.g. 0 = midnight, 90 = 01:30, 810 = 13:30). The legacy value -1 is also accepted and treated as midnight.</td>
     </tr>
   </tbody>
 </table>
@@ -1928,8 +1936,8 @@ cache type.
       <td>Master switch for this cache. When false, reads bypass the cache and go directly to the backing store.</td>
     </tr>
     <tr>
-      <td>**file_cache.default.persistent**</td>
-      <td>When true, cached blocks are written to the disk tier and reloaded on restart; when false, the cache is memory-only and starts empty.</td>
+      <td>**file_cache.default.persistence**</td>
+      <td>Storage mode: **persistent** (disk-backed, survives restart) or **memory** (RAM-only, no disk spill, starts empty after restart).</td>
     </tr>
     <tr>
       <td>**file_cache.default.max_disk_size**</td>

@@ -1,0 +1,224 @@
+---
+title: Apache Iceberg
+---
+
+<a id="iceberg"></a>
+
+
+*Kinetica* can query tables managed in an
+[Apache Iceberg](https://iceberg.apache.org/) data lake, reading them through
+the Iceberg *catalog* that owns them.  Access is **read-only**; an Iceberg table
+is queried through a [logical external table](/content/concepts/external_tables).
+
+This page covers the behavior specific to Iceberg.  For the *catalog* &
+*external table* concepts, the data type mapping, and the metadata cache
+settings shared with Delta Lake, see
+[Data Lake Catalogs](/content/concepts/datalake).
+
+
+<a id="iceberg-support"></a>
+
+
+## Supported Features
+
+
+| Capability | Status | Notes |
+| --- | --- | --- |
+| Schema evolution | Supported | Columns resolve by Iceberg field ID, so renames are transparent.  A column absent from an older data file reads as null rather than matching an unrelated same-named column. |
+| Predicate pushdown | Supported | Filters are pushed into the Iceberg scan planner. |
+| Partition pruning | Supported | Performed by the scan planner using the pushed-down filter. |
+| Partition transforms | Recognized | A `bucket` transform maps the column to a *Kinetica* [shard key](/content/concepts/tables#shard-key); `year` & `month` map to none.  Other transforms are not acted upon. |
+| Positional deletes | Supported | Iceberg v2. |
+| Equality deletes | Supported | Resolved by pre-scanning the data files and converting to positional deletes. |
+| Deletion vectors | Supported | Iceberg v3, via Puffin files. |
+| Row count | Supported | Reported from the table's snapshot metadata. |
+
+
+<Info>
+Queries always read the table's current snapshot; see
+[Snapshot & Version Selection](/content/concepts/datalake#datalake-snapshot).
+</Info>
+
+<a id="iceberg-path"></a>
+
+
+## Catalog Paths
+
+
+An Iceberg `CATALOG PATH` is namespace-qualified and is split at the last
+dot, so both two-level and three-level paths are accepted:
+
+```sql title="Iceberg Catalog Paths"
+CATALOG PATH 'ki_home.mytable'
+CATALOG PATH 'catalog.schema.flights'
+```
+
+An unqualified name, with no dot, is an error.
+
+<a id="iceberg-catalog"></a>
+
+
+## Catalogs
+
+
+A *catalog* holds the location of, and connection information for, a data lake
+catalog that is external to the database.  For Iceberg, a *catalog* is created
+with a `TABLE FORMAT` of `iceberg` and one of the following catalog types:
+
+| Catalog Type | `type` | Authentication |
+| --- | --- | --- |
+| Iceberg REST (Polaris, Tabular, etc.) | `rest` | Supplied by the *credential* & *data source* referenced by the *catalog*. |
+| AWS Glue Data Catalog | `glue` | Static access keys or an assumed IAM role; see below. |
+
+
+<Info>
+Hive Metastore, JDBC, and filesystem/Hadoop catalogs are not supported.
+</Info>
+
+*Catalogs* are created via the [/create/catalog](/content/api/rest/create_catalog_rest) native API
+call.
+
+
+### REST Catalog
+
+
+A REST *catalog* takes the catalog URI as its `LOCATION`.  The referenced
+*data source* supplies the connection details for the object store holding the
+data files.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 28-32) */}
+```sql SQL
+CREATE CATALOG iceberg_rest_cat
+LOCATION = 'https://iceberg.example.com/catalog'
+TABLE FORMAT = 'iceberg'
+TYPE = 'rest'
+DATASOURCE = datalake_ds;
+```
+
+{/* Source: /examples/python/datalake.py (lines 44-50) */}
+```python Python
+kinetica.create_catalog(
+    name = 'iceberg_rest_cat',
+    table_format = 'iceberg',
+    location = 'https://iceberg.example.com/catalog',
+    type = 'rest',
+    datasource = 'datalake_ds'
+)
+```
+
+</CodeGroup>
+
+
+### Glue Catalog
+
+
+For an AWS Glue Data Catalog, the *credential* and the *data source* have
+distinct roles:
+
+* the *credential* carries the Glue API keys--either static access keys
+  (`glue.access-key-id` & `glue.secret-access-key`, with an optional
+  `glue.session-token`) or an IAM role to assume (`glue.role-arn`)
+* the *data source* carries the `s3.*` keys used to read the data files
+
+The `region` & `warehouse` options are required; `LOCATION` is an optional
+Glue endpoint override.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 45-54) */}
+```sql SQL
+CREATE CATALOG iceberg_glue_cat
+TABLE FORMAT = 'iceberg'
+TYPE = 'glue'
+CREDENTIAL = glue_cred
+DATASOURCE = datalake_ds
+WITH OPTIONS
+(
+    region = 'us-east-1',
+    warehouse = 's3://example-warehouse/'
+);
+```
+
+{/* Source: /examples/python/datalake.py (lines 69-79) */}
+```python Python
+kinetica.create_catalog(
+    name = 'iceberg_glue_cat',
+    table_format = 'iceberg',
+    type = 'glue',
+    credential = 'glue_cred',
+    datasource = 'datalake_ds',
+    options = {
+        'region': 'us-east-1',
+        'warehouse': 's3://example-warehouse/'
+    }
+)
+```
+
+</CodeGroup>
+
+
+<Info>
+*Kinetica* requires either static access keys or a role ARN for Glue; the
+ambient AWS credential chain is not used.
+</Info>
+
+
+#### Glue Credential Vending
+
+
+Setting the `access_delegation` option to `vended_credentials` has Glue
+issue short-lived credentials for reading the data files, rather than using
+those on the *data source*.  A vending *catalog* does not require a
+*data source*; if one is given, its `s3.*` properties take precedence.  AWS
+Lake Formation is supported; deployments without it are unaffected.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 60-70) */}
+```sql SQL
+CREATE CATALOG iceberg_vended_cat
+LOCATION = 'https://glue.us-east-1.amazonaws.com'
+TABLE FORMAT = 'iceberg'
+TYPE = 'glue'
+CREDENTIAL = glue_cred
+WITH OPTIONS
+(
+    region = 'us-east-1',
+    warehouse = 's3://example-warehouse/',
+    access_delegation = 'vended_credentials'
+);
+```
+
+{/* Source: /examples/python/datalake.py (lines 86-97) */}
+```python Python
+kinetica.create_catalog(
+    name = 'iceberg_vended_cat',
+    table_format = 'iceberg',
+    location = 'https://glue.us-east-1.amazonaws.com',
+    type = 'glue',
+    credential = 'glue_cred',
+    options = {
+        'region': 'us-east-1',
+        'warehouse': 's3://example-warehouse/',
+        'access_delegation': 'vended_credentials'
+    }
+)
+```
+
+</CodeGroup>
+
+
+#### Glue Catalog Options
+
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `region` | Yes | AWS region of the Glue Data Catalog. |
+| `warehouse` | Yes | S3 warehouse location. |
+| `catalog_id` | No | Glue catalog ID, if not the account default. |
+| `access_delegation` | No | `datasource_credentials` (default) uses the credentials on the *data source* to read data files; `vended_credentials` uses the short-lived credentials handed back by Glue. |
+| `s3_endpoint` | No | S3 endpoint override, when vending credentials. |
+| `sts_endpoint` | No | STS endpoint override; defaults to the catalog `LOCATION`. |
+| `skip_validation` | No | Bypass validation of the connection to the remote source.  The default value is `false`. |

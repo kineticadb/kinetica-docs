@@ -1,0 +1,74 @@
+---
+title: DROP CATALOG
+---
+
+<a id="sql-drop-catalog"></a>
+
+
+Removes an existing [catalog](/content/sql/ddl/create-catalog#sql-create-catalog).
+
+```sql title="DROP CATALOG Syntax"
+DROP [EXTERNAL] [IF EXISTS] CATALOG <catalog name>
+```
+
+
+<Info>
+`EXTERNAL` & `IF EXISTS` both precede the `CATALOG` keyword,
+unlike the corresponding clauses on other `DROP` statements, and
+`EXTERNAL` must precede `IF EXISTS`.  No clauses follow the *catalog*
+name.
+</Info>
+
+
+<Warning>
+`IF EXISTS` is accepted by the parser but does not currently
+suppress the error raised when the named *catalog* does not exist.  Dropping
+a nonexistent *catalog* fails whether or not the clause is given.
+</Warning>
+
+
+<Note>
+A *catalog* cannot be dropped while
+[external tables](/content/sql/ddl/create-external-table#sql-create-ext-table) still reference it;
+the statement fails and names the dependent tables.  Drop those
+*external tables* first.
+</Note>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="EXTERNAL" id="external" defaultOpen>
+
+Optional keyword; has no effect.
+
+</Accordion>
+
+<Accordion title="IF EXISTS" id="if-exists" defaultOpen>
+
+Accepted, but does not currently suppress the error
+raised when the *catalog* does not exist.
+
+</Accordion>
+
+<Accordion title="&lt;catalog name&gt;" id="<catalog-name>" defaultOpen>
+
+Name of the existing *catalog* to remove.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To drop a *catalog*, after dropping the *external table* that references it:
+
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 150-151) */}
+```sql DROP CATALOG Example
+DROP TABLE example.ext_iceberg_flights;
+DROP CATALOG iceberg_rest_cat;
+```

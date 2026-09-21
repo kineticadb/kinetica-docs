@@ -17,6 +17,8 @@ CREATE [OR REPLACE] [REPLICATED] [TEMP] [LOGICAL | MATERIALIZED] EXTERNAL TABLE 
 	|
 	FILE PATHS <file paths>
 		[FORMAT <[DELIMITED] TEXT [(<delimited text options>)] | AVRO | JSON | PARQUET | SHAPEFILE>]
+	|
+	CATALOG PATH '<catalog path>'
 >
 [WITH OPTIONS (<load option name> = '<load option value>'[,...])]
 [<partition clause>]
@@ -33,11 +35,25 @@ of loading data into *Kinetica*, see [Data Loading Concepts](/content/load_data/
 </Info>
 
 
-The source data can be located in either of the following locations:
+The source data can be located in any of the following locations:
 
 * in [KiFS](/content/tools/kifs)
 * on a remote system, accessible via a
   [data source](/content/sql/ddl/create-data-source#sql-create-data-source)
+* in an external data lake, accessible via a
+  [catalog](/content/sql/ddl/create-catalog#sql-create-catalog)
+
+`REMOTE QUERY`, `FILE PATHS`, & `CATALOG PATH` are alternatives to each
+other; exactly one may be given.
+
+
+<Note>
+`CATALOG PATH` identifies a table within a data lake
+[catalog](/content/sql/ddl/create-catalog#sql-create-catalog), and requires `LOGICAL`.
+Creating a materialized *external table* over a *catalog* fails with
+*Datalake catalogs are only supported with logical external tables*.  See
+[Data Lake Catalogs](/content/concepts/datalake).
+</Note>
 
 A materialized *external table* (default) that uses a *data source* can perform
 a one-time load upon creation and optionally subscribe for updates on an
@@ -133,8 +149,9 @@ which will be loaded.
 
 
 <Info>
-This clause is mutually exclusive with the `FILE PATHS` clause, and is only
-applicable to JDBC *data sources*.
+This clause is mutually exclusive with the `FILE PATHS` &
+`CATALOG PATH` clauses, and is only applicable to JDBC
+*data sources*.
 </Info>
 
 The query should meet the following criteria:
@@ -170,8 +187,9 @@ the same format and data types.
 
 
 <Info>
-This clause is mutually exclusive with the `REMOTE QUERY` clause, and is not
-applicable to JDBC *data sources*.
+This clause is mutually exclusive with the `REMOTE QUERY` &
+`CATALOG PATH` clauses, and is not applicable to JDBC
+*data sources*.
 </Info>
 
 The form of a file path is dependent on the source referenced:
@@ -242,6 +260,29 @@ Supported formats include:
   </tbody>
 </table>
 </div>
+
+</Accordion>
+
+<Accordion title="CATALOG PATH" id="catalog-path" defaultOpen>
+
+Source table specification clause, where `<catalog path>` identifies a table within a data lake
+[catalog](/content/sql/ddl/create-catalog#sql-create-catalog) named by the `DATALAKE_CATALOG`
+[load option](/content/sql/ddl/create-external-table#sql-create-ext-table-load-opt).
+
+
+ <Info>
+ This clause is mutually exclusive with the `REMOTE QUERY` &
+ `FILE PATHS` clauses, and requires `LOGICAL`.
+ </Info>
+
+ The form of the path depends on the *catalog*'s table format:
+
+ * *Apache Iceberg*:  namespace-qualified, split at the last dot; both
+   `<schema>.<table>` & `<catalog>.<schema>.<table>` are accepted.
+ * *Delta Lake*:  must be a full three-level Unity Catalog path,
+   `<catalog>.<schema>.<table>`.
+
+ See [Data Lake Catalogs](/content/concepts/datalake) for details.
 
 </Accordion>
 
@@ -658,6 +699,20 @@ This option is not available for *data sources* configured for *JDBC*.
 Load data from the given [data source](/content/sql/ddl/create-data-source#sql-create-data-source).
 [Data source connect privilege](/content/sql/security#sql-security-priv-mgmt-ds-grant) is required when
 loading from a *data source*.
+
+</Accordion>
+
+<Accordion title="DATALAKE_CATALOG" id="datalake_catalog" defaultOpen>
+
+Name of the data lake [catalog](/content/sql/ddl/create-catalog#sql-create-catalog) containing the table
+identified by the `CATALOG PATH` clause.
+
+
+<Info>
+Only applicable to `CREATE EXTERNAL TABLE`; a
+[LOAD INTO](/content/sql/load#sql-load-file-server) cannot read from a
+*catalog*.
+</Info>
 
 </Accordion>
 

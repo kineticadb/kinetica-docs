@@ -1,0 +1,276 @@
+---
+title: Data Lake Catalogs
+---
+
+<a id="datalake"></a>
+
+
+*Kinetica* can query tables managed in an external data lake, reading them
+through the *catalog* that owns them rather than by pointing at the underlying
+data files directly.  This allows *Kinetica* to honor each table's current
+state, schema, and partition layout as the data lake evolves, without the table
+having to be redefined in the database.
+
+Data lake access is **read-only**.  A data lake table is queried through a
+[logical external table](/content/concepts/external_tables); it cannot be written
+to, created, or dropped from *Kinetica*.
+
+Querying a data lake table takes three objects:
+
+1. A [credential](/content/concepts/credentials) - holds the authentication details
+   for the *catalog* &, where applicable, the object store
+2. A [catalog](/content/concepts/datalake#datalake-catalog) - holds the location of, and
+   connection information for, the data lake catalog
+3. A [logical external table](/content/concepts/datalake#datalake-external-table) - maps one
+   data lake table into *Kinetica* for querying
+
+This page covers the behavior common to every supported table format.  See the
+format-specific pages for *catalog* configuration, catalog path rules, and
+supported features.
+
+
+<a id="datalake-formats"></a>
+
+
+## Supported Formats
+
+
+| Table Format | `TABLE FORMAT` | Catalog Type(s) | Details |
+| --- | --- | --- | --- |
+| Apache Iceberg | `iceberg` | `rest`, `glue` | [Apache Iceberg](/content/concepts/iceberg) |
+| Delta Lake | `delta` | `unity` | [Delta Lake](/content/concepts/delta) |
+
+
+<Info>
+Apache Hudi is not supported.  For Apache Iceberg, Hive Metastore, JDBC, and
+filesystem/Hadoop catalogs are not supported.
+</Info>
+
+<a id="datalake-catalog"></a>
+
+
+## Catalogs
+
+
+A *catalog* holds the location of, and connection information for, a data lake
+catalog that is external to the database.  Each *catalog* is created with a
+`TABLE FORMAT` identifying the table format it serves and a `TYPE`
+identifying the catalog implementation; only the combinations listed in
+[Supported Formats](/content/concepts/datalake#datalake-formats) are accepted.
+
+*Catalogs* are created via the [/create/catalog](/content/api/rest/create_catalog_rest) native API
+call.  The credential shape and options each catalog type requires differ
+considerably by format:
+
+* [Apache Iceberg catalogs](/content/concepts/iceberg#iceberg-catalog)
+* [Delta Lake catalogs](/content/concepts/delta#delta-catalog)
+
+The `skip_validation` option, which bypasses validation of the connection to
+the remote source, is common to all catalog types and defaults to `false`.
+
+
+<a id="datalake-external-table"></a>
+
+
+## External Tables
+
+
+A data lake table is mapped into *Kinetica* as a *logical external table*.  The
+`CATALOG PATH` clause identifies the table within the *catalog*, and the
+`datalake_catalog` option names the *catalog* to resolve it against.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 119-124) */}
+```sql SQL
+CREATE LOGICAL EXTERNAL TABLE example.ext_iceberg_flights
+CATALOG PATH 'sales.flights'
+WITH OPTIONS
+(
+    DATALAKE_CATALOG = 'iceberg_rest_cat'
+);
+```
+
+{/* Source: /examples/python/datalake.py (lines 149-157) */}
+```python Python
+kinetica.create_table_external(
+    table_name = 'example.ext_iceberg_flights',
+    filepaths = [],
+    options = {
+        'external_table_type': 'logical',
+        'datalake_catalog': 'iceberg_rest_cat',
+        'datalake_path': 'sales.flights'
+    }
+)
+```
+
+</CodeGroup>
+
+
+<Note>
+`LOGICAL` must be given explicitly.  The default *external table* type is
+*materialized*, which is not available for data lake tables, so omitting
+`LOGICAL` fails with an error rather than defaulting to a logical table.
+</Note>
+
+
+<Note>
+The accepted form of the catalog path differs by table format; see
+[Iceberg catalog paths](/content/concepts/iceberg#iceberg-path) &
+[Delta Lake catalog paths](/content/concepts/delta#delta-path).
+</Note>
+
+
+<Info>
+In the native API, the catalog path is given as the `datalake_path` option
+of [/create/table/external](/content/api/rest/create_table_external_rest).
+</Info>
+
+The following *external table* features are not available for data lake tables,
+in either format:
+
+* `SUBSCRIBE`
+* transformations
+* text search columns
+
+Column projection is applied when the underlying data files are read, rather
+than during scan planning.
+
+
+<a id="datalake-privileges"></a>
+
+
+## Required Privileges
+
+
+A *catalog* is resolved on every query against a data lake *external table*,
+not only when the table is created, so the following are required on an ongoing
+basis:
+
+* read permission on the *catalog*
+* [connect permission](/content/sql/security#sql-security-priv-mgmt-ds-grant) on the
+  *data source* the *catalog* uses
+* [read permission](/content/sql/security#sql-security-priv-mgmt-cred-grant) on the
+  *credentials* used by the *catalog* & its *data source*
+
+Creating or dropping a *catalog* requires catalog administration permission.
+
+
+<Warning>
+A missing privilege is not reported as a permission error.  Without read
+permission on the *catalog*, the *catalog* is reported as not found.
+Without connect permission on the *data source*, the *catalog* is built with
+no object store connection details at all, which surfaces later as an
+obscure object store failure rather than as a permission message.  Grant
+these permissions explicitly rather than diagnosing that symptom as a
+storage misconfiguration.
+</Warning>
+
+<a id="datalake-snapshot"></a>
+
+
+<a id="snapshot-version-selection"></a>
+## Snapshot & Version Selection
+
+
+Queries always read the table's current state--the latest Iceberg snapshot, or
+the latest Delta Lake version.
+
+
+<Note>
+The `datalake_snapshot` option of
+[/create/table/external](/content/api/rest/create_table_external_rest) is not implemented for either
+table format and has no effect.  There is no way to pin an *external table*
+to a specific snapshot or version.
+</Note>
+
+<a id="datalake-type-mapping"></a>
+
+
+## Data Type Mapping
+
+
+Data lake column types are mapped to *Kinetica* [types](/content/concepts/types) as
+follows.  The mapping itself is shared across table formats; what differs is
+which source type names each format can produce, noted per row.
+
+| Data Lake Type | Kinetica Type | Notes |
+| --- | --- | --- |
+| `boolean` | `boolean` |  |
+| `byte` | `int8` | Delta Lake only. |
+| `short` | `int16` | Delta Lake only. |
+| `int` / `integer` | `int` | `integer` is the Delta Lake spelling. |
+| `long` | `long` |  |
+| `float` | `float` |  |
+| `double` | `double` |  |
+| `date` | `date` |  |
+| `time` | `time` | Iceberg only. |
+| `timestamp` | `timestamp` |  |
+| `timestamp_ntz` | `timestamp` | Delta Lake only. |
+| `timestamptz` | `timestamp` | Iceberg only.  The timezone distinction is not preserved. |
+| `binary` | `bytes` |  |
+| `fixed` | `bytes` | Iceberg only. |
+| `string` | `string` |  |
+| `uuid` | `uuid` | Iceberg only. |
+| `decimal(P,S)` | `decimal` | Mapped to the smallest *Kinetica* decimal type that holds *P* digits; precisions too large for any of them fall back to `double`, which is lossy. |
+| `list<T>` | `array` / `json` | Mapped to `array` when *T* is `boolean`, `int`, `long`, `float`, `double`, or `string`; any other element type is mapped to `json`. |
+| `struct`, `map` | `json` |  |
+| `geography`, `geometry` | `geometry` | Iceberg only. |
+
+A column whose type is not listed above will cause creation of the
+*external table* to fail, rather than being silently dropped.
+
+Three mappings are lossy and worth noting:
+
+* `timestamptz` & `timestamp_ntz` both map to the same *Kinetica*
+  `timestamp` as a plain `timestamp`; the distinction is not preserved.
+* A `decimal` whose precision exceeds that of the largest *Kinetica* decimal
+  type falls back to `double`.  This preserves magnitude rather than
+  truncating high-order digits, but loses precision, and is not reported as a
+  warning.
+* `struct` & `map` columns--and `list` columns whose elements are not
+  simple scalars--are readable as `json`, not as structured columns.
+
+
+<a id="datalake-tuning"></a>
+
+
+<a id="caching-tuning"></a>
+## Caching & Tuning
+
+
+*Kinetica* caches data lake table metadata, to avoid re-reading it from the
+*catalog* on every query.  The cache is governed by the following
+[configuration](/content/config) parameters:
+
+| Configuration Parameter | Default | Description |
+| --- | --- | --- |
+| `datalake.table_metadata_cache_enabled` | `true` | Master switch for the table-metadata cache.  When false, every query reloads the table metadata and rebuilds the table object. |
+| `datalake.table_metadata_cache_size` | `256` | Maximum number of cached table instances across all *catalogs*.  Each entry also holds parsed metadata, so this is the setting with the greatest memory impact. |
+| `datalake.table_metadata_cache_ttl` | `60` | Time-to-live, in seconds, for a cached table entry. After this, the next use reloads the table from the *catalog*. |
+| `datalake.table_metadata_cache_snapshot_check` | `false` | When true, validate the cached table's snapshot or version against the *catalog* on every use, at the cost of one extra request per query. |
+| `datalake.catalog_connection_cache_size` | `16` | Maximum number of cached *catalog* connections. Does not affect the S3 connection pool. |
+| `iceberg.manifest_cache_enabled` | `true` | **Apache Iceberg only.**  Retention of parsed manifest & manifest-list entries.  When false, manifests are re-fetched and re-parsed on every scan.  Disable only if memory pressure is a concern.  Delta Lake has no equivalent setting. |
+
+Because table metadata is cached for the duration of
+`datalake.table_metadata_cache_ttl`, a query can read a state that is up to
+that stale.  Where eventual consistency is not acceptable, enable
+`datalake.table_metadata_cache_snapshot_check`, which validates the cached
+entry against the *catalog* on every use.
+
+Note that `iceberg.manifest_cache_enabled` applies per cached table and is
+therefore subordinate to `datalake.table_metadata_cache_enabled`; disabling
+the latter makes the former moot.
+
+All of these parameters can be changed at runtime via
+[/alter/system/properties](/content/api/rest/alter_system_properties_rest) and are reported by
+`SHOW SYSTEM PROPERTIES`.
+
+
+<Note>
+The property names differ by surface.  The configuration file and
+`SHOW SYSTEM PROPERTIES` use a dotted form
+(`iceberg.manifest_cache_enabled`), while the
+[/alter/system/properties](/content/api/rest/alter_system_properties_rest) property map uses an underscored
+form (`iceberg_manifest_cache_enabled`).
+</Note>

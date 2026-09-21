@@ -1,0 +1,288 @@
+---
+title: CREATE CATALOG
+---
+
+<a id="sql-create-catalog"></a>
+
+
+Creates a new [data lake catalog](/content/concepts/datalake), which holds
+the location & connection information for an *Apache Iceberg* or *Delta Lake*
+catalog that is external to the database.
+
+```sql title="CREATE CATALOG Syntax"
+CREATE [OR REPLACE] [EXTERNAL] CATALOG <catalog name>
+[LOCATION = '<catalog uri>']
+TABLE FORMAT = '<table format>'
+TYPE = '<catalog type>'
+[CREDENTIAL = [<schema name>.]<credential name>]
+[DATASOURCE = [<schema name>.]<data source name>]
+[WITH OPTIONS (<option name> = '<option value>'[,...])]
+```
+
+The clause order shown is fixed; `TABLE FORMAT` must precede `TYPE`, and
+`WITH OPTIONS` must be last.  `TABLE FORMAT` & `TYPE` are required; the
+remaining clauses are optional.
+
+
+<Info>
+There is no `IF NOT EXISTS` clause; use `OR REPLACE` to replace
+an existing *catalog*.
+</Info>
+
+The following `TABLE FORMAT` & `TYPE` combinations are supported:
+
+| Table Format | Catalog Type | Description |
+| --- | --- | --- |
+| `iceberg` | `rest` | *Apache Iceberg* REST catalog |
+| `iceberg` | `glue` | *AWS Glue* Data Catalog |
+| `delta` | `unity` | *Delta Lake* *Unity Catalog* |
+
+
+<Info>
+Other combinations, and other table formats such as *Apache Hudi*,
+are rejected.
+</Info>
+
+
+<Note>
+A *catalog* must be given either a `DATASOURCE` or an
+`access_delegation` of `vended_credentials`; supplying neither fails
+with *access_delegation required when datasource is not available*.
+</Note>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="OR REPLACE" id="or-replace" defaultOpen>
+
+Any existing *catalog* with the same name will be dropped before creating
+this one.  As there is no `ALTER CATALOG` statement, this is how an
+existing *catalog* is modified.
+
+</Accordion>
+
+<Accordion title="EXTERNAL" id="external" defaultOpen>
+
+Optional keyword; has no effect on the *catalog* created.
+
+</Accordion>
+
+<Accordion title="&lt;catalog name&gt;" id="<catalog-name>" defaultOpen>
+
+Name of the *catalog* to create; must adhere to the supported
+[naming criteria](/content/sql/naming#sql-naming-criteria).  Cannot be
+schema-qualified.
+
+</Accordion>
+
+<Accordion title="LOCATION" id="location" defaultOpen>
+
+URI of the external catalog.  Optional; its meaning depends on the catalog
+type--see [Format-Specific Syntax](/content/sql/ddl/create-catalog#sql-create-catalog-syntax).
+
+</Accordion>
+
+<Accordion title="TABLE FORMAT" id="table-format" defaultOpen>
+
+Required.  Table format the *catalog* serves.
+
+</Accordion>
+
+<Accordion title="TYPE" id="type" defaultOpen>
+
+Required.  Catalog implementation.  Must pair with `TABLE FORMAT` as
+listed above.
+
+</Accordion>
+
+<Accordion title="CREDENTIAL" id="credential" defaultOpen>
+
+Name of the [credential](/content/sql/ddl/create-credential#sql-create-credential) used to
+authenticate to the external catalog.  May be schema-qualified.
+
+</Accordion>
+
+<Accordion title="DATASOURCE" id="datasource" defaultOpen>
+
+Name of the [data source](/content/sql/ddl/create-data-source#sql-create-data-source) supplying the
+object store connection for the data files.  May be schema-qualified.
+
+</Accordion>
+
+</AccordionGroup>
+
+<a id="sql-catalog-opts"></a>
+
+
+## Catalog Options
+
+
+The following options may be given in the `WITH OPTIONS` clause:
+
+<AccordionGroup>
+
+<Accordion title="access_delegation" id="access_delegation" defaultOpen>
+
+How *Kinetica* authenticates to the object store holding the data files.
+
+* `datasource_credentials` *(default)* - use the credentials on the
+  `DATASOURCE`
+* `vended_credentials` - use short-lived credentials issued by the
+  external catalog
+
+</Accordion>
+
+<Accordion title="recreate" id="recreate" defaultOpen>
+
+Whether to replace an existing *catalog* of the same name.
+
+</Accordion>
+
+<Accordion title="skip_validation" id="skip_validation" defaultOpen>
+
+Whether to bypass validation of the connection to the external catalog.
+The default value is `false`.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<Warning>
+Option names are not validated.  Any option not listed above is
+passed through to the *catalog*'s credential & object store property maps
+unchanged, so a misspelled option name is silently ignored rather than
+reported as an error.
+</Warning>
+
+Connection properties specific to a catalog type--such as `region` &
+`warehouse` for *AWS Glue*--are supplied this way; see
+[Format-Specific Syntax](/content/sql/ddl/create-catalog#sql-create-catalog-syntax).
+
+<a id="sql-create-catalog-syntax"></a>
+
+
+## Format-Specific Syntax
+
+
+### Apache Iceberg (REST)
+
+
+The `LOCATION` is the REST catalog URI, and the `DATASOURCE` supplies the
+object store connection for the data files.
+
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 28-32) */}
+```sql CREATE CATALOG (Iceberg REST) Example
+CREATE CATALOG iceberg_rest_cat
+LOCATION = 'https://iceberg.example.com/catalog'
+TABLE FORMAT = 'iceberg'
+TYPE = 'rest'
+DATASOURCE = datalake_ds;
+```
+
+
+<a id="apache-iceberg-aws-glue"></a>
+### Apache Iceberg (AWS Glue)
+
+
+For *AWS Glue*, the `CREDENTIAL` carries the Glue API keys and the
+`DATASOURCE` carries the object store keys.  The `region` & `warehouse`
+options are required; `LOCATION` is an optional Glue endpoint override.
+
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 45-54) */}
+```sql CREATE CATALOG (Iceberg Glue) Example
+CREATE CATALOG iceberg_glue_cat
+TABLE FORMAT = 'iceberg'
+TYPE = 'glue'
+CREDENTIAL = glue_cred
+DATASOURCE = datalake_ds
+WITH OPTIONS
+(
+    region = 'us-east-1',
+    warehouse = 's3://example-warehouse/'
+);
+```
+
+Setting `access_delegation` to `vended_credentials` has *Glue* issue
+short-lived credentials for reading the data files, and requires no
+`DATASOURCE`:
+
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 60-70) */}
+```sql CREATE CATALOG (Iceberg Glue, Vended Credentials) Example
+CREATE CATALOG iceberg_vended_cat
+LOCATION = 'https://glue.us-east-1.amazonaws.com'
+TABLE FORMAT = 'iceberg'
+TYPE = 'glue'
+CREDENTIAL = glue_cred
+WITH OPTIONS
+(
+    region = 'us-east-1',
+    warehouse = 's3://example-warehouse/',
+    access_delegation = 'vended_credentials'
+);
+```
+
+
+<a id="delta-lake-unity-catalog"></a>
+### Delta Lake (Unity Catalog)
+
+
+*Unity Catalog* authenticates with a bearer token.  There is no token
+*credential* type, so the token is given in the `WITH OPTIONS` clause of a
+`rest` *credential* with an empty `SECRET`:
+
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 76-82) */}
+```sql CREATE CREDENTIAL (Unity Catalog) Example
+CREATE CREDENTIAL unity_cred
+TYPE = 'rest',
+SECRET = ''
+WITH OPTIONS
+(
+    'token' = '<unity catalog bearer token>'
+);
+```
+
+The `LOCATION` is the *Unity Catalog* workspace URL; a trailing
+`/api/2.1/unity-catalog` is accepted and ignored.
+
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 87-92) */}
+```sql CREATE CATALOG (Delta Lake Unity) Example
+CREATE CATALOG delta_unity_cat
+LOCATION = 'https://unity.example.com'
+TABLE FORMAT = 'delta'
+TYPE = 'unity'
+CREDENTIAL = unity_cred
+DATASOURCE = datalake_ds;
+```
+
+
+## Examples
+
+
+To replace an existing *catalog*, which is how a *catalog* is modified in the
+absence of an `ALTER CATALOG` statement:
+
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 110-114) */}
+```sql CREATE OR REPLACE CATALOG Example
+CREATE OR REPLACE CATALOG iceberg_rest_cat
+LOCATION = 'https://iceberg.example.com/catalog/v2'
+TABLE FORMAT = 'iceberg'
+TYPE = 'rest'
+DATASOURCE = datalake_ds;
+```
+
+To create a [logical external table](/content/sql/ddl/create-external-table#sql-create-ext-table) over a
+table in a *catalog*:
+
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 119-124) */}
+```sql CREATE EXTERNAL TABLE over a Catalog Example
+CREATE LOGICAL EXTERNAL TABLE example.ext_iceberg_flights
+CATALOG PATH 'sales.flights'
+WITH OPTIONS
+(
+    DATALAKE_CATALOG = 'iceberg_rest_cat'
+);
+```
