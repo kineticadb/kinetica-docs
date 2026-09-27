@@ -1,6 +1,6 @@
 ---
 title: Geospatial Queries
-sidebarTitle: Geospatial Performance Optimization
+sidebarTitle: Geospatial Queries
 ---
 
 <a id="geo-partitioning"></a>
@@ -47,7 +47,7 @@ The partitioned table is partitioned on the geohash of the flight path data
 points with a precision of 2, which partitions the data into 135 different
 groups.
 
-{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 15-23 25-36) */}
+{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 15-23) */}
 ```sql
 CREATE OR REPLACE TABLE example_geospatial.flights_nongeopartitioned
 (
@@ -58,7 +58,10 @@ CREATE OR REPLACE TABLE example_geospatial.flights_nongeopartitioned
 	eta_mins INT,
 	flight_time LONG
 )
+```
 
+{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 26-36) */}
+```sql
 CREATE OR REPLACE TABLE example_geospatial.flights_geopartitioned
 (
 	"from" VARCHAR(8),
@@ -74,13 +77,16 @@ AUTOMATIC
 
 Then, load them up with 10 times the original flight data.
 
-{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 41-44 46-50) */}
+{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 41-44) */}
 ```sql
 INSERT INTO example_geospatial.flights_nongeopartitioned
 SELECT "from", "to", x, y, eta_mins, timestamp
 FROM demo.flights, ITER
 WHERE i < 10
+```
 
+{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 47-50) */}
+```sql
 INSERT INTO example_geospatial.flights_geopartitioned
 SELECT "from", "to", x, y, eta_mins, timestamp
 FROM demo.flights, ITER
@@ -112,7 +118,7 @@ CREATE OR REPLACE REPLICATED TABLE example_geospatial.nyct2010
 {/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 75-76) */}
 ```sql
 LOAD INTO example_geospatial.nyct2010
-FROM FILE PATH 'kifs://geo_data/nyct2010.csv';
+FROM FILE PATH 'kifs://geo_data/nyct2010.csv'
 ```
 
 
@@ -128,7 +134,7 @@ the geospatially partitioned table, and one using the non-partitioned table.
 
 Non-partitioned query:
 
-{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 86-96) */}
+{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 87-97) */}
 ```sql
 SELECT
 	"from",
@@ -154,7 +160,7 @@ Query Execution Time: 0.453 s
 
 Partitioned query:
 
-{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 101-111) */}
+{/* Source: /examples/sql/geospatial_chunk_skipping.kisql (lines 102-112) */}
 ```sql
 SELECT
 	"from",

@@ -19,16 +19,6 @@ TYPE = '<catalog type>'
 [WITH OPTIONS (<option name> = '<option value>'[,...])]
 ```
 
-The clause order shown is fixed; `TABLE FORMAT` must precede `TYPE`, and
-`WITH OPTIONS` must be last.  `TABLE FORMAT` & `TYPE` are required; the
-remaining clauses are optional.
-
-
-<Info>
-There is no `IF NOT EXISTS` clause; use `OR REPLACE` to replace
-an existing *catalog*.
-</Info>
-
 The following `TABLE FORMAT` & `TYPE` combinations are supported:
 
 | Table Format | Catalog Type | Description |
@@ -38,16 +28,9 @@ The following `TABLE FORMAT` & `TYPE` combinations are supported:
 | `delta` | `unity` | *Delta Lake* *Unity Catalog* |
 
 
-<Info>
-Other combinations, and other table formats such as *Apache Hudi*,
-are rejected.
-</Info>
-
-
 <Note>
 A *catalog* must be given either a `DATASOURCE` or an
-`access_delegation` of `vended_credentials`; supplying neither fails
-with *access_delegation required when datasource is not available*.
+`access_delegation` of `vended_credentials`.
 </Note>
 
 
@@ -101,14 +84,14 @@ listed above.
 <Accordion title="CREDENTIAL" id="credential" defaultOpen>
 
 Name of the [credential](/content/sql/ddl/create-credential#sql-create-credential) used to
-authenticate to the external catalog.  May be schema-qualified.
+authenticate to the external catalog.
 
 </Accordion>
 
 <Accordion title="DATASOURCE" id="datasource" defaultOpen>
 
 Name of the [data source](/content/sql/ddl/create-data-source#sql-create-data-source) supplying the
-object store connection for the data files.  May be schema-qualified.
+object store connection for the data files.
 
 </Accordion>
 
@@ -150,14 +133,6 @@ The default value is `false`.
 
 </AccordionGroup>
 
-
-<Warning>
-Option names are not validated.  Any option not listed above is
-passed through to the *catalog*'s credential & object store property maps
-unchanged, so a misspelled option name is silently ignored rather than
-reported as an error.
-</Warning>
-
 Connection properties specific to a catalog type--such as `region` &
 `warehouse` for *AWS Glue*--are supplied this way; see
 [Format-Specific Syntax](/content/sql/ddl/create-catalog#sql-create-catalog-syntax).
@@ -174,13 +149,13 @@ Connection properties specific to a catalog type--such as `region` &
 The `LOCATION` is the REST catalog URI, and the `DATASOURCE` supplies the
 object store connection for the data files.
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 28-32) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 29-33) */}
 ```sql CREATE CATALOG (Iceberg REST) Example
 CREATE CATALOG iceberg_rest_cat
 LOCATION = 'https://iceberg.example.com/catalog'
 TABLE FORMAT = 'iceberg'
 TYPE = 'rest'
-DATASOURCE = datalake_ds;
+DATASOURCE = datalake_ds
 ```
 
 
@@ -192,7 +167,7 @@ For *AWS Glue*, the `CREDENTIAL` carries the Glue API keys and the
 `DATASOURCE` carries the object store keys.  The `region` & `warehouse`
 options are required; `LOCATION` is an optional Glue endpoint override.
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 45-54) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 48-57) */}
 ```sql CREATE CATALOG (Iceberg Glue) Example
 CREATE CATALOG iceberg_glue_cat
 TABLE FORMAT = 'iceberg'
@@ -203,14 +178,14 @@ WITH OPTIONS
 (
     region = 'us-east-1',
     warehouse = 's3://example-warehouse/'
-);
+)
 ```
 
 Setting `access_delegation` to `vended_credentials` has *Glue* issue
 short-lived credentials for reading the data files, and requires no
 `DATASOURCE`:
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 60-70) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 64-74) */}
 ```sql CREATE CATALOG (Iceberg Glue, Vended Credentials) Example
 CREATE CATALOG iceberg_vended_cat
 LOCATION = 'https://glue.us-east-1.amazonaws.com'
@@ -222,7 +197,7 @@ WITH OPTIONS
     region = 'us-east-1',
     warehouse = 's3://example-warehouse/',
     access_delegation = 'vended_credentials'
-);
+)
 ```
 
 
@@ -234,7 +209,7 @@ WITH OPTIONS
 *credential* type, so the token is given in the `WITH OPTIONS` clause of a
 `rest` *credential* with an empty `SECRET`:
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 76-82) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 81-87) */}
 ```sql CREATE CREDENTIAL (Unity Catalog) Example
 CREATE CREDENTIAL unity_cred
 TYPE = 'rest',
@@ -242,20 +217,20 @@ SECRET = ''
 WITH OPTIONS
 (
     'token' = '<unity catalog bearer token>'
-);
+)
 ```
 
 The `LOCATION` is the *Unity Catalog* workspace URL; a trailing
 `/api/2.1/unity-catalog` is accepted and ignored.
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 87-92) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 93-98) */}
 ```sql CREATE CATALOG (Delta Lake Unity) Example
 CREATE CATALOG delta_unity_cat
 LOCATION = 'https://unity.example.com'
 TABLE FORMAT = 'delta'
 TYPE = 'unity'
 CREDENTIAL = unity_cred
-DATASOURCE = datalake_ds;
+DATASOURCE = datalake_ds
 ```
 
 
@@ -265,24 +240,24 @@ DATASOURCE = datalake_ds;
 To replace an existing *catalog*, which is how a *catalog* is modified in the
 absence of an `ALTER CATALOG` statement:
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 110-114) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 118-122) */}
 ```sql CREATE OR REPLACE CATALOG Example
 CREATE OR REPLACE CATALOG iceberg_rest_cat
 LOCATION = 'https://iceberg.example.com/catalog/v2'
 TABLE FORMAT = 'iceberg'
 TYPE = 'rest'
-DATASOURCE = datalake_ds;
+DATASOURCE = datalake_ds
 ```
 
 To create a [logical external table](/content/sql/ddl/create-external-table#sql-create-ext-table) over a
 table in a *catalog*:
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 119-124) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 128-133) */}
 ```sql CREATE EXTERNAL TABLE over a Catalog Example
 CREATE LOGICAL EXTERNAL TABLE example.ext_iceberg_flights
 CATALOG PATH 'sales.flights'
 WITH OPTIONS
 (
     DATALAKE_CATALOG = 'iceberg_rest_cat'
-);
+)
 ```

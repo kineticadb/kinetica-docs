@@ -82,24 +82,38 @@ added by the user.
 #### Installing Function Environment Libraries
 
 
-To install *Python* packages within the *Kinetica* UDF environment, create a
-*function environment* and install the packages within it.
+To install *Python* packages within the *Kinetica* UDF environment, first
+create a *function environment*:
 
 <CodeGroup>
 
-{/* Source: /examples/sql/udf/udf_env.kisql (lines 88 99-101) */}
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 89) */}
 ```sql SQL
-CREATE FUNCTION ENVIRONMENT udfe_st;
+CREATE FUNCTION ENVIRONMENT udfe_st
+```
 
+{/* Source: /examples/python/udf/udf_st_manager.py (lines 21 24 104) */}
+```python Python
+PROC_ENV_NAME = 'udfe_st'
+
+kinetica.create_environment(environment_name = PROC_ENV_NAME)
+```
+
+</CodeGroup>
+
+Then install the packages within it:
+
+<CodeGroup>
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 102-103) */}
+```sql SQL
 ALTER FUNCTION ENVIRONMENT udfe_st
 INSTALL PACKAGE 'sentence-transformers'
 ```
 
-{/* Source: /examples/python/udf/udf_st_manager.py (lines 21 24 104-105 107-111) */}
+{/* Source: /examples/python/udf/udf_st_manager.py (lines 21 24 107-111) */}
 ```python Python
-_ENV_NAME = 'udfe_st'
-
-kinetica.create_environment(environment_name = PROC_ENV_NAME)
+PROC_ENV_NAME = 'udfe_st'
 
 kinetica.alter_environment(
     environment_name = PROC_ENV_NAME,
@@ -115,7 +129,7 @@ Afterwards, when creating the UDF, assign the environment to the UDF.
 
 <CodeGroup>
 
-{/* Source: /examples/sql/udf/udf_env.kisql (lines 126-131) */}
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 128-133) */}
 ```sql SQL
 CREATE FUNCTION udf_st
 MODE = 'distributed'
@@ -147,7 +161,7 @@ To uninstall *Python* packages from a given *function environment*:
 
 <CodeGroup>
 
-{/* Source: /examples/sql/udf/udf_env.kisql (lines 218-219) */}
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 220-221) */}
 ```sql SQL
 ALTER FUNCTION ENVIRONMENT udfe_st
 UNINSTALL PACKAGE 'sentence-transformers'
@@ -155,7 +169,7 @@ UNINSTALL PACKAGE 'sentence-transformers'
 
 {/* Source: /examples/python/udf/udf_st_manager.py (lines 21 24 297-301) */}
 ```python Python
-_ENV_NAME = 'udfe_st'
+PROC_ENV_NAME = 'udfe_st'
 
 kinetica.alter_environment(
     environment_name = PROC_ENV_NAME,
@@ -171,7 +185,7 @@ To delete a *function environment*:
 
 <CodeGroup>
 
-{/* Source: /examples/sql/udf/udf_env.kisql (lines 225) */}
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 227) */}
 ```sql SQL
 DROP FUNCTION ENVIRONMENT udfe_st
 ```
