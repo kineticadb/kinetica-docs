@@ -32,7 +32,13 @@ description: "WorkerList — Kinetica Java API"
 </div>
 <hr />
 <div className="type-signature"><span className="modifiers">public class </span><span className="element-name type-name-label">WorkerList</span> <span className="extends-implements">extends <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/ArrayList.html" title="class or interface in java.util" className="external-link">ArrayList</a>&lt;<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/net/URL.html" title="class or interface in java.net" className="external-link">URL</a>&gt;</span></div>
-<div className="block">A list of worker URLs to use for multi-head operations.</div>
+<div className="block">
+A list of worker URLs to use for multi-head ingest and retrieval. 
+<p>The addresses belong to the <span className="b">connection</span>, not to this list. A <a href="/content/api/java/com/gpudb/GPUdb" title="class in com.gpudb"><code>GPUdb</code></a> instance discovers each cluster's rank addresses, applies <a href="/content/api/java/com/gpudb/GPUdbBase.Options#setHostnameRegex(java.lang.String)"><code>the connection's hostname regex</code></a> to them, and keeps the result per cluster; this class is a view onto that, held by a <a href="/content/api/java/com/gpudb/BulkInserter" title="class in com.gpudb"><code>BulkInserter</code></a> or <a href="/content/api/java/com/gpudb/RecordRetriever" title="class in com.gpudb"><code>RecordRetriever</code></a>. </p>
+<p>It does not resolve or filter addresses of its own. A filter has no coherent meaning here, because it cannot survive a failover: one tuned for a cluster's addressing may match nothing on the next, and multi-head objects fail over with the connection. Set the regex on the connection instead, where it is applied to every cluster as that cluster is discovered. </p>
+<p>The one choice that <span className="i">is</span> meaningful per object is declining multi-head altogether -- see <a href="#%3Cinit%3E()"><code>WorkerList()</code></a>. That names an intent rather than an address, and an intent transfers across clusters where a list of addresses does not. </p>
+<p>Note entry <code>i</code> of this list is rank <code>i + 1</code>; the head rank is not a member, and a rank removed from the cluster keeps its slot as <code>null</code>. The worker indices in the shard routing table are rank numbers, so compacting the list would silently misroute every rank above the hole.</p>
+</div>
 <div className="dl notes">
 <div className="dt">See Also:</div>
 <div className="dd">
@@ -62,23 +68,32 @@ description: "WorkerList — Kinetica Java API"
 <div className="table-header col-last">Description</div>
 <div className="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E()" className="member-name-link">WorkerList</a>()</code></div>
 <div className="col-last even-row-color">
-<div className="block">Creates an empty <a href="/content/api/java/com/gpudb/WorkerList" title="class in com.gpudb"><code>WorkerList</code></a> that can be populated manually with worker URLs to support multi-head operations.</div>
+<div className="block">Creates an empty <a href="/content/api/java/com/gpudb/WorkerList" title="class in com.gpudb"><code>WorkerList</code></a>, which declines multi-head operations for the <a href="/content/api/java/com/gpudb/BulkInserter" title="class in com.gpudb"><code>BulkInserter</code></a> or <a href="/content/api/java/com/gpudb/RecordRetriever" title="class in com.gpudb"><code>RecordRetriever</code></a> it is given to.</div>
 </div>
 <div className="col-constructor-name odd-row-color"><code><a href="#%3Cinit%3E(com.gpudb.GPUdb)" className="member-name-link">WorkerList</a><wbr />(<a href="/content/api/java/com/gpudb/GPUdb" title="class in com.gpudb">GPUdb</a>&nbsp;gpudb)</code></div>
 <div className="col-last odd-row-color">
-<div className="block">Creates a <a href="/content/api/java/com/gpudb/WorkerList" title="class in com.gpudb"><code>WorkerList</code></a> and automatically populates it with the worker URLs from GPUdb to support multi-head operations.</div>
+<div className="block">Creates a <a href="/content/api/java/com/gpudb/WorkerList" title="class in com.gpudb"><code>WorkerList</code></a> from the worker rank addresses the given connection has already discovered for the cluster it is currently on.</div>
 </div>
 <div className="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(com.gpudb.GPUdb,java.lang.String)" className="member-name-link">WorkerList</a><wbr />(<a href="/content/api/java/com/gpudb/GPUdb" title="class in com.gpudb">GPUdb</a>&nbsp;gpudb, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&nbsp;ipPrefix)</code></div>
 <div className="col-last even-row-color">
-<div className="block">Creates a <a href="/content/api/java/com/gpudb/WorkerList" title="class in com.gpudb"><code>WorkerList</code></a> and automatically populates it with the worker URLs from GPUdb to support multi-head operations.</div>
+<div className="block">
+<span className="deprecated-label">Deprecated.</span>
+<div className="deprecation-comment">the prefix is ignored; see <a href="#%3Cinit%3E(com.gpudb.GPUdb,java.util.regex.Pattern)"><code>WorkerList(GPUdb, Pattern)</code></a> for why, and <a href="/content/api/java/com/gpudb/GPUdbBase.Options#setHostnameRegex(java.lang.String)"><code>GPUdbBase.Options.setHostnameRegex(java.lang.String)</code></a> for the replacement.</div>
+</div>
 </div>
 <div className="col-constructor-name odd-row-color"><code><a href="#%3Cinit%3E(com.gpudb.GPUdb,java.util.regex.Pattern)" className="member-name-link">WorkerList</a><wbr />(<a href="/content/api/java/com/gpudb/GPUdb" title="class in com.gpudb">GPUdb</a>&nbsp;gpudb, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/regex/Pattern.html" title="class or interface in java.util.regex" className="external-link">Pattern</a>&nbsp;ipRegex)</code></div>
 <div className="col-last odd-row-color">
-<div className="block">Creates a <a href="/content/api/java/com/gpudb/WorkerList" title="class in com.gpudb"><code>WorkerList</code></a> and automatically populates it with the worker URLs from GPUdb to support multi-head operations.</div>
+<div className="block">
+<span className="deprecated-label">Deprecated.</span>
+<div className="deprecation-comment">the regex is ignored.</div>
+</div>
 </div>
 <div className="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(java.util.List)" className="member-name-link">WorkerList</a><wbr />(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/List.html" title="class or interface in java.util" className="external-link">List</a>&lt;<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/net/URL.html" title="class or interface in java.net" className="external-link">URL</a>&gt;&nbsp;urls)</code></div>
 <div className="col-last even-row-color">
-<div className="block">Creates a <a href="/content/api/java/com/gpudb/WorkerList" title="class in com.gpudb"><code>WorkerList</code></a> populated with the given URLs.</div>
+<div className="block">
+<span className="deprecated-label">Deprecated.</span>
+<div className="deprecation-comment">for internal use.</div>
+</div>
 </div>
 </div>
 </div>
@@ -87,26 +102,24 @@ description: "WorkerList — Kinetica Java API"
 <div className="section method-summary" id="method-summary">
 <h2>Method Summary</h2>
 <div id="method-summary-table">
-<div className="table-tabs" role="tablist" aria-orientation="horizontal"><button id="method-summary-table-tab0" role="tab" aria-selected="true" aria-controls="method-summary-table.tabpanel" tabIndex="0" className="active-table-tab">All Methods</button><button id="method-summary-table-tab2" role="tab" aria-selected="false" aria-controls="method-summary-table.tabpanel" tabIndex="-1" className="table-tab">Instance Methods</button><button id="method-summary-table-tab4" role="tab" aria-selected="false" aria-controls="method-summary-table.tabpanel" tabIndex="-1" className="table-tab">Concrete Methods</button></div>
+<div className="table-tabs" role="tablist" aria-orientation="horizontal"><button id="method-summary-table-tab0" role="tab" aria-selected="true" aria-controls="method-summary-table.tabpanel" tabIndex="0" className="active-table-tab">All Methods</button><button id="method-summary-table-tab2" role="tab" aria-selected="false" aria-controls="method-summary-table.tabpanel" tabIndex="-1" className="table-tab">Instance Methods</button><button id="method-summary-table-tab4" role="tab" aria-selected="false" aria-controls="method-summary-table.tabpanel" tabIndex="-1" className="table-tab">Concrete Methods</button><button id="method-summary-table-tab6" role="tab" aria-selected="false" aria-controls="method-summary-table.tabpanel" tabIndex="-1" className="table-tab">Deprecated Methods</button></div>
 <div id="method-summary-table.tabpanel" role="tabpanel" aria-labelledby="method-summary-table-tab0">
 <div className="summary-table three-column-summary">
 <div className="table-header col-first">Modifier and Type</div>
 <div className="table-header col-second">Method</div>
 <div className="table-header col-last">Description</div>
-<div className="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/regex/Pattern.html" title="class or interface in java.util.regex" className="external-link">Pattern</a></code></div>
-<div className="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#getIpRegex()" className="member-name-link">getIpRegex</a>()</code></div>
-<div className="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
-<div className="block">Gets the regular expression used to filter this worker list, if one were specified during creation.</div>
+<div className="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4 method-summary-table-tab6"><code><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/regex/Pattern.html" title="class or interface in java.util.regex" className="external-link">Pattern</a></code></div>
+<div className="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4 method-summary-table-tab6"><code><a href="#getIpRegex()" className="member-name-link">getIpRegex</a>()</code></div>
+<div className="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4 method-summary-table-tab6">
+<div className="block">
+<span className="deprecated-label">Deprecated.</span>
+<div className="deprecation-comment">a worker list has no regex of its own.</div>
+</div>
 </div>
 <div className="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>boolean</code></div>
 <div className="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#isMultiHeadEnabled()" className="member-name-link">isMultiHeadEnabled</a>()</code></div>
 <div className="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
-<div className="block">Checks whether multi-head I/O is enabled in the server configuration.</div>
-</div>
-<div className="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>boolean</code></div>
-<div className="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#isQueriedUrlList()" className="member-name-link">isQueriedUrlList</a>()</code></div>
-<div className="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
-<div className="block">Checks whether this worker list was created by querying the given server for the URLs, or instead, whether they were given explicitly.</div>
+<div className="block">Whether multi-head operations can be used with this list.</div>
 </div>
 </div>
 </div>
@@ -145,54 +158,80 @@ description: "WorkerList — Kinetica Java API"
 <div className="section detail" id="&lt;init&gt;()">
 <h3>WorkerList</h3>
 <div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="element-name">WorkerList</span>()</div>
-<div className="block">Creates an empty <a href="/content/api/java/com/gpudb/WorkerList" title="class in com.gpudb"><code>WorkerList</code></a> that can be populated manually with worker URLs to support multi-head operations. Note that worker URLs must be added in rank order, starting with rank 1, and all worker ranks must be included; otherwise operations may fail for certain data types.</div>
+<div className="block">
+Creates an empty <a href="/content/api/java/com/gpudb/WorkerList" title="class in com.gpudb"><code>WorkerList</code></a>, which declines multi-head operations for the <a href="/content/api/java/com/gpudb/BulkInserter" title="class in com.gpudb"><code>BulkInserter</code></a> or <a href="/content/api/java/com/gpudb/RecordRetriever" title="class in com.gpudb"><code>RecordRetriever</code></a> it is given to. 
+<p>That object will route through the head node for its lifetime. The choice is authoritative: it is not undone when the worker list is rebuilt after a failover or a shard rebalance. </p>
+<p>This is the way to decline multi-head for a single object while keeping the connection's fail-over. Disabling auto-discovery is not equivalent -- it also stops the client discovering the other clusters in an HA ring, so it costs fail-over as well. </p>
+<p>Nothing inside the API may use this constructor: it is a caller's way of expressing an intent, and an internal use would silently pin its own list to head-node-only.</p>
+</div>
 </div>
 </li>
 <li>
 <div className="section detail" id="&lt;init&gt;(java.util.List)">
 <h3>WorkerList</h3>
-<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="element-name">WorkerList</span><wbr /><span className="parameters">(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/List.html" title="class or interface in java.util" className="external-link">List</a>&lt;<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/net/URL.html" title="class or interface in java.net" className="external-link">URL</a>&gt;&nbsp;urls)</span></div>
-<div className="block">Creates a <a href="/content/api/java/com/gpudb/WorkerList" title="class in com.gpudb"><code>WorkerList</code></a> populated with the given URLs.</div>
+<div className="member-signature"><span className="annotations"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Deprecated.html" title="class or interface in java.lang" className="external-link">@Deprecated</a> </span><span className="modifiers">public</span>&nbsp;<span className="element-name">WorkerList</span><wbr /><span className="parameters">(<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/List.html" title="class or interface in java.util" className="external-link">List</a>&lt;<a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/net/URL.html" title="class or interface in java.net" className="external-link">URL</a>&gt;&nbsp;urls)</span></div>
+<div className="deprecation-block">
+<span className="deprecated-label">Deprecated.</span>
+<div className="deprecation-comment">for internal use. Pass <code>null</code> to a <a href="/content/api/java/com/gpudb/BulkInserter" title="class in com.gpudb"><code>BulkInserter</code></a> or <a href="/content/api/java/com/gpudb/RecordRetriever" title="class in com.gpudb"><code>RecordRetriever</code></a> to use the connection's own addresses, or <a href="#%3Cinit%3E()"><code>WorkerList()</code></a> to decline multi-head.</div>
+</div>
+<div className="block">
+Creates a <a href="/content/api/java/com/gpudb/WorkerList" title="class in com.gpudb"><code>WorkerList</code></a> populated with the given URLs. 
+<p>The list is honored as given, but is <span className="b">not maintained</span>: after the connection fails over or back, the object adopts that cluster's addresses instead, because a list of one cluster's rank addresses says nothing about another's.</p>
+</div>
+<div className="dl notes">
+<div className="dt">Parameters:</div>
+<div className="dd"><code>urls</code> - the worker rank URLs, with <code>null</code> in the slot of any rank removed from the cluster</div>
+</div>
 </div>
 </li>
 <li>
 <div className="section detail" id="&lt;init&gt;(com.gpudb.GPUdb)">
 <h3>WorkerList</h3>
 <div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="element-name">WorkerList</span><wbr /><span className="parameters">(<a href="/content/api/java/com/gpudb/GPUdb" title="class in com.gpudb">GPUdb</a>&nbsp;gpudb)</span> throws <span className="exceptions"><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></span></div>
-<div className="block">Creates a <a href="/content/api/java/com/gpudb/WorkerList" title="class in com.gpudb"><code>WorkerList</code></a> and automatically populates it with the worker URLs from GPUdb to support multi-head operations. (If the specified GPUdb instance has multi-head operations disabled, the worker list will be empty and multi-head operations will not be used.) Note that in some cases, workers may be configured to use more than one IP address, not all of which may be accessible to the client; this constructor uses the first IP returned by the server for each worker. To override this behavior, use one of the alternate constructors that accepts an <a href="#%3Cinit%3E(com.gpudb.GPUdb,java.util.regex.Pattern)"><code>IP regex</code></a> or an <a href="#%3Cinit%3E(com.gpudb.GPUdb,java.lang.String)"><code>IP prefix</code></a>.</div>
+<div className="block">
+Creates a <a href="/content/api/java/com/gpudb/WorkerList" title="class in com.gpudb"><code>WorkerList</code></a> from the worker rank addresses the given connection has already discovered for the cluster it is currently on. 
+<p>This reads the connection's addresses; it does not query the server or re-resolve them. They were filtered through the connection's hostname regex when that cluster was discovered, so they already reflect it. </p>
+<p>If the connection has no worker addresses for the current cluster -- multi-head is off at the server, or the cluster advertises none this client can use -- the list is empty and the object using it operates through the head node.</p>
+</div>
 <div className="dl notes">
 <div className="dt">Parameters:</div>
-<div className="dd"><code>gpudb</code> - the <a href="/content/api/java/com/gpudb/GPUdb" title="class in com.gpudb"><code>GPUdb</code></a> instance from which to obtain the worker URLs</div>
+<div className="dd"><code>gpudb</code> - the <a href="/content/api/java/com/gpudb/GPUdb" title="class in com.gpudb"><code>GPUdb</code></a> instance whose addresses to use</div>
 <div className="dt">Throws:</div>
-<div className="dd"><code><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></code> - if an error occurs during the request for worker URLs</div>
+<div className="dd"><code><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></code> - never thrown; retained for source compatibility</div>
 </div>
 </div>
 </li>
 <li>
 <div className="section detail" id="&lt;init&gt;(com.gpudb.GPUdb,java.util.regex.Pattern)">
 <h3>WorkerList</h3>
-<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="element-name">WorkerList</span><wbr /><span className="parameters">(<a href="/content/api/java/com/gpudb/GPUdb" title="class in com.gpudb">GPUdb</a>&nbsp;gpudb, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/regex/Pattern.html" title="class or interface in java.util.regex" className="external-link">Pattern</a>&nbsp;ipRegex)</span> throws <span className="exceptions"><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></span></div>
-<div className="block">Creates a <a href="/content/api/java/com/gpudb/WorkerList" title="class in com.gpudb"><code>WorkerList</code></a> and automatically populates it with the worker URLs from GPUdb to support multi-head operations. (If the specified GPUdb instance has multi-head operations disabled, the worker list will be empty and multi-head operations will not be used.) Note that in some cases, workers may be configured to use more than one IP address, not all of which may be accessible to the client; the optional <code>ipRegex</code> parameter can be used in such cases to filter for an IP range that is accessible, e.g., a regex of <code>"192\\.168\\..\*"</code> will use worker IP addresses in the 192.168.\* range.</div>
+<div className="member-signature"><span className="annotations"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Deprecated.html" title="class or interface in java.lang" className="external-link">@Deprecated</a> </span><span className="modifiers">public</span>&nbsp;<span className="element-name">WorkerList</span><wbr /><span className="parameters">(<a href="/content/api/java/com/gpudb/GPUdb" title="class in com.gpudb">GPUdb</a>&nbsp;gpudb, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/regex/Pattern.html" title="class or interface in java.util.regex" className="external-link">Pattern</a>&nbsp;ipRegex)</span> throws <span className="exceptions"><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></span></div>
+<div className="deprecation-block">
+<span className="deprecated-label">Deprecated.</span>
+<div className="deprecation-comment">the regex is ignored. Address filtering belongs on the connection -- see <a href="/content/api/java/com/gpudb/GPUdbBase.Options#setHostnameRegex(java.lang.String)"><code>GPUdbBase.Options.setHostnameRegex(java.lang.String)</code></a> -- because a filter at this scope cannot survive a failover: one tuned for a cluster's addressing may match nothing on the next. This constructor behaves as <a href="#%3Cinit%3E(com.gpudb.GPUdb)"><code>WorkerList(GPUdb)</code></a>.</div>
+</div>
 <div className="dl notes">
 <div className="dt">Parameters:</div>
-<div className="dd"><code>gpudb</code> - the <a href="/content/api/java/com/gpudb/GPUdb" title="class in com.gpudb"><code>GPUdb</code></a> instance from which to obtain the worker URLs</div>
-<div className="dd"><code>ipRegex</code> - optional IP regex to match</div>
+<div className="dd"><code>gpudb</code> - the <a href="/content/api/java/com/gpudb/GPUdb" title="class in com.gpudb"><code>GPUdb</code></a> instance whose addresses to use</div>
+<div className="dd"><code>ipRegex</code> - ignored</div>
 <div className="dt">Throws:</div>
-<div className="dd"><code><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></code> - if an error occurs during the request for worker URLs or no IP addresses matching the IP regex could be found for one or more workers</div>
+<div className="dd"><code><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></code> - never thrown; retained for source compatibility</div>
 </div>
 </div>
 </li>
 <li>
 <div className="section detail" id="&lt;init&gt;(com.gpudb.GPUdb,java.lang.String)">
 <h3>WorkerList</h3>
-<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="element-name">WorkerList</span><wbr /><span className="parameters">(<a href="/content/api/java/com/gpudb/GPUdb" title="class in com.gpudb">GPUdb</a>&nbsp;gpudb, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&nbsp;ipPrefix)</span> throws <span className="exceptions"><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></span></div>
-<div className="block">Creates a <a href="/content/api/java/com/gpudb/WorkerList" title="class in com.gpudb"><code>WorkerList</code></a> and automatically populates it with the worker URLs from GPUdb to support multi-head operations. (If the specified GPUdb instance has multi-head operations disabled, the worker list will be empty and multi-head operations will not be used.) Note that in some cases, workers may be configured to use more than one IP address, not all of which may be accessible to the client; the optional <code>ipPrefix</code> parameter can be used in such cases to filter for an IP range that is accessible, e.g., a prefix of <code>"192.168."</code> will use worker IP addresses in the 192.168.\* range.</div>
+<div className="member-signature"><span className="annotations"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Deprecated.html" title="class or interface in java.lang" className="external-link">@Deprecated</a> </span><span className="modifiers">public</span>&nbsp;<span className="element-name">WorkerList</span><wbr /><span className="parameters">(<a href="/content/api/java/com/gpudb/GPUdb" title="class in com.gpudb">GPUdb</a>&nbsp;gpudb, <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a>&nbsp;ipPrefix)</span> throws <span className="exceptions"><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></span></div>
+<div className="deprecation-block">
+<span className="deprecated-label">Deprecated.</span>
+<div className="deprecation-comment">the prefix is ignored; see <a href="#%3Cinit%3E(com.gpudb.GPUdb,java.util.regex.Pattern)"><code>WorkerList(GPUdb, Pattern)</code></a> for why, and <a href="/content/api/java/com/gpudb/GPUdbBase.Options#setHostnameRegex(java.lang.String)"><code>GPUdbBase.Options.setHostnameRegex(java.lang.String)</code></a> for the replacement.</div>
+</div>
 <div className="dl notes">
 <div className="dt">Parameters:</div>
-<div className="dd"><code>gpudb</code> - the <a href="/content/api/java/com/gpudb/GPUdb" title="class in com.gpudb"><code>GPUdb</code></a> instance from which to obtain the worker URLs</div>
-<div className="dd"><code>ipPrefix</code> - optional IP prefix to match</div>
+<div className="dd"><code>gpudb</code> - the <a href="/content/api/java/com/gpudb/GPUdb" title="class in com.gpudb"><code>GPUdb</code></a> instance whose addresses to use</div>
+<div className="dd"><code>ipPrefix</code> - ignored</div>
 <div className="dt">Throws:</div>
-<div className="dd"><code><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></code> - if an error occurs during the request for worker URLs or no IP addresses matching the IP prefix could be found for one or more workers</div>
+<div className="dd"><code><a href="/content/api/java/com/gpudb/GPUdbException" title="class in com.gpudb">GPUdbException</a></code> - never thrown; retained for source compatibility</div>
 </div>
 </div>
 </li>
@@ -206,11 +245,14 @@ description: "WorkerList — Kinetica Java API"
 <li>
 <div className="section detail" id="getIpRegex()">
 <h3>getIpRegex</h3>
-<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/regex/Pattern.html" title="class or interface in java.util.regex" className="external-link">Pattern</a></span>&nbsp;<span className="element-name">getIpRegex</span>()</div>
-<div className="block">Gets the regular expression used to filter this worker list, if one were specified during creation.</div>
+<div className="member-signature"><span className="annotations"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/Deprecated.html" title="class or interface in java.lang" className="external-link">@Deprecated</a> </span><span className="modifiers">public</span>&nbsp;<span className="return-type"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/util/regex/Pattern.html" title="class or interface in java.util.regex" className="external-link">Pattern</a></span>&nbsp;<span className="element-name">getIpRegex</span>()</div>
+<div className="deprecation-block">
+<span className="deprecated-label">Deprecated.</span>
+<div className="deprecation-comment">a worker list has no regex of its own. Addresses are filtered by the connection; see <a href="/content/api/java/com/gpudb/GPUdbBase.Options#getHostnameRegex()"><code>GPUdbBase.Options.getHostnameRegex()</code></a>.</div>
+</div>
 <div className="dl notes">
 <div className="dt">Returns:</div>
-<div className="dd">the regular expression used to create this worker list.</div>
+<div className="dd">always <code>null</code></div>
 </div>
 </div>
 </li>
@@ -218,21 +260,10 @@ description: "WorkerList — Kinetica Java API"
 <div className="section detail" id="isMultiHeadEnabled()">
 <h3>isMultiHeadEnabled</h3>
 <div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type">boolean</span>&nbsp;<span className="element-name">isMultiHeadEnabled</span>()</div>
-<div className="block">Checks whether multi-head I/O is enabled in the server configuration.</div>
+<div className="block">Whether multi-head operations can be used with this list.</div>
 <div className="dl notes">
 <div className="dt">Returns:</div>
-<div className="dd">a boolean indicating whether multi-head I/O is enabled on the server.</div>
-</div>
-</div>
-</li>
-<li>
-<div className="section detail" id="isQueriedUrlList()">
-<h3>isQueriedUrlList</h3>
-<div className="member-signature"><span className="modifiers">public</span>&nbsp;<span className="return-type">boolean</span>&nbsp;<span className="element-name">isQueriedUrlList</span>()</div>
-<div className="block">Checks whether this worker list was created by querying the given server for the URLs, or instead, whether they were given explicitly.</div>
-<div className="dl notes">
-<div className="dt">Returns:</div>
-<div className="dd">a boolean indicating whether this worker list was created via a server query.</div>
+<div className="dd">whether the list names any worker rank</div>
 </div>
 </div>
 </li>

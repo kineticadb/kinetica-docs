@@ -3,11 +3,13 @@ title: External Tables
 ---
 
 An *external table* is a database object whose source data is located in one or
-more files external to the database.  The source data can be located in either
-of the following locations:
+more files external to the database.  The source data can be located in any of
+the following locations:
 
 * in [KiFS](/content/tools/kifs)
 * on a remote system, accessible via a [data source](/content/concepts/data_sources)
+* in an external data lake, accessible via a
+  [data lake catalog](/content/concepts/datalake)
 
 *External tables* are created via the [/create/table/external](/content/api/rest/create_table_external_rest)
 native API call.  For details on interfacing with *external tables* from SQL,
@@ -39,6 +41,33 @@ to pull data from the external source:
   performance penalty for reparsing & reloading the data from source files upon
   each query.
 
+<a id="external-tables-datalake"></a>
+
+
+## Data Lake Tables
+
+
+An *external table* can also read a table managed in an external data
+lake--*Apache Iceberg* or *Delta Lake*--through the *catalog* that owns it,
+rather than by pointing at individual data files.  See
+[Data Lake Catalogs](/content/concepts/datalake) for the *catalog* configuration,
+supported features, and data type mapping.
+
+Data lake tables differ from other *external tables* in several respects:
+
+* they are always *logical external tables*; the *materialized* variant is not
+  available for them
+* they are read-only, and cannot subscribe for updates
+* the source table is identified by a `CATALOG PATH` within a *catalog*,
+  rather than by file paths within a *data source*
+
+
+<Note>
+The default *external table* type is *materialized*, so `LOGICAL` must be
+given explicitly when creating a data lake *external table*.  Omitting it
+fails with an error rather than defaulting to a logical table.
+</Note>
+
 
 ## Data File Formats
 
@@ -57,6 +86,14 @@ There are several source data file formats supported for *external tables*:
 Regardless of the format selected, one or more source data fields can be used in
 the creation of the *external table*.  Date/time fields can have their source
 formats specified.
+
+
+<Info>
+The formats above describe individual source *files*.  *Apache Iceberg* &
+*Delta Lake* are *table* formats, in which a *catalog* describes a table
+composed of many such files; see
+[Data Lake Catalogs](/content/concepts/datalake).
+</Info>
 
 
 ## Table Features
@@ -112,6 +149,10 @@ creation and optionally subscribe for updates on an interval, depending on the
 
 A subscription can be paused, resumed, canceled, or dropped by calling
 [/alter/table](/content/api/rest/alter_table_rest) on the *external table*.
+
+A data lake *catalog* also uses a *data source* to reach the object store
+holding its data files, but a data lake *external table* cannot subscribe for
+updates.
 
 
 ## Ingestion Mode

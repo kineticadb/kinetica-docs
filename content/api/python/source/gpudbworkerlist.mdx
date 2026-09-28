@@ -23,7 +23,7 @@ description: "gpudbworkerlist — Kinetica Python API"
 </div>
 <div className="dt">ip\_regex (<span className="em">str</span>) –</div>
 <div className="dd">
-<p>Optional IP regular expression to match for the worker URLs.</p>
+<p>Optional regular expression used to pick one address per worker rank, where a rank advertises more than one. Matching is anchored at the START and NOT at the end, so a pattern selects every address it is a prefix of: <span className="cite">10.0.0.1</span> selects 10.0.0.1, 10.0.0.10 and 10.0.0.123 alike. End the pattern with <span className="cite">$</span> to name one address exactly. A rank with no matching address is a hard failure, not a fallback.</p>
 </div>
 <div className="dt">use\_head\_node\_only (<span className="em">bool</span>) –</div>
 <div className="dd">
@@ -33,7 +33,7 @@ description: "gpudbworkerlist — Kinetica Python API"
 </div>
 </div>
 <div className="dl py method">
-<div className="dt sig sig-object py" id="gpudb_multihead_io.GPUdbWorkerList.validate_ip_address"> <span className="sig-name descname"><span className="pre">validate\_ip\_address</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">ip\_address</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb_multihead_io.py#L437"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dt sig sig-object py" id="gpudb_multihead_io.GPUdbWorkerList.validate_ip_address"> <span className="sig-name descname"><span className="pre">validate\_ip\_address</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">ip\_address</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb_multihead_io.py#L405"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
 <div className="dd">
 <p>Validates the input string as an IP address (accepts IPv4 only).</p>
 <p><strong>Parameters</strong></p>
@@ -46,19 +46,23 @@ description: "gpudbworkerlist — Kinetica Python API"
 </div>
 </div>
 <div className="dl py method">
-<div className="dt sig sig-object py" id="gpudb_multihead_io.GPUdbWorkerList.get_worker_urls"> <span className="sig-name descname"><span className="pre">get\_worker\_urls</span></span><span className="sig-paren">(</span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb_multihead_io.py#L457"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dt sig sig-object py" id="gpudb_multihead_io.GPUdbWorkerList.get_worker_urls"> <span className="sig-name descname"><span className="pre">get\_worker\_urls</span></span><span className="sig-paren">(</span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb_multihead_io.py#L425"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
 <div className="dd">
-<p>Returns a list of the URLs for the GPUdb workers.</p>
+<p>Returns the list of URLs for the GPUdb worker ranks.</p>
+<p>The list is indexed by worker rank, so that the worker indices produced by the server’s shard routing table line up with it directly. <span className="cite">None</span> signifies a rank that has been removed from the cluster – it keeps its slot instead of being dropped, because dropping it would shift every later rank by one and misroute sharded records.</p>
+<p>This list is meant to be handed to <a className="reference internal" href="/content/api/python/source/gpudbingestor#gpudb_multihead_io.GPUdbIngestor" title="gpudb_multihead_io.GPUdbIngestor"><code className="xref py py-class docutils literal notranslate"><span className="pre">GPUdbIngestor</span></code></a> or <a className="reference internal" href="/content/api/python/source/recordretriever#gpudb_multihead_io.RecordRetriever" title="gpudb_multihead_io.RecordRetriever"><code className="xref py py-class docutils literal notranslate"><span className="pre">RecordRetriever</span></code></a>, which understand the placeholder convention; anything that does walk it must skip the <span className="cite">None</span> entries rather than assume every element is a live worker.</p>
+<p>The list reflects the cluster’s rank layout at the time this worker list was built; re-read it after a topology change rather than caching it.</p>
 </div>
 </div>
 <div className="dl py method">
-<div className="dt sig sig-object py" id="gpudb_multihead_io.GPUdbWorkerList.is_multihead_enabled"> <span className="sig-name descname"><span className="pre">is\_multihead\_enabled</span></span><span className="sig-paren">(</span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb_multihead_io.py#L463"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dt sig sig-object py" id="gpudb_multihead_io.GPUdbWorkerList.is_multihead_enabled"> <span className="sig-name descname"><span className="pre">is\_multihead\_enabled</span></span><span className="sig-paren">(</span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb_multihead_io.py#L446"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
 <div className="dd">
 <p>Returns whether multi-head I/O is enabled at the server.</p>
+<p>Note that this reports the SERVER’s configuration, not this list’s shape. A list built with <span className="em">use\_head\_node\_only</span> still reports True against a multi-head-enabled server, because the server does offer multi-head; that attribute carries the caller’s own intent, and a consumer routing records must honor both.</p>
 </div>
 </div>
 <div className="dl py method">
-<div className="dt sig sig-object py" id="gpudb_multihead_io.GPUdbWorkerList.get_ip_regex"> <span className="sig-name descname"><span className="pre">get\_ip\_regex</span></span><span className="sig-paren">(</span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb_multihead_io.py#L469"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dt sig sig-object py" id="gpudb_multihead_io.GPUdbWorkerList.get_ip_regex"> <span className="sig-name descname"><span className="pre">get\_ip\_regex</span></span><span className="sig-paren">(</span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb_multihead_io.py#L459"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
 <div className="dd">
 <p>Returns the IP regex, if any, used to create the worker list.</p>
 </div>

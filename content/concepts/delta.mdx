@@ -1,0 +1,238 @@
+---
+title: Delta Lake
+sidebarTitle: Delta Lake
+---
+
+<a id="delta"></a>
+
+
+*Kinetica* can query tables managed in a
+[Delta Lake](https://delta.io/) data lake, reading them through the Unity
+Catalog that owns them.  Access is **read-only**; a Delta Lake table is queried
+through a [logical external table](/content/concepts/external_tables).
+
+This page covers the behavior specific to Delta Lake.  For the *catalog* &
+*external table* concepts, the data type mapping, and the metadata cache
+settings shared with Apache Iceberg, see
+[Data Lake Catalogs](/content/concepts/datalake).
+
+
+<a id="delta-support"></a>
+
+
+## Supported Features
+
+
+| Capability | Status | Notes |
+| --- | --- | --- |
+| Schema evolution | Name-based | Columns are matched by name; Delta Lake field IDs are not used for resolution, so a renamed column is not matched to its former values. |
+| Predicate pushdown | Supported | Files are pruned using the per-file statistics recorded in the transaction log.  A predicate the pruner cannot interpret degrades to a full scan; the filter is still applied, so results remain correct. |
+| Partition pruning | Supported | Partition values are pruned through the same statistics path as data columns. |
+| Partition transforms | Not applicable | Delta Lake partitions are identity-only. |
+| Deletion vectors | Supported | Expanded server-side. |
+| Equality deletes | Not applicable | Delta Lake has no equality-delete concept. |
+| Row count | **Not supported** | Determining a row count requires a full replay of the transaction log, so no row count is reported for a Delta Lake *external table*. |
+
+
+<Info>
+Queries always read the table's current version; see
+[Snapshot & Version Selection](/content/concepts/datalake#datalake-snapshot).
+</Info>
+
+<a id="delta-path"></a>
+
+
+## Catalog Paths
+
+
+A Delta Lake `CATALOG PATH` must be a full three-level Unity Catalog path:
+
+```sql title="Delta Lake Catalog Path"
+CATALOG PATH '<catalog>.<schema>.<table>'
+```
+
+
+<Note>
+Unlike Apache Iceberg, a two-level path is **not** accepted for Delta Lake
+and will fail with an error rather than being interpreted.
+</Note>
+
+<a id="delta-catalog"></a>
+
+
+## Catalogs
+
+
+Delta Lake tables are accessed through a Unity Catalog, created with a
+`TABLE FORMAT` of `delta` and a `TYPE` of `unity`.  *Catalogs* are
+created via the [/create/catalog](/content/api/rest/create_catalog_rest) native API call.
+
+
+### Create Credential
+
+
+Unity Catalog authenticates with a bearer token, and only a bearer token;
+neither OAuth nor access keys are used for the *catalog* itself.  There is no
+dedicated token credential type, so the token is carried in the ``WITH
+OPTIONS` clause of a `rest` *credential*, with an empty `SECRET``.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 81-87) */}
+```sql SQL
+CREATE CREDENTIAL unity_cred
+TYPE = 'rest',
+SECRET = ''
+WITH OPTIONS
+(
+    'token' = '<unity catalog bearer token>'
+)
+```
+
+{/* Source: /examples/python/datalake.py (lines 104-112) */}
+```python Python
+kinetica.create_credential(
+    credential_name = 'unity_cred',
+    type = 'rest',
+    identity = '',
+    secret = '',
+    options = {
+        'token': '<unity catalog bearer token>'
+    }
+)
+```
+
+</CodeGroup>
+
+
+### Create Catalog
+
+
+The `LOCATION` is the Unity Catalog workspace URL.  A trailing
+`/api/2.1/unity-catalog` is accepted and stripped, so either the bare
+workspace URL or the full REST URL may be given.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 93-98) */}
+```sql SQL
+CREATE CATALOG delta_unity_cat
+LOCATION = 'https://unity.example.com'
+TABLE FORMAT = 'delta'
+TYPE = 'unity'
+CREDENTIAL = unity_cred
+DATASOURCE = datalake_ds
+```
+
+{/* Source: /examples/python/datalake.py (lines 119-126) */}
+```python Python
+kinetica.create_catalog(
+    name = 'delta_unity_cat',
+    table_format = 'delta',
+    location = 'https://unity.example.com',
+    type = 'unity',
+    credential = 'unity_cred',
+    datasource = 'datalake_ds'
+)
+```
+
+</CodeGroup>
+
+
+<Info>
+The connection is validated when the *catalog* is created, so an incorrect
+URL or token fails at `CREATE CATALOG` rather than on first query.  This
+can be bypassed with the `skip_validation` option.
+</Info>
+
+An `http://` URL is permitted, for an on-premise or local Unity Catalog
+deployment; otherwise `https` is required.
+
+
+### Object Store Properties
+
+
+The *data source* supplies the connection details for the object store holding
+the data files.  For Delta Lake, only the following *data source* properties
+are honored:
+
+| Data Source Property | Purpose |
+| --- | --- |
+| `s3.endpoint` | Object store endpoint. |
+| `s3.region` | Object store region. |
+| `s3.access-key-id` | Access key ID. |
+| `s3.secret-access-key` | Secret access key. |
+
+
+<Note>
+Other `s3.*` properties that are honored for Apache Iceberg are silently
+ignored for Delta Lake.  A Delta Lake *catalog* against a non-AWS object
+store needs exactly the four properties above.
+</Note>
+
+
+### Credential Vending
+
+
+Setting the `access_delegation` option to `vended_credentials` has Unity
+Catalog issue short-lived credentials for reading the data files, rather than
+using those on the *data source*.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 104-112) */}
+```sql SQL
+CREATE CATALOG delta_vended_cat
+LOCATION = 'https://unity.example.com'
+TABLE FORMAT = 'delta'
+TYPE = 'unity'
+CREDENTIAL = unity_cred
+WITH OPTIONS
+(
+    access_delegation = 'vended_credentials'
+)
+```
+
+{/* Source: /examples/python/datalake.py (lines 133-142) */}
+```python Python
+kinetica.create_catalog(
+    name = 'delta_vended_cat',
+    table_format = 'delta',
+    location = 'https://unity.example.com',
+    type = 'unity',
+    credential = 'unity_cred',
+    options = {
+        'access_delegation': 'vended_credentials'
+    }
+)
+```
+
+</CodeGroup>
+
+
+<Info>
+Credential vending is supported for AWS only.  A Unity Catalog deployment
+that returns only Azure or GCP temporary credentials will yield no usable
+credentials.
+</Info>
+
+<a id="delta-limitations"></a>
+
+
+## Limitations
+
+
+In addition to the limitations shared with Apache Iceberg, the following apply
+to Delta Lake:
+
+* No row count is reported for a Delta Lake *external table*.
+* A `CATALOG PATH` must be a full three-level Unity Catalog path.
+* Column resolution is by name; field IDs are not used, so a renamed column is
+  not matched to its former values.
+* Only the four *data source* properties listed above are honored.
+* Credential vending is AWS-only.
+* Unity Catalog is the only supported catalog type, and bearer token the only
+  supported authentication.
+* `uuid`, `time`, `timestamptz`, `fixed`, `geography`, & `geometry`
+  columns cannot occur, as Delta Lake has no such types.
+* Partitions are identity-only; partition transforms do not apply.

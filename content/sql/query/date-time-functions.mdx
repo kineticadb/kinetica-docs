@@ -14,6 +14,47 @@ This section comprises the following functions:
   date/type conversions
 
 
+The date/time units these functions accept, and the spellings each one allows,
+are listed under [Date/Time Units](/content/sql/query/date-time-functions#sql-datetime-units).
+
+
+<a id="sql-datetime-units"></a>
+
+
+<a id="date-time-units"></a>
+## Date/Time Units
+
+
+Functions that take a date/time `unit` (or `part`) accept any of the following
+codes, which are case-insensitive.  The unit may be given unquoted or as a string
+literal.
+
+| Unit | Accepted Codes |
+| --- | --- |
+| Year | `YEAR`, `YEARS`, `YY`, `YYYY`, `SQL_TSI_YEAR` |
+| Quarter | `QUARTER`, `QUARTERS`, `QQ`, `Q`, `SQL_TSI_QUARTER` |
+| Month | `MONTH`, `MONTHS`, `MM`, `M`, `SQL_TSI_MONTH` |
+| Week | `WEEK`, `WEEKS`, `WK`, `WW`, `SQL_TSI_WEEK` |
+| Day | `DAY`, `DAYS`, `DD`, `D`, `SQL_TSI_DAY` |
+| Hour | `HOUR`, `HOURS`, `HH`, `SQL_TSI_HOUR` |
+| Minute | `MINUTE`, `MINUTES`, `MI`, `N`, `SQL_TSI_MINUTE` |
+| Second | `SECOND`, `SECONDS`, `SS`, `S`, `SQL_TSI_SECOND` |
+| Millisecond | `MILLISECOND`, `MILLISECONDS`, `MS`, `SQL_TSI_MILLISECOND` |
+| Weekday | `WEEKDAY`, `DAYOFWEEK`, `DW`, `W` |
+| Day of Year | `DAYOFYEAR`, `DY`, `Y` |
+
+The unit is optional in every function that takes one as its first argument,
+and defaults to `DAY`.  The one exception is `ST_TRACKDURATION`, which
+reports a duration rather than a date and so defaults to `MILLISECOND`.
+
+
+<Note>
+`WEEKDAY` and `DAYOFYEAR` (and their aliases) name a component of a date
+rather than a length of time, so there is no interval to add or truncate to.
+They are therefore only applicable to the functions that extract a component,
+such as `DATEPART`.
+</Note>
+
 <a id="sql-datetime-functions-base"></a>
 
 
@@ -69,12 +110,15 @@ epoch, pass the result of this function to `LONG()`
 
 </Accordion>
 
-<Accordion title="DATEADD (unit, amount, expr)" id="dateadd-unit-amount-expr" defaultOpen>
+<Accordion title="DATEADD ([unit,] amount, expr)" id="dateadd-unit-amount-expr" defaultOpen>
 
 Adds the positive or negative integral `amount` of `unit` date/time intervals to the date/time in
 `expr`
 
-The following date/time intervals are supported for `unit`:
+The default `unit` is `DAY`.
+
+The following date/time intervals are supported for `unit`, each of which
+also has the alternate codes listed in [Date/Time Units](/content/sql/query/date-time-functions#sql-datetime-units):
 
 
 <div>
@@ -303,10 +347,15 @@ Examples:
 
 </Accordion>
 
-<Accordion title="DATEPART(part, expr)" id="datepart-part-expr" defaultOpen>
+<Accordion title="DATEPART([part,] expr)" id="datepart-part-expr" defaultOpen>
 
-Returns the requested `part` of the date/time `expr`.  The `part` may be any of
-those specified in `DATE_TRUNC(part, expr)`, plus the following:
+Returns the requested `part` of the date/time `expr`.
+
+The default `part` is `DAY`.
+
+The `part` may be any of those specified in `DATE_TRUNC(part, expr)`, plus
+the following, each of which also has the alternate codes listed in
+[Date/Time Units](/content/sql/query/date-time-functions#sql-datetime-units):
 
 
 <div>
@@ -318,6 +367,14 @@ those specified in `DATE_TRUNC(part, expr)`, plus the following:
   </tr>
   </thead>
   <tbody>
+  <tr>
+    <td><code>WEEKDAY</code></td>
+    <td>Return the day of the week [<code>1</code> - <code>7</code>].</td>
+  </tr>
+  <tr>
+    <td><code>DAYOFYEAR</code></td>
+    <td>Return the day of the year [<code>1</code> - <code>366</code>].</td>
+  </tr>
   <tr>
     <td><code>SECS_SINCE_EPOCH</code></td>
     <td>Return the number of seconds since the epoch (1970-01-01).</td>
@@ -369,10 +426,14 @@ Examples:
 
 </Accordion>
 
-<Accordion title="DATE_TRUNC(part, expr)" id="date_trunc-part-expr" defaultOpen>
+<Accordion title="DATE_TRUNC([part,] expr)" id="date_trunc-part-expr" defaultOpen>
 
 Returns the date/time `expr` after truncating it beyond the given date/time `part`.
-The following date/time constants are supported for `part`:
+
+The default `part` is `DAY`.
+
+The following date/time constants are supported for `part`, each of which
+also has the alternate codes listed in [Date/Time Units](/content/sql/query/date-time-functions#sql-datetime-units):
 
 
 <div>
@@ -1027,12 +1088,15 @@ The result will be as follows:
 
 </Accordion>
 
-<Accordion title="TIMESTAMPADD (unit, amount, expr)" id="timestampadd-unit-amount-expr" defaultOpen>
+<Accordion title="TIMESTAMPADD ([unit,] amount, expr)" id="timestampadd-unit-amount-expr" defaultOpen>
 
 Adds the positive or negative integral `amount` of `unit` date/time intervals to the date/time in
 `expr`
 
-The following date/time intervals are supported for `unit`:
+The default `unit` is `DAY`.
+
+The following date/time intervals are supported for `unit`, each of which
+also has the alternate codes listed in [Date/Time Units](/content/sql/query/date-time-functions#sql-datetime-units):
 
 
 <div>
@@ -1156,13 +1220,15 @@ Examples:
 
 </Accordion>
 
-<Accordion title="TIMESTAMPDIFF (unit, begin, end)" id="timestampdiff-unit-begin-end" defaultOpen>
+<Accordion title="TIMESTAMPDIFF ([unit,] begin, end)" id="timestampdiff-unit-begin-end" defaultOpen>
 
 Calculates the difference between two date/time expressions, returning the result as an
 integral difference in the units specified; more precisely, how many whole date/time
 intervals of type `unit` need to be added to  (or subtracted from) `begin` to equal
 `end` (or get as close as possible **without** going past it) using the unit types and
 and rules specified in `TIMESTAMPADD`.
+
+The default `unit` is `DAY`.
 
 
 <Info>
@@ -1202,6 +1268,12 @@ Examples:
   </tbody>
 </table>
 </div>
+
+</Accordion>
+
+<Accordion title="TIMESTAMP_DIFF([unit,] begin, end)" id="timestamp_diff-unit-begin-end" defaultOpen>
+
+Alias for `TIMESTAMPDIFF([unit,] begin, end)`
 
 </Accordion>
 
