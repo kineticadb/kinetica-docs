@@ -5,3 +5,22 @@
 # Draft content
 drafts/
 *.draft.mdx
+
+# Example sources & downloadable data — 138 MB that Mintlify walks but never
+# serves.  Two mechanisms put this content on the site, and neither needs the
+# file present at serve time:
+#
+#   1. Inlined at conversion.  literalinclude resolves against the HUGO tree
+#      (docs/content/examples/), embedding the text straight into the MDX —
+#      1941 {/* Source: /examples/... */} blocks from 326 source files.
+#   2. Linked to GitHub.  Downloads point at raw.githubusercontent.com, not at
+#      this site (118 raw URLs + 9 blob links; zero local path references).
+#
+# So this directory is a GIT PAYLOAD, not site content: it must stay COMMITTED
+# so those raw.githubusercontent.com URLs resolve, but Mintlify has no reason to
+# traverse it.  Ignoring it took the walked tree from 297 MB to ~159 MB after
+# `npx mint dev` OOM'd against Node's 2 GB default heap.
+#
+# Tripwire: if a page ever switches from a GitHub URL to a relative link into
+# examples/, this ignore would silently 404 it.  Link to GitHub, or revisit this.
+content/examples/
