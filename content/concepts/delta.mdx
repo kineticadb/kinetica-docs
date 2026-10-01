@@ -73,20 +73,17 @@ created via the [/create/catalog](/content/api/rest/create_catalog_rest) native 
 
 Unity Catalog authenticates with a bearer token, and only a bearer token;
 neither OAuth nor access keys are used for the *catalog* itself.  There is no
-dedicated token credential type, so the token is carried in the ``WITH
-OPTIONS` clause of a `rest` *credential*, with an empty `SECRET``.
+dedicated token credential type, so the token is given as the `SECRET` of a
+`rest` *credential*; a `rest` *credential* carrying a `SECRET` & no
+`IDENTITY` is treated as a bearer token.
 
 <CodeGroup>
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 81-87) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 88-90) */}
 ```sql SQL
 CREATE CREDENTIAL unity_cred
 TYPE = 'rest',
-SECRET = ''
-WITH OPTIONS
-(
-    'token' = '<unity catalog bearer token>'
-)
+SECRET = '<unity catalog bearer token>'
 ```
 
 {/* Source: /examples/python/datalake.py (lines 104-112) */}
@@ -114,7 +111,7 @@ workspace URL or the full REST URL may be given.
 
 <CodeGroup>
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 93-98) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 96-101) */}
 ```sql SQL
 CREATE CATALOG delta_unity_cat
 LOCATION = 'https://unity.example.com'
@@ -180,7 +177,7 @@ using those on the *data source*.
 
 <CodeGroup>
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 104-112) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 111-117 119-120) */}
 ```sql SQL
 CREATE CATALOG delta_vended_cat
 LOCATION = 'https://unity.example.com'

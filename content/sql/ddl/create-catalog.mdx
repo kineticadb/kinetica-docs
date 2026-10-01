@@ -167,7 +167,7 @@ For *AWS Glue*, the `CREDENTIAL` carries the Glue API keys and the
 `DATASOURCE` carries the object store keys.  The `region` & `warehouse`
 options are required; `LOCATION` is an optional Glue endpoint override.
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 48-57) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 53-59 61-63) */}
 ```sql CREATE CATALOG (Iceberg Glue) Example
 CREATE CATALOG iceberg_glue_cat
 TABLE FORMAT = 'iceberg'
@@ -185,7 +185,7 @@ Setting `access_delegation` to `vended_credentials` has *Glue* issue
 short-lived credentials for reading the data files, and requires no
 `DATASOURCE`:
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 64-74) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 70-76 78-81) */}
 ```sql CREATE CATALOG (Iceberg Glue, Vended Credentials) Example
 CREATE CATALOG iceberg_vended_cat
 LOCATION = 'https://glue.us-east-1.amazonaws.com'
@@ -205,25 +205,21 @@ WITH OPTIONS
 ### Delta Lake (Unity Catalog)
 
 
-*Unity Catalog* authenticates with a bearer token.  There is no token
-*credential* type, so the token is given in the `WITH OPTIONS` clause of a
-`rest` *credential* with an empty `SECRET`:
+*Unity Catalog* authenticates with a bearer token.  The token is given as the
+`SECRET` of a `rest` *credential*; a `rest` *credential* with a `SECRET`
+& no `IDENTITY` is treated as a bearer token:
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 81-87) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 88-90) */}
 ```sql CREATE CREDENTIAL (Unity Catalog) Example
 CREATE CREDENTIAL unity_cred
 TYPE = 'rest',
-SECRET = ''
-WITH OPTIONS
-(
-    'token' = '<unity catalog bearer token>'
-)
+SECRET = '<unity catalog bearer token>'
 ```
 
 The `LOCATION` is the *Unity Catalog* workspace URL; a trailing
 `/api/2.1/unity-catalog` is accepted and ignored.
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 93-98) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 96-101) */}
 ```sql CREATE CATALOG (Delta Lake Unity) Example
 CREATE CATALOG delta_unity_cat
 LOCATION = 'https://unity.example.com'
@@ -240,7 +236,7 @@ DATASOURCE = datalake_ds
 To replace an existing *catalog*, which is how a *catalog* is modified in the
 absence of an `ALTER CATALOG` statement:
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 118-122) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 126-130) */}
 ```sql CREATE OR REPLACE CATALOG Example
 CREATE OR REPLACE CATALOG iceberg_rest_cat
 LOCATION = 'https://iceberg.example.com/catalog/v2'
@@ -252,7 +248,7 @@ DATASOURCE = datalake_ds
 To create a [logical external table](/content/sql/ddl/create-external-table#sql-create-ext-table) over a
 table in a *catalog*:
 
-{/* Source: /examples/sql/datalake/datalake.kisql (lines 128-133) */}
+{/* Source: /examples/sql/datalake/datalake.kisql (lines 136-141) */}
 ```sql CREATE EXTERNAL TABLE over a Catalog Example
 CREATE LOGICAL EXTERNAL TABLE example.ext_iceberg_flights
 CATALOG PATH 'sales.flights'

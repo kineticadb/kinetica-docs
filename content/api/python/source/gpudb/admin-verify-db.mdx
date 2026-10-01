@@ -4,7 +4,7 @@ title: "admin_verify_db"
 
 <div className="kinetica-pydoc">
 <div className="dl py method">
-<div className="dt sig sig-object py" id="gpudb.GPUdb.admin_verify_db"> <span className="sig-name descname"><span className="pre">admin\_verify\_db</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L15764"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dt sig sig-object py" id="gpudb.GPUdb.admin_verify_db"> <span className="sig-name descname"><span className="pre">admin\_verify\_db</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L15780"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
 <div className="dd">
 <p>Verify database is in a consistent state. When inconsistencies or errors are found, the verified\_ok flag in the response is set to false and the list of errors found is provided in the error\_list.</p>
 <p><strong>Parameters</strong></p>
@@ -100,6 +100,18 @@ title: "admin_verify_db"
 <p>The default value is ‘false’.</p>
 </li>
 <li>
+<p><strong>repair\_replicated\_tables</strong> – When <span className="em">true</span>, replicated tables whose record counts differ across the worker ranks and toms are repaired: the copy with the most records is kept, and every other copy is replaced with it. That copy may include records from a load that did not complete, or records that a delete did not remove. A table whose copies all have the same number of records is not detected, even if their contents differ. The output parameter <span className="em">verified\_ok</span> flag and output parameter <span className="em">error\_list</span> still report the inconsistencies found before the repair; run the verification again to confirm the repair. Only the tables selected by <span className="em">table\_includes</span> or <span className="em">table\_excludes</span> are repaired. Requires <span className="em">concurrent\_safe</span> to be <span className="em">true</span>, and cannot be used with <span className="em">verify\_orphaned\_tables\_only</span>. The repaired tables are listed in the <span className="em">repaired\_replicated\_tables</span> entry of the response output parameter <span className="em">info</span> map. Allowed values are:</p>
+<ul className="simple">
+<li>
+<p>true</p>
+</li>
+<li>
+<p>false</p>
+</li>
+</ul>
+<p>The default value is ‘false’.</p>
+</li>
+<li>
 <p><strong>table\_includes</strong> – Comma-separated list of table names to include when verifying table consistency on wokers. Cannot be used simultaneously with <span className="em">table\_excludes</span>.</p>
 </li>
 <li>
@@ -115,7 +127,7 @@ title: "admin_verify_db"
 <div className="blockquote">
 <div>
 <p>A dict with the following entries–</p>
-<div className="dl simple">
+<div className="dl">
 <div className="dt">verified\_ok (<span className="em">bool</span>) –</div>
 <div className="dd">
 <p>True if no errors were found, false otherwise. The default value is False.</p>
@@ -130,7 +142,13 @@ title: "admin_verify_db"
 </div>
 <div className="dt">info (<span className="em">dict of str to str</span>) –</div>
 <div className="dd">
-<p>Additional information.</p>
+<p>Additional information. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>repaired\_replicated\_tables</strong> – If <span className="em">repair\_replicated\_tables</span> is <span className="em">true</span>, comma-separated list of the replicated tables that were repaired.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
 </div>
 </div>
 </div>

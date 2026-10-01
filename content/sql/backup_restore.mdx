@@ -66,7 +66,7 @@ DATA SINK = <data sink name>
 
 <Accordion title="CREATE" id="create" defaultOpen>
 
-Keyword indicating a *backup* should be created with an initial *full snaphost*.  If omitted, an
+Keyword indicating a *backup* should be created with an initial *full snapshot*.  If omitted, an
 *incremental snapshot* will be created, using the most recent *full* or *incremental snapshot*
 as the baseline.
 
@@ -165,12 +165,20 @@ specified for them.
     <td>[Data source](/content/sql/ddl/create-data-source#sql-create-data-source)</td>
   </tr>
   <tr>
+    <td><code>DIRECTORY</code></td>
+    <td>[KiFS directory](/content/sql/kifs)</td>
+  </tr>
+  <tr>
     <td><code>FUNCTION</code></td>
     <td>[UDF](/content/sql/udf#sql-create-function)</td>
   </tr>
   <tr>
     <td><code>FUNCTION ENVIRONMENT</code></td>
     <td>[UDF environment](/content/sql/udf#sql-create-function-environment)</td>
+  </tr>
+  <tr>
+    <td><code>GRAPH</code></td>
+    <td>[Graph](/content/sql/graph).  Source tables, if applicable, are required in order to restore it.</td>
   </tr>
   <tr>
     <td><code>PROCEDURE</code></td>
@@ -224,6 +232,22 @@ The following options can be specified to further modify a *backup*
 configuration.
 
 <AccordionGroup>
+
+<Accordion title="BLOCK_TABLE_MUTATIONS" id="block_table_mutations" defaultOpen>
+
+Block all data mutations on the tables being backed up, for the duration of the back up.  Blocked
+mutations are rejected with an error; they are not queued.  The default (`false`) is to allow
+mutations, blocking them on a given table only at the point a disk eviction of that table's data
+is necessary.
+
+
+<Info>
+Alterations to the type or attributes of a table are blocked for the duration of any
+back up, whether or not this option is used; this option governs data mutations
+specifically.
+</Info>
+
+</Accordion>
 
 <Accordion title="CHECKSUM" id="checksum" defaultOpen>
 
@@ -569,12 +593,20 @@ restore.
     <td>[Data source](/content/sql/ddl/create-data-source#sql-create-data-source)</td>
   </tr>
   <tr>
+    <td><code>DIRECTORY</code></td>
+    <td>[KiFS directory](/content/sql/kifs)</td>
+  </tr>
+  <tr>
     <td><code>FUNCTION</code></td>
     <td>[UDF](/content/sql/udf#sql-create-function)</td>
   </tr>
   <tr>
     <td><code>FUNCTION ENVIRONMENT</code></td>
     <td>[UDF environment](/content/sql/udf#sql-create-function-environment)</td>
+  </tr>
+  <tr>
+    <td><code>GRAPH</code></td>
+    <td>[Graph](/content/sql/graph).  Source tables, if applicable, are required in order to restore it.</td>
   </tr>
   <tr>
     <td><code>PROCEDURE</code></td>
@@ -671,12 +703,28 @@ If `RESTORE_POLICY` is `rename`, each existing database objects will be relocate
 it.  If not specified, the *schema* name will be automatically generated, using the format:
 `backup_<UUID>`.
 
+
+<Info>
+Specify this option when restoring via SQL; the automatically generated *schema*
+name is not available to a SQL client, leaving the relocated objects difficult to find.
+</Info>
+
 </Accordion>
 
 <Accordion title="RESTORE_POLICY" id="restore_policy" defaultOpen>
 
-Restoration scheme to use when restoring objects that already exist.  The default policy is to
-abort the restoration and return an error.
+Restoration scheme to use when restoring objects that already exist.  Under the default policy,
+an existing object is not replaced; it is skipped & reported as failed, and the restoration
+continues with the remaining objects.
+
+
+<Info>
+The set of skipped objects is not available to a SQL client.  Each restoration is
+recorded in the [ki_backup_history](/content/catalogs/kinetica) catalog table, with its
+status & the set of objects *requested*; compare that against the database to determine
+which were skipped.  To retrieve the failed objects directly, use
+[/restore/backup](/content/api/rest/restore_backup_rest) instead.
+</Info>
 
 Other policy choices include:
 
@@ -692,11 +740,11 @@ Other policy choices include:
   <tbody>
   <tr>
     <td><code>rename</code></td>
-    <td>If any object being restored already exists in the database in its corresponding [schema](/content/sql/ddl/create-schema#sql-create-schema), move all already-existing objects that would otherwise be overwritten by the restoration into another *schema*, and restore all objects to their original *schema*. The name of the *schema* holding the relocated objects is determined by <code>RENAMED_OBJECTS_SCHEMA</code>, and will be created if it doesn't exist.</td>
+    <td>If any object being restored already exists in the database in its corresponding [schema](/content/sql/ddl/create-schema#sql-create-schema), move all already-existing objects that would otherwise be overwritten by the restoration into another *schema*, and restore all objects to their original *schema*. The name of the *schema* holding the relocated objects is determined by <code>RENAMED_OBJECTS_SCHEMA</code>, and will be created if it doesn't exist. <Note>Applicable only to *credentials*, *data sinks*, *data sources*, *table monitors*, *SQL procedures*, *tables*, & non-temporary *views*. An object of any other type is left in place and is not restored.</Note></td>
   </tr>
   <tr>
     <td><code>replace</code></td>
-    <td>If the object being restored already exists in the database in its corresponding *schema*, overwrite the existing object with it.</td>
+    <td>If the object being restored already exists in the database in its corresponding *schema*, overwrite the existing object with it.  Objects with dependent objects will not be restored, as they are not able to be dropped before being restored due to those dependencies. <Note>When applied to a *KiFS directory*, the target directory and all its contents will be deleted before restoring the backup content to it; this includes removing files that are not part of the restored backup.</Note></td>
   </tr>
   </tbody>
 </table>
