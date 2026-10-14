@@ -1,0 +1,181 @@
+---
+title: CREATE FUNCTION
+---
+
+<a id="sql-create-function"></a>
+
+
+Creates a new [UDF/UDTF](/content/sql/udf#sql-udf) with the given options.  A
+UDTF is simply a UDF defined to return a single table, using the
+`RETURNS TABLE` clause.
+
+```sql title="CREATE FUNCTION Syntax"
+CREATE [OR REPLACE] FUNCTION <function name>
+[RETURNS TABLE (<column definition list>)]
+[MODE = '<execution mode>']
+[RUN_COMMAND = '<command>']
+[RUN_COMMAND_ARGS = '<command args>']
+FILE PATHS '<file paths>'
+[WITH OPTIONS (<option name> = '<option value>'[,...])]
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="OR REPLACE" id="or-replace" defaultOpen>
+
+Any existing UDF with the same name will be dropped before creating this one
+
+</Accordion>
+
+<Accordion title="&lt;function name&gt;" id="<function-name>" defaultOpen>
+
+Name of the UDF, which can be referenced in subsequent commands
+
+</Accordion>
+
+<Accordion title="RETURNS TABLE" id="returns-table" defaultOpen>
+
+Specifies that the UDF returns a table after execution and defines the column names and types
+to which the function's output data is expected to conform
+
+
+<Note>
+This defines the UDF as a *User-Defined Table Function (UDTF)*, which allows
+the function to be called within a SQL query; see
+[Executing Functions](/content/sql/udf/executing-functions#sql-execute-function) for details.
+</Note>
+
+</Accordion>
+
+<Accordion title="MODE" id="mode" defaultOpen>
+
+Name of the execution mode for the UDF; the following modes are available:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Constant</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>DISTRIBUTED</code></td>
+    <td>The function's processing will be distributed among the nodes in the cluster</td>
+  </tr>
+  <tr>
+    <td><code>NONDISTRIBUTED</code></td>
+    <td>The function's processing will be completed on a single node in the cluster</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="RUN_COMMAND" id="run_command" defaultOpen>
+
+The command used to execute the files associated with the UDF; e.g., `python`
+
+</Accordion>
+
+<Accordion title="RUN_COMMAND_ARGS" id="run_command_args" defaultOpen>
+
+The arguments supplied alongside the given `RUN_COMMAND`; e.g.:
+
+```
+'udf.py','--username','jdoe','--password','jdoe123'
+```
+</Accordion>
+
+<Accordion title="FILE PATHS" id="file-paths" defaultOpen>
+
+A comma-separated list of single-quoted file paths from which the function and any additional
+files will be loaded; the file paths should be [KiFS](/content/tools/kifs) locations and exist
+prior to the UDF/UDTF creation.
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of option/value assignments will follow
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>max_concurrency_per_node</code></td>
+    <td>The maximum number of concurrent instances of the function that will be executed per node. Setting to <code>0</code> allows unlimited concurrency. The default value is <code>0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>set_environment</code></td>
+    <td>The [Python UDF environment](/content/sql/udf/create-function-environment#sql-create-function-environment) to use for this Python UDF.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+Before creating a UDF/UDTF, upload the function file,
+<Badge color="gray">udf_st.py</Badge> to a new directory, <Badge color="gray">udf</Badge>, in
+*KiFS*:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 43) */}
+```sql Create UDF Directory Example
+CREATE DIRECTORY 'udf'
+```
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 80-81) */}
+```sql UPLOAD UDF FILE Example
+UPLOAD FILE 'udf_st.py'
+INTO 'udf'
+```
+
+To create a distributed Python `udf_st` UDF that uses that file:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 128-133) */}
+```sql CREATE FUNCTION (UDF) Example
+CREATE FUNCTION udf_st
+MODE = 'distributed'
+RUN_COMMAND = 'python'
+RUN_COMMAND_ARGS = 'udf/udf_st.py'
+FILE PATHS 'kifs://udf/udf_st.py'
+WITH OPTIONS (SET_ENVIRONMENT = 'udfe_st')
+```
+
+To create the same function as a UDTF that returns a result set instead:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 139-149) */}
+```sql CREATE FUNCTION (UDTF) Example
+CREATE FUNCTION UDTF_ST
+RETURNS TABLE
+(
+	id SMALLINT NOT NULL,
+	score REAL
+)
+MODE = 'distributed'
+RUN_COMMAND = 'python'
+RUN_COMMAND_ARGS = 'udf/udf_st.py'
+FILE PATHS 'kifs://udf/udf_st.py'
+WITH OPTIONS (SET_ENVIRONMENT = 'udfe_st')
+```

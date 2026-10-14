@@ -1,0 +1,203 @@
+---
+title: EXECUTE AS
+---
+
+<a id="sql-security-impersonation"></a>
+
+
+When logged into the database as one user, SQL commands can be run as a second
+user (that user can be *impersonated*).  To do this, first log in to the
+database as an administrator, then switch to the second user, and finally, run
+the command.  Afterwards, the original user can be reverted back to in order to
+execute commands as that administrator again; alternatively, an option can be
+specified to prevent switching back to the original user.
+
+
+<Note>
+Only a user with administrator privilege can impersonate
+another user, and only an administrator with a Kinetica database account.
+Any users who are mapped to Kinetica as administrators via external
+authentication will need to ensure that a corresponding Kinetica
+administrator account has been created for impersonation to succeed.
+
+Additionally, *impersonation* is only supported via ODBC/JDBC.
+</Note>
+
+
+<a id="sql-security-impersonation-exec-as"></a>
+
+
+During a SQL session, a user can execute subsequent commands as another user.
+
+
+<Info>
+This command is only available through
+[KiSQL](/content/tools/kisql) or database clients configured with
+the [Kinetica ODBC/JDBC driver](/content/connectors/sql_guide#odbc-jdbc).
+</Info>
+
+```sql title="EXECUTE AS Syntax"
+EXEC[UTE] AS USER = '<user name>' [WITH NO REVERT]
+```
+
+The `WITH NO REVERT` option prevents the impersonated user from switching back
+to the original user.  This is useful in several cases, including:
+
+* An administrator needs to run a script as a user with specific permissions,
+  but doesn't want the script to be able to revert back to administrator
+  privileges during its execution.
+* An application server connects to the database with its own credentials, but
+  issues commands to the database on behalf of an application user.  Again,
+  there is a need to prevent the application user from reverting back to the
+  application server's database account and using those privileges to execute
+  commands.
+
+<a id="sql-security-impersonation-exec-as-example"></a>
+
+
+## Example
+
+
+To demonstrate the uses of `EXECUTE AS USER`, the following commands can be
+issued upon logging into the database as an administrator.
+
+First, verify the current user is **admin**:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 56) */}
+```sql Show Current User Example
+SELECT CURRENT_USER() AS whoami
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 109-113) */}
+``` Show Current User Output
++----------+
+| whoami   |
++----------+
+| admin    |
++----------+
+```
+
+Then, switch to a user **auser** and verify the session is now executing
+commands as that user:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 60) */}
+```sql Switch User Example
+EXECUTE AS USER = 'auser'
+```
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 62) */}
+```sql Show Switched User
+SELECT CURRENT_USER() AS whoami
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 124-128) */}
+``` Show Switched User Output
++----------+
+| whoami   |
++----------+
+| auser    |
++----------+
+```
+
+Accessing a database object that **auser** has permission for results in a
+successful outcome:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 66-67) */}
+```sql Query Accessible Table as Switched User Example
+SELECT *
+FROM example.auser_can_access
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 135-139) */}
+``` Query Output
++------+
+|   id |
++------+
+|    1 |
++------+
+```
+
+Accessing an object that **auser** doesn't have permission for results in an
+error:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 70-71) */}
+```sql Query Inaccessible Table as Switched User Example
+SELECT *
+FROM example.auser_cant_access
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 146) */}
+``` Query Output
+[GPUdb]executeSql: SqlEngine: Object 'auser_cant_access' not found within 'example' (<REF>)
+```
+
+To switch back to the original user and verify the current identity, use the
+[REVERT](/content/sql/security/revert#sql-security-impersonation-revert) command:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 75) */}
+```sql Switch Back to Original User Example
+REVERT
+```
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 77) */}
+```sql Show Switched Back User
+SELECT CURRENT_USER() AS whoami
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 156-160) */}
+``` Show Switched Back User Output
++----------+
+| whoami   |
++----------+
+| admin    |
++----------+
+```
+
+Now, switch to **auser** using the `WITH NO REVERT` option:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 82) */}
+```sql Switch User without Reversion Example
+EXECUTE AS USER = 'auser' WITH NO REVERT
+```
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 84) */}
+```sql Show Switched User
+SELECT CURRENT_USER() AS whoami
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 171-175) */}
+``` Show Switched User Output
++----------+
+| whoami   |
++----------+
+| auser    |
++----------+
+```
+
+Attempts to switch back to the administrator user will fail:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 88) */}
+```sql Attempt to Switch Back Example
+REVERT
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 181) */}
+``` Error Output
+Error: May not revert user after WITH NO REVERT
+```
+
+Verify the session is still executing commands as the **auser** user:
+
+{/* Source: /examples/sql/security/setuser.kisql (lines 90) */}
+```sql Show Current User
+SELECT CURRENT_USER() AS whoami
+```
+
+{/* Source: /examples/sql/security/setuser.out (lines 186-190) */}
+``` Show Current User Output
++----------+
+| whoami   |
++----------+
+| auser    |
++----------+
+```

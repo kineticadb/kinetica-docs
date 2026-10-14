@@ -167,6 +167,8 @@ all tables & views in the database, including those in virtual catalog tables.
 | `IDENTITY_MINIMUM` | `VARCHAR` | Not used. |
 | `IDENTITY_CYCLE` | `VARCHAR` | Not used. |
 | `COMMENT` | `VARCHAR` | User comment associated with this column. |
+| `BYTES_ON_DISK_UNCOMPRESSED` | `BIGINT` | Number of bytes used to store this column on disk, before [compression](/content/concepts/column_compression) is applied. |
+| `BYTES_ON_DISK_COMPRESSED` | `BIGINT` | Number of bytes used to store this column on disk, after [compression](/content/concepts/column_compression) is applied; this will match `BYTES_ON_DISK_UNCOMPRESSED` if the column is not compressed. |
 
 
 <a id="constraint-column-usage"></a>
@@ -437,6 +439,7 @@ Each record in `INDEXES` represents a single index of a table with
 | `TABLE_NAME` | `VARCHAR(256)` | Name of this index's table. |
 | `INDEX_TYPE` | `VARCHAR(32)` | Type of index: <br/> <br/> `cagra`: [CAGRA index](/content/concepts/indexes#cagra-index) <br/> <br/> `chunk_skip`: [Chunk skip index](/content/concepts/indexes#chunk-skip-index) <br/> <br/> `column`: [Column index](/content/concepts/indexes#column-index) <br/> <br/> `geospatial`: [Geospatial index](/content/concepts/indexes#geospatial-index) <br/> <br/> `hnsw`: [HNSW index](/content/concepts/indexes#hnsw-index) |
 | `INDEX_COLUMNS` | `VARCHAR` | Names of columns used in this index. |
+| `INDEX_OPTIONS` | `VARCHAR` | Comma-separated list of `key: value` options set on this index. |
 
 
 <a id="information-schema-catalog-name"></a>
@@ -901,7 +904,7 @@ Each record in `OBJECT_PRIVILEGES` represents the mapping of a
 | `OBJECT_CATALOG` | `VARCHAR(8)` | Always `kinetica`. |
 | `OBJECT_SCHEMA` | `VARCHAR(256)` | Name of the schema containing the granted object associated with this mapping. |
 | `OBJECT_NAME` | `VARCHAR(256)` | Name of the granted object associated with this mapping. |
-| `OBJECT_TYPE` | `VARCHAR(256)` | Type of object grant this mapping represents (for object-level permissions). <br/> <br/> `context`: [SQL-GPT context](/content/sql/sqlgpt) <br/> <br/> `credential`: [Credential](/content/sql/ddl/create-credential#sql-create-credential) <br/> <br/> `datasink`: [Data sink](/content/sql/ddl/create-data-sink#sql-create-data-sink) <br/> <br/> `datasource`: [Data source](/content/sql/ddl/create-data-source#sql-create-data-source) <br/> <br/> `directory`: [KiFS directory](/content/sql/kifs#sql-kifs-create-dir) <br/> <br/> `graph`: [Graph](/content/sql/graph) <br/> <br/> `proc`: [SQL procedure](/content/sql/procedure) or [UDF/UDTF](/content/sql/udf) <br/> <br/> `schema`: [Schema](/content/sql/ddl/create-schema#sql-create-schema) <br/> <br/> `table`: [Table](/content/sql/ddl/create-table#sql-create-table) or [view](/content/sql/ddl/create-view#sql-create-view) <br/> <br/> `table_monitor`: [Stream](/content/sql/ddl/create-stream#sql-create-stream) |
+| `OBJECT_TYPE` | `VARCHAR(256)` | Type of object grant this mapping represents (for object-level permissions). <br/> <br/> `context`: [SQL-GPT context](/content/sql/sqlgpt) <br/> <br/> `credential`: [Credential](/content/sql/ddl/create-credential#sql-create-credential) <br/> <br/> `datasink`: [Data sink](/content/sql/ddl/create-data-sink#sql-create-data-sink) <br/> <br/> `datasource`: [Data source](/content/sql/ddl/create-data-source#sql-create-data-source) <br/> <br/> `directory`: [KiFS directory](/content/sql/kifs/create-directory#sql-kifs-create-dir) <br/> <br/> `graph`: [Graph](/content/sql/graph) <br/> <br/> `proc`: [SQL procedure](/content/sql/procedure) or [UDF/UDTF](/content/sql/udf) <br/> <br/> `schema`: [Schema](/content/sql/ddl/create-schema#sql-create-schema) <br/> <br/> `table`: [Table](/content/sql/ddl/create-table#sql-create-table) or [view](/content/sql/ddl/create-view#sql-create-view) <br/> <br/> `table_monitor`: [Stream](/content/sql/ddl/create-stream#sql-create-stream) |
 | `PRIVILEGE_TYPE` | `VARCHAR(256)` | Type of permission grant this mapping represents. |
 | `IS_GRANTABLE` | `BOOLEAN` | If permission was granted with the ability to grant it to others. |
 | `WITH_HIERARCHY` | `BOOLEAN` | Not used. |
@@ -912,24 +915,33 @@ Each record in `OBJECT_PRIVILEGES` represents the mapping of a
 ### PARTITIONS
 
 
-Each record in `PARTITIONS` represents a single partition of a
-[partitioned table](/content/concepts/tables#partitioning).
+Each record in `PARTITIONS` represents one chunk of a table's data, as held
+in one tier by one TOM of one worker rank.  Tables that are not
+[partitioned](/content/concepts/tables#partitioning) are listed as well, with a
+`PARTITION_TYPE` of `NONE`.
+
+A partition normally spans many chunks across ranks, and a chunk held in more
+than one tier (e.g., both `RAM` and `PERSIST`) is listed once per tier, with
+the same `TOTAL_ROWS` in each.  To total the records in a table or partition,
+count each chunk only once; for instance, take the largest `TOTAL_ROWS` among
+the records sharing a `RANK_NUM`, `TOM_ID`, `PARTITION_ID`, &
+`CHUNK_ID`, and sum those.
 
 
 | Column Name | Column Type | Description |
 | --- | --- | --- |
-| `TABLE_SCHEMA` | `VARCHAR(256)` | Name of the schema containing this partitioned table. |
-| `TABLE_NAME` | `VARCHAR(256)` | Name of this partitioned table. |
-| `RANK_NUM` | `INTEGER` | Number of the rank hosting this partition. |
-| `TOM_ID` | `INTEGER` | Number of the TOM hosting this partition. |
-| `PARTITION_ID` | `INTEGER` | 1-based ID number of this partition, unique among partitions associated with this table. |
-| `CHUNK_ID` | `INTEGER` | 1-based ID number of the chunk associated with this partition. |
-| `PARTITION_COLUMNS` | `VARCHAR` | Names of columns or column expressions used to partition this table. |
+| `TABLE_SCHEMA` | `VARCHAR(256)` | Name of the schema containing the table. |
+| `TABLE_NAME` | `VARCHAR(256)` | Name of the table. |
+| `RANK_NUM` | `INTEGER` | Number of the worker rank hosting this chunk. |
+| `TOM_ID` | `INTEGER` | Number of the TOM hosting this chunk. |
+| `PARTITION_ID` | `INTEGER` | ID number of the partition containing this chunk, unique among the table's partitions, though not necessarily sequential.  Unpartitioned tables report `0`. |
+| `CHUNK_ID` | `INTEGER` | ID number of this chunk.  The same ID can appear on more than one rank, so a chunk is identified by its `RANK_NUM`, `TOM_ID`, & `CHUNK_ID` together. |
+| `PARTITION_COLUMNS` | `VARCHAR` | Names of columns or column expressions used to partition the table. |
 | `PARTITION_TYPE` | `VARCHAR(8)` | Type of partition: <br/> <br/> `NONE`: Not partitioned <br/> <br/> `HASH`: [Hash](/content/concepts/tables#partitioning-by-hash) <br/> <br/> `INTERVAL`: [Interval](/content/concepts/tables#partitioning-by-interval) <br/> <br/> `LIST`: [List](/content/concepts/tables#partitioning-by-list) <br/> <br/> `RANGE`: [Range](/content/concepts/tables#partitioning-by-range) <br/> <br/> `SERIES`: [Series](/content/concepts/tables#partitioning-by-series) |
-| `TOTAL_ROWS` | `BIGINT` | Number of column value records contained within this partition. |
-| `LOGICAL_TYPES` | `BIGINT` | Number of bytes of column data stored within this partition, as reported by the OS. |
-| `ACTUAL_BYTES` | `BIGINT` | Number of bytes of column data stored within this partition, actually. |
-| `STORAGE_TIER` | `VARCHAR(32)` | Tier containing this partition. <br/> <br/> `PERSIST`: [Persist tier](/content/rm/concepts#rm-concepts-tiers-persist) <br/> <br/> `RAM`: [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram) |
+| `TOTAL_ROWS` | `BIGINT` | Number of records in this chunk.  This is a physical count, which includes deleted records until the chunk is compacted, so it can exceed the table's `COUNT(*)`. |
+| `LOGICAL_BYTES` | `BIGINT` | Size of this chunk's column data, uncompressed, in bytes. |
+| `ACTUAL_BYTES` | `BIGINT` | Number of bytes this copy of the chunk occupies in its tier, which can differ from `LOGICAL_BYTES` due to compression and storage overhead. |
+| `STORAGE_TIER` | `VARCHAR(32)` | Tier holding this copy of the chunk.  A chunk held in more than one tier has one record for each tier. <br/> <br/> `PERSIST`: [Persist tier](/content/rm/concepts#rm-concepts-tiers-persist) <br/> <br/> `RAM`: [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram) |
 
 
 <a id="referential-constraints"></a>

@@ -1,0 +1,145 @@
+---
+title: CREATE PROCEDURE
+---
+
+<a id="sql-procedures-create"></a>
+
+
+Creates a new [SQL procedure](/content/sql/procedure/create-procedure#sql-procedures-create).
+
+```sql title="CREATE PROCEDURE Syntax"
+CREATE [OR REPLACE] PROCEDURE [<schema name>.]<procedure name> [()]
+[LANGUAGE SQL]
+BEGIN
+    <sql statements>
+END
+[
+    EXECUTE FOR EVERY <number> <SECOND[S] | MINUTE[S] | HOUR[S] | DAY[S]>
+        [STARTING AT '<YYYY-MM-DD [HH:MM[:SS]]>']
+        [STOP AFTER < '<YYYY-MM-DD [HH:MM[:SS]]>' | <number> <SECOND[S] | MINUTE[S] | HOUR[S] | DAY[S]> >]
+]
+[WITH OPTIONS (<stored procedure property name> = '<stored procedure property value>'[,...])]
+```
+
+When any of the source *tables* referenced by a *SQL procedure* is altered or
+dropped, the *SQL procedure* will also be dropped.
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the schema in which this *SQL procedure* will be created.
+
+</Accordion>
+
+<Accordion title="&lt;procedure name&gt;" id="<procedure-name>" defaultOpen>
+
+Name to give to the created *SQL procedure*; must adhere to the supported
+[naming criteria](/content/sql/naming#sql-naming-criteria) for tables, and cannot be named the
+same as any existing table or view.
+
+</Accordion>
+
+<Accordion title="&lt;sql statements&gt;" id="<sql-statements>" defaultOpen>
+
+Semicolon-separated list of
+[supported SQL statements](/content/sql/procedure/supported-statements#sql-procedures-statements).  If the final statement
+in the *SQL procedure* is an output-generating statement
+*(SQL query, SHOW command, etc.)*, the output of that statement alone will be returned
+to the user; all other statements that generate output will be ignored.
+
+</Accordion>
+
+<Accordion title="OR REPLACE" id="or-replace" defaultOpen>
+
+Drop any existing *SQL procedure* with the same name before creating this one.
+
+</Accordion>
+
+<Accordion title="LANGUAGE" id="language" defaultOpen>
+
+Optional language specification.  Only `SQL` is supported at this time.
+
+</Accordion>
+
+<Accordion title="EXECUTE FOR EVERY" id="execute-for-every" defaultOpen>
+
+Allows specification of an interval in seconds, minutes, hours, or days, at which the
+*SQL procedure* should be executed.  Fractional values for `<number>` are accepted.
+
+By default, the procedure will be run immediately and every specified interval after
+that; this can be modified with the following options:
+
+* `STARTING AT`:  specify a date or timestamp at which the first execution should
+  occur
+* `STOP AFTER`:  specify a date, timestamp, or time interval after which executions
+  should end
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of option/value assignments will follow.
+The following options are available:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>EXECUTE AS</code></td>
+    <td>Executes the *SQL procedure* as the given user with that user's privileges. <Note>If this user doesn't exist at the time of execution, the *SQL procedure* will be executed as the creating user, and and, failing that, the system administration user.</Note></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To create a `sqlp` *SQL procedure*:
+
+{/* Source: /examples/sql/procedure/create_procedure.kisql (lines 68-76) */}
+```sql CREATE PROCEDURE Example
+CREATE PROCEDURE example.sqlp
+BEGIN
+	CREATE OR REPLACE TABLE example.sqlp_table_tmp AS
+	SELECT *
+	FROM example.sqlp_table_ref;
+
+	SELECT *
+	FROM example.sqlp_table_tmp;
+END
+```
+
+To create a `sqlp_weekly` *SQL procedure* that executes once per week:
+
+{/* Source: /examples/sql/procedure/create_procedure.kisql (lines 80-90) */}
+```sql CREATE PROCEDURE (Scheduled) Example
+CREATE PROCEDURE example.sqlp_weekly
+BEGIN
+	CREATE OR REPLACE TABLE example.sqlp_table_tmp AS
+	SELECT *
+	FROM example.sqlp_table_ref;
+
+	SELECT *
+	FROM example.sqlp_table_tmp;
+END
+EXECUTE FOR EVERY 7 DAYS
+STARTING AT '2019-01-01 00:00:00'
+```

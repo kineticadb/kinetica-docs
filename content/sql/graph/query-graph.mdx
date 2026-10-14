@@ -1,0 +1,341 @@
+---
+title: QUERY_GRAPH
+---
+
+<a id="sql-graph-query"></a>
+
+
+Queries an existing [graph](/content/graph_solver/network_graph_solver)
+using unique query [identifiers](/content/graph_solver/network_graph_solver#query-identifiers) and
+[combinations](/content/graph_solver/network_graph_solver#query-combinations).  The `QUERY_GRAPH` function
+can be called either within a `SELECT` statement as a table function or within
+an `EXECUTE FUNCTION` call.
+
+<CodeGroup>
+
+{/* Source: /sql/syntax/graph.sql (lines 25-35) */}
+```sql Table Function Syntax
+SELECT * FROM TABLE
+(
+	QUERY_GRAPH
+	(
+		GRAPH => '[<schema name>.]<graph name>',
+		QUERIES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,
+		RINGS => <integer>,
+		[RESTRICTIONS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+		[OPTIONS => KV_PAIRS('<option name>' = '<option value>'[,...])]
+	)
+)
+```
+
+{/* Source: /sql/syntax/graph.sql (lines 38-46) */}
+```sql EXECUTE FUNCTION Syntax
+EXECUTE FUNCTION QUERY_GRAPH
+(
+	GRAPH => '[<graph schema name>.]<graph name>',
+	QUERIES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,
+	ADJACENCY_TABLE => '[<table schema name>.]<table name>',
+	RINGS => <integer>,
+	[RESTRICTIONS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+	[OPTIONS => KV_PAIRS('<option name>' = '<option value>'[,...])]
+)
+```
+
+</CodeGroup>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="GRAPH" id="graph" defaultOpen>
+
+Name of the *graph* to query
+
+</Accordion>
+
+<Accordion title="QUERIES" id="queries" defaultOpen>
+
+*Nodes* or *edges* to be queried specified using the SQL `INPUT_TABLE` or `INPUT_TABLES` function; review
+[Query Identifiers](/content/graph_solver/network_graph_solver#query-identifiers) and [Query Identifier Combinations](/content/graph_solver/network_graph_solver#query-combinations) for more information.
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="ADJACENCY_TABLE" id="adjacency_table" defaultOpen>
+
+Name of the table to store the resulting adjacent *edges* in `[schema_name.]table_name` format, using standard
+[name resolution rules](/content/sql/naming#sql-name-resolution) and meeting
+[table naming criteria](/content/sql/naming#sql-naming-criteria); a table storing the resulting matching *nodes* will also
+be created, named `<ADJACENCY_TABLE>_nodes`
+
+
+<Note>
+Only applicable when using the `EXECUTE FUNCTION` syntax
+</Note>
+
+</Accordion>
+
+<Accordion title="RINGS" id="rings" defaultOpen>
+
+Sets the number of rings around (hops from) the queried *node(s)* to return matching *edges* & *nodes*
+
+
+<Note>
+Only applicable when querying on *nodes*; e.g., giving `NODE_NAME` or `NODE_LABEL`
+</Note>
+
+</Accordion>
+
+<Accordion title="RESTRICTIONS" id="restrictions" defaultOpen>
+
+Additional *restrictions* to apply to the *nodes*/*edges* of an existing graph specified using the SQL
+`INPUT_TABLE` or `INPUT_TABLES` function; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and [Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more
+information.
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+
+<Note>
+Only applicable when querying on *nodes*; e.g., giving `NODE_NAME` or `NODE_LABEL`
+</Note>
+
+</Accordion>
+
+<Accordion title="OPTIONS" id="options" defaultOpen>
+
+Optional indicator that a comma-delimited list of connection option/value assignments will follow.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>and_labels</code></td>
+    <td>If <code>true</code>, the result of the query has entities that satisfy *all* the target *labels* instead of *any* of the *labels*. The default is <code>false</code>.</td>
+  </tr>
+  <tr>
+    <td><code>find_common_labels</code></td>
+    <td>If <code>true</code>, adds a <code>LABELS</code> column to the output tables specified by <code>ADJACENCY_TABLE</code>.  When <code>RINGS</code> is *0*, all *labels* of queried *nodes* &amp; *edges* will be listed in this column; otherwise, (for many-to-many queries and multi-level traversals), all common *labels* between the source &amp; target *nodes*, as well as common *edge* *labels* in each path will be listed.  The default is <code>false</code>.</td>
+  </tr>
+  <tr>
+    <td><code>force_undirected</code></td>
+    <td>If <code>true</code>, all inbound &amp; outbound *edges* relative to the *node* will be returned. If set to <code>false</code>, only outbound *edges* relative to the *node* will be returned.  The default is <code>false</code>.  Consult [Directed Graphs](/content/graph_solver/network_graph_solver#directed-graphs) for more details. <Note>Only applicable when querying on *nodes* on a directed graph</Note></td>
+  </tr>
+  <tr>
+    <td><code>limit</code></td>
+    <td>When specified, limits the number of query results. The size of the corresponding *node* table will also be limited by this value.</td>
+  </tr>
+  <tr>
+    <td><code>output_charn_length</code></td>
+    <td>When specified, limits the size of string columns in the output tables. The default is <code>64</code>.  Valid values are between <code>1</code> &amp; <code>256</code>.</td>
+  </tr>
+  <tr>
+    <td><code>output_wkt_path</code></td>
+    <td>If *true*, adds a <code>QUERY_EDGE_WKTLINE</code> column to the specified <code>ADJACENCY_TABLE</code> so the solution can be viewed via WMS; for social and non-geospatial solutions, the <code>QUERY_EDGE_WKTLINE</code> column will be populated with spatial coordinates derived from a flattening layout algorithm so the solution can still be viewed. The default is <code>false</code>.</td>
+  </tr>
+  <tr>
+    <td><code>result_table_index</code></td>
+    <td>Indicates which result table to return results from: <ul><li><code>1</code> - Return *edge* results *(default)*</li><li><code>2</code> - Return *node* results</li></ul> <Note>Only applicable when using the table function syntax</Note></td>
+  </tr>
+  <tr>
+    <td><code>server_id</code></td>
+    <td>Indicates which graph server(s) to send the request to. Default is to send to the server, amongst those containing the corresponding graph, that has the most computational bandwidth.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+Using the `EXECUTE FUNCTION` syntax necessitates the `ADJACENCY_TABLE`
+parameter to store the query results, where using the table function syntax will
+return the results directly.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 198-207) */}
+```sql Table Function (Nodes) Example
+SELECT * FROM TABLE
+(
+	QUERY_GRAPH
+	(
+		GRAPH => 'sample_graph',
+		QUERIES => INPUT_TABLE(SELECT ST_GEOMFROMTEXT('POINT(0 0)') AS NODE_WKTPOINT),
+		RINGS => 1,
+		OPTIONS => KV_PAIRS(output_wkt_path = 'true', result_table_index = '2')
+	)
+)
+```
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 213-222) */}
+```sql Table Function (Edges) Example
+SELECT * FROM TABLE
+(
+	QUERY_GRAPH
+	(
+		GRAPH => 'sample_graph',
+		QUERIES => INPUT_TABLE(SELECT ST_GEOMFROMTEXT('POINT(0 0)') AS NODE_WKTPOINT),
+		RINGS => 1,
+		OPTIONS => KV_PAIRS(output_wkt_path = 'true')
+	)
+)
+```
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 226-233) */}
+```sql EXECUTE FUNCTION Example
+EXECUTE FUNCTION QUERY_GRAPH
+(
+	GRAPH => 'sample_graph',
+	QUERIES => INPUT_TABLE(SELECT ST_GEOMFROMTEXT('POINT(5 5)') AS NODE_WKTPOINT),
+	RINGS => 2,
+	ADJACENCY_TABLE => 'sample_graph_node_query',
+	OPTIONS => KV_PAIRS(output_wkt_path = 'true')
+)
+```
+
+</CodeGroup>
+
+
+### Querying by Hops
+
+
+Queries can make use of a `HOP_ID`
+[identifier](/content/graph_solver/network_graph_solver#query-identifiers) to match nodes & edges at a given
+distance from the source node or edge.
+
+A graph of movies and their actors & directors can be queried, for instance, to
+return the titles & directors of movies in which James Spader has acted.  Here,
+the query starts with the James Spader actor node and uses `HOP_ID` filters
+to:
+
+* move across `acted` edges in the 1st hop to all the nodes in which James
+  Spader has acted
+* find the director nodes connected to those movies in the 2nd hop; note the
+  `-2` for the `HOP_ID` allows one-way edges to be traversed in reverse--the
+  `directed` edge connecting directors to the movies they directed is one-way,
+  from director to movie, but the query needs to move from movie to director of
+  that movie, thus the `-2` designation for the 2nd hop to follow those edges
+  in reverse
+
+Since hop-based queries return all edges along the path, the query ends by
+filtering the James Spader node out of the result set.
+
+{/* Source: /examples/sql/graph/graph_imdb.kisql (lines 134-151) */}
+```sql Query by Hop ID Example
+SELECT
+	QUERY_NODE1_NAME AS Movie,
+	QUERY_NODE2_NAME AS Director
+FROM TABLE
+(
+	QUERY_GRAPH
+	(
+		GRAPH => 'example_graph_label.imdb',
+		QUERIES => INPUT_TABLES
+		(
+			(SELECT 'James Spader'           AS NODE_NAME),
+			(SELECT  1 AS HOP_ID, 'acted'    AS EDGE_LABEL),
+			(SELECT -2 AS HOP_ID, 'directed' AS EDGE_LABEL),
+			(SELECT 'director'               AS TARGET_NODE_LABEL)
+		),
+		RINGS => 2
+	)
+)
+```
+
+
+### Querying for Commonalities
+
+
+Queries can make use of the `find_common_labels` option to list labels shared
+by both source & target node, as well as labels shared by edges in the result
+paths.
+
+A graph of movies and their actors & directors can be queried, for instance, to
+return the common occupations within filmmaking between Al Pacino and those who
+have directed movies in which he has acted.  Here, the query starts with the Al
+Pacino actor node, looks within two hops for directors
+(Al Pacino-&gt;movie-&gt;directed by), and returns those directors along with
+occupations shared by Al Pacino and each one:
+
+{/* Source: /examples/sql/graph/graph_imdb.kisql (lines 161-175) */}
+```sql Query for Common Labels Example
+EXECUTE FUNCTION QUERY_GRAPH
+(
+	GRAPH => 'example_graph_label.imdb',
+	QUERIES => INPUT_TABLES
+	(
+		(SELECT 'Al Pacino' AS NODE_NAME),
+		(SELECT 'director' AS TARGET_NODE_LABEL)
+	),
+	RINGS => 2,
+	ADJACENCY_TABLE => 'example_graph_label.imdb_fcl',
+	OPTIONS => KV_PAIRS
+	(
+	    force_undirected = 'true',
+	    find_common_labels = 'true'
+	)
+```
+
+
+### Supplementing Queried Graph Data
+
+
+As graph queries ultimately produce standard SQL result sets, they can be used
+in larger SQL queries as joins or sub-selects to add data to result sets or to
+filter data out of them.
+
+A graph of movies and their actors & directors can be queried, for instance, to
+return the actors in Jean Reno movies, and that result can be joined with a
+table of actor biographical data to also return the ages of those actors.  Here,
+the query starts with the Jean Reno actor node, looks within two hops for actors
+(Jean Reno-&gt;movie-&gt;acted in), and returns those actors along with their
+respective current ages by subtracting their corresponding date of birth
+(`dob` column) in the biographical table (`person`) from the current date:
+
+{/* Source: /examples/sql/graph/graph_imdb.kisql (lines 220-240) */}
+```sql Supplementing Graph Query Example
+SELECT
+	QUERY_NODE_NAME_TARGET AS Actor,
+	DATEDIFF(YEAR, p.dob, CURRENT_DATE()) AS Age
+FROM TABLE
+(
+	QUERY_GRAPH
+	(
+		GRAPH => 'example_graph_label.imdb',
+		QUERIES => INPUT_TABLES
+		(
+			(SELECT 'Jean Reno' AS NODE_NAME),
+			(SELECT 'actor' AS TARGET_NODE_LABEL)
+		),
+		RINGS => 2,
+		OPTIONS => KV_PAIRS
+		(
+			force_undirected = 'true',
+			result_table_index = '2'
+		)
+	)
+)
+```

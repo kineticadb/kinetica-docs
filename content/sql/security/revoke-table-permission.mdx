@@ -1,0 +1,220 @@
+---
+title: REVOKE Table Permission
+---
+
+<a id="sql-security-priv-mgmt-table-revoke"></a>
+
+
+[Table permissions](/content/security/sec_concepts#security-concepts-permissions-table), which can
+be applied to tables and views, can be revoked from
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+[Row-level security](/content/security/sec_concepts#sec-concepts-perm-table-row) can be revoked for
+`SELECT` privilege only by revoking `SELECT` privilege from the entire
+table.
+
+
+<Info>
+Access to individual rows cannot be revoked; instead, full `SELECT`
+access should be revoked, followed by a grant of access to the appropriate
+rows.
+</Info>
+
+[Column-level security](/content/security/sec_concepts#sec-concepts-perm-table-col) can be revoked for
+`SELECT` privilege by specifying a list of columns for which access will be
+revoked, regardless of any security functions that may have been applied to the
+column when granting access (`HASH`, `MASK`).
+
+```sql title="REVOKE Table Permission Syntax"
+REVOKE < SELECT | INSERT | UPDATE | DELETE | ALL > [PRIVILEGES]
+ON <ALL TABLES [IN [SCHEMA] <schema reference>] | [TABLE | SCHEMA] <object reference> [<column list>]>
+FROM <user name | role name>
+```
+
+```sql title="REVOKE Create Table Permission Syntax"
+REVOKE CREATE [PRIVILEGES] ON TABLES
+[IN [SCHEMA] <schema reference>]
+FROM <user name | role name>
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="PRIVILEGES" id="privileges" defaultOpen>
+
+Optional keyword for SQL-92 compatibility
+
+</Accordion>
+
+<Accordion title="TABLE / SCHEMA" id="table-/-schema" defaultOpen>
+
+Optional SQL-92 keywords that disambiguate the object reference: `TABLE` selects a
+table/view in the user's default schema (when the schema is omitted), while `SCHEMA`
+selects a schema.
+
+</Accordion>
+
+<Accordion title="&lt;object reference&gt;" id="<object-reference>" defaultOpen>
+
+The name of the table/view and/or schema to which access is being revoked; the following
+forms are valid:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Form</th>
+    <th>Selected Objects</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td>*&lt;schema&gt;.&lt;object&gt;*</td>
+    <td>Fully-qualified table or view name in the specified schema</td>
+  </tr>
+  <tr>
+    <td><code>*.*</code></td>
+    <td>All existing tables &amp; views that the revoking user can see, across all schemas</td>
+  </tr>
+  <tr>
+    <td><code>*</code></td>
+    <td>All schemas the revoking user can see, removing access to all tables and views in those schemas now and in the future</td>
+  </tr>
+  <tr>
+    <td>*&lt;schema&gt;*</td>
+    <td>All tables and views in the specified schema now and in the future</td>
+  </tr>
+  <tr>
+    <td>*&lt;object&gt;*</td>
+    <td>Table or view in the default schema.  If a schema exists with the same name, it will be used.  To avoid this, specify the fully-qualified object name.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;schema reference&gt;" id="<schema-reference>" defaultOpen>
+
+The schema the permission applies to (with the ALL or CREATE forms).  If the IN [SCHEMA]
+clause is omitted, the permission is removed from all schemas, both now and in the
+future.  Wildcards are not permitted with the IN keyword.
+
+</Accordion>
+
+<Accordion title="&lt;column list&gt;" id="<column-list>" defaultOpen>
+
+Optional comma-separated list of specific table columns to which access is being revoked;
+see [Column-Level Security](/content/security/sec_concepts#sec-concepts-perm-table-col) for details
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<Info>
+The `ALL` permission corresponds to the native
+[table_admin](/content/security/sec_concepts#security-concepts-permissions-table) permission, which
+gives full read/write access as well as the additional permission either to
+`ALTER` and `DROP` the specified table or to `CREATE`, `ALTER`, &
+`DROP` all tables in the specified schema.
+</Info>
+
+
+## Examples
+
+
+For example, to revoke full access on the **network_config** table from
+**jsmith**:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 128) */}
+```sql REVOKE All Permissions on Table from User Example
+REVOKE ALL PRIVILEGES ON TABLE example.network_config FROM jsmith
+```
+
+To revoke `SELECT` access on the **network_config_history** table from the
+**analyst** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 131) */}
+```sql REVOKE Read on Table from Role Example
+REVOKE SELECT ON example.network_config_history FROM analyst
+```
+
+To revoke full access on each of the tables & views within the **example**
+schema from the **developer** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 140) */}
+```sql REVOKE All Permissions on Current Tables/Views in Schema from Role Example
+REVOKE ALL ON example.* FROM developer
+```
+
+To revoke `SELECT` access on all schemas from the **auditor** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 134) */}
+```sql REVOKE Read on Schemas from Role Example
+REVOKE SELECT ON * FROM auditor
+```
+
+To revoke `SELECT` access on all current and future tables & views within the
+**app_schema** schema from the **app_user** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 137) */}
+```sql REVOKE Read on Schema from Role Example
+REVOKE SELECT ON app_schema FROM app_user
+```
+
+To revoke full access on each of the schemas, tables, & views in the database
+individually from the **dbadmin** role:
+
+{/* Source: /examples/sql/security/grant_revoke.kisql (lines 143) */}
+```sql REVOKE All Permissions on All Schemas/Tables/Views from Role Example
+REVOKE ALL ON *.* FROM dbadmin
+```
+
+
+<a id="sql-security-priv-mgmt-row-revoke"></a>
+
+
+## Row-Level Security Examples
+
+
+To revoke `SELECT` access on an **rx_order** table for all orders placed since
+the year **2002** (as was granted in the
+[row-level grant example](/content/sql/security/grant-table-permission#sql-security-priv-mgmt-row-grant)), revoke all
+`SELECT` access:
+
+{/* Source: /examples/sql/security/security_row_column.kisql (lines 81) */}
+```sql REVOKE Row-Level Access Example
+REVOKE SELECT ON example.rx_order FROM zanalyst
+```
+
+
+<a id="sql-security-priv-mgmt-col-revoke"></a>
+
+
+## Column-Level Security Examples
+
+
+To revoke `SELECT` access on the following columns of an **rx_order** table:
+
+* orderer's social security number
+
+{/* Source: /examples/sql/security/security_row_column.kisql (lines 141) */}
+```sql REVOKE Obfuscated Column-Level Access Example
+REVOKE SELECT ON example.rx_order(ssn) FROM zanalyst
+```
+
+To revoke `SELECT` access on the following columns of an **rx_order** table:
+
+* masked version of the orderer's social security number (last 4 digits)
+* name of the prescription ordered
+
+{/* Source: /examples/sql/security/security_row_column.kisql (lines 144) */}
+```sql REVOKE Masked Column-Level Access Example
+REVOKE SELECT ON example.rx_order(ssn, rx_name) FROM rx_user
+```

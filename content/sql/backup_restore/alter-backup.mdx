@@ -1,0 +1,163 @@
+---
+title: ALTER BACKUP
+---
+
+<a id="sql-backup-alter"></a>
+
+
+Any of the following facets of a [backup](/content/sql/backup_restore/create-backup#sql-backup-create) can
+be altered, via a given [data sink](/content/sql/ddl/create-data-sink#sql-create-data-sink):
+
+* *Backup snapshots* can be merged into a single *full snapshot*.
+* *Backup snapshots* can be individually deleted
+* *Backup* options can be set
+
+```sql title="ALTER BACKUP Syntax"
+ALTER BACKUP <backup name>
+DATA SINK = <data sink name>
+< MERGE | PURGE <backup id> | SET <property name> = '<property value>'[,...] >
+[WITH OPTIONS (<alter option name> = '<alter option value>'[,...])]
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;backup name&gt;" id="<backup-name>" defaultOpen>
+
+Name of the [backup](/content/sql/backup_restore/create-backup#sql-backup-create) to alter.
+
+</Accordion>
+
+<Accordion title="&lt;data sink name&gt;" id="<data-sink-name>" defaultOpen>
+
+Name of the [data sink](/content/sql/ddl/create-data-sink#sql-create-data-sink) used to alter the database *backup* files
+on the remote file store.
+
+</Accordion>
+
+<Accordion title="MERGE" id="merge" defaultOpen>
+
+Merges all *snapshots* of a given *backup* into a single, *full snapshot*.  An error will be
+reported if the *backup* contains only one *full snapshot*.
+
+</Accordion>
+
+<Accordion title="PURGE" id="purge" defaultOpen>
+
+Deletes the *snapshot* identified with `backup id`.  Only applicable to *incremental* and
+*differential snapshots*.
+
+</Accordion>
+
+<Accordion title="SET" id="set" defaultOpen>
+
+Sets the given list of properties to their given corresponding values.
+
+
+<Info>
+These settings will affect future *snapshots* of the given *backup*; existing
+*snapshots* will remain unchanged.
+</Info>
+
+Alterable properties include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Property</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>CHECKSUM</code></td>
+    <td>Whether or not to calculate checksums on backed-up objects.</td>
+  </tr>
+  <tr>
+    <td><code>DDL_ONLY</code></td>
+    <td>Whether or not to only back up DDL for any tables.</td>
+  </tr>
+  <tr>
+    <td><code>MAX_INCREMENTAL_BACKUPS_TO_KEEP</code></td>
+    <td>Maximum number of *incremental snapshots* to keep.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of alteration option name/value assignments will
+follow.
+
+Alter options include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>COMMENT</code></td>
+    <td>A new comment for the *backup* that is created by a <code>MERGE</code>; only valid for <code>MERGE</code> operations.</td>
+  </tr>
+  <tr>
+    <td><code>DRY_RUN</code></td>
+    <td>Whether or not to execute a dry run of a *backup* alteration and not actually alter the *backup*.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-backup-alter-ex"></a>
+
+
+## Examples
+
+
+For example, to merge all *snapshots* of a *backup* into a single
+*full snapshot* and add a comment to the merged *backup*:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 417-420) */}
+```sql MERGE Backup Example
+ALTER BACKUP schema_backup
+DATA SINK = backup_ds
+MERGE
+WITH OPTIONS (COMMENT = 'Merged last 30 days of backups')
+```
+
+To purge a given *snapshot* by ID number:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 285-287) */}
+```sql PURGE Backup Example
+ALTER BACKUP schema_backup
+DATA SINK = backup_ds
+PURGE 1654321012345
+```
+
+To set the maximum number of *incremental snapshots* of a *backup* to keep to
+`5`:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 437-439) */}
+```sql SET Backup Properties Example
+ALTER BACKUP schema_backup
+DATA SINK = backup_ds
+SET MAX_INCREMENTAL_BACKUPS_TO_KEEP = 5
+```

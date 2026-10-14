@@ -1,0 +1,41 @@
+---
+title: GRANT Procedure Permission
+---
+
+<a id="sql-security-priv-mgmt-sqlp-grant"></a>
+
+
+[Procedure permissions](/content/security/sec_concepts#security-concepts-permissions-procedure),
+which allow execution of [SQL procedures](/content/sql/procedure#sql-procedures), can be
+granted directly to [users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+```sql title="GRANT Procedure Permission Syntax"
+GRANT EXECUTE [PRIVILEGES]
+ON <ALL PROCEDURES [IN [SCHEMA] <schema reference>] | PROCEDURE <procedure reference>>
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+```sql title="GRANT Create Procedure Permission Syntax"
+GRANT CREATE [PRIVILEGES] ON PROCEDURES
+[IN [SCHEMA] <schema reference>]
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `EXECUTE` | Run the given *SQL procedure*. |
+| `<procedure reference>` | The name of the procedure to which access is being granted, or a wildcard expression signifying the procedures to which access is being granted.  The following forms are valid: <br/> <br/> *&lt;schema&gt;.&lt;procedure&gt;*: Fully-qualified procedure name in the specified schema <br/> <br/> `*.*`: All existing procedures that the granting user can see, across all schemas <br/> <br/> `*`: All existing schemas the granting user can see, which grants access to all procedures in those schemas now and in the future <br/> <br/> *&lt;schema&gt;*: All procedures in the specified schema <br/> <br/> *&lt;procedure&gt;*: Procedure in the default schema. If a schema exists with the same name, it will be used. To avoid this, specify the fully-qualified procedure name. |
+| `<schema reference>` | The schema the permission applies to (with the `ALL` or `CREATE` forms).  If the IN [SCHEMA] clause is omitted, the permission applies across all schemas, both now and in the future.  Wildcards are not permitted with the IN keyword. |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+## Examples
+
+
+To grant execute on the **sqlp_weekly** procedure to **spuser**:
+
+{/* Source: /examples/sql/procedure/create_procedure.kisql (lines 106) */}
+```sql GRANT EXECUTE PROCEDURE Permission Example
+GRANT EXECUTE PROCEDURE ON example.sqlp_weekly TO spuser
+```

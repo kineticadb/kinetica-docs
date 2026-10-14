@@ -35,6 +35,7 @@ The *PostgreSQL Virtual Catalog* tables reside in the `pg_catalog` schema.
 | Virtual Catalog Table | Description |
 | --- | --- |
 | [geometry_columns](https://postgis.net/docs/using_postgis_dbmanagement.html#geometry_columns) | Columns of tables & views that have a GEOMETRY data type. |
+| [pg_am](https://www.postgresql.org/docs/current/catalog-pg-am.html) | Index access methods available--`btree` & `hash`. |
 | [pg_attrdef](https://www.postgresql.org/docs/current/catalog-pg-attrdef.html) | Columns that have default values. |
 | [pg_attribute](https://www.postgresql.org/docs/current/catalog-pg-attribute.html) | Columns of tables & views and their respective types & statistics. |
 | [pg_auth_members](https://www.postgresql.org/docs/current/catalog-pg-auth-members.html) | Users & roles and their granted roles, one record per user/role or role/role pair. |
@@ -51,6 +52,7 @@ The *PostgreSQL Virtual Catalog* tables reside in the `pg_catalog` schema.
 | [pg_namespace](https://www.postgresql.org/docs/current/catalog-pg-namespace.html) | Schemas, containing all database objects. |
 | [pg_proc](https://www.postgresql.org/docs/current/catalog-pg-proc.html) | Scalar, aggregate, window, and user-defined functions. |
 | [pg_roles](https://www.postgresql.org/docs/current/view-pg-roles.html) | Users & roles and their respective attributes. |
+| [pg_settings](https://www.postgresql.org/docs/current/view-pg-settings.html) | PostgreSQL server settings reported to clients, and their values. |
 | [pg_stat_all_tables](https://www.postgresql.org/docs/current/monitoring-stats.html#MONITORING-PG-STAT-ALL-TABLES-VIEW) | Row & byte counts for each object in the database. |
 | [pg_stats](https://www.postgresql.org/docs/current/view-pg-stats.html) | Columns of tables & views and their respective types. |
 | [pg_tables](https://www.postgresql.org/docs/current/view-pg-tables.html) | Tables & views. |
@@ -59,3 +61,26 @@ The *PostgreSQL Virtual Catalog* tables reside in the `pg_catalog` schema.
 | [pg_type](https://www.postgresql.org/docs/current/catalog-pg-type.html) | Supported PostgreSQL column data types mapped to Kinetica types. |
 | [pg_user](https://www.postgresql.org/docs/current/view-pg-user.html) | Users and their respective attributes, from `pg_authid`. |
 | [pg_views](https://www.postgresql.org/docs/current/view-pg-views.html) | Logical views and their backing queries. |
+| [spatial_ref_sys](https://postgis.net/docs/using_postgis_dbmanagement.html#spatial_ref_sys) | Spatial reference systems available for use; contains only EPSG `4326` (WGS 84) & EPSG `3857` (Web Mercator). |
+
+
+<Info>
+Kinetica implements the `pg_catalog` relations above.  Other relations
+from the PostgreSQL system catalog are present, so that clients probing
+for them succeed, but they return no records.
+</Info>
+
+
+## Primary Key Indexes
+
+
+Kinetica follows the PostgreSQL convention of exposing each
+[primary key](/content/concepts/tables#primary-key) as an index, rather than as a relation
+of its own.  Each appears as a record in [pg_class](https://www.postgresql.org/docs/current/catalog-pg-class.html), with a `relname` of
+*&lt;table_name&gt;*\ `_pkey` and a `relkind` of `i`, and as a corresponding
+record in [pg_index](https://www.postgresql.org/docs/current/catalog-pg-index.html).
+
+For example, the primary key on `ki_catalog.ki_datatypes` is reported as
+`ki_datatypes_pkey`.  These are index records; they have no columns of their
+own and will not appear in [ki_columns](/content/catalogs/kinetica#sql-vc-kinetica) or in any
+listing of catalog tables.

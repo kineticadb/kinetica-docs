@@ -1,0 +1,70 @@
+---
+title: UPLOAD URL
+---
+
+<a id="sql-kifs-upload-url"></a>
+
+
+Uploads file(s) from one or more URLs into [KiFS](/content/tools/kifs),
+in one or more [directories](/content/tools/kifs_api#kifs-directory).  There should be a
+corresponding *KiFS* full file path specified for each URL specified--the *KiFS*
+file name will not be derived from any part of the given URL.
+
+```sql title="UPLOAD URL Syntax"
+UPLOAD URL <url(s)>
+INTO <kifs path(s)>
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;url(s)&gt;" id="<url-s->" defaultOpen>
+
+URL(s) of the file(s) to upload to *KiFS*, as a comma-separated list of single-quoted URL(s).
+
+</Accordion>
+
+<Accordion title="&lt;kifs path(s)&gt;" id="<kifs-path-s->" defaultOpen>
+
+File path(s) in *KiFS* to upload the file(s) at the URL(s) to, as a comma-separated list of
+single-quoted *KiFS* full file paths.
+
+
+<Info>
+Only the *directory* specified within this path must exist for the upload to succeed.
+Any virtual subdirectories within this path do not need to exist before uploading.
+</Info>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To upload the *Kinetica JDBC Driver* in GitHub to *file*
+`kinetica-jdbc-fullshaded.jar` under *directory* `drivers`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 232-233) */}
+```sql UPLOAD URL Example
+UPLOAD URL 'https://github.com/kineticadb/kinetica-client-jdbc/raw/master/kinetica-jdbc-7.2.3.28-fullshaded.jar'
+INTO 'drivers/kinetica-jdbc-fullshaded.jar'
+```
+
+To upload the *Kinetica JDBC Driver* and the corresponding change log in GitHub
+to *files* `kjdbc-7.2.jar` & `kjdbc-CHANGELOG.md`, respectively, under
+*directory* `drivers`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 239-244) */}
+```sql UPLOAD URLs Example
+UPLOAD URL
+	'https://github.com/kineticadb/kinetica-client-jdbc/raw/master/kinetica-jdbc-7.2.3.28-fullshaded.jar',
+	'https://github.com/kineticadb/kinetica-client-jdbc/raw/master/CHANGELOG.md'
+INTO
+	'drivers/kjdbc-7.2.jar',
+	'drivers/kjdbc-CHANGELOG.md'
+```

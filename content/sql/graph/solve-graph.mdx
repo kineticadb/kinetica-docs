@@ -1,0 +1,329 @@
+---
+title: SOLVE_GRAPH
+---
+
+<a id="sql-graph-solve"></a>
+
+
+Solves an existing [graph](/content/graph_solver/network_graph_solver)
+using one of the supported [solver types](/content/graph_solver/network_graph_solver#solvers).  The
+`SOLVE GRAPH` function can be called either within a `SELECT` statement as a
+table function or within an `EXECUTE FUNCTION` call.
+
+<CodeGroup>
+
+{/* Source: /sql/syntax/graph.sql (lines 50-62) */}
+```sql Table Function Syntax
+SELECT * FROM TABLE
+(
+	SOLVE_GRAPH
+	(
+		GRAPH => '[<schema name>.]<graph name>',
+		SOLVER_TYPE => '<solver type>',
+		SOURCE_NODES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,
+		[DESTINATION_NODES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+		[WEIGHTS_ON_EDGES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+		[RESTRICTIONS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+		[OPTIONS => KV_PAIRS('<option name>' = '<option value>'[,...])]
+	)
+)
+```
+
+{/* Source: /sql/syntax/graph.sql (lines 65-75) */}
+```sql EXECUTE FUNCTION Syntax
+EXECUTE FUNCTION SOLVE_GRAPH
+(
+	GRAPH => '[<schema name>.]<graph name>',
+	SOLVER_TYPE => '<solver type>',
+	SOURCE_NODES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,
+	SOLUTION_TABLE => '[<schema name>.]<table name>',
+	[DESTINATION_NODES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+	[WEIGHTS_ON_EDGES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+	[RESTRICTIONS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+	[OPTIONS => KV_PAIRS('<option name>' = '<option value>'[,...])
+)
+```
+
+</CodeGroup>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="GRAPH" id="graph" defaultOpen>
+
+Name of the *graph* to solve
+
+</Accordion>
+
+<Accordion title="SOLVER_TYPE" id="solver_type" defaultOpen>
+
+The type of solver to use for the operation.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Solver</th>
+    <th>Description</th>
+    <th>CPU Parallel</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>ALLPATHS</code></td>
+    <td>Determines all reasonable paths between a source and destination pair.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>BACKHAUL_ROUTING</code></td>
+    <td>Determines the optimal routes between remote asset *nodes* and fixed asset nodes.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>CENTRALITY</code></td>
+    <td>Calculates the degree of a *node* to depict how many pairs of individuals that would have to go through the *node* to reach one another in the minimum number of hops. Also known as betweenness.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>CLOSENESS</code></td>
+    <td>Calculates the centrality closeness score per *node* as the sum of the inverse shortest path costs to all *nodes* in the graph.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>INVERSE_SHORTEST_PATH</code></td>
+    <td>Determines the shortest path downstream using multiple technician routing.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>MULTIPLE_ROUTING</code></td>
+    <td>Calculates the shortest possible route between the *nodes* and returns to the origin *node* -- also known as the traveling salesman.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>PAGE_RANK</code></td>
+    <td>Calculates how connected the *nodes* are and determines which *nodes* are the most important.  Weights are not required.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>PROBABILITY_RANK</code></td>
+    <td>Calculates the probability of a *node* being connected to another *node* using hidden Markov chains.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>SHORTEST_PATH</code></td>
+    <td>Determines the shortest path upstream between given source(s) and destination(s).</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>STATS_ALL</code></td>
+    <td>Calculates graph statistics such as graph diameter, longest pairs, vertex valences, topology numbers, average and max cluster sizes, etc.</td>
+    <td>X</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="SOURCE_NODES" id="source_nodes" defaultOpen>
+
+The *node(s)* used as the origin point(s) for the solution specified using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function.
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="SOLUTION_TABLE" id="solution_table" defaultOpen>
+
+Only applicable when using `EXECUTE FUNCTION` syntax. Name of the table to store the solution
+in `[schema_name.]table_name` format, using standard [name resolution rules](/content/sql/naming#sql-name-resolution)
+and meeting [table naming criteria](/content/sql/naming#sql-naming-criteria)
+
+</Accordion>
+
+<Accordion title="DESTINATION_NODES" id="destination_nodes" defaultOpen>
+
+The *node(s)* used as the destination point(s) for the solution specified using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function.
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="WEIGHTS_ON_EDGES" id="weights_on_edges" defaultOpen>
+
+Additional *weights* to apply to the *edges* of an existing graph specified using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and [Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information.
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="RESTRICTIONS" id="restrictions" defaultOpen>
+
+Additional *restrictions* to apply to the *nodes*/*edges* of an existing graph specified using the SQL
+`INPUT_TABLE` or `INPUT_TABLES` function; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and [Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more
+information.
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="OPTIONS" id="options" defaultOpen>
+
+Optional indicator that a comma-delimited list of connection option/value assignments will follow.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>astar_radius</code></td>
+    <td>For <code>SHORTEST_PATH</code>, <code>INVERSE_SHORTEST_PATH</code>, <code>ALLPATHS</code>, and <code>MULTIPLE_ROUTING</code> solvers, when <code>solve_heuristic</code> is <code>astar</code>. The shortest path traversal front includes nodes only within this radius (kilometers) as it moves towards the target location. Default is <code>70</code>.</td>
+  </tr>
+  <tr>
+    <td><code>convergence_limit</code></td>
+    <td>For <code>PAGE_RANK</code> solver only; maximum percent relative threshold on the pagerank scores of each *node* between consecutive iterations to satisfy convergence. Default value is 1%.</td>
+  </tr>
+  <tr>
+    <td><code>intersection_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>intersection</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>left_turn_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>left_turn</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>max_iterations</code></td>
+    <td>For <code>PAGE_RANK</code> solver only; maximum number of pagerank iterations for satisfying convergence. Default value is 100.</td>
+  </tr>
+  <tr>
+    <td><code>max_num_combinations</code></td>
+    <td>For <code>MULTIPLE_ROUTING</code> solver only. Sets the cap on the combinatorial sequence generated. If the default value (<code>2000000</code>) is overridden, it potentially speeds up the solver.</td>
+  </tr>
+  <tr>
+    <td><code>max_runs</code></td>
+    <td>For <code>CENTRALITY</code> solver only. Sets the maximum number of shortest path runs--maximum possible value is the number of *nodes* in the graph. Default of <code>0</code> enables this value to be auto-computed by the solver.</td>
+  </tr>
+  <tr>
+    <td><code>max_solution_radius</code></td>
+    <td>For <code>SHORTEST_PATH</code>, <code>INVERSE_SHORTEST_PATH</code>, &amp; <code>ALLPATHS</code> solvers only.  Sets the maximum solution cost radius, which ignores the <code>DESTINATION_NODES</code> list and instead outputs the nodes within the radius sorted by ascending cost.  If set to <code>0.0</code> (the default), the setting is ignored.</td>
+  </tr>
+  <tr>
+    <td><code>max_solution_targets</code></td>
+    <td>For <code>SHORTEST_PATH</code>, <code>INVERSE_SHORTEST_PATH</code>, &amp; <code>ALLPATHS</code> solvers only.  Sets the maximum number of solution targets, which ignores the <code>DESTINATION_NODES</code> list and instead outputs no more than *n* number of nodes sorted by ascending cost where *n* is equal to the setting value. If set to <code>0</code> (the default), the setting is ignored.</td>
+  </tr>
+  <tr>
+    <td><code>min_solution_radius</code></td>
+    <td>For <code>SHORTEST_PATH</code>, <code>INVERSE_SHORTEST_PATH</code>, &amp; <code>ALLPATHS</code> solvers only.  Applicable when <code>max_solution_radius</code> is set.  Sets the minimum solution cost radius, which ignores the <code>DESTINATION_NODES</code> list and instead outputs the nodes within the radius sorted by ascending cost. If set to <code>0.0</code> (the default), the setting is ignored.</td>
+  </tr>
+  <tr>
+    <td><code>num_best_paths</code></td>
+    <td>For <code>MULTIPLE_ROUTING</code> solver only. Sets the number of shortest paths computed from each node. This is the heuristic criterion. If set to <code>0</code> (the default), the number will be determined automatically by the solver. Users may want to override this parameter to speed up the solver.</td>
+  </tr>
+  <tr>
+    <td><code>output_clusters</code></td>
+    <td>For <code>STATS_ALL</code> solver only; the cluster index for each *node* will be inserted as an additional column in the output.</td>
+  </tr>
+  <tr>
+    <td><code>output_edge_path</code></td>
+    <td>If set to <code>true</code>, concatenated edge IDs will be added as an <code>EDGE_PATH</code> column to the solution table for each source and target pair in the <code>SHORTEST_PATH</code> solves. The default value is <code>false</code></td>
+  </tr>
+  <tr>
+    <td><code>output_wkt_path</code></td>
+    <td>If set to <code>true</code>, WKT line segments will be added as a <code>WKTROUTE</code> column to the solution table for each source and target pair in <code>SHORTEST_PATH</code> solves. The default value is <code>false</code>.</td>
+  </tr>
+  <tr>
+    <td><code>right_turn_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>right_turn</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>server_id</code></td>
+    <td>Indicates which graph server(s) to send the request to. Default is to send to the server, amongst those containing the corresponding graph, that has the most computational bandwidth. For <code>SHORTEST_PATH</code> solver, the input is split among the server containing the corresponding graph.</td>
+  </tr>
+  <tr>
+    <td><code>sharp_turn_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>sharp_turn</code> or <code>u_turn</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>solve_heuristic</code></td>
+    <td>The heuristic search criterion to use, only for geo graphs and <code>SHORTEST_PATH</code> solves towards a single target.  Specify <code>astar</code> to use an *A-STAR* heuristic.  The default value is <code>none</code>.</td>
+  </tr>
+  <tr>
+    <td><code>uniform_weights</code></td>
+    <td>When specified, assigns the given value to all the edges in the graph. Note that weights provided using <code>weights_on_edges</code> will override this value.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+Using the `EXECUTE FUNCTION` syntax necessitates the `SOLUTION_TABLE`
+parameter to store the solve results, where using the table function syntax will
+return the results directly.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 168-178) */}
+```sql Table Function Example
+SELECT * FROM TABLE
+(
+	SOLVE_GRAPH
+	(
+		GRAPH => 'sample_graph',
+		SOLVER_TYPE => 'SHORTEST_PATH',
+		SOURCE_NODES => INPUT_TABLE(SELECT ST_GEOMFROMTEXT('POINT(0 0)') AS WKTPOINT),
+		DESTINATION_NODES => INPUT_TABLE(SELECT ST_GEOMFROMTEXT('POINT(-5 -5)') AS WKTPOINT),
+		OPTIONS => KV_PAIRS(output_edge_path = 'true')
+	)
+)
+```
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 181-189) */}
+```sql EXECUTE FUNCTION Example
+EXECUTE FUNCTION SOLVE_GRAPH
+(
+	GRAPH => 'sample_graph',
+	SOLVER_TYPE => 'SHORTEST_PATH',
+	SOURCE_NODES => INPUT_TABLE(SELECT ST_GEOMFROMTEXT('POINT(0 0)') AS WKTPOINT),
+	DESTINATION_NODES => INPUT_TABLE(SELECT ST_GEOMFROMTEXT('POINT(-5 -5)') AS WKTPOINT),
+	SOLUTION_TABLE => 'sample_graph_solved_shortest_path',
+	OPTIONS => KV_PAIRS(output_edge_path = 'true')
+)
+```
+
+</CodeGroup>

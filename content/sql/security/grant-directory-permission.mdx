@@ -1,0 +1,50 @@
+---
+title: GRANT Directory Permission
+---
+
+<a id="sql-security-priv-mgmt-dir-grant"></a>
+
+
+[KiFS directory permissions](/content/security/sec_concepts#security-concepts-permissions-kifs),
+which allow management of *files* within
+[KiFS directories](/content/sql/kifs/create-directory#sql-kifs-create-dir), can be granted
+directly to [users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+```sql title="GRANT Directory Permission Syntax"
+GRANT <READ | WRITE> [PRIVILEGES]
+ON <ALL DIRECTORIES | DIRECTORY < <directory name> | * >>
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+```sql title="GRANT Create Directory Permission Syntax"
+GRANT CREATE DIRECTORY [PRIVILEGES]
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `READ` | List, download, or load data from *files* within the given *directory*. |
+| `WRITE` | Upload *files* to or delete *files* from the given *directory* (includes `READ` access). |
+| `<directory reference>` | The name of the directory to which access is being granted, or `*` for all directorys. The following forms are valid: <br/> <br/> *&lt;directory name&gt;*: The specified directory <br/> <br/> `*`: All directorys, both existing and future |
+| `CREATE DIRECTORY` | [Create directory permission](/content/security/sec_concepts#directory-create) |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+## Examples
+
+
+To grant read access on a *directory* named **kdata** to the
+**kuser** *user*:
+
+{/* Source: /examples/sql/kifs.kisql (lines 152) */}
+```sql GRANT Directory Read Permission Example
+GRANT READ ON DIRECTORY 'kdata' TO kuser
+```
+
+To grant write access on a *directory* named **kdata** to the **kuser** *user*:
+
+{/* Source: /examples/sql/kifs.kisql (lines 168) */}
+```sql GRANT Directory Write Permission Example
+GRANT WRITE ON DIRECTORY 'kdata' TO kuser
+```

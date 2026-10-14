@@ -1,0 +1,49 @@
+---
+title: GRANT Function (UDF/UDTF) Permission
+---
+
+<a id="sql-security-priv-mgmt-udf-grant"></a>
+
+
+[Function permissions](/content/security/sec_concepts#security-concepts-permissions-function),
+which allow management of [UDFs/UDTFs](/content/sql/udf#sql-udf), can be granted
+directly to [users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+```sql title="GRANT Function (UDF/UDTF) Permission Syntax"
+GRANT <EXECUTE | ADMIN> [PRIVILEGES]
+ON <ALL FUNCTIONS | FUNCTION < <function name> | * >>
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+```sql title="GRANT Create Function (UDF/UDTF) Permission Syntax"
+GRANT CREATE FUNCTION [PRIVILEGES]
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `ADMIN` | Drop the given *UDF*, and display full configuration about it (includes `EXECUTE` access). <br/> <br/> When `*` is used instead of *function name*, gives permission to manage [Python UDF function environments](/content/sql/udf/create-function-environment#sql-create-function-environment). |
+| `EXECUTE` | Run and terminate the given *UDF*, and display limited configuration about it. |
+| `<function reference>` | The name of the UDF/UDTF to which access is being granted, or `*` for all functions.  The following forms are valid: <br/> <br/> *&lt;function name&gt;*: The specified UDF/UDTF <br/> <br/> `*`: All functions, both existing and future |
+| `CREATE FUNCTION` | [Create UDF/UDTF permission](/content/security/sec_concepts#proc-create) |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+## Examples
+
+
+To grant execute on the **udf_sos_py_proc** *UDF* to **udf_user**:
+
+{/* Source: /examples/sql/udf/udf.kisql (lines 99) */}
+```sql GRANT Function Execute Permission Example
+GRANT EXECUTE ON FUNCTION UDF_SOS_PY_PROC TO udf_user
+```
+
+To grant administrative access on every existing & future *UDF*, as well as the
+ability to manage Python UDF environments, to **udf_user**:
+
+{/* Source: /examples/sql/udf/udf_env_perm.kisql (lines 27) */}
+```sql GRANT Function Administrative Permission Example
+GRANT ADMIN ON FUNCTION * TO udf_user
+```

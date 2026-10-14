@@ -1,0 +1,196 @@
+---
+title: ALTER TIER
+---
+
+<a id="sql-tier-alter"></a>
+
+
+The size & eviction thresholds of
+[storage tiers](/content/rm/concepts#rm-concepts-tiers) can be modified, applying the
+change to individually specified ranks or all ranks at once.
+
+*Tier* settings can be viewed with [SHOW SYSTEM PROPERTIES](/content/sql/system_properties/show-system-properties#sql-show-system-properties).
+
+```sql title="ALTER TIER Syntax"
+ALTER TIER <tier name>
+WITH OPTIONS (<tier property name> = <tier property value>[,...])
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;tier name&gt;" id="<tier-name>" defaultOpen>
+
+Name of the [storage tier](/content/rm/concepts#rm-concepts-tiers) to alter.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Name</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>VRAM</code></td>
+    <td>Alter the [VRAM tier](/content/rm/concepts#rm-concepts-tiers-vram).</td>
+  </tr>
+  <tr>
+    <td><code>RAM</code></td>
+    <td>Alter the [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram).</td>
+  </tr>
+  <tr>
+    <td><code>DISK[n]</code></td>
+    <td>Alter the specified [disk tier](/content/rm/concepts#rm-concepts-tiers-disk).</td>
+  </tr>
+  <tr>
+    <td><code>PERSIST</code></td>
+    <td>Alter the [persist tier](/content/rm/concepts#rm-concepts-tiers-persist).</td>
+  </tr>
+  <tr>
+    <td><code>COLD[n]</code></td>
+    <td>Alter the specified [cold storage tier](/content/rm/concepts#rm-concepts-tiers-cold).</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of `tier property name` /
+`tier property value` assignments will follow.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Property</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>capacity</code></td>
+    <td>Size, in bytes, of a rank in this tier; for *RAM*, *disk*, &amp; *persist* tiers.</td>
+  </tr>
+  <tr>
+    <td><code>high_watermark</code></td>
+    <td>High watermark [eviction](/content/rm/concepts#rm-concepts-wb-eviction) threshold for a rank in this tier; for *VRAM*, *RAM*, *disk*, &amp; *persist* tiers.</td>
+  </tr>
+  <tr>
+    <td><code>low_watermark</code></td>
+    <td>Low watermark [eviction](/content/rm/concepts#rm-concepts-wb-eviction) threshold for a rank in this tier; for *VRAM*, *RAM*, *disk*, &amp; *persist* tiers.</td>
+  </tr>
+  <tr>
+    <td><code>wait_timeout</code></td>
+    <td>Timeout, in seconds, for reading from or writing to this tier; for *cold storage* tiers.</td>
+  </tr>
+  <tr>
+    <td><code>persist</code></td>
+    <td>Whether to save this change to the database configuration so that it will stay in effect after a database restart; default is <code>true</code>.</td>
+  </tr>
+  <tr>
+    <td><code>rank</code></td>
+    <td>Specific rank in this tier to apply the change to; default is to apply the change to all ranks in the tier.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-tier-alter-ex"></a>
+
+
+## Examples
+
+
+To alter the capacity of the [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram) on rank 0 to *500MB*
+temporarily (until the database is restarted):
+
+{/* Source: /examples/sql/rm/alter_tier.kisql (lines 20-26) */}
+```sql ALTER TIER Capacity on a Rank Temporarily Example
+ALTER TIER ram
+WITH OPTIONS
+(
+	'capacity' = '500000000',
+	'rank' = 0,
+	'persist' = false
+)
+```
+
+To show the change took effect:
+
+{/* Source: /examples/sql/rm/alter_tier.kisql (lines 31-32) */}
+```sql SHOW Tier Capacity on a Rank Example
+SHOW SYSTEM PROPERTIES
+WITH OPTIONS ('properties' = 'conf.tier.ram.rank0.limit')
+```
+{/* Source: /examples/sql/rm/alter_tier.out (lines 391-395) */}
+``` SHOW Tier Capacity on a Rank Output
++-----------------------------------------+
+| SYSTEM_PROPERTIES                       |
++-----------------------------------------+
+| conf.tier.ram.rank0.limit = 500000000   |
++-----------------------------------------+
+```
+
+To alter the eviction thresholds of the [VRAM tier](/content/rm/concepts#rm-concepts-tiers-vram) across all ranks, and
+save the change to the startup configuration:
+
+{/* Source: /examples/sql/rm/alter_tier.kisql (lines 73-78) */}
+```sql ALTER TIER Eviction Thresholds Permanently Example
+ALTER TIER vram
+WITH OPTIONS
+(
+	'high_watermark' = '95',
+	'low_watermark' = '75'
+)
+```
+
+To show the change took effect:
+
+{/* Source: /examples/sql/rm/alter_tier.kisql (lines 83-97) */}
+```sql SHOW Tier Eviction Thresholds Example
+SHOW SYSTEM PROPERTIES
+WITH OPTIONS
+(
+    'properties' =
+    '
+        conf.tier.vram.default.all_gpus.high_watermark,
+        conf.tier.vram.default.all_gpus.low_watermark,
+        conf.tier.vram.rank0.all_gpus.high_watermark,
+        conf.tier.vram.rank0.all_gpus.low_watermark,
+        conf.tier.vram.rank1.all_gpus.high_watermark,
+        conf.tier.vram.rank1.all_gpus.low_watermark,
+        conf.tier.vram.rank2.all_gpus.high_watermark,
+        conf.tier.vram.rank2.all_gpus.low_watermark
+    '
+)
+```
+{/* Source: /examples/sql/rm/alter_tier.out (lines 491-502) */}
+``` SHOW Tier Eviction Thresholds Output
++-------------------------------------------------------+
+| SYSTEM_PROPERTIES                                     |
++-------------------------------------------------------+
+| conf.tier.vram.default.all_gpus.high_watermark = 95   |
+| conf.tier.vram.default.all_gpus.low_watermark = 75    |
+| conf.tier.vram.rank0.all_gpus.high_watermark = 90     |
+| conf.tier.vram.rank0.all_gpus.low_watermark = 80      |
+| conf.tier.vram.rank1.all_gpus.high_watermark = 95     |
+| conf.tier.vram.rank1.all_gpus.low_watermark = 75      |
+| conf.tier.vram.rank2.all_gpus.high_watermark = 95     |
+| conf.tier.vram.rank2.all_gpus.low_watermark = 75      |
++-------------------------------------------------------+
+```

@@ -1,0 +1,78 @@
+---
+title: DROP DIRECTORY
+---
+
+<a id="sql-kifs-drop-dir"></a>
+
+
+Removes an existing [KiFS directory](/content/tools/kifs_api#kifs-directory).
+
+```sql title="DROP DIRECTORY Syntax"
+DROP DIRECTORY [IF EXISTS] '<directory name>'
+[WITH OPTIONS ('<option name>' = '<option value>'[,...])]
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;directory name&gt;" id="<directory-name>" defaultOpen>
+
+Name of the *directory* to remove.
+
+</Accordion>
+
+<Accordion title="IF EXISTS" id="if-exists" defaultOpen>
+
+Optional error-suppression clause; if specified, no error will be returned if the given
+*directory* does not exist.
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of option/value assignments will follow.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>recursive</code></td>
+    <td>Whether to delete all files contained within the *directory*: <ul><li><code>false</code> *(default)* - only drop the *directory* if empty; return an error if the *directory* contains *files*</li><li><code>true</code> - drop the *directory* and all *files* in it</li></ul></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To delete a *directory*, `kbackup`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 196) */}
+```sql DROP DIRECTORY Example
+DROP DIRECTORY 'kbackup'
+```
+
+To delete a *directory*, `kdata`, and all files in it, suppressing the error
+if it doesn't exist:
+
+{/* Source: /examples/sql/kifs.kisql (lines 201-202) */}
+```sql DROP DIRECTORY with Files Example
+DROP DIRECTORY IF EXISTS 'kdata'
+WITH OPTIONS ('recursive' = 'true')
+```

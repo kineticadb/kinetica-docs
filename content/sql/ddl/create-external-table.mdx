@@ -37,6 +37,7 @@ of loading data into *Kinetica*, see [Data Loading Concepts](/content/load_data/
 
 The source data can be located in any of the following locations:
 
+* on shared storage, mounted on each database node in the cluster
 * in [KiFS](/content/tools/kifs)
 * on a remote system, accessible via a
   [data source](/content/sql/ddl/create-data-source#sql-create-data-source)
@@ -70,7 +71,7 @@ and dropping subscriptions on the *external table*.
 
 Although an *external table* cannot use a *data source* configured for *Kafka*,
 a standard *table* can have *Kafka* data streamed into it via a
-[LOAD INTO](/content/sql/load#sql-load-file-server) command that references such a
+[LOAD INTO](/content/sql/load/load-into#sql-load-file-server) command that references such a
 *data source*.
 
 The use of *external tables* with [ring resiliency](/content/ha)
@@ -215,6 +216,57 @@ The form of a file path is dependent on the source referenced:
   * `kifs://data/geo.csv`
   * `kifs://data/geo/flights.csv`
   * `kifs://data/geo/2021/airline.csv`
+
+* *Kinetica Cluster*:  The paths are OS-level paths under the *Kinetica* configuration file's
+  [external files directory](/content/config#config-main-external-files) that are accessible to the
+  `gpudb` user and either:
+
+  * accessible to all nodes in the *Kinetica* cluster
+  * mirrored across each node in the *Kinetica* cluster
+
+  A "path prefix" that references a directory on the cluster file system can be specified,
+  which will cause all files contained within that directory and its subdirectories to be
+  included.  Wildcards can also be used to specify a group of files.
+
+  Directories of *shapefiles* are loaded as a single data set, rather than being traversed
+  recursively.
+
+  For example, if `external_files_directory` is set to <Badge color="gray">/opt/gpudb/data</Badge>, the
+  following `<file paths>` specifications will refer to these corresponding files:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>File Path</th>
+    <th>Reference</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>/opt/gpudb/data/products.csv</code></td>
+    <td>File <Badge color="gray">/opt/gpudb/data/products.csv</Badge></td>
+  </tr>
+  <tr>
+    <td><code>archive/products.csv</code></td>
+    <td>File <Badge color="gray">/opt/gpudb/data/archive/products.csv</Badge></td>
+  </tr>
+  <tr>
+    <td><code>archive/*.csv</code></td>
+    <td>All files under <Badge color="gray">/opt/gpudb/data/archive</Badge> with a <Badge color="gray">csv</Badge> extension</td>
+  </tr>
+  <tr>
+    <td><code>archive</code></td>
+    <td>All files under <Badge color="gray">/opt/gpudb/data/archive</Badge> and its subdirectories</td>
+  </tr>
+  <tr>
+    <td><code>/opt/gpudb/products.csv</code></td>
+    <td>Error, as absolute path <Badge color="gray">/opt/gpudb</Badge> does not contain *external files directory* <Badge color="gray">/opt/gpudb/data</Badge> as part of the path</td>
+  </tr>
+  </tbody>
+</table>
+</div>
 
 </Accordion>
 
@@ -435,7 +487,7 @@ id|int|data,category|string|data|char16,name|string|data|char32
 ```
 
 The default is the `|` (pipe) character.  See
-[Delimited Text Option Characters](/content/sql/load#sql-load-file-server-delim-opt-char) for allowed characters.
+[Delimited Text Option Characters](/content/sql/load/load-into#sql-load-file-server-delim-opt-char) for allowed characters.
 
 
 <Info>
@@ -695,7 +747,7 @@ This option is not available for *data sources* configured for *JDBC*.
 <Accordion title="DATA SOURCE" id="data-source" defaultOpen>
 
 Load data from the given [data source](/content/sql/ddl/create-data-source#sql-create-data-source).
-[Data source connect privilege](/content/sql/security#sql-security-priv-mgmt-ds-grant) is required when
+[Data source connect privilege](/content/sql/security/grant-data-source-permission#sql-security-priv-mgmt-ds-grant) is required when
 loading from a *data source*.
 
 </Accordion>
@@ -708,7 +760,7 @@ identified by the `CATALOG PATH` clause.
 
 <Info>
 Only applicable to `CREATE EXTERNAL TABLE`; a
-[LOAD INTO](/content/sql/load#sql-load-file-server) cannot read from a
+[LOAD INTO](/content/sql/load/load-into#sql-load-file-server) cannot read from a
 *catalog*.
 </Info>
 
@@ -962,6 +1014,39 @@ The default is *50,000*.
 <Info>
 This option is only available for *data sources* configured for *JDBC*.
 </Info>
+
+</Accordion>
+
+<Accordion title="LOADING MODE" id="loading-mode" defaultOpen>
+
+Use one of the following distribution schemes to load data files.  The default mode is
+`HEAD`.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Mode</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>HEAD</code></td>
+    <td>The *head node* loads all data.  All files must be available to the *head node*.</td>
+  </tr>
+  <tr>
+    <td><code>DISTRIBUTED LOCAL</code></td>
+    <td>A single worker process on each node loads all files that are available to it.  This option works best when each worker loads files from its own file system, to maximize performance. In order to avoid data duplication, either each worker performing the load needs to have visibility to a set of files unique to it (no file is visible to more than one node) or the target table needs to have a primary key (which will allow the worker to automatically deduplicate data). <Note>* The *head node* must be able to access at least one source file in order to determine the structure of a *table* that does not already exist. * Specifying a *data source* overrides this mode; such data is always loaded as though `DISTRIBUTED SHARED` were given. * Only hosts with at least one active worker rank participate in the load; rank 0 never loads data in this mode.</Note></td>
+  </tr>
+  <tr>
+    <td><code>DISTRIBUTED SHARED</code></td>
+    <td>The *head node* coordinates loading data by worker processes across all nodes from shared files available to all workers. <Note>Instead of existing on a shared source, the files can be duplicated on a source local to each host to improve performance, though the files must appear as the same data set from the perspective of all hosts performing the load.</Note></td>
+  </tr>
+  </tbody>
+</table>
+</div>
 
 </Accordion>
 

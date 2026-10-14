@@ -1,0 +1,99 @@
+---
+title: UPLOAD FILE
+---
+
+<a id="sql-kifs-upload-file"></a>
+
+
+Uploads file(s) local to the database client into
+[KiFS](/content/tools/kifs), within the given
+[directory](/content/tools/kifs_api#kifs-directory).
+
+
+<Info>
+This command is only available through
+[KiSQL](/content/tools/kisql) or database clients configured with
+the [Kinetica JDBC driver](/content/connectors/sql_guide#odbc-jdbc).
+</Info>
+
+```sql title="UPLOAD FILE Syntax"
+UPLOAD FILE[S] <file path(s)>
+INTO '<kifs path>'
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;file path(s)&gt;" id="<file-path-s->" defaultOpen>
+
+Local path(s) of the file(s) to upload to *KiFS*, as a comma-separated list of single-quoted
+file paths; wildcards (`*`) can be used to specify a group of files.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>File Path</th>
+    <th>Outcome</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>'archive/*.csv'</code></td>
+    <td>Upload all files under the <Badge color="gray">archive</Badge> directory with a <Badge color="gray">csv</Badge> extension</td>
+  </tr>
+  <tr>
+    <td><code>'data/q1.csv','data/q2.csv'</code></td>
+    <td>Upload <Badge color="gray">q1.csv</Badge> &amp; <Badge color="gray">q2.csv</Badge> that reside under the <Badge color="gray">data</Badge> directory</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;kifs path&gt;" id="<kifs-path>" defaultOpen>
+
+Path in *KiFS*; this can be either the name of a *directory* or a *directory* followed by
+virtual subdirectories separated by `/` characters.
+
+For example, uploading a file named `2021.q1.csv` to:
+
+* `'data'` - will upload it to the `data` *directory* and make it available as
+  `data/2021.q1.csv`
+* `'data/sales/Q1'` - will upload it to the `data` *directory* and make it available as
+  `data/sales/Q1/2021.q1.csv`
+
+
+<Info>
+Only the *directory* specified within this path must exist for the upload to succeed.
+Any virtual subdirectories added to this path do not need to exist before uploading.
+</Info>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To upload a file to a *directory*, `kdata`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 62-63) */}
+```sql UPLOAD FILE Example
+UPLOAD FILE '../data/products.csv'
+INTO 'kdata'
+```
+
+To upload several files to a *directory*, `kdata`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 69-70) */}
+```sql UPLOAD FILES Example
+UPLOAD FILES '../data/p*.ssv', '../data/employee.*'
+INTO 'kdata'
+```

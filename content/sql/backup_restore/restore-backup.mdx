@@ -1,0 +1,270 @@
+---
+title: RESTORE BACKUP
+---
+
+<a id="sql-backup-restore"></a>
+
+
+Restores the given database objects & data from an existing *full*,
+*incremental*, or *differential snapshot* within a
+[backup](/content/sql/backup_restore/create-backup#sql-backup-create); retrieving the backed-up files at the
+location accessible through the given
+[data source](/content/sql/ddl/create-data-source#sql-create-data-source).
+
+Each restored object is placed in its original *schema*.
+
+```sql title="RESTORE BACKUP Syntax"
+RESTORE BACKUP <backup name>
+DATA SOURCE <data source name>
+OBJECTS (<object type> = <object name>[,...])
+[WITH OPTIONS (<restore option name> = '<restore option value>'[,...])]
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;backup name&gt;" id="<backup-name>" defaultOpen>
+
+Name of the *backup* from which objects will be restored.
+
+</Accordion>
+
+<Accordion title="&lt;data source name&gt;" id="<data-source-name>" defaultOpen>
+
+Name of the [data source](/content/sql/ddl/create-data-source#sql-create-data-source) to use to retrieve the database
+*backup* files from the remote file store.
+
+</Accordion>
+
+<Accordion title="OBJECTS" id="objects" defaultOpen>
+
+List of key/value pairs, each being an `object type` and an `object name` of that type, to
+restore.
+
+`object type` designations include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Object Type</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>ALL</code></td>
+    <td>[Schema](/content/sql/ddl/create-schema#sql-create-schema), and all the objects &amp; data it contains</td>
+  </tr>
+  <tr>
+    <td><code>CONTEXT</code></td>
+    <td>[SQL-GPT context](/content/sql/sqlgpt/create-context#sql-gpt-create-context)</td>
+  </tr>
+  <tr>
+    <td><code>CREDENTIAL</code></td>
+    <td>[Credential](/content/sql/ddl/create-credential#sql-create-credential)</td>
+  </tr>
+  <tr>
+    <td><code>DATA SINK</code></td>
+    <td>[Data sink](/content/sql/ddl/create-data-sink#sql-create-data-sink)</td>
+  </tr>
+  <tr>
+    <td><code>DATA SOURCE</code></td>
+    <td>[Data source](/content/sql/ddl/create-data-source#sql-create-data-source)</td>
+  </tr>
+  <tr>
+    <td><code>DIRECTORY</code></td>
+    <td>[KiFS directory](/content/sql/kifs)</td>
+  </tr>
+  <tr>
+    <td><code>FUNCTION</code></td>
+    <td>[UDF](/content/sql/udf/create-function#sql-create-function)</td>
+  </tr>
+  <tr>
+    <td><code>FUNCTION ENVIRONMENT</code></td>
+    <td>[UDF environment](/content/sql/udf/create-function-environment#sql-create-function-environment)</td>
+  </tr>
+  <tr>
+    <td><code>GRAPH</code></td>
+    <td>[Graph](/content/sql/graph).  Source tables, if applicable, are required in order to restore it.</td>
+  </tr>
+  <tr>
+    <td><code>PROCEDURE</code></td>
+    <td>[SQL procedure](/content/sql/procedure#sql-procedures)</td>
+  </tr>
+  <tr>
+    <td><code>RESOURCE GROUP</code></td>
+    <td>[Resource group](/content/sql/resource_group/create-resource-group#sql-rg-create)</td>
+  </tr>
+  <tr>
+    <td><code>ROLE</code></td>
+    <td>[User role](/content/sql/security/create-role#sql-security-role-mgmt)</td>
+  </tr>
+  <tr>
+    <td><code>STREAM</code></td>
+    <td>[Stream](/content/sql/ddl/create-stream#sql-create-stream)</td>
+  </tr>
+  <tr>
+    <td><code>TABLE</code></td>
+    <td>[Table](/content/sql/ddl/create-table#sql-create-table) or [view](/content/sql/ddl/create-view#sql-create-view)</td>
+  </tr>
+  <tr>
+    <td><code>USER</code></td>
+    <td>[User](/content/sql/security/create-user#sql-security-user-mgmt)</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of *backup* restoration option name/value
+assignments will follow.
+
+See [Options](/content/sql/backup_restore/restore-backup#sql-backup-restore-opt) for the complete list of options.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-backup-restore-opt"></a>
+
+
+## Options
+
+
+The following options can be specified to further modify a *backup*
+restoration.
+
+<AccordionGroup>
+
+<Accordion title="BACKUP_ID" id="backup_id" defaultOpen>
+
+ID of *snapshot* from which objects will be restored.  The default is to use the most recent one.
+
+</Accordion>
+
+<Accordion title="CHECKSUM" id="checksum" defaultOpen>
+
+Verify checksums calculated during back up process before restoring.  The default (`false`) is
+to not verify checksums.
+
+</Accordion>
+
+<Accordion title="CREATE_SCHEMA_IF_NOT_EXIST" id="create_schema_if_not_exist" defaultOpen>
+
+Whether to create the [schema](/content/sql/ddl/create-schema#sql-create-schema) containing objects being restored if it
+doesn't exist.  The default (`true`) is to create the *schema* if it doesn't exist.
+
+</Accordion>
+
+<Accordion title="DDL_ONLY" id="ddl_only" defaultOpen>
+
+For any table, only restore its DDL; don't restore its data.  The default (`false`) is to
+restore data and DDL.
+
+</Accordion>
+
+<Accordion title="DRY_RUN" id="dry_run" defaultOpen>
+
+Execute a dry run of a restoration without actually restoring any files.  The default (`false`)
+is to not do a dry run.
+
+</Accordion>
+
+<Accordion title="RENAMED_OBJECTS_SCHEMA" id="renamed_objects_schema" defaultOpen>
+
+If `RESTORE_POLICY` is `rename`, each existing database objects will be relocated to this
+[schema](/content/sql/ddl/create-schema#sql-create-schema) if a restored database object would otherwise collide with
+it.  If not specified, the *schema* name will be automatically generated, using the format:
+`backup_<UUID>`.
+
+
+<Info>
+Specify this option when restoring via SQL; the automatically generated *schema*
+name is not available to a SQL client, leaving the relocated objects difficult to find.
+</Info>
+
+</Accordion>
+
+<Accordion title="RESTORE_POLICY" id="restore_policy" defaultOpen>
+
+Restoration scheme to use when restoring objects that already exist.  Under the default policy,
+an existing object is not replaced; it is skipped & reported as failed, and the restoration
+continues with the remaining objects.
+
+
+<Info>
+The set of skipped objects is not available to a SQL client.  Each restoration is
+recorded in the [ki_backup_history](/content/catalogs/kinetica) catalog table, with its
+status & the set of objects *requested*; compare that against the database to determine
+which were skipped.  To retrieve the failed objects directly, use
+[/restore/backup](/content/api/rest/restore_backup_rest) instead.
+</Info>
+
+Other policy choices include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Policy</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>rename</code></td>
+    <td>If any object being restored already exists in the database in its corresponding [schema](/content/sql/ddl/create-schema#sql-create-schema), move all already-existing objects that would otherwise be overwritten by the restoration into another *schema*, and restore all objects to their original *schema*. The name of the *schema* holding the relocated objects is determined by <code>RENAMED_OBJECTS_SCHEMA</code>, and will be created if it doesn't exist. <Note>Applicable only to *credentials*, *data sinks*, *data sources*, *table monitors*, *SQL procedures*, *tables*, & non-temporary *views*. An object of any other type is left in place and is not restored.</Note></td>
+  </tr>
+  <tr>
+    <td><code>replace</code></td>
+    <td>If the object being restored already exists in the database in its corresponding *schema*, overwrite the existing object with it.  Objects with dependent objects will not be restored, as they are not able to be dropped before being restored due to those dependencies. <Note>When applied to a *KiFS directory*, the target directory and all its contents will be deleted before restoring the backup content to it; this includes removing files that are not part of the restored backup.</Note></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-backup-restore-ex"></a>
+
+
+## Examples
+
+
+For example, to restore the `example_backup` schema from a *backup* named
+`schema_backup`, copying data from a source via *data source* `restore_ds`:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 98-100) */}
+```sql RESTORE BACKUP (Schema) Example
+RESTORE BACKUP schema_backup
+DATA SOURCE = restore_ds
+OBJECTS (ALL = example_backup)
+```
+
+To restore individual tables from a *backup* named `schema_backup`, restoring
+tables that already exist into a new schema, `example_backup_restore`:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 213-220) */}
+```sql RESTORE BACKUP (Objects w/ Rename Schema) Example
+RESTORE BACKUP schema_backup
+DATA SOURCE = restore_ds
+OBJECTS (TABLE = example_backup.employee, example_backup.product)
+WITH OPTIONS
+(
+	RESTORE_POLICY = 'rename',
+	RENAMED_OBJECTS_SCHEMA = 'example_backup_restore'
+)
+```

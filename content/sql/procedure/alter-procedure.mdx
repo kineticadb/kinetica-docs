@@ -1,0 +1,109 @@
+---
+title: ALTER PROCEDURE
+---
+
+<a id="sql-procedures-alter"></a>
+
+
+Alters the configuration of an existing
+[SQL procedure](/content/sql/procedure/create-procedure#sql-procedures-create).
+
+The following facets of a *SQL procedure* can be altered:
+
+* [Execution User](/content/sql/procedure/alter-procedure#sql-procedures-set-execute-as)
+* [Execution Mode](/content/sql/procedure/alter-procedure#sql-procedures-set-execute-mode)
+
+
+<a id="sql-procedures-set-execute-as"></a>
+
+
+## Set Execution User
+
+
+A *SQL procedure* can have its execution user modified.
+
+```sql title="ALTER PROCEDURE SET EXECUTE AS Syntax"
+ALTER PROCEDURE [<schema name>.]<procedure name>
+SET EXECUTE AS '<user name>'
+```
+
+
+### Examples
+
+
+To set the execution user of the `sqlp_ea` *SQL procedure* to `spuser`:
+
+{/* Source: /examples/sql/procedure/alter_procedure.kisql (lines 43-44) */}
+```sql ALTER PROCEDURE SET EXECUTE AS Example
+ALTER PROCEDURE example.sqlp_ea
+SET EXECUTE AS 'spuser'
+```
+
+
+<a id="sql-procedures-set-execute-mode"></a>
+
+
+## Set Execute Mode
+
+
+The refresh mode of a *SQL procedure* can be modified.
+
+```sql title="ALTER PROCEDURE SET EXECUTE MODE Syntax"
+ALTER PROCEDURE [<schema name>.]<procedure name>
+SET EXECUTE [FOR] EVERY <number> <SECOND[S] | MINUTE[S] | HOUR[S] | DAY[S]>
+    [STARTING AT '<YYYY-MM-DD [HH:MM[:SS]]>']
+    [STOP AFTER < '<YYYY-MM-DD [HH:MM[:SS]]>' | <number> <SECOND[S] | MINUTE[S] | HOUR[S] | DAY[S]> >]
+```
+
+
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="EXECUTE FOR EVERY" id="execute-for-every" defaultOpen>
+
+Specify an interval in seconds, minutes, hours, or days at which the *SQL procedure* should be
+executed.
+
+By default, the first execution interval will be one interval's worth of time from the point at
+which the *SQL procedure* alteration was requested.
+
+</Accordion>
+
+<Accordion title="STARTING AT" id="starting-at" defaultOpen>
+
+Specify a date or timestamp at which refresh cycles should begin.
+
+</Accordion>
+
+<Accordion title="STOP AFTER" id="stop-after" defaultOpen>
+
+Specify a date, timestamp, or time interval after which refresh cycles should end.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="examples-1"></a>
+### Examples
+
+
+To alter the `sqlp_em` *SQL procedure* to execute every 6 hours:
+
+{/* Source: /examples/sql/procedure/alter_procedure.kisql (lines 70-71) */}
+```sql ALTER PROCEDURE Set Execution Mode Example
+ALTER PROCEDURE example.sqlp_em
+SET EXECUTE FOR EVERY 6 HOURS
+```
+
+To alter a *SQL procedure* to execute every minute in *January, 2026*:
+
+{/* Source: /examples/sql/procedure/alter_procedure.kisql (lines 124-127) */}
+```sql ALTER PROCEDURE Set Execution Start/Stop Example
+ALTER PROCEDURE example.sqlp_em
+SET EXECUTE FOR EVERY 1 MINUTE
+    STARTING AT '2026-01-01 00:00:00'
+    STOP AFTER 31 DAYS
+```

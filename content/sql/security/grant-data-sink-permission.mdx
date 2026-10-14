@@ -1,0 +1,52 @@
+---
+title: GRANT Data Sink Permission
+---
+
+<a id="sql-security-priv-mgmt-dsink-grant"></a>
+
+
+[Data sink permissions](/content/security/sec_concepts#security-concepts-permissions-datasink),
+which allow management of [data sinks](/content/sql/ddl/create-data-sink#sql-create-data-sink),
+can be granted directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+```sql title="GRANT Data Sink Permission Syntax"
+GRANT <CONNECT | ADMIN> [PRIVILEGES]
+ON <ALL DATA SINKS [IN [SCHEMA] <schema reference>] | DATA SINK <data sink reference>>
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+```sql title="GRANT Create Data Sink Permission Syntax"
+GRANT CREATE [PRIVILEGES] ON DATA SINKS
+[IN [SCHEMA] <schema reference>]
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `ADMIN` | Modify or drop the given *data sink* (includes `CONNECT` access). |
+| `CONNECT` | Connect to, load data into, or view the configuration of the given *data sink*. |
+| `<data sink reference>` | The name of the data sink to which access is being granted, or a wildcard expression signifying the data sinks to which access is being granted.  The following forms are valid: <br/> <br/> *&lt;schema&gt;.&lt;data sink&gt;*: Fully-qualified data sink name in the specified schema <br/> <br/> `*.*`: All existing data sinks that the granting user can see, across all schemas <br/> <br/> `*`: All existing schemas the granting user can see, which grants access to all data sinks in those schemas now and in the future <br/> <br/> *&lt;schema&gt;*: All data sinks in the specified schema <br/> <br/> *&lt;data sink&gt;*: Data sink in the default schema. If a schema exists with the same name, it will be used. To avoid this, specify the fully-qualified data sink name. |
+| `<schema reference>` | The schema the permission applies to (with the `ALL` or `CREATE` forms).  If the IN [SCHEMA] clause is omitted, the permission applies across all schemas, both now and in the future.  Wildcards are not permitted with the IN keyword. |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+## Examples
+
+
+To grant connect & load access on the *data sink* named
+**kin_dsink** to the **auser** *user*:
+
+{/* Source: /examples/sql/data_sink/data_sink.kisql (lines 78) */}
+```sql GRANT Data Sink Use Permission Example
+GRANT CONNECT ON DATA SINK kin_dsink TO auser
+```
+
+To grant administrative access on the *data sink* named **kin_dsink_http** to the
+**auser** *user*:
+
+{/* Source: /examples/sql/data_sink/data_sink.kisql (lines 110) */}
+```sql GRANT Data Sink Administrative Permission Example
+GRANT ADMIN ON DATA SINK kin_dsink_http TO auser
+```

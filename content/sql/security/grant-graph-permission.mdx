@@ -1,0 +1,44 @@
+---
+title: GRANT Graph Permission
+---
+
+<a id="sql-security-priv-mgmt-graph-grant"></a>
+
+
+[Graph permissions](/content/security/sec_concepts#security-concepts-permissions-graph), which
+allow management of [graphs](/content/sql/graph), can be granted
+directly to [users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+```sql title="GRANT Graph Permission Syntax"
+GRANT <READ | WRITE | ADMIN> [PRIVILEGES]
+ON <ALL GRAPHS [IN [SCHEMA] <schema reference>] | GRAPH <graph reference>>
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+```sql title="GRANT Create Graph Permission Syntax"
+GRANT CREATE [PRIVILEGES] ON GRAPHS
+[IN [SCHEMA] <schema reference>]
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `ADMIN` | Drop the given *graph* (includes `WRITE` access). |
+| `READ` | Query, match, solve, & show the given *graph*. |
+| `WRITE` | Modify the given *graph* (includes `READ` access). |
+| `<graph reference>` | The name of the graph to which access is being granted, or a wildcard expression signifying the graphs to which access is being granted.  The following forms are valid: <br/> <br/> *&lt;schema&gt;.&lt;graph&gt;*: Fully-qualified graph name in the specified schema <br/> <br/> `*.*`: All existing graphs that the granting user can see, across all schemas <br/> <br/> `*`: All existing schemas the granting user can see, which grants access to all graphs in those schemas now and in the future <br/> <br/> *&lt;schema&gt;*: All graphs in the specified schema <br/> <br/> *&lt;graph&gt;*: Graph in the default schema. If a schema exists with the same name, it will be used. To avoid this, specify the fully- qualified graph name. |
+| `<schema reference>` | The schema the permission applies to (with the `ALL` or `CREATE` forms).  If the IN [SCHEMA] clause is omitted, the permission applies across all schemas, both now and in the future.  Wildcards are not permitted with the IN keyword. |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+## Examples
+
+
+To grant query, match, solve, & show access on the *graph* named
+**big_cities_graph** to **geo_user**:
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 351) */}
+```sql GRANT Graph Permission Example
+GRANT READ ON GRAPH big_cities_graph TO geo_user
+```

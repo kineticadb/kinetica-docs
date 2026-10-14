@@ -1,0 +1,223 @@
+---
+title: CHECK
+---
+
+<a id="sql-security-check"></a>
+
+
+[Users](/content/security/sec_concepts#security-concepts-users) (or the current user) can have
+their effective permissions checked, including:
+
+* Role assignments
+* Administrative permissions
+* Object-level access
+
+A result of `YES` or `NO` will be returned, based on whether the given user
+has the specified permissions or not, either directly or through a role or
+administrative access.
+[Row/Column-level](/content/sql/security/grant-table-permission#sql-security-priv-mgmt-row-grant) permission
+information will be returned after the `YES`, if applicable.
+
+```sql title="CHECK PERMISSION Syntax"
+CHECK <permission> [PERMISSION] [ON [<target type>] <target>]
+[FOR <user>]
+[IF EXISTS]
+```
+
+```sql title="CHECK ROLE Syntax"
+CHECK ROLE OF <role>
+[FOR <user>]
+[IF EXISTS]
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;permission&gt;" id="<permission>" defaultOpen>
+
+Permission to verify for the given user
+
+Supported permissions include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Permission</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>ADMIN</code> | <code>ALL</code></td>
+    <td>Applicable to [credential](/content/sql/ddl/create-credential#sql-create-credential) objects and [tables](/content/sql/ddl/create-table#sql-create-table) (or views)</td>
+  </tr>
+  <tr>
+    <td><code>CONNECT</code></td>
+    <td>Applicable to external [data sources](/content/sql/ddl/create-data-source#sql-create-data-source)</td>
+  </tr>
+  <tr>
+    <td><code>DELETE</code></td>
+    <td>Applicable to [tables](/content/sql/ddl/create-table#sql-create-table)</td>
+  </tr>
+  <tr>
+    <td><code>EXECUTE</code></td>
+    <td>Applicable to [User-Defined Functions](/content/sql/udf#sql-udf) (UDFs) and SQL [stored procedures](/content/sql/procedure#sql-procedures)</td>
+  </tr>
+  <tr>
+    <td><code>INSERT</code></td>
+    <td>Applicable to [tables](/content/sql/ddl/create-table#sql-create-table)</td>
+  </tr>
+  <tr>
+    <td><code>READ</code></td>
+    <td>Applicable to [credential](/content/sql/ddl/create-credential#sql-create-credential) objects</td>
+  </tr>
+  <tr>
+    <td><code>SELECT</code></td>
+    <td>Applicable to [tables](/content/sql/ddl/create-table#sql-create-table) (or views)</td>
+  </tr>
+  <tr>
+    <td><code>SYSTEM ADMIN</code></td>
+    <td>[System admin](/content/sql/security/grant-system-permission#sql-perm-system-admin) permission</td>
+  </tr>
+  <tr>
+    <td><code>SYSTEM CREATE</code></td>
+    <td>[System create](/content/sql/security/grant-system-permission#sql-perm-system-mgmt) permission</td>
+  </tr>
+  <tr>
+    <td><code>SYSTEM MONITOR</code></td>
+    <td>[System monitor](/content/sql/security/grant-system-permission#sql-perm-system-mgmt) permission</td>
+  </tr>
+  <tr>
+    <td><code>SYSTEM READ</code></td>
+    <td>[System read](/content/sql/security/grant-system-permission#sql-perm-system-mgmt) permission</td>
+  </tr>
+  <tr>
+    <td><code>SYSTEM WRITE</code></td>
+    <td>[System write](/content/sql/security/grant-system-permission#sql-perm-system-mgmt) permission</td>
+  </tr>
+  <tr>
+    <td><code>UPDATE</code></td>
+    <td>Applicable to [tables](/content/sql/ddl/create-table#sql-create-table)</td>
+  </tr>
+  <tr>
+    <td><code>USER ADMIN</code></td>
+    <td>[User admin](/content/sql/security/grant-system-permission#sql-perm-user-admin) permission</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="PERMISSION" id="permission" defaultOpen>
+
+Optional keyword for clarity
+
+</Accordion>
+
+<Accordion title="ON" id="on" defaultOpen>
+
+Keyword for specifying the optional *ON* clause, which checks for the specified `permission`
+on the following `target` (and optional `target type`) given in this clause
+
+</Accordion>
+
+<Accordion title="&lt;target type&gt;" id="<target-type>" defaultOpen>
+
+Optional keyword for specifying the object type of the target; may be necessary to disambiguate
+same-named objects of differing types
+
+Supported target types include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Target Type</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>CONTEXT</code></td>
+    <td>[SQL-GPT context](/content/sql/sqlgpt/create-context#sql-gpt-create-context) object</td>
+  </tr>
+  <tr>
+    <td><code>CREDENTIAL</code></td>
+    <td>[Credential](/content/sql/ddl/create-credential#sql-create-credential) object</td>
+  </tr>
+  <tr>
+    <td><code>DATA SINK</code></td>
+    <td>External [data source](/content/sql/ddl/create-data-source#sql-create-data-source)</td>
+  </tr>
+  <tr>
+    <td><code>DATA SOURCE</code></td>
+    <td>External [data source](/content/sql/ddl/create-data-source#sql-create-data-source)</td>
+  </tr>
+  <tr>
+    <td><code>DIRECTORY</code></td>
+    <td>[KiFS](/content/tools/kifs) directory</td>
+  </tr>
+  <tr>
+    <td><code>FUNCTION</code></td>
+    <td>[User-Defined Function](/content/sql/udf#sql-udf) (UDF)</td>
+  </tr>
+  <tr>
+    <td><code>GRAPH</code></td>
+    <td>[Graph](/content/sql/graph/create-graph#sql-graph-create)</td>
+  </tr>
+  <tr>
+    <td><code>PROCEDURE</code></td>
+    <td>SQL [stored procedure](/content/sql/procedure#sql-procedures)</td>
+  </tr>
+  <tr>
+    <td><code>SCHEMA</code></td>
+    <td>[Schema](/content/sql/ddl/create-schema#sql-create-schema)</td>
+  </tr>
+  <tr>
+    <td><code>STREAM</code></td>
+    <td>[Stream](/content/sql/ddl/create-stream#sql-create-stream)</td>
+  </tr>
+  <tr>
+    <td><code>TABLE</code></td>
+    <td>[Table](/content/sql/ddl/create-table#sql-create-table) (or view)</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;target&gt;" id="<target>" defaultOpen>
+
+Name of the object to which the given user's specified permission will be checked
+
+</Accordion>
+
+<Accordion title="&lt;role&gt;" id="<role>" defaultOpen>
+
+Name of the role of which the given user's membership will be checked
+
+</Accordion>
+
+<Accordion title="FOR &lt;user&gt;" id="for-<user>" defaultOpen>
+
+Optional *FOR* clause, which checks whether the specified permission/role exists for the `user`
+given in this clause; if omitted, the current user will be checked
+
+</Accordion>
+
+<Accordion title="IF EXISTS" id="if-exists" defaultOpen>
+
+Optional error suppression clause, which causes the check to return `No` if any of the entities
+specified do not exist; without this clause, non-existent entities will return an error
+
+</Accordion>
+
+</AccordionGroup>

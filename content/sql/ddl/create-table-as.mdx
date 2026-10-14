@@ -9,11 +9,19 @@ Creates a new *table* from the given query in the specified
 [schema](/content/sql/ddl/create-schema#sql-create-schema).
 
 ```sql title="CREATE TABLE ... AS Syntax"
-CREATE [OR REPLACE] [REPLICATED] [TEMP] TABLE [<schema name>.]<table name> AS
+CREATE [OR REPLACE] [REPLICATED] [TEMP] [VRAM] TABLE [<schema name>.]<table name> AS
 (
     <select statement>
 )
+[<partition clause>]
+[<tier strategy clause>]
+[<table property clause>]
 ```
+
+
+<Info>
+The parentheses around `<select statement>` are optional.
+</Info>
 
 Any column aliases used must adhere to the supported
 [naming criteria](/content/sql/naming#sql-naming-criteria).
@@ -31,9 +39,13 @@ column(s) composing them are part of the `SELECT` list.
 | `OR REPLACE` | Any existing *table* or *view* with the same name will be dropped before creating this one |
 | `REPLICATED` | The *table* will be distributed within the database as a [replicated](/content/concepts/tables#replicated) *table* |
 | `TEMP` | The *table* will be a [memory-only table](/content/concepts/tables_memory_only); which, among other things, means it will not be persisted (if the database is restarted, the *table* will be removed), but it will have increased ingest performance |
+| `VRAM` | The *table*'s data will be held in video memory, where supported |
 | `<schema name>` | Name of the *schema* that will contain the created *table*; if no *schema* is specified, the *table* will be created in the user's [default schema](/content/concepts/schemas#schema-default) |
 | `<table name>` | Name of the *table* to create; must adhere to supported [naming criteria](/content/sql/naming#sql-naming-criteria) |
 | `<select statement>` | The query that will define both the initial structure and content of the created *table* |
+| [&lt;partition clause&gt;](/content/sql/ddl/create-table#sql-create-table-partition) | Defines a [partitioning](/content/concepts/tables#partitioning) scheme for the *table* to create |
+| [&lt;tier strategy clause&gt;](/content/sql/ddl/create-table#sql-create-table-tier-strategy) | Defines the [tier strategy](/content/rm/concepts#rm-concepts-tier-strategy) for the *table* to create |
+| [&lt;table property clause&gt;](/content/sql/ddl/create-table#sql-create-table-prop) | Assigns table properties, from a subset of those available, to the *table* to create |
 
 The following can be applied to `<select statement>` to affect the resulting
 table:
@@ -44,6 +56,19 @@ table:
 | [KI_HINT_GROUP_BY_PK](/content/sql/query/hints#sql-hints) | *hint* | Creates a [primary keys](/content/concepts/tables#primary-key) on the columns in the `GROUP BY` clause if the outermost `SELECT` statement contains a `GROUP BY` |
 | [KI_HINT_INDEX(column list)](/content/sql/query/hints#sql-hints) | *hint* | Indexes each of the columns specified in the column list |
 | [KI_SHARD_KEY(column list)](/content/sql/query/distribution-functions#sql-distribution-functions) | *pseudo-* *function* | Shards the result table with a [shard key](/content/concepts/tables#shard-key) composed of all columns in the specified column list |
+
+
+## Table Property Clause
+
+
+A subset of *table* properties can be applied to the created *table* at creation
+time.
+
+The *Table Property Clause* syntax is the same as that in the
+[CREATE TABLE Table Property Clause](/content/sql/ddl/create-table#sql-create-table-prop), and
+the `USING` keyword is optional in either.  Of the properties available there,
+only `CHUNK SIZE`, `COMPRESSION_CODEC`, & `TTL` take effect here; any
+other is accepted without error and then discarded.
 
 
 ## Examples

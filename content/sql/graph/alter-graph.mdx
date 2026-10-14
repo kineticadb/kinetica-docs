@@ -1,0 +1,185 @@
+---
+title: ALTER GRAPH
+---
+
+<a id="sql-graph-alter"></a>
+
+
+Alters an existing [graph](/content/sql/graph/create-graph#sql-graph-create).
+
+```sql title="ALTER GRAPH Syntax"
+ALTER GRAPH [<schema name>.]<graph name> MODIFY
+(
+    [EDGES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+    [NODES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+    [WEIGHTS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+    [RESTRICTIONS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+    [OPTIONS => KV_PAIRS('<option key>' = '<option value>'[,...])]
+)
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* containing the *graph* to alter
+
+</Accordion>
+
+<Accordion title="&lt;graph name&gt;" id="<graph-name>" defaultOpen>
+
+Name of the *graph* to alter
+
+</Accordion>
+
+<Accordion title="EDGES" id="edges" defaultOpen>
+
+*Graph* component, provided as column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *edges* of the graph; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and
+[Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="NODES" id="nodes" defaultOpen>
+
+*Graph* component, provided as column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *nodes* of the graph; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and
+[Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="WEIGHTS" id="weights" defaultOpen>
+
+*Graph* component, provided as column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *weights* of the graph; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and
+[Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="RESTRICTIONS" id="restrictions" defaultOpen>
+
+*Graph* component, provided as column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *restrictions* of the graph; review
+[Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and [Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="OPTIONS" id="options" defaultOpen>
+
+Indicator that a list of connection option/value assignments will follow, passed as a comma-delimited
+list of key/value pairs to the `KV_PAIRS` function
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>add_table_monitor</code></td>
+    <td>Adds a table monitor to every table used in the creation of the graph; this table monitor will trigger the graph to update dynamically upon inserts to the source table(s). Note that upon database restart, if <code>save_persist</code> is also set to *true*, the graph will be fully reconstructed and the table monitors will be reattached. For more details on table monitors, see [Table Monitors](/content/concepts/table_monitors). The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>add_turns</code></td>
+    <td>Adds dummy "pillowed" edges around intersection *nodes* where there are more than three *edges* so that additional *weight* penalties can be imposed by the solve endpoints (increases the total number of *edges*). The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>allow_multiple_edges</code></td>
+    <td>Enables *multigraph* capability--pairs of nodes can be connected by more than one edge.  Without this option, undirected graphs can only have one edge between each pair of nodes, and directed graphs can have one edge in each direction between each pair of nodes--"duplicate" edges are discarded. The default value is *true*.</td>
+  </tr>
+  <tr>
+    <td><code>cluster_graph_schema</code></td>
+    <td>If <code>export_graph_schema</code> is *true*, groups nodes based on the Louvain clustering algorithm, converting the graph into a label-based *schema*.</td>
+  </tr>
+  <tr>
+    <td><code>export_graph_schema</code></td>
+    <td>Exports a graph's *schema* in [Graphviz DOT](https://graphviz.org/doc/info/lang.html) format; this is made available in two ways: <ul><li>visually, by clicking \{\{&lt; guilabel "View Schema" &gt;\}\} in the result of an <code>ALTER GRAPH</code> command in a [SQL Block](/content/admin/workbench/ui/explore#wb-explore-ws-sb) within [Workbench](/content/admin/workbench)</li><li>as text, under the <code>info</code> and then <code>dot</code> keys of the response to a native API call to [/execute/sql](/content/api/rest/execute_sql_rest)</li></ul></td>
+  </tr>
+  <tr>
+    <td><code>graph_table</code></td>
+    <td>The graph is created as a table with the given name, in <code>[schema_name.]table_name format</code>, using standard [name resolution rules](/content/sql/naming#sql-name-resolution) and meeting [table naming criteria](/content/sql/naming#sql-naming-criteria). The table will have the following identifier columns: <code>EDGE_ID</code>, <code>EDGE_NODE1_ID</code>, <code>EDGE_NODE2_ID</code>.</td>
+  </tr>
+  <tr>
+    <td><code>label_delimiter</code></td>
+    <td>If specified, the delimiter to use when parsing edge labels.  All labels separated by this delimiter will be applied to the corresponding edge.</td>
+  </tr>
+  <tr>
+    <td><code>save_persist</code></td>
+    <td>If set to *true*, the graph will be saved in the persist directory (see the [config reference](/content/config#config-main-persistence) for more information). If set to *false*, the graph will be removed when the graph server is shutdown. The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>schema_edge_labelkeys</code></td>
+    <td>If <code>export_graph_schema</code> is *true*, generates the label-based *schema* by collapsing edges based on the their label keys; otherwise, *schema* edges are created from the edge labels.</td>
+  </tr>
+  <tr>
+    <td><code>schema_node_labelkeys</code></td>
+    <td>If <code>export_graph_schema</code> is *true*, generates the label-based *schema* by collapsing nodes based on the their label keys; otherwise, *schema* nodes are created from the node labels.</td>
+  </tr>
+  <tr>
+    <td><code>simplify</code></td>
+    <td>Simplifies the graph topology at 2-valence by collapsing edge.</td>
+  </tr>
+  <tr>
+    <td><code>use_rtree</code></td>
+    <td>Use a range tree structure to accelerate and improve the accuracy of snapping, especially to *edges*.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To alter the *weights* of a *graph* and allow it to survive a database restart:
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 305-315) */}
+```sql ALTER GRAPH Example
+ALTER GRAPH big_cities_graph MODIFY
+(
+	WEIGHTS => INPUT_TABLE
+	(
+		SELECT
+			REMOVE_NULLABLE(ST_MAKELINE(city1_location, city2_location)) AS EDGE_WKTLINE,
+			REMOVE_NULLABLE(ST_DISTANCE(city1_location, city2_location)) AS VALUESPECIFIED
+		FROM big_cities_map
+	),
+	OPTIONS => KV_PAIRS('save_persist' = 'true')
+)
+```

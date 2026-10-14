@@ -1,0 +1,229 @@
+---
+title: ALTER CONTEXT
+---
+
+<a id="sql-gpt-alter-context"></a>
+
+
+Alters the configuration of a
+[SQL-GPT context](/content/sql/sqlgpt/create-context#sql-gpt-create-context).  Multiple *context*
+entries can be added & removed in one command.  The general form is:
+
+```sql title="ALTER CONTEXT Syntax"
+ALTER CONTEXT [<schema name>.]<context name>
+[ADD | DROP] <context entry>,
+...
+[ADD | DROP] <context entry>
+```
+
+
+<a id="sql-gpt-alter-context-add-table"></a>
+
+
+## Add Context Table
+
+
+A *context table* can be added to a
+[SQL-GPT context](/content/sql/sqlgpt/create-context#sql-gpt-create-context).
+
+```sql title="Add Context Table Syntax"
+ALTER CONTEXT [<schema name>.]<context name>
+ADD <table definition clause>
+```
+
+See [Table Definition Clause](/content/sql/sqlgpt/create-context#sql-gpt-create-context-table-def) for syntax of the
+`<table definition clause>`.
+
+
+### Examples
+
+
+To add the `example.atc_country` table to the
+`example.atc_ctx` *SQL-GPT context*:
+
+{/* Source: /examples/sql/sql-gpt/syntax.kisql (lines 169-174) */}
+```sql Add Context Table Example
+ALTER CONTEXT example.atc_ctx
+ADD
+(
+	TABLE = example.atc_country
+	COMMENT = 'Countries containing airports'
+)
+```
+
+
+<a id="sql-gpt-alter-context-drop-table"></a>
+
+
+## Drop Context Table
+
+
+A *context table* can be removed from a
+[SQL-GPT context](/content/sql/sqlgpt/create-context#sql-gpt-create-context).
+
+```sql title="Drop Context Table Syntax"
+ALTER CONTEXT [<context schema name>.]<context name>
+DROP (TABLE = [<table schema name>.]<table name>)
+```
+
+
+<a id="examples-1"></a>
+### Examples
+
+
+To drop the `example.atc_country` table from the
+`example.atc_ctx` *SQL-GPT context*:
+
+{/* Source: /examples/sql/sql-gpt/syntax.kisql (lines 177-178) */}
+```sql Drop Context Table Example
+ALTER CONTEXT example.atc_ctx
+DROP (TABLE = example.atc_country)
+```
+
+
+<a id="sql-gpt-alter-context-add-sample"></a>
+
+
+## Add Context Samples
+
+
+*Context samples* can be added to a
+[SQL-GPT context](/content/sql/sqlgpt/create-context#sql-gpt-create-context) that has not been
+configured with any.  To add *samples* to a *context* already configured with
+one or more, first [drop](/content/sql/sqlgpt/alter-context#sql-gpt-alter-context-drop-sample) all
+existing *samples*, and then add the new and any previous *samples* all at once.
+
+```sql title="Add Context Samples Syntax"
+ALTER CONTEXT [<schema name>.]<context name>
+ADD <sample definition clause>
+```
+
+See [Sample Definition Clause](/content/sql/sqlgpt/create-context#sql-gpt-create-context-sample-def) for syntax of the
+`<sample definition clause>`.
+
+
+<a id="examples-2"></a>
+### Examples
+
+
+To add a sample query for finding **JFK** airport's location to the
+`example.atc_ctx` *SQL-GPT context*:
+
+{/* Source: /examples/sql/sql-gpt/syntax.kisql (lines 189-201) */}
+```sql Add Context Samples Example
+ALTER CONTEXT example.atc_ctx
+ADD
+(
+	SAMPLES =
+	(
+		'What is the centroid of JFK airport?' =
+		'
+			SELECT airport_centroid
+			FROM example.airport_positions
+			WHERE airport_code = ''JFK''
+		'
+	)
+)
+```
+
+
+<a id="sql-gpt-alter-context-drop-sample"></a>
+
+
+## Drop Context Samples
+
+
+*Context samples* can be removed from a
+[SQL-GPT context](/content/sql/sqlgpt/create-context#sql-gpt-create-context) that has been configured
+with one or more.
+
+```sql title="Drop Context Samples Syntax"
+ALTER CONTEXT [<context schema name>.]<context name>
+DROP (SAMPLES = ('' = ''))
+```
+
+
+<a id="examples-3"></a>
+### Examples
+
+
+To drop all *context samples* from the `example.atc_ctx` *SQL-GPT context*:
+
+{/* Source: /examples/sql/sql-gpt/syntax.kisql (lines 185-186) */}
+```sql Drop Context Samples Example
+ALTER CONTEXT example.atc_ctx
+DROP (SAMPLES = ('' = ''))
+```
+
+
+<a id="sql-gpt-alter-context-add-rule"></a>
+
+
+## Add Context Rules
+
+
+*Context rules* can be added to a
+[SQL-GPT context](/content/sql/sqlgpt/create-context#sql-gpt-create-context) that has not been
+configured with any.  To add *rules* to a *context* already configured with one
+or more, first [drop](/content/sql/sqlgpt/alter-context#sql-gpt-alter-context-drop-rule) all
+existing *rules*, and then add the new and any previous *rules* all at once.
+
+```sql title="Add Context Rules Syntax"
+ALTER CONTEXT [<schema name>.]<context name>
+ADD <rule definition clause>
+```
+
+See [Rule Definition Clause](/content/sql/sqlgpt/create-context#sql-gpt-create-context-rule-def) for syntax of the
+`<rule definition clause>`.
+
+
+<a id="examples-4"></a>
+### Examples
+
+
+To add a *rule* for joining the `example.airport_positions` table with the
+`atc_current_position` table to the `example.atc_ctx` *SQL-GPT context*:
+
+{/* Source: /examples/sql/sql-gpt/syntax.kisql (lines 214-224) */}
+```sql Add Context Rules Example
+ALTER CONTEXT example.atc_ctx
+ADD
+(
+	RULES =
+	(
+		'
+			Use the ST_CONTAINS() function to join the airport_centroid column of the
+			airport_positions table with the x and y columns of the atc_current_position table
+		'
+	)
+)
+```
+
+
+<a id="sql-gpt-alter-context-drop-rule"></a>
+
+
+## Drop Context Rules
+
+
+*Context rules* can be removed from a
+[SQL-GPT context](/content/sql/sqlgpt/create-context#sql-gpt-create-context) that has been configured
+with one or more.
+
+```sql title="Drop Context Rules Syntax"
+ALTER CONTEXT [<context schema name>.]<context name>
+DROP (RULES = (''))
+```
+
+
+<a id="examples-5"></a>
+### Examples
+
+
+To drop all *context rules* from the `example.atc_ctx` *SQL-GPT context*:
+
+{/* Source: /examples/sql/sql-gpt/syntax.kisql (lines 210-211) */}
+```sql Drop Context Rules Example
+ALTER CONTEXT example.atc_ctx
+DROP (RULES = (''))
+```

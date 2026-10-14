@@ -1,0 +1,270 @@
+---
+title: SQL/PGQ
+---
+
+<a id="sql-pgq"></a>
+
+
+*SQL/PGQ* can be used to query an existing
+[graph](/content/graph_solver/network_graph_solver) using the supported
+subset of the [Cypher Query Language](https://s3.amazonaws.com/artifacts.opencypher.org/openCypher9.pdf) syntax.  A graph query can also be used
+within a SQL query to join the graph result to a data model.
+
+<CodeGroup>
+
+{/* Source: /sql/syntax/graph.sql (lines 99-104) */}
+```sql Graph Query Syntax
+GRAPH [<schema name>.]<graph name>
+MATCH <match expr>
+[WHERE <filter list>]
+RETURN <return list>
+[ORDER BY <ordering list>]
+[LIMIT <num rows>]
+```
+
+{/* Source: /sql/syntax/graph.sql (lines 107-115) */}
+```sql Query-on-Graph Syntax
+SELECT * FROM GRAPH_TABLE
+(
+    GRAPH [<schema name>.]<graph name>
+    MATCH (<match expr>)
+    [WHERE <filter list>]
+    RETURN <return list>
+    [ORDER BY <ordering list>]
+    [LIMIT <num rows>]
+)
+```
+
+</CodeGroup>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* containing the *graph*; if no *schema* is specified, the *graph* will be
+looked for in the user's [default schema](/content/concepts/schemas#schema-default)
+
+</Accordion>
+
+<Accordion title="&lt;graph name&gt;" id="<graph-name>" defaultOpen>
+
+Name of the *graph* to query
+
+</Accordion>
+
+<Accordion title="&lt;match expr&gt;" id="<match-expr>" defaultOpen>
+
+Any supported *Cypher* `MATCH` expression.
+
+For example, to query for relationships with the following criteria:
+
+* Starting node can be referred to with `js` in the rest of the graph query
+* Starting node has both `User` & `Admin` labels
+* Starting node has property values of `Joe` & `Smith` for properties `first_name` &
+  `last_name`, respectively
+* Ending node is one hop away from the starting node
+* Ending node has a label of `User`
+
+use this `MATCH` expression:
+
+```
+(js:User:Admin {first_name: 'Joe', last_name: 'Smith'})-[]->(:User)
+```
+Individual labels, property names, and column names can be double-quoted if needed to avoid
+conflicts with the *Cypher* query syntax:
+
+```
+(n:"SYSTEM ADMIN":"BUSINESS ANALYST" {"last name": 'Smith'})
+```
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Expression</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>()</code></td>
+    <td>**Node Matcher** Matches any node.</td>
+  </tr>
+  <tr>
+    <td><code>(&lt;ref&gt;)</code></td>
+    <td>**Node Reference** Matches any node; matched nodes are able to be referenced as <code>&lt;ref&gt;</code> in the rest of the match statement.</td>
+  </tr>
+  <tr>
+    <td><code>(:&lt;label&gt;)</code></td>
+    <td>**Node Label Matcher** Matches any node with a label of <code>&lt;label&gt;</code>; any number of labels can be combined to form a composite restriction: <div><table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">  <thead>  <tr>    <th>Combination</th>    <th>Node Must Have</th>  </tr>  </thead>  <tbody>  <tr>    <td><code>:&lt;label1&gt;:&lt;label2&gt;</code></td>    <td><code>&lt;label1&gt;</code> **and** <code>&lt;label2&gt;</code></td>  </tr>  <tr>    <td><code>:&lt;label1&gt;|&lt;label2&gt;</code></td>    <td><code>&lt;label1&gt;</code> **or** <code>&lt;label2&gt;</code></td>  </tr>  </tbody></table></div></td>
+  </tr>
+  <tr>
+    <td><code>(\{&lt;name&gt;: &lt;value&gt;\})</code></td>
+    <td>**Node Property Matcher** Matches any node with a property <code>&lt;name&gt;</code> whose value is <code>&lt;value&gt;</code>; any number of properties can be combined to form a composite restriction requiring a node to have all the specified property values; e.g.: <pre><code>\{section: 12, last_name: 'Smith'\}</code></pre> <Note>Mutually exclusive with the *Node WHERE Clause Matcher*</Note></td>
+  </tr>
+  <tr>
+    <td><code>(WHERE &lt;expression&gt;)</code></td>
+    <td>**Node WHERE Clause Matcher** Matches any node that meets the restrictions of the given <code>&lt;expression&gt;</code>; this is a standard SQL <code>WHERE</code> clause that can reference a node's ID, properties, or labels, but cannot include sub-query constructs (<code>ANY</code>/<code>ALL</code>/<code>IN</code>/<code>EXISTS</code>); e.g.: <pre><code>WHERE node &lt;= 5 AND CONTAINS('MANAGER', label)</code></pre> <Note>Mutually exclusive with the *Node Property Matcher*</Note></td>
+  </tr>
+  <tr>
+    <td><code>[]</code></td>
+    <td>**Edge Matcher** Matches any edge.</td>
+  </tr>
+  <tr>
+    <td><code>[&lt;ref&gt;]</code></td>
+    <td>**Edge Reference** Matches any edge; matched edges are able to be referenced as <code>&lt;ref&gt;</code> in the rest of the match statement.</td>
+  </tr>
+  <tr>
+    <td><code>[:&lt;label&gt;]</code></td>
+    <td>**Edge Label Matcher** Matches any edge with a label of <code>&lt;label&gt;</code>; any number of labels can be combined to form a composite restriction: <div><table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">  <thead>  <tr>    <th>Combination</th>    <th>Relationship Must Have</th>  </tr>  </thead>  <tbody>  <tr>    <td><code>:&lt;label1&gt;|&lt;label2&gt;</code></td>    <td><code>&lt;label1&gt;</code> **or** <code>&lt;label2&gt;</code></td>  </tr>  </tbody></table></div> <Note>Each relationship can have only **1** label.</Note></td>
+  </tr>
+  <tr>
+    <td><code>(\{&lt;name&gt;: &lt;value&gt;\})</code></td>
+    <td>**Edge Property Matcher** Matches any edge with a property <code>&lt;name&gt;</code> whose value is <code>&lt;value&gt;</code>; any number of properties can be combined to form a composite restriction requiring an edge to have all the specified property values; e.g.: <pre><code>\{manages: true, years: 3\}</code></pre> <Note>Mutually exclusive with the *Edge WHERE Clause Matcher*</Note></td>
+  </tr>
+  <tr>
+    <td><code>[WHERE &lt;expression&gt;]</code></td>
+    <td>**Edge WHERE Clause Matcher** Matches any edge that meets the restrictions of the given <code>&lt;expression&gt;</code>; this is a standard SQL <code>WHERE</code> clause that can reference an edge's label, node IDs, or properties, but cannot include sub-query constructs (<code>ANY</code>/<code>ALL</code>/<code>IN</code>/<code>EXISTS</code>); e.g.: <pre><code>WHERE years &lt;= 5 AND label = 'MANAGES'</code></pre> <Note>Mutually exclusive with the *Edge Property Matcher*</Note></td>
+  </tr>
+  <tr>
+    <td><code>()-[]-&gt;()</code></td>
+    <td>**Path Matcher** Matches any node connected via an edge to another node. Relationships must be specified with a directional arrow indicating the direction of the relationship; however, the direction restriction specified will be ignored if the following hint is given with the query: <pre><code>KI_HINT_QUERY_GRAPH_ENDPOINT_OPTIONS(multi_paths,true)</code></pre></td>
+  </tr>
+  <tr>
+    <td><code>()-[]-&gt;\{n[,m]\}()</code></td>
+    <td>**Path Repeater** Matches any node connected via <code>n</code> number of edges to another node.  If the optional <code>m</code> is specified, the number of edges must be between <code>n</code> and <code>m</code>, inclusive.  Any restriction on the edge is in effect for all <code>n</code> to <code>m</code> intermediate edges between the start and end nodes.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="&lt;filter list&gt;" id="<filter-list>" defaultOpen>
+
+Filter expressions to apply to the entire graph query.  The expressions can include columns on
+which the graph is based, not just names & labels available in the graph itself.
+
+</Accordion>
+
+<Accordion title="&lt;return list&gt;" id="<return-list>" defaultOpen>
+
+Expressions referencing graph names, graph labels, or supporting graph table columns to use as
+the result set for the graph query.  Each expression must include a unique alias.
+
+</Accordion>
+
+<Accordion title="&lt;ordering list&gt;" id="<ordering-list>" defaultOpen>
+
+Ordering expression(s) to apply to the result set.  Columns referenced do not have to be present
+in the `RETURN` clause.
+
+</Accordion>
+
+<Accordion title="&lt;num rows&gt;" id="<num-rows>" defaultOpen>
+
+Maximum number of records to return in the result set.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+For example, to query for managers in department 6 making more than $150,000:
+
+{/* Source: /examples/sql/graph/cypher_graph_example.kisql (lines 80-84) */}
+```sql Node Query Example
+GRAPH employee_graph
+MATCH (a:MANAGER {"dept_id": 6})
+WHERE salary > 150000
+RETURN a
+ORDER BY a.node
+```
+
+To query for employees who have had the employee with ID #2 as their manager for
+three years or more:
+
+{/* Source: /examples/sql/graph/cypher_graph_example.kisql (lines 91-95) */}
+```sql Edge Query Example
+GRAPH employee_graph
+MATCH ()-[b:MANAGES {node1: 2}]->()
+WHERE years >= 3
+RETURN b
+ORDER BY b.node1, b.node2
+```
+
+To query for employees who work with each other but have different managers:
+
+{/* Source: /examples/sql/graph/cypher_graph_example.kisql (lines 101-105) */}
+```sql Path Query Example
+GRAPH employee_graph
+MATCH (m1)-[r1:MANAGES]->(e1)-[ww:"WORKS WITH"]->(e2)<-[r2:MANAGES]-(m2)
+WHERE m1 != m2
+RETURN m1, e1, e2, m2
+ORDER BY m1.node, e1.node, e2.node
+```
+
+To query with variable hops to find all managers in the management chain for
+employee with ID #14 (or at most, 10 levels of managers above the employee):
+
+{/* Source: /examples/sql/graph/cypher_graph_example.kisql (lines 112-115) */}
+```sql Variable Hop Path Query Example
+GRAPH employee_graph
+MATCH (m)-[r1:MANAGES]->{1,10}(e {node: 14})
+RETURN m, e
+ORDER BY m.node
+```
+
+To use a SQL/PGQ query as a subquery, joining the result with another table:
+
+{/* Source: /examples/sql/graph/cypher_graph_example.kisql (lines 129-138) */}
+```sql SQL/PGQ Query as a Subquery Example
+SELECT m_id, m_fullname, e_id, e_fullname, ap.prize
+FROM GRAPH_TABLE
+	(
+		GRAPH employee_graph
+		MATCH (m)-[r:MANAGES]->(e)
+		RETURN m.node AS m_id, m.full_name AS m_fullname, r.years, e.node AS e_id, e.full_name AS e_fullname
+	) eg
+JOIN anniversary_prize ap
+	ON ap.year = eg.years
+ORDER BY m_id, e_id
+```
+
+
+<a id="limitations-suggestions"></a>
+## Limitations & Suggestions
+
+
+* Graph must be created via SQL and must not be altered, either via SQL or a
+  native API.
+
+* Graph must be created with all nodes having:
+
+  * the same identifier combination
+  * a single column identifier
+  * the same data type
+  * the same nullability--when creating a graph with constant values, the
+    `REMOVE_NULLABLE` function can be used to make the value `NOT NULL`
+
+* Graph should be created with Node & edge `INPUT_TABLES` as regular tables or
+  materialized views instead of queries or logical views.  This will reduce the
+  complexity of query plans involving joins on the graph source data, and
+  improve the performance of SQL/PGQ queries overall.
+
+* Graph should be created with the `add_table_monitor` option if the data in
+  the graph support tables are expected to change, as those changes would
+  otherwise cause the graph and its tables to go out-of-sync, returning wrong
+  results in SQL/PGQ queries.  If the data in the support tables will not
+  change, this option can be omitted.
+
+* Querying a graph in this manner generally requires that, when the graph being
+  queried was created, no correlated subqueries were used as part of any input
+  table queries.  However, a materialized view can be created containing the
+  query, and then the view can be used in place of the query as an input table.

@@ -1,0 +1,389 @@
+---
+title: MATCH_GRAPH
+---
+
+<a id="sql-graph-match"></a>
+
+
+Matches an existing [graph](/content/graph_solver/network_graph_solver)
+to a dataset using one of the supported [solver types](/content/graph_solver/network_graph_solver#solvers)
+and sample points which are defined using unique match
+[identifiers](/content/graph_solver/network_graph_solver#match-identifiers) and
+[combinations](/content/graph_solver/network_graph_solver#match-combinations).  The `MATCH_GRAPH` function
+can be called either within a `SELECT` statement as a table function or within
+an `EXECUTE FUNCTION` call.
+
+<CodeGroup>
+
+{/* Source: /sql/syntax/graph.sql (lines 2-11) */}
+```sql Table Function Syntax
+SELECT * FROM TABLE
+(
+	MATCH_GRAPH
+	(
+		GRAPH => '[<schema name>.]<graph name>',
+		SAMPLE_POINTS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,
+		SOLVE_METHOD => '<solver type>',
+		[OPTIONS => KV_PAIRS('<option name>' = '<option value>'[,...])]
+	)
+)
+```
+
+{/* Source: /sql/syntax/graph.sql (lines 14-21) */}
+```sql EXECUTE FUNCTION Syntax
+EXECUTE FUNCTION MATCH_GRAPH
+(
+	GRAPH => '[<graph schema name>.]<graph name>',
+	SAMPLE_POINTS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,
+	SOLVE_METHOD => '<solver type>',
+	SOLUTION_TABLE => '[<table schema name>.]<table name>',
+	[OPTIONS => KV_PAIRS('<option name>' = '<option value>'[,...])]
+)
+```
+
+</CodeGroup>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="GRAPH" id="graph" defaultOpen>
+
+Name of the *graph* to match
+
+</Accordion>
+
+<Accordion title="SAMPLE_POINTS" id="sample_points" defaultOpen>
+
+Sample points used to match an underlying geospatial graph specified using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function. Sample points are specified as [identifiers](/content/graph_solver/network_graph_solver#match-identifiers),
+which are grouped into [combinations](/content/graph_solver/network_graph_solver#match-combinations).
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to
+use specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="SOLVE_METHOD" id="solve_method" defaultOpen>
+
+The type of solve method to use for the operation; review [Match Identifier Combinations](/content/graph_solver/network_graph_solver#match-combinations) for more
+information.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Solver</th>
+    <th>Description</th>
+    <th>CPU Parallel</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>MARKOV_CHAIN</code></td>
+    <td>Matches sample points to the graph using the Hidden Markov Model (HMM)-based method, which conducts a range-tree closest-edge search to find the best combinations of possible road segments for each sample point to create the best route. The route is secured one point at a time, so the prediction is corrected after each point. This solution type is the most accurate, but also the most computationally intensive.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>MATCH_BATCH_SOLVES</code></td>
+    <td>Matches each provided sample source and destination pair using the shortest path between the points.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>MATCH_CHARGING_STATIONS</code></td>
+    <td>Matches a given sample source and destination pair to the optimal recharging stations along the route (for EVs).</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>MATCH_CLUSTERS</code></td>
+    <td>Matches the graph nodes with a cluster index using the Louvain clustering algorithm. <Note>Parallel running of this solver is experimental and can be invoked with the `parallel_clustering` option.</Note></td>
+    <td>X*</td>
+  </tr>
+  <tr>
+    <td><code>MATCH_LOOPS</code></td>
+    <td>Matches closed loops (Eulerian paths) originating and ending at each graph node between min and max hops (levels).</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>MATCH_OD_PAIRS</code></td>
+    <td>Matches sample points to find the most probable path between origin and destination (OD) pairs with given cost constraints.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>MATCH_SIMILARITY</code></td>
+    <td>Computes the Jaccard similarity between vertex pairs and N-level intersections within M hops.</td>
+    <td>X</td>
+  </tr>
+  <tr>
+    <td><code>MATCH_SUPPLY_DEMAND</code></td>
+    <td>Matches sample generic supply depots to generic demand points using abstract transportation (referred to as trucks). Each route is determined by a truck's ability (size) to service demand at each demand point.</td>
+    <td>X</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="SOLUTION_TABLE" id="solution_table" defaultOpen>
+
+Only applicable when using `EXECUTE FUNCTION` syntax. Name of the table to store the solution
+in `[schema_name.]table_name` format, using standard
+[name resolution rules](/content/sql/naming#sql-name-resolution) and meeting
+[table naming criteria](/content/sql/naming#sql-naming-criteria)
+
+</Accordion>
+
+<Accordion title="OPTIONS" id="options" defaultOpen>
+
+Optional indicator that a comma-delimited list of connection option/value assignments will follow.
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>aggregated_output</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. When set to <code>true</code> (default), each record in the output table shows a particular supplier's scheduled cumulative round-trip path (MULTILINESTRING) and the corresponding aggregated cost. Otherwise, each record shows a single scheduled supplier route (LINESTRING) towards a particular demand site with its corresponding cost.</td>
+  </tr>
+  <tr>
+    <td><code>batch_tsm_mode</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. If set to <code>true</code> (non-default), each supplier is limited to drop off 1 unit of supply at each demand site visited per trip, in order to model the *traveling* *salesman* problem.</td>
+  </tr>
+  <tr>
+    <td><code>chain_width</code></td>
+    <td>For the <code>MARKOV_CHAIN</code> solver only.  Length of the sample points lookahead window within the Markov kernel; the larger the number, the more accurate the solution. The default value is <code>9</code>.</td>
+  </tr>
+  <tr>
+    <td><code>charging_candidates</code></td>
+    <td>For the <code>MATCH_CHARGING_STATIONS</code> solver only.  Solver searches for this many stations closest to each base charging location found by capacity. The default value is <code>10</code>.</td>
+  </tr>
+  <tr>
+    <td><code>charging_capacity</code></td>
+    <td>For the <code>MATCH_CHARGING_STATIONS</code> solver only.  The maximum charging capacity of an EV (distance in meters or time in seconds, depending on the unit of the graph weights). The default value is <code>300000</code>.</td>
+  </tr>
+  <tr>
+    <td><code>charging_penalty</code></td>
+    <td>For the <code>MATCH_CHARGING_STATIONS</code> solver only.  The penalty for fully charging. The default value is <code>30000</code>.</td>
+  </tr>
+  <tr>
+    <td><code>cluster_quality_metric</code></td>
+    <td>For the <code>MATCH_CLUSTERS</code> solver only.  The quality metric for Louvain modularity optimization solver.</td>
+  </tr>
+  <tr>
+    <td><code>destination</code></td>
+    <td>Optional WKT ending point from <code>SAMPLE_POINTS</code> for the solver. The default behavior for the endpoint is to use time to determine the destination point. The default value is <code>POINT NULL</code>.</td>
+  </tr>
+  <tr>
+    <td><code>enable_reuse</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. If set to <code>true</code> (non-default), all suppliers can be scheduled for additional rounds of supply drop-off from their originating depots.</td>
+  </tr>
+  <tr>
+    <td><code>filter_folding_paths</code></td>
+    <td>For the <code>MARKOV_CHAIN</code> solver only. When set to <code>true</code> (non-default), the paths per sequence combination is checked for folding over patterns and can significantly increase the execution time depending on the chain width and the number of GPS samples.</td>
+  </tr>
+  <tr>
+    <td><code>gps_noise</code></td>
+    <td>GPS noise value (in meters) to remove redundant sample points. Use <code>-1</code> to disable noise reduction. The default value (<code>5.0</code>) accounts for 95% of point variation (±5 meters)</td>
+  </tr>
+  <tr>
+    <td><code>intersection_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>intersection</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>inverse_solve</code></td>
+    <td>For the <code>MATCH_BATCH_SOLVES</code> solver only. Solves source-destination pairs using inverse shortest path solver.</td>
+  </tr>
+  <tr>
+    <td><code>left_turn_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>left_turn</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>max_combinations</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. This is the cutoff for the number of generated combinations for sequencing the demand locations. The maximum number of combinations is <code>2000000</code>. The default value is <code>10000</code>.</td>
+  </tr>
+  <tr>
+    <td><code>max_hops</code></td>
+    <td>For the <code>MATCH_SIMILARITY</code> solver only.  Solver searches within this many hops for source and target node pairs to compute the Jaccard scores. The default value is <code>3</code>.</td>
+  </tr>
+  <tr>
+    <td><code>max_loop_level</code></td>
+    <td>For the <code>MATCH_LOOPS</code> solver only. Finds closed loops around each *node* deducible not more than this maximal hop (level) deep.</td>
+  </tr>
+  <tr>
+    <td><code>max_num_clusters</code></td>
+    <td>For the <code>MATCH_CLUSTERS</code> solver only.  If set, processing terminates when the number of clusters after a cycle is at or below this number; thus, the solution will have at most this many clusters in it.</td>
+  </tr>
+  <tr>
+    <td><code>max_num_threads</code></td>
+    <td>For the <code>MARKOV_CHAIN</code> solver only. If specified value is greater than <code>0</code> (default), the maximum number of threads will not be greater than the specified value. It can be lower due to the memory and number of cores available. The default value allows the algorithm to set the optimal number of threads within these constraints.</td>
+  </tr>
+  <tr>
+    <td><code>max_stops</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. If specified (greater than zero), a supplier can at most have this many stops (demand sites) in one round trip; otherwise, it is unlimited.  If <code>enable_reuse</code> is on, this condition will be applied separately at each round-trip use of the same supplier.</td>
+  </tr>
+  <tr>
+    <td><code>max_supply_combinations</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. This is the cutoff for the number of generated combinations for sequencing the supply locations, when <code>permute_supplies</code> is <code>true</code>.  The default value is <code>10000</code>.</td>
+  </tr>
+  <tr>
+    <td><code>max_trip_cost</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. If this constraint is greater than <code>0</code> (default), then the suppliers will skip traveling from one demand site to another if the cost between them is greater than this number (distance or time). The default value means no check is performed.</td>
+  </tr>
+  <tr>
+    <td><code>min_loop_level</code></td>
+    <td>For the <code>MATCH_LOOPS</code> solver only. Finds closed loops around each *node* deducible not less than this minimal hop (level) deep.</td>
+  </tr>
+  <tr>
+    <td><code>num_cycles</code></td>
+    <td>For the <code>MATCH_CLUSTERS</code> solver only.  If this is greater than <code>0</code> (default), then at most this many 2-step clustering exchange cycles will be performed; otherwise, processing will continue until quality does not improve across iterations.</td>
+  </tr>
+  <tr>
+    <td><code>num_loops_per_cycle</code></td>
+    <td>For the <code>MATCH_CLUSTERS</code> solver only.  If this is greater than <code>0</code> (default), then at most this many best-fit calculations for all nodes will be attempted in the first step of each cycle; otherwise, processing will continue until the overall best-fit quality does not improve beyond a pre-defined epsilon threshold value.</td>
+  </tr>
+  <tr>
+    <td><code>num_output_clusters</code></td>
+    <td>For the <code>MATCH_CLUSTERS</code> solver only.  If this is greater than <code>0</code> (default), then at most this many of the top clusters will be output after sorting them from most dense to least dense; otherwise, all clusters will be output.</td>
+  </tr>
+  <tr>
+    <td><code>num_segments</code></td>
+    <td>Maximum number of potentially matching road segments for each sample point. The default is <code>3</code>.</td>
+  </tr>
+  <tr>
+    <td><code>output_batch_size</code></td>
+    <td>For the <code>MATCH_LOOPS</code> solver only. Uses this value as the batch size of the number of loops in flushing (inserting) to the output table.</td>
+  </tr>
+  <tr>
+    <td><code>output_tracks</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. When it is <code>true</code> (non-default), the output will be in tracks format for all the round trips of each supplier in which the timestamps are populated directly from the *edge* weights starting from their originating depots.</td>
+  </tr>
+  <tr>
+    <td><code>paired_similarity</code></td>
+    <td>For the <code>MATCH_SIMILARITY</code> solver only.  When set to <code>true</code> (default), the Jaccard score will be computed between each pair; otherwise, the Jaccard score will be computed from the intersection set between the source and target nodes.</td>
+  </tr>
+  <tr>
+    <td><code>partial_loading</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. When <code>false</code> (non-default), suppliers do not off-load at the demand site side if the remainder is less than the site's demand.</td>
+  </tr>
+  <tr>
+    <td><code>permute_supplies</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only.  When <code>true</code> (default), suppliers are permuted for the demand site combinations during the optimization phase. <Note>This option increases optimization time significantly--use of `max_combinations` in tandem is recommended to prevent prohibitively long runs.</Note></td>
+  </tr>
+  <tr>
+    <td><code>restricted_type</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. If specified, this supplier type will be restricted from routes traversing edges with the <code>MSDO_ODDEVEN_RESTRICTED</code> label.  This models restrictions that exist, for example, in Jakarta, Indonesia. Possible values: <ul><li><code>none</code> - Do not apply any restrictions.</li><li><code>odd</code>  - Apply odd/even rule restrictions to odd ID suppliers</li><li><code>even</code> - Apply odd/even rule restrictions to even ID suppliers</li></ul></td>
+  </tr>
+  <tr>
+    <td><code>right_turn_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>right_turn</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>round_trip</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. When set to <code>true</code> (default), each supplier will have to return to the origination site; otherwise, the route is considered terminated at the final demand site.</td>
+  </tr>
+  <tr>
+    <td><code>search_limit</code></td>
+    <td>For the <code>MATCH_LOOPS</code> solver only. Searches within this limit of nodes per vertex to detect loops. The value zero means there is no limit.</td>
+  </tr>
+  <tr>
+    <td><code>search_radius</code></td>
+    <td>Maximum search radius used when snapping sample points onto potentially matching surrounding segments. The default value (<code>0.001</code>) corresponds to approximately 100 meters.</td>
+  </tr>
+  <tr>
+    <td><code>server_id</code></td>
+    <td>Indicates which graph server(s) to send the request to. Default is to send to the server, among those containing the corresponding graph, that has the most computational bandwidth.</td>
+  </tr>
+  <tr>
+    <td><code>service_limit</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. If specified, any supplier's total service cost (distance or time) will be limited by the specified value including multiple rounds of drop-off (if set). The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>service_radius</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. If specified, it filters the demands outside this radius, centered around the supplier's originating location (distance or time). The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>sharp_turn_penalty</code></td>
+    <td>This will add an additional weight over the edges labeled as <code>sharp_turn</code> or <code>u_turn</code> if the <code>add_turn</code> option was invoked during graph creation. The default value is <code>0.0</code>.</td>
+  </tr>
+  <tr>
+    <td><code>source</code></td>
+    <td>Optional WKT starting point from <code>SAMPLE_POINTS</code> for the solver. The default behavior for the endpoint is to use time to determine the starting point. The default value is <code>POINT NULL</code>.</td>
+  </tr>
+  <tr>
+    <td><code>traversal_node_limit</code></td>
+    <td>For the <code>MATCH_SIMILARITY</code> solver only.  Limits the traversal depth if it reaches this many nodes. The default value is <code>1000</code>.</td>
+  </tr>
+  <tr>
+    <td><code>unit_unloading_cost</code></td>
+    <td>For the <code>MATCH_SUPPLY_DEMAND</code> solver only. The unit cost per load amount to be delivered. If this value is greater than <code>0</code> (default) then the additional cost of this unit load multiplied by the total dropped load will be added over to the trip cost to the demand location.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+Using the `EXECUTE FUNCTION` syntax necessitates the `SOLUTION_TABLE`
+parameter to store the match results, where using the table function syntax will
+return the results directly.
+
+<CodeGroup>
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 243-258) */}
+```sql Table Function Example
+SELECT * FROM TABLE
+(
+	MATCH_GRAPH
+	(
+		GRAPH => 'big_cities_graph',
+		SAMPLE_POINTS => INPUT_TABLE
+		(
+			SELECT
+				city1_location AS ORIGIN_WKTPOINT,
+				city2_location AS DESTINATION_WKTPOINT,
+				trip_time AS OD_TIME
+			FROM big_cities_map
+		),
+		SOLVE_METHOD => 'match_od_pairs'
+	)
+)
+```
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 262-275) */}
+```sql EXECUTE FUNCTION Example
+EXECUTE FUNCTION MATCH_GRAPH
+(
+	GRAPH => 'big_cities_graph',
+	SAMPLE_POINTS => INPUT_TABLE
+	(
+		SELECT
+			city1_location AS ORIGIN_WKTPOINT,
+			city2_location AS DESTINATION_WKTPOINT,
+			trip_time AS OD_TIME
+		FROM big_cities_map
+	),
+	SOLVE_METHOD => 'match_od_pairs',
+	SOLUTION_TABLE => 'big_cities_graph_matched'
+)
+```
+
+</CodeGroup>

@@ -1,0 +1,52 @@
+---
+title: ALTER USER
+---
+
+<a id="sql-security-user-mgmt-alter"></a>
+
+
+Any of the following facets of a [user](/content/security/sec_concepts#security-concepts-users) can be
+altered, either individually or as a group:
+
+* password
+* [resource group](/content/rm/concepts#rm-concepts-resource-groups)
+* [default schema](/content/concepts/schemas#schema-default)
+
+```sql title="ALTER USER Syntax"
+ALTER USER <user name>
+SET
+    [ PASSWORD [=] '<user password>' ]
+    [ RESOURCE GROUP [=] <group name | DEFAULT> ]
+    [ DEFAULT SCHEMA [=] <schema name | DEFAULT> ]
+    [ ACTIVATED [=] <TRUE | FALSE> ]
+```
+
+
+<Info>
+The password needs to be single-quoted and must not contain single quotes.
+</Info>
+
+
+## Examples
+
+
+To alter a user with the user ID of **jsmith**, assigning a
+password of **new_secret**, and the **memory_over_execution** *resource group*:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 84-87) */}
+```sql ALTER USER with Resource Group Example
+ALTER USER jsmith
+SET
+    PASSWORD = 'new_secret'
+    RESOURCE GROUP memory_over_execution
+```
+
+To unassign the **memory_over_execution** *resource_group* from the **jsmith**
+user:
+
+{/* Source: /examples/sql/security/user_role.kisql (lines 79-81) */}
+```sql ALTER USER Removing Resource Group Example
+ALTER USER jsmith
+SET
+    RESOURCE GROUP DEFAULT
+```

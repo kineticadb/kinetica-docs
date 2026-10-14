@@ -1,0 +1,122 @@
+---
+title: GENERATE SQL
+---
+
+<a id="sql-gpt-generate-sql"></a>
+
+
+Creates a SQL query equivalent of the given natural-language question using the
+specified [SQL-GPT context](/content/sql/sqlgpt/create-context#sql-gpt-create-context).
+
+```sql title="GENERATE SQL Syntax"
+GENERATE SQL FOR '<question>'
+[WITH OPTIONS (<option name> = '<option value>'[,...])]
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;question&gt;" id="<question>" defaultOpen>
+
+Natural-language question for which an equivalent SQL query will be generated
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the [schema](/content/sql/ddl/create-schema#sql-create-schema) containing the *context* to use in generating
+the query
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of SQL generation option/value assignments will
+follow.
+
+See [SQL Generation Options](/content/sql/sqlgpt/generate-sql#sql-gpt-generate-sql-opts) for the complete list of options.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-gpt-generate-sql-opts"></a>
+
+
+## SQL Generation Options
+
+
+The following options can be specified to modify the way SQL queries are
+generated.
+
+<AccordionGroup>
+
+<Accordion title="ai_api_provider" id="ai_api_provider" defaultOpen>
+
+Name of an LLM service to use other than the default one; the default, `sqlgpt`, uses the
+Kinetica SQLGPT.io service.
+
+</Accordion>
+
+<Accordion title="ai_api_url" id="ai_api_url" defaultOpen>
+
+URL of an LLM service to use other than the default one.
+
+</Accordion>
+
+<Accordion title="context_name" id="context_name" defaultOpen>
+
+Name of the *SQL-GPT context* to use as a basis for generating SQL queries; should be of the
+form `[<schema name>.]<context name>`.
+
+</Accordion>
+
+<Accordion title="context_names" id="context_names" defaultOpen>
+
+Comma-separated list of names of *SQL-GPT contexts* to use as a basis for generating SQL
+queries; each should be of the form `[<schema name>.]<context name>`, and the entire list
+should be single-quoted.
+
+For example:
+
+```
+context_names = 'example.atc_ctx,example.nyctaxi'
+```
+</Accordion>
+
+<Accordion title="use_rag" id="use_rag" defaultOpen>
+
+Whether to use [retrieval-augmented generation (RAG)](/content/sql-gpt/concepts#sql-gpt-overview-rag) facilities
+with the given *SQL-GPT contexts* when processing this request.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## SQL Generation Examples
+
+
+To generate the SQL equivalent query to a given question using the
+`example.atc_ctx` *SQL-GPT context*:
+
+{/* Source: /examples/sql/sql-gpt/syntax.kisql (lines 151-153) */}
+```sql GENERATE SQL Example
+GENERATE SQL FOR
+	'What is the callsign and position of the aircraft with most recent timestamp?'
+WITH OPTIONS (context_name = 'example.atc_ctx')
+```
+
+To generate the SQL equivalent query to a given question using the
+`nyctaxi_ctx` & `flights_ctx` *SQL-GPT contexts* with SQL RAG:
+
+{/* Source: /examples/sql/sql-gpt/rag.kisql (lines 254-256) */}
+```sql GENERATE SQL with RAG Example
+GENERATE SQL FOR
+	'What was the busiest airport, including taxis and flights, during January and February of 2023?'
+WITH OPTIONS (context_names = 'nyctaxi_ctx, flights_ctx', use_rag = 'true')
+```

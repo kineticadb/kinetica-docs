@@ -6,6 +6,7 @@ An *external table* is a database object whose source data is located in one or
 more files external to the database.  The source data can be located in any of
 the following locations:
 
+* on shared storage, mounted on each database node in the cluster
 * in [KiFS](/content/tools/kifs)
 * on a remote system, accessible via a [data source](/content/concepts/data_sources)
 * in an external data lake, accessible via a
@@ -128,7 +129,7 @@ limitations to consider when configuring one this way:
 
 
 If an *external table* is to use a *data source*, then
-[data source connect privilege](/content/sql/security#sql-security-priv-mgmt-ds-grant)
+[data source connect privilege](/content/sql/security/grant-data-source-permission#sql-security-priv-mgmt-ds-grant)
 is required for the following actions:
 
 * Creating the *external table*
@@ -163,6 +164,25 @@ updates.
 * Perform a type inference (if necessary) and ingest all data
 * Perform a type inference and return the intuited table definition
 * Perform an ingest dry run, counting the number of valid records
+
+
+## Loading Mode
+
+
+Depending on where the source data files are located, one of the following
+schemes can be assigned for distributing the extraction & loading of data:
+
+* The *head node* loads all the data; all files must be available to it.
+* A single worker process on each node loads all files available to that node.
+  This works best when each node loads files from its own file system, to
+  maximize performance.  To avoid duplicating data, either each node must see a
+  set of files unique to it, or the target *table* must have a
+  [primary key](/content/concepts/tables#primary-key).
+* The cluster coordinates loading the data across all nodes from shared files;
+  all files must be available to all nodes.
+
+Data read through a [data source](/content/concepts/data_sources) always uses the
+last of these, as a *data source* is seen by every node as a shared resource.
 
 
 ## Refresh on Start

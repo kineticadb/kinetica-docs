@@ -1,0 +1,117 @@
+---
+title: DROP BACKUP
+---
+
+<a id="sql-backup-drop"></a>
+
+
+Deletes one or more [backups](/content/sql/backup_restore/create-backup#sql-backup-create) and all
+associated files from the remote store accessible through the given
+[data sink](/content/sql/ddl/create-data-sink#sql-create-data-sink).
+
+```sql title="DROP BACKUP Syntax"
+DROP BACKUP < <backup name> | "<backup name>*" | * >
+DATA SINK <data sink name>
+[WITH OPTIONS (<delete option name> = '<delete option value>'[,...])]
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;backup name&gt;" id="<backup-name>" defaultOpen>
+
+Name of the *backup(s)* to delete that are accessible via the *data sink* given by
+`data sink name`.
+
+Use `<backup name>*` to delete all *backups* that start with `backup name`.
+
+Use `*` instead of `<backup name>` to delete all *backups*.
+
+
+<Info>
+The `DELETE_ALL_BACKUPS` option must be set to `true` when using `*`.
+</Info>
+
+</Accordion>
+
+<Accordion title="&lt;data sink name&gt;" id="<data-sink-name>" defaultOpen>
+
+Name of the [data sink](/content/sql/ddl/create-data-sink#sql-create-data-sink) to use to delete the database
+*backup* files from the remote file store.
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of deletion option name/value assignments
+will follow.
+
+Delete options include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>DELETE_ALL_BACKUPS</code></td>
+    <td>Whether or not to allow multiple *backups* to be deleted if <code>*</code> is used to specify more than one *backup*; default (<code>false</code>) is to prevent deleting multiple *backups*.</td>
+  </tr>
+  <tr>
+    <td><code>DRY_RUN</code></td>
+    <td>Whether or not to execute a dry run of a *backup* deletion and not actually delete the *backup* files; default (<code>false</code>) is to delete *backups*.</td>
+  </tr>
+  <tr>
+    <td><code>NO_ERROR_IF_NOT_EXISTS</code></td>
+    <td>Whether or not to suppress an error if the given *backup* does not exist; default (<code>false</code>) is to return an error.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-backup-drop-ex"></a>
+
+
+## Examples
+
+
+For example, to delete a *backup*, `schema_backup`, via a
+*data sink*, `backup_ds`, through which the *backup* files can be accessed:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 523-524) */}
+```sql DROP BACKUP Example
+DROP BACKUP schema_backup
+DATA SINK = backup_ds
+```
+
+To delete all *backups* accessible via the `backup_ds` *data sink* that have a
+*backup* name starting with `conf`:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 534-536) */}
+```sql DROP BACKUP (All Matching Backups at Data Sink) Example
+DROP BACKUP "conf*"
+DATA SINK = backup_ds
+WITH OPTIONS (DELETE_ALL_BACKUPS = true)
+```
+
+To delete all *backups* accessible via the `backup_ds` *data sink*:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 548-550) */}
+```sql DROP BACKUP (All Backups at Data Sink) Example
+DROP BACKUP *
+DATA SINK = backup_ds
+WITH OPTIONS (DELETE_ALL_BACKUPS = true)
+```

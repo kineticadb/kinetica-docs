@@ -1,0 +1,40 @@
+---
+title: Security
+---
+
+<a id="sql-procedures-security"></a>
+
+
+Permissions for managing procedures follow those for creating tables; e.g., if a
+user has the ability to create a table in a given schema, that user will also be
+able to create & drop procedures there.
+
+Executing a procedure requires either the implicit execute permission that is
+granted to the creator of a procedure, or explicit execute permission, which can
+be [granted to](/content/sql/security/grant-procedure-permission#sql-security-priv-mgmt-sqlp-grant) or
+[revoked from](/content/sql/security/revoke-procedure-permission#sql-security-priv-mgmt-sqlp-revoke) any
+[user](/content/security/sec_concepts#security-concepts-users) or
+[role](/content/security/sec_concepts#security-concepts-roles), irrespective of whether the
+target *user* or *role* has the appropriate access to the database objects
+referenced within the *SQL procedure*.
+
+When procedures are executed *on-demand*, they are run, by default, with
+*invoker rights* (caller permissions); while those run automatically by
+*scheduled execution* are executed with *definer rights* (creator permissions).
+These defaults can be overridden by creating the stored procedure with the
+`EXECUTE AS` option, which allows a user to be designated for
+permissions-checking when running the procedure.  The `EXECUTE AS` user is
+automatically given `EXECUTE` permission on the corresponding *SQL procedure*.
+
+For *scheduled execution* runs, if the `EXECUTE AS` user loses `EXECUTE`
+permission on the procedure or doesn't have permissions to run the commands
+within the procedure, the execution will fail accordingly.  If the user doesn't
+exist, the procedure will be executed with *definer rights*; and if the creator
+no longer exists, it will be executed as the system administration user.
+
+For *on-demand* runs, if the `EXECUTE AS` user doesn't have permissions to run
+the commands within the procedure, the execution will fail accordingly.  If the
+user doesn't exist, the procedure will be executed with *invoker rights*.
+
+Execute permission on a procedure also allows the grantee to see the contents of
+the procedure.

@@ -1,0 +1,72 @@
+---
+title: SHOW FUNCTION STATUS
+---
+
+<a id="sql-show-function-status"></a>
+
+
+Outputs the status of one or more running, or previously running,
+[UDFs/UDTFs](/content/sql/udf#sql-udf).  Users with `SYSTEM ADMIN` or `ADMIN`
+permission on all UDFs will see all current & historical UDF runs, while users
+with `EXECUTE` or `ADMIN` permissions on individual UDFs will only see the
+current & historical runs for UDFs/UDTFs that they have executed themselves.
+Historical run data is preserved when a UDF/UDTF is executed with the
+`KI_HINT_SAVE_UDF_STATS` hint.
+
+```sql title="SHOW FUNCTION STATUS Syntax"
+SHOW FUNCTION STATUS [VERBOSE] [FOR '<run ID>']
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="VERBOSE" id="verbose" defaultOpen>
+
+Specifies verbose output mode.  This modifies the response as noted below.
+
+</Accordion>
+
+<Accordion title="FOR '&lt;run ID&gt;'" id="for-<run-id>" defaultOpen>
+
+Specifies that only the status of UDF/UDTF execution with run ID `<run ID>` should be output.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<Info>
+The response to `SHOW FUNCTION STATUS` depends on whether the
+`VERBOSE` option was specified.
+
+* No `VERBOSE` - output is a three-column result set:
+
+  * `FUNCTION_NAME` - name of the UDF/UDTF
+  * `RUN_ID` - ID associated with a given execution of the UDF/UDTF
+  * `OVERALL_STATUS` - completion status of UDF/UDTF
+
+* `VERBOSE` - output is a single-column, single-row result set with a list
+  of all UDF/UDTF statuses, each as a formatted block of information in the
+  `FUNCTION_STATUSES` column
+</Info>
+
+
+## Examples
+
+
+To show the status of all UDF/UDTF runs:
+
+{/* Source: /examples/sql/udf/udf.kisql (lines 163) */}
+```sql SHOW FUNCTION STATUS Example
+SHOW FUNCTION STATUS
+```
+
+To show the verbose status of a UDF/UDTF with run ID *1000*:
+
+{/* Source: /examples/sql/udf/udf.kisql (lines 172) */}
+```sql SHOW FUNCTION STATUS By Run ID Example
+SHOW FUNCTION STATUS VERBOSE FOR '1000'
+```

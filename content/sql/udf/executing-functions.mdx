@@ -1,0 +1,156 @@
+---
+title: Executing Functions
+---
+
+<a id="sql-execute-function"></a>
+
+
+An existing [UDF/UDTF](/content/sql/udf#sql-udf) can be executed using
+the `EXECUTE FUNCTION` command.  Additionally, a
+[UDTF](/content/sql/udf/create-function#sql-create-function) can be executed as a table function
+within a `SELECT` statement.
+
+```sql title="Execute UDF/UDTF Syntax"
+EXECUTE FUNCTION <function name>
+(
+   <function parameter 1> => <function value 1>,
+   ...
+   <function parameter N> => <function value N>
+)
+```
+
+```sql title="Execute UDTF Table Function Syntax"
+SELECT * FROM TABLE
+(
+   <function name>
+   (
+      <function parameter 1> => <function value 1>,
+      ...
+      <function parameter N> => <function value N>
+   )
+)
+```
+
+The `<function name>` should be the name of an existing UDF.
+
+
+<Tip>
+To preserve the runtime statistics of a UDF/UDTF, use the
+`KI_HINT_SAVE_UDF_STATS` hint in the call to it; see
+[below](/content/sql/udf/executing-functions#sql-execute-function-examples) for an example.
+</Tip>
+
+
+## Function Parameters
+
+
+The following are the available function parameters that may be passed to a
+UDF in an `EXECUTE FUNCTION` or table function call, along with their
+corresponding function values.
+
+<AccordionGroup>
+
+<Accordion title="INPUT_TABLE_NAMES" id="input_table_names" defaultOpen>
+
+Optional set of "tables" that will be used as input to the UDF/UDTF, specified as a set of
+queries defining the source data for each "table".  The value of this parameter is either the
+`INPUT_TABLE` or `INPUT_TABLES` function, depending on the number of input "tables".
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Value</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>INPUT_TABLE(&lt;query&gt;)</code></td>
+    <td>If only one input table is needed, it can be passed by query or by name to the <code>INPUT_TABLE</code> function; e.g.: <pre><code>INPUT_TABLE(customer)&#10;INPUT_TABLE(SELECT id, name FROM customer)</code></pre></td>
+  </tr>
+  <tr>
+    <td><code>INPUT_TABLES(&lt;queries&gt;)</code></td>
+    <td>If more than one input table is needed, each can be passed via query as a list to the <code>INPUT_TABLES</code> function; e.g.: <pre><code>INPUT_TABLES&#10;(&#10;(SELECT id, name FROM customer),&#10;(SELECT id, customer_id FROM order)&#10;)</code></pre></td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="OUTPUT_TABLE_NAMES" id="output_table_names" defaultOpen>
+
+Optional set of tables that will be used as output, specified as a set of names passed as a
+comma-delimited list of strings to the `OUTPUT_TABLES` function; e.g.:
+
+```
+OUTPUT_TABLES('sales_summary', 'customer_profile')
+```
+</Accordion>
+
+<Accordion title="PARAMS" id="params" defaultOpen>
+
+Optional list of parameters to pass to the function, specified as a set of key/value pairs
+passed  as a comma-delimited list of `<key> = '<value>'` assignments to the `KV_PAIRS`
+function; e.g.:
+
+```
+KV_PAIRS(customer_id = '1', report_type = 'yearly')
+```
+</Accordion>
+
+<Accordion title="OPTIONS" id="options" defaultOpen>
+
+Optional list of function execution options, specified as a set of key/value pairs passed as a
+comma-delimited list of `<key> = '<value>'` assignments to the `KV_PAIRS` function; e.g.:
+
+```
+KV_PAIRS(run_tag = 'my-udf')
+```
+All valid options from [Execute Proc](/content/api/rest/execute_proc_rest)
+can be used here.
+
+</Accordion>
+
+</AccordionGroup>
+
+<a id="sql-execute-function-examples"></a>
+
+
+## Examples
+
+
+To execute the `udf_st` UDF, specifying an input and output table and the hint
+to save runtime statistics:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 161-166) */}
+```sql Execute UDF Example
+EXECUTE FUNCTION udf_st /* KI_HINT_SAVE_UDF_STATS */
+(
+    INPUT_TABLE_NAMES => INPUT_TABLE(example.udf_st_in),
+    OUTPUT_TABLE_NAMES => OUTPUT_TABLES('example.udf_st_out'),
+    PARAMS => KV_PAIRS(sentence = 'I live in a neighborhood in a small town.')
+)
+```
+
+To execute the `UDTF_ST` UDTF, specifying an input table and
+returning the output as the result set of a `SELECT` statement:
+
+{/* Source: /examples/sql/udf/udf_env.kisql (lines 181-193) */}
+```sql Execute UDTF Table Function Example
+SELECT TOP 5 score, sentence
+FROM
+	example.udf_st_in i,
+	TABLE
+	(
+	    UDTF_ST
+	    (
+	        INPUT_TABLE_NAMES => INPUT_TABLE(example.udf_st_in),
+	        PARAMS => KV_PAIRS(sentence = 'I live in a neighborhood in a small town.')
+	    )
+	) o
+WHERE i.id = o.id
+ORDER BY score DESC
+```

@@ -1,0 +1,82 @@
+---
+title: SHOW BACKUP
+---
+
+<a id="sql-backup-show"></a>
+
+
+Outputs the DDL statement used to initially create one or more
+[backups](/content/sql/backup_restore/create-backup#sql-backup-create) accessible via the given
+[data source](/content/sql/ddl/create-data-source#sql-create-data-source).
+
+
+```sql title="SHOW BACKUP Syntax"
+SHOW BACKUP < <backup name> | "<backup name>*" | * >
+DATA SOURCE <data source name>
+```
+
+
+<Info>
+The response to `SHOW BACKUP` is a single-column result set
+with the DDL statement as the value in the `DDL` column.
+</Info>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;backup name&gt;" id="<backup-name>" defaultOpen>
+
+Name of the *backup(s)* to show that are accessible via the *data source* given by
+`data source name`.
+
+Use `<backup name>*` to show all *backups* that start with `backup name`.
+
+Use `*` instead of `<backup name>` to show all *backups*.
+
+</Accordion>
+
+<Accordion title="&lt;data source name&gt;" id="<data-source-name>" defaultOpen>
+
+Name of the [data source](/content/sql/ddl/create-data-source#sql-create-data-source) to use to retrieve the database
+*backup* file information from the remote file store.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-backup-show-ex"></a>
+
+
+## Examples
+
+
+For example, to output the DDL for a *backup*, `schema_backup`, via a
+*data source*, `restore_ds`, through which the *backup* files can be accessed:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 89-90) */}
+```sql SHOW BACKUP Example
+SHOW BACKUP schema_backup
+DATA SOURCE = restore_ds
+```
+
+To output the DDL for all *backups* whose name starts with `conf` that are
+accessible via the `restore_ds` *data source*:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 462-463) */}
+```sql SHOW BACKUP (All Backups with Prefix at Data Source) Example
+SHOW BACKUP "conf*"
+DATA SOURCE = restore_ds
+```
+
+To output the DDL for all *backups* that are accessible via the `restore_ds`
+*data source*:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 466-467) */}
+```sql SHOW BACKUP (All Backups at Data Source) Example
+SHOW BACKUP *
+DATA SOURCE = restore_ds
+```

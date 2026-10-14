@@ -1,0 +1,69 @@
+---
+title: LIST DIRECTORY
+---
+
+<a id="sql-kifs-list-dir"></a>
+
+
+Outputs detail about one or all
+[KiFS directories](/content/tools/kifs_api#kifs-directory).
+
+```sql title="LIST DIRECTORY Syntax"
+<LIST|DESC[RIBE]> DIRECTOR[Y|IES] [ '<directory name>' | * ]
+```
+
+
+<Info>
+Only one *directory* can be named; a comma-separated list will return
+an error.  To output the DDL used to create a *directory* instead of its
+detail, see [SHOW DIRECTORY](/content/sql/kifs/show-directory#sql-kifs-show-dir).
+</Info>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;directory name&gt;" id="<directory-name>" defaultOpen>
+
+Name of the existing *directory* for which detail will be output.
+Use `*`, or omit the name entirely, to output detail of all
+*directories*.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Response
+
+
+The response to `LIST DIRECTORY` is a six-column result set:
+
+| Output Column | Description |
+| --- | --- |
+| `DIRECTORY_NAME` | Name of the *directory* |
+| `CREATED_BY` | User ID of the user who created the *directory*; blank unless this command is run as a system administrator |
+| `CREATION_TIME` | Date/time at which the *directory* was created |
+| `DATA_USAGE` | Amount of used file storage within the *directory*, in bytes; updated as files are added & removed |
+| `DATA_LIMIT` | Total amount of file storage available to the *directory*, in bytes.  A *directory* keeps the limit it was created with, so this may differ between *directories* if the database-wide default has since changed |
+| `PERMISSION` | Highest level of access to the *directory* the command issuer has--either `directory_write` or `directory_read` |
+
+
+## Examples
+
+
+To output the detail about a *directory*, `kdata`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 51) */}
+```sql LIST DIRECTORY Example
+LIST DIRECTORY 'kdata'
+```
+
+To output the detail for all *directories*:
+
+{/* Source: /examples/sql/kifs.kisql (lines 40) */}
+```sql LIST DIRECTORIES (All Directories) Example
+LIST DIRECTORIES *
+```

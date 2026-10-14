@@ -1,0 +1,52 @@
+---
+title: GRANT Data Source Permission
+---
+
+<a id="sql-security-priv-mgmt-ds-grant"></a>
+
+
+[Data source permissions](/content/security/sec_concepts#security-concepts-permissions-datasource),
+which allow management of [data sources](/content/sql/ddl/create-data-source#sql-create-data-source),
+can be granted directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+```sql title="GRANT Data Source Permission Syntax"
+GRANT <CONNECT | ADMIN> [PRIVILEGES]
+ON <ALL DATA SOURCES [IN [SCHEMA] <schema reference>] | DATA SOURCE <data source reference>>
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+```sql title="GRANT Create Data Source Permission Syntax"
+GRANT CREATE [PRIVILEGES] ON DATA SOURCES
+[IN [SCHEMA] <schema reference>]
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `ADMIN` | Modify or drop the given *data source* (includes `CONNECT` access). |
+| `CONNECT` | Connect to, load data into, or view the configuration of the given *data source*. |
+| `<data source reference>` | The name of the data source to which access is being granted, or a wildcard expression signifying the data sources to which access is being granted.  The following forms are valid: <br/> <br/> *&lt;schema&gt;.&lt;data source&gt;*: Fully-qualified data source name in the specified schema <br/> <br/> `*.*`: All existing data sources that the granting user can see, across all schemas <br/> <br/> `*`: All existing schemas the granting user can see, which grants access to all data sources in those schemas now and in the future <br/> <br/> *&lt;schema&gt;*: All data sources in the specified schema <br/> <br/> *&lt;data source&gt;*: Data source in the default schema. If a schema exists with the same name, it will be used. To avoid this, specify the fully-qualified data source name. |
+| `<schema reference>` | The schema the permission applies to (with the `ALL` or `CREATE` forms).  If the IN [SCHEMA] clause is omitted, the permission applies across all schemas, both now and in the future.  Wildcards are not permitted with the IN keyword. |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+## Examples
+
+
+To grant connect access on the *data source* named
+**kin_ds** to the **auser** *user*:
+
+{/* Source: /examples/sql/data_source/data_source.kisql (lines 69) */}
+```sql GRANT Data Source Use Permission Example
+GRANT CONNECT ON DATA SOURCE kin_ds TO auser
+```
+
+To grant administrative access on the *data source* named **kin_ds_anon** to the
+**auser** *user*:
+
+{/* Source: /examples/sql/data_source/data_source.kisql (lines 108) */}
+```sql GRANT Data Source Administrative Permission Example
+GRANT ADMIN ON DATA SOURCE kin_ds_anon TO auser
+```

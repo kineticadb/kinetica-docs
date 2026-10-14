@@ -1,0 +1,473 @@
+---
+title: INSERT INTO ... SELECT ... FROM FILE
+---
+
+<a id="sql-load-file-client"></a>
+
+
+*Kinetica* can load data from text-based data files that are local to the client
+into existing tables using a modified `INSERT INTO ... SELECT` statement.
+
+
+<Info>
+This command is only available through
+[KiSQL](/content/tools/kisql) or database clients configured with
+the [Kinetica ODBC/JDBC driver](/content/connectors/sql_guide#odbc-jdbc).
+</Info>
+
+When reading data from a file, *Kinetica* assumes the following format, able to
+be overridden using command [options](/content/sql/load/insert-into-select-from-file#sql-load-file-client-options):
+
+* If there is a header row, it is either:
+
+  * a simple list of comma-delimited column names:
+
+        {/* Source: /examples/data/products.csv (lines 1) */}
+    ```
+    id,category,name,description,stock
+    ```
+
+  * the *Kinetica* standard format:
+
+        {/* Source: /examples/data/products.kh.csv (lines 1) */}
+    ```
+    id|int|data,category|string|data|char16,name|string|data|char32,description|string|data|char128|nullable,stock|int|data|nullable
+    ```
+
+* The data fields are comma-delimited
+* Strings are optionally enclosed in double-quotes; double-quotes must be
+  used when the data contains commas; two consecutive double-quotes are used as
+  an escape code for double-quoted string data containing double-quotes; e.g.:
+
+  `"This string contains a "" quote mark and a "","" double-quoted comma."`
+
+  This would be loaded into a single string column in *Kinetica* as:
+
+  `This string contains a " quote mark and a "," double-quoted comma.`
+
+```sql title="INSERT INTO ... SELECT ... FROM FILE Syntax"
+INSERT INTO [<schema name>.]<table name> [( <column list> )]
+SELECT <field list>
+FROM FILE."<file name | file name expression>"
+[ <option list> ]
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the [schema](/content/sql/ddl/create-schema#sql-create-schema) containing the *table* into which data will
+be inserted
+
+</Accordion>
+
+<Accordion title="&lt;table name&gt;" id="<table-name>" defaultOpen>
+
+Name of the [table](/content/sql/ddl/create-table#sql-create-table) into which data will be inserted
+
+</Accordion>
+
+<Accordion title="&lt;column list&gt;" id="<column-list>" defaultOpen>
+
+Optional list of target table columns into which data will be inserted; if not specified,
+all target table columns will be assumed.  Whether specified or implied, this list needs
+to match the fields specified in `<field list>` in number, order, & type.
+
+</Accordion>
+
+<Accordion title="&lt;field list&gt;" id="<field-list>" defaultOpen>
+
+List of the source data file field names from which data will be extracted; use `*` to
+extract all columns *(this wildcard must be used when a source file has no header which*
+*defines field names)*.  This list needs to match all the target table columns *(or*
+*those specified in the* `<column list>` *option)* in number, order, & type.
+
+</Accordion>
+
+<Accordion title="&lt;file name | file name expression&gt;" id="<file-name-|-file-name-expression>" defaultOpen>
+
+Name of the source data file or set of source data files from which records will be
+extracted; wildcards (`*`) can be used to specify a group of files
+
+</Accordion>
+
+<Accordion title="&lt;option list&gt;" id="<option-list>" defaultOpen>
+
+Optional list of whitespace-separated
+[processing options](/content/sql/load/insert-into-select-from-file#sql-load-file-client-options)
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-load-file-client-options"></a>
+
+
+## Options
+
+
+The following options can be specified when loading data from files.  When
+reading from multiple files (using wildcards when specifying the file names),
+options specific to the source file will be applied to each file being read.
+
+<AccordionGroup>
+
+<Accordion title="BATCH_SIZE=&lt;n&gt;" id="batch_size<n>" defaultOpen>
+
+Use an ingest batch size of `n` records.
+
+The default batch size is *10,000*.
+
+</Accordion>
+
+<Accordion title="COMMENT='&lt;string&gt;'" id="comment<string>" defaultOpen>
+
+Treat lines in the source file that begin with `string` as comments and skip.
+
+The default comment marker is `#`.
+
+</Accordion>
+
+<Accordion title="DELIMITER='&lt;char&gt;'" id="delimiter<char>" defaultOpen>
+
+Use `char` as the source file field delimiter.
+
+The default delimiter is `,`, unless the source file has one of these extensions:
+
+* `.psv` - will cause `|` to be the delimiter
+* `.tsv` - will cause the tab character to be the delimiter
+
+See [Option Characters](/content/sql/load/insert-into-select-from-file#sql-load-file-client-option-chars) for allowed characters.
+
+</Accordion>
+
+<Accordion title="ESCAPE='&lt;char&gt;'" id="escape<char>" defaultOpen>
+
+Use `char` as the source file data escape character.  The escape character
+preceding any other character, in the source data, will be converted into that
+other character, except in the following special cases:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Source Data String</th>
+    <th>Representation when Loaded into the Database</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>&lt;char&gt;a</code></td>
+    <td>ASCII bell</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;b</code></td>
+    <td>ASCII backspace</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;f</code></td>
+    <td>ASCII form feed</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;n</code></td>
+    <td>ASCII line feed</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;r</code></td>
+    <td>ASCII carriage return</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;t</code></td>
+    <td>ASCII horizontal tab</td>
+  </tr>
+  <tr>
+    <td><code>&lt;char&gt;v</code></td>
+    <td>ASCII vertical tab</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+For instance, if the escape character is `\`, a `\t` encountered in the data
+will be converted to a tab character when stored in the database.
+
+The escape character can be used to escape the quoting character, and will be
+treated as an escape character whether it is within a quoted field value or not.
+
+There is no default escape character.  See
+[Option Characters](/content/sql/load/insert-into-select-from-file#sql-load-file-client-option-chars) for allowed characters.
+
+</Accordion>
+
+<Accordion title="HEADER=&lt;Y|N&gt;" id="header<y|n>" defaultOpen>
+
+Declare that the source file has or does not have a header.  If
+not given, that determination will be intuited.
+
+</Accordion>
+
+<Accordion title="INITIAL_CLEAR" id="initial_clear" defaultOpen>
+
+Truncate the target table before loading data.
+
+The default is to not truncate the target table.
+
+</Accordion>
+
+<Accordion title="LIMIT=&lt;n&gt;" id="limit<n>" defaultOpen>
+
+Limit the total number of records inserted into the target table
+to `n`.  If reading from multiple source files, this count is
+assessed across all files being read.  For example, if `n` is
+*15* and the three files being read have *10* records each, all of
+the records from the *1st* file and the first *5* records from the
+*2nd* file will be loaded.  The remaining records in the *2nd*
+file and all of the records from the *3rd* file will be skipped.
+
+The default is no limit.
+
+</Accordion>
+
+<Accordion title="NULL='&lt;string&gt;'" id="null<string>" defaultOpen>
+
+Treat `string` as the indicator of a null source field value.
+
+The default is `\N`.
+
+</Accordion>
+
+<Accordion title="ON_ERROR=&lt;mode&gt;" id="on_error<mode>" defaultOpen>
+
+When an error is encountered loading a record, handle it using the given `<mode>`; one of
+the following:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Mode</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>PERMISSIVE</code></td>
+    <td>If an error is encountered parsing a source record, attempt to insert as much of the valid fields from the record as possible.</td>
+  </tr>
+  <tr>
+    <td><code>SKIP</code></td>
+    <td>If an error is encountered parsing a source record, skip the record.</td>
+  </tr>
+  <tr>
+    <td><code>ABORT</code></td>
+    <td>If an error is encountered parsing a source record, stop the data load process.  Primary key collisions are considered abortable errors in this mode.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+
+The default mode is `SKIP`.
+
+</Accordion>
+
+<Accordion title="QUOTE='&lt;char&gt;'" id="quote<char>" defaultOpen>
+
+Use `char` as the source file data quoting character, for enclosing field values. Usually
+used to wrap field values that contain embedded delimiter characters, though any field may
+be enclosed in quote characters *(for clarity, for instance)*.  The quote character must
+appear as the first and last character of a field value in order to be interpreted as
+quoting the value.  Within a quoted value, embedded quote characters may be escaped by
+preceding them with another quote character or the escape character specified by
+`ESCAPE`, if given.
+
+The default is the `"` (double-quote) character.  See
+[Option Characters](/content/sql/load/insert-into-select-from-file#sql-load-file-client-option-chars) for allowed characters.
+
+</Accordion>
+
+<Accordion title="SKIP=&lt;n&gt;" id="skip<n>" defaultOpen>
+
+Skip the first `n` source file data lines read, not including header and comment lines.
+If reading from multiple source files, this count is assessed across all files being read.
+For example, if `n` is *15* and the first two files read have *10* records each, the
+first record to be loaded (not skipped) will be the *6th* record of the *2nd* file.
+
+The default is to skip no records.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-load-file-client-option-chars"></a>
+
+
+## Option Characters
+
+
+For `DELIMITER`, `ESCAPE`, & `QUOTE`, any single character can be used, or
+any one of the following escaped characters:
+
+| Escaped Char | Corresponding Source File Character |
+| --- | --- |
+| `''` | Single quote |
+| `\\` | Backslash |
+| `\a` | ASCII bell |
+| `\b` | ASCII backspace |
+| `\f` | ASCII form feed |
+| `\t` | ASCII horizontal tab |
+| `\v` | ASCII vertical tab |
+
+For instance, if two single quotes (`''`) are specified for a `QUOTE`
+character, the parser will interpret *single quotes* in the source file as
+*quoting* characters; specifying `\t` for `DELIMITER` will cause the parser
+to interpret *ASCII horizontal tab* characters in the source file as *delimiter*
+characters.
+
+
+## Examples
+
+
+### File Paths
+
+
+#### Single File
+
+
+To load a CSV file of product data located at <Badge color="gray">../data/products.csv</Badge>
+into a table named `product`:
+
+{/* Source: /examples/sql/csv.kisql (lines 30-32) */}
+```sql INSERT INTO ... SELECT ... FROM FILE (Single File) Example
+INSERT INTO example.product
+SELECT *
+FROM FILE."../data/products.csv"
+```
+
+
+#### Multiple Files
+
+
+To load all files whose names begin with `products` and end in a `csv`
+extension, located under <Badge color="gray">../data</Badge>, into a table named `product`:
+
+{/* Source: /examples/sql/csv.kisql (lines 65-67) */}
+```sql INSERT INTO ... SELECT ... FROM FILE (Multiple File) Example
+INSERT INTO example.product
+SELECT *
+FROM FILE."../data/products*csv"
+```
+
+
+<a id="options-1"></a>
+### Options
+
+
+<a id="column-field-names"></a>
+#### Column/Field Names
+
+
+To load specific fields from a product data file located at
+<Badge color="gray">../data/products.csv</Badge> into specific target table columns:
+
+{/* Source: /examples/sql/csv.kisql (lines 73-75) */}
+```sql INSERT INTO ... SELECT ... FROM FILE (Column/Field Names) Example
+INSERT INTO example.product (id, stock, category, name)
+SELECT ID, Stock, Category, Name
+FROM FILE."../data/products.csv"
+```
+
+
+<Info>
+When specifying source data file field names, it is not required that
+target table column names also be specified, or vice versa.  The only
+requirement is that the set of source data file fields selected align with
+the target table columns into which data will be inserted.
+</Info>
+
+
+#### Load Options
+
+
+To load data from a product data file with the following options:
+
+* file located at <Badge color="gray">../data/products.csv</Badge>
+* only records *4* through *10* will be loaded
+* any error will cause the insert to fail
+* the target table will be truncated before loading
+* records will be inserted into the table in groups of *2*
+
+{/* Source: /examples/sql/csv.kisql (lines 81-88) */}
+```sql INSERT INTO ... SELECT ... FROM FILE with Load Options Example
+INSERT INTO example.product
+SELECT *
+FROM FILE."../data/products.csv"
+BATCH_SIZE=2
+INITIAL_CLEAR
+LIMIT=7
+ON_ERROR=abort
+SKIP=3
+```
+
+To load data from a product data file with the following options:
+
+* file located at <Badge color="gray">../data/products.ssv</Badge>
+* the file has a header
+* the field delimiter is a semicolon
+* data requiring quotes will have single quotes as the quoting character
+* the escape character is the backtick
+* the data file represents *null* values as `<null>`
+* data file comments are on lines starting with `--`
+
+{/* Source: /examples/sql/csv.kisql (lines 93-101) */}
+``` INSERT INTO ... SELECT ... FROM FILE with Parse Options Example
+INSERT INTO example.product
+SELECT *
+FROM FILE."../data/products.ssv"
+COMMENT='--'
+DELIMITER=';'
+ESCAPE='`'
+HEADER=Y
+NULL='<null>'
+QUOTE='\''
+```
+
+
+## Considerations
+
+
+*Multi-Head*
+
+* If [Multi-Head Ingest](/content/tuning/multihead/multihead_ingest) has been
+  [enabled on the database server](/content/tuning/multihead/multihead_ingest#multi-head-ingest-configuration), file
+  loading through ODBC/JDBC will automatically leverage it, when
+  [applicable](/content/tuning/multihead/multihead_ingest#multi-head-ingest-considerations).
+
+*Blank Lines*
+
+* A blank line in a source data file will be treated as a valid record and will
+  be inserted into the target table as a record with all null fields.  If blank
+  lines should not be considered as data, they should be prefixed with the
+  comment marker in order to be skipped by the loading process.
+
+*GAdmin*
+
+* While [GAdmin](/content/admin/gadmin/query#gadmin-sql) does not support this command, it
+  does support [importing data](/content/admin/gadmin/data#import-data) from client-local
+  files directly.
+
+[/execute/sql](/content/api/rest/execute_sql_rest) *endpoint*
+
+* While SQL file ingestion is available to ODBC/JDBC clients;
+  it is not supported within the [/execute/sql](/content/api/rest/execute_sql_rest) endpoint,
+  either as a REST call directly or as an API call (like the *Python* API's
+  `execute_sql()` function).

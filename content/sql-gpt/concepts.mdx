@@ -31,17 +31,17 @@ Enabling SQL-GPT in a Kinetica environment consists of two steps:
 
 1. **Creating a SQL-GPT context**:
    Create a *SQL-GPT context* via the *Workbench* UI, or using the
-   [CREATE CONTEXT](/content/sql/sqlgpt#sql-gpt-create-context) SQL syntax directly. The *context*
+   [CREATE CONTEXT](/content/sql/sqlgpt/create-context#sql-gpt-create-context) SQL syntax directly. The *context*
    defines tables, rules, annotation, and training samples that the LLM needs to
    understand your data.
 
 2. **Generating SQL**:
    Enter natural language into the *Workbench* UI and click
    **Generate SQL**, or use the
-   [GENERATE SQL](/content/sql/sqlgpt#sql-gpt-generate-sql) syntax. The response will contain the
+   [GENERATE SQL](/content/sql/sqlgpt/generate-sql#sql-gpt-generate-sql) syntax. The response will contain the
    generated SQL.
 
-   The [EXECUTE_AI_QUERY](/content/sql/sqlgpt#sql-gpt-execute) function can be used to generate SQL and
+   The [EXECUTE_AI_QUERY](/content/sql/sqlgpt/execute-ai-query#sql-gpt-execute) function can be used to generate SQL and
    execute it in one step.
 
 
@@ -52,7 +52,7 @@ Enabling SQL-GPT in a Kinetica environment consists of two steps:
 
 
 Assuming you have a *SQL-GPT context* you can use the
-[GENERATE SQL](/content/sql/sqlgpt#sql-gpt-generate-sql) syntax to make natural language queries.
+[GENERATE SQL](/content/sql/sqlgpt/generate-sql#sql-gpt-generate-sql) syntax to make natural language queries.
 
 ```sql title="GENERATE SQL Syntax"
 GENERATE SQL FOR '<question>'
@@ -130,7 +130,7 @@ At a high level the *context* contains:
 ### Context Syntax
 
 
-The [CREATE CONTEXT](/content/sql/sqlgpt#sql-gpt-create-context) command creates the table & query
+The [CREATE CONTEXT](/content/sql/sqlgpt/create-context#sql-gpt-create-context) command creates the table & query
 *context* for SQL-GPT to understand the tables available for generating SQL
 and how to use them to answer questions.
 
@@ -215,7 +215,7 @@ CREATE OR REPLACE CONTEXT nyctaxi_ctx
 	RULES =
 	(
 		'
-			Use the ST_CONTAINS() function to join the geom column of the nyct2020 table
+			Use the STXY_CONTAINS() function to join the geom column of the nyct2020 table
 			with the pickup_longitude and pickup_latitude columns of the taxi_data table
 			or the dropoff_longitude and dropoff_latitude columns of the taxi_data table
 		',
@@ -311,7 +311,7 @@ optional.
 A *sample definition* should reference tables that are included
 in *table definitions* within either its own *context* or a separate
 *context* that is passed along with it into a
-[GENERATE SQL](/content/sql/sqlgpt#sql-gpt-generate-sql) or [EXECUTE_AI_QUERY](/content/sql/sqlgpt#sql-gpt-execute)
+[GENERATE SQL](/content/sql/sqlgpt/generate-sql#sql-gpt-generate-sql) or [EXECUTE_AI_QUERY](/content/sql/sqlgpt/execute-ai-query#sql-gpt-execute)
 command.  This ensures that *SQL-GPT* has a proper definition (and
 understanding) of the tables and columns referenced in each sample query.
 </Note>
@@ -369,7 +369,7 @@ here.  The *rule definition* clause is optional.
 A *rule definition* should reference tables that are included
 in *table definitions* within either its own *context* or a separate
 *context* that is passed along with it into a
-[GENERATE SQL](/content/sql/sqlgpt#sql-gpt-generate-sql) or [EXECUTE_AI_QUERY](/content/sql/sqlgpt#sql-gpt-execute)
+[GENERATE SQL](/content/sql/sqlgpt/generate-sql#sql-gpt-generate-sql) or [EXECUTE_AI_QUERY](/content/sql/sqlgpt/execute-ai-query#sql-gpt-execute)
 command.  This ensures that *SQL-GPT* has a proper definition (and
 understanding) of any tables and columns referenced in each rule.
 </Note>
@@ -395,7 +395,7 @@ dealing with date/time values.
 	RULES =
 	(
 		'
-			Use the ST_CONTAINS() function to join the geom column of the nyct2020 table
+			Use the STXY_CONTAINS() function to join the geom column of the nyct2020 table
 			with the pickup_longitude and pickup_latitude columns of the taxi_data table
 			or the dropoff_longitude and dropoff_latitude columns of the taxi_data table
 		',
@@ -590,30 +590,24 @@ have embeddings generated for it.
 To generate embeddings for *SQL-GPT contexts* that existed prior to enabling
 RAG:
 
-{/* Source: /examples/sql/sql-gpt/rag.kisql (lines 268) */}
+{/* Source: /examples/sql/sql-gpt/rag.kisql (lines 276) */}
 ```sql Generate Embeddings for Existing SQL-GPT Contexts
 EXECUTE FUNCTION rag_udf_updater /* KI_HINT_SAVE_UDF_STATS */ (KV_PAIRS(action = 'refresh'))
 ```
 
 Once embeddings have been generated for *SQL-GPT contexts*, SQL RAG can be used
-when generating & executing SQL and when generating token counts.
+when generating & executing SQL.
 
 <CodeGroup>
 
-{/* Source: /examples/sql/sql-gpt/rag.kisql (lines 240-241) */}
-```sql GENERATE TOKENS with RAG Example
-GENERATE TOKENS
-WITH OPTIONS (context_names = 'nyctaxi_ctx, flights_ctx', use_rag = 'true')
-```
-
-{/* Source: /examples/sql/sql-gpt/rag.kisql (lines 246-248) */}
+{/* Source: /examples/sql/sql-gpt/rag.kisql (lines 254-256) */}
 ```sql GENERATE SQL with RAG Example
 GENERATE SQL FOR
 	'What was the busiest airport, including taxis and flights, during January and February of 2023?'
 WITH OPTIONS (context_names = 'nyctaxi_ctx, flights_ctx', use_rag = 'true')
 ```
 
-{/* Source: /examples/sql/sql-gpt/rag.kisql (lines 253-261) */}
+{/* Source: /examples/sql/sql-gpt/rag.kisql (lines 261-269) */}
 ```sql EXECUTE_AI_QUERY with RAG Example
 SELECT *
 FROM TABLE

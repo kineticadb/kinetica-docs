@@ -1,0 +1,45 @@
+---
+title: GRANT SQL-GPT Context Permission
+---
+
+<a id="sql-security-priv-mgmt-gpt-grant"></a>
+
+
+[SQL-GPT](/content/sql-gpt/concepts) *context permissions*,
+which allow management of
+[SQL-GPT contexts](/content/sql/sqlgpt/create-context#sql-gpt-create-context),
+can be granted directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+```sql title="GRANT SQL-GPT Context Permission Syntax"
+GRANT <READ | ADMIN> [PRIVILEGES]
+ON <ALL CONTEXTS [IN [SCHEMA] <schema reference>] | CONTEXT <context reference>>
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+```sql title="GRANT Create SQL-GPT Context Permission Syntax"
+GRANT CREATE [PRIVILEGES] ON CONTEXTS
+[IN [SCHEMA] <schema reference>]
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `ADMIN` | Modify or drop the given *context* (includes `READ` access). |
+| `READ` | Use the given *context* to generate SQL using a SQL-GPT query. |
+| `<context reference>` | The name of the context to which access is being granted, or a wildcard expression signifying the contexts to which access is being granted.  The following forms are valid: <br/> <br/> *&lt;schema&gt;.&lt;context&gt;*: Fully-qualified context name in the specified schema <br/> <br/> `*.*`: All existing contexts that the granting user can see, across all schemas <br/> <br/> `*`: All existing schemas the granting user can see, which grants access to all contexts in those schemas now and in the future <br/> <br/> *&lt;schema&gt;*: All contexts in the specified schema <br/> <br/> *&lt;context&gt;*: Context in the default schema. If a schema exists with the same name, it will be used. To avoid this, specify the fully- qualified context name. |
+| `<schema reference>` | The schema the permission applies to (with the `ALL` or `CREATE` forms).  If the IN [SCHEMA] clause is omitted, the permission applies across all schemas, both now and in the future.  Wildcards are not permitted with the IN keyword. |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+## Examples
+
+
+To grant *read* access on the *SQL-GPT context* named
+**example.atc_ctx** to the **ctxuser** *user*:
+
+{/* Source: /examples/sql/sql-gpt/syntax.kisql (lines 232) */}
+```sql GRANT SQL-GPT Context Permission Example
+GRANT READ ON CONTEXT example.atc_ctx TO ctxuser
+```

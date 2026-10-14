@@ -1,0 +1,124 @@
+---
+title: EVALUATE_MODEL
+---
+
+<a id="sql-ml-evaluate-model"></a>
+
+
+Runs an inference against an [ML model](/content/ml/concepts#ml-model).  There are two
+methods to evaluate a model:
+
+* *By Query* - An *ML model* can be queried, where the inference is returned as
+  the result set.
+* *By Execution* - An *ML model* can be run with the `EXECUTE FUNCTION`
+  command, where the inference is persisted to a specified table.
+
+```sql title="EVALUATE_MODEL Table Function Syntax"
+SELECT * FROM TABLE(
+    EVALUATE_MODEL
+    (
+        MODEL => '<model name>',
+        DEPLOYMENT_MODE => 'BATCH',
+        REPLICATIONS => <number of replications>,
+        SOURCE_TABLE => INPUT_TABLE(<source data set>)
+    )
+)
+```
+
+```sql title="EVALUATE_MODEL EXECUTE FUNCTION Syntax"
+EXECUTE FUNCTION EVALUATE_MODEL(
+    MODEL => '<model name>',
+    DEPLOYMENT_MODE => '<BATCH | CONTINUOUS>',
+    REPLICATIONS => <number of replications>,
+    SOURCE_TABLE => INPUT_TABLE(<source data set>),
+    DESTINATION_TABLE => '<destination table name>'
+)
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="MODEL" id="model" defaultOpen>
+
+Name of the *ML model* on which to run an inference
+
+</Accordion>
+
+<Accordion title="DEPLOYMENT_MODE" id="deployment_mode" defaultOpen>
+
+Scheme used in making inferences on the *ML model*:
+
+* `BATCH` - inference tests are run against a batch of data in an existing table all at once
+* `CONTINUOUS` - inference tests are run automatically against records being streamed into an
+  input table; inference results are inserted into an output table, which will be updated upon
+  each subsequent inference
+
+
+  <Info>
+  Continuous deployment mode is only available when using the `EXECUTE FUNCTION`
+  syntax, as it creates a destination table with the continuously updated results.
+  </Info>
+
+</Accordion>
+
+<Accordion title="REPLICATIONS" id="replications" defaultOpen>
+
+The number of replicas to launch on *Kubernetes*
+
+</Accordion>
+
+<Accordion title="SOURCE_TABLE" id="source_table" defaultOpen>
+
+Table or query to use as input to the *ML model*, specified with either of these two forms:
+
+* `INPUT_TABLE(<table name>)` - Use the given table or view as input; e.g.:
+
+  ```
+  INPUT_TABLE(price_history)
+  ```
+* `INPUT_TABLE(<query>)` - Use the given query as input; e.g.:
+
+  ```
+  INPUT_TABLE(SELECT ts, item, price FROM price_history)
+  ```
+</Accordion>
+
+<Accordion title="DESTINATION_TABLE" id="destination_table" defaultOpen>
+
+Only applicable when using `EXECUTE FUNCTION` syntax. Name of the table in which to store the
+results of the inference, in `[schema_name.]table_name` format, using standard
+[name resolution rules](/content/sql/naming#sql-name-resolution) and meeting
+[table naming criteria](/content/sql/naming#sql-naming-criteria)
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+```sql title="EVALUATE_MODEL Table Function Example"
+SELECT * FROM TABLE(
+    EVALUATE_MODEL
+    (
+        MODEL => 'raster_model',
+        DEPLOYMENT_MODE => 'batch',
+        REPLICATIONS =>1,
+        SOURCE_TABLE => INPUT_TABLE(select raster_uri from ki_home.raster_input)
+    )
+)
+```
+
+```sql title="EVALUATE_MODEL EXECUTE FUNCTION Example"
+EXECUTE FUNCTION EVALUATE_MODEL(
+    MODEL => 'raster_model',
+    DEPLOYMENT_MODE => 'batch',
+    REPLICATIONS =>1,
+    SOURCE_TABLE => INPUT_TABLE(select raster_uri from ki_home.raster_input),
+    DESTINATION_TABLE => 'raster_output'
+)
+```

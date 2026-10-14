@@ -1,0 +1,324 @@
+---
+title: CREATE BACKUP
+---
+
+<a id="sql-backup-create"></a>
+
+
+Creates a new *full*, *incremental*, or *differential snapshot* of the given
+database objects and data; storing the backup files at the location accessible
+through the given [data sink](/content/sql/ddl/create-data-sink#sql-create-data-sink).
+
+<CodeGroup>
+
+{/* Source: /sql/syntax/backup.sql (lines 8-11) */}
+```sql Full Backup Syntax
+CREATE BACKUP <backup name>
+DATA SINK = <data sink name>
+[OBJECTS (<object type> = <object name>[,...])]
+[WITH OPTIONS (<backup option name> = '<backup option value>'[,...])]
+```
+
+{/* Source: /sql/syntax/backup.sql (lines 16-18) */}
+```sql Incremental Backup Syntax
+BACKUP <backup name>
+DATA SINK = <data sink name>
+[WITH OPTIONS (<backup option name> = '<backup option value>'[,...])]
+```
+
+{/* Source: /sql/syntax/backup.sql (lines 23-26) */}
+```sql Differential Backup Syntax
+BACKUP <backup name>
+TYPE = 'differential'
+DATA SINK = <data sink name>
+[WITH OPTIONS (<backup option name> = '<backup option value>'[,...])]
+```
+
+</CodeGroup>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="CREATE" id="create" defaultOpen>
+
+Keyword indicating a *backup* should be created with an initial *full snapshot*.  If omitted, an
+*incremental snapshot* will be created, using the most recent *full* or *incremental snapshot*
+as the baseline.
+
+</Accordion>
+
+<Accordion title="&lt;backup name&gt;" id="<backup-name>" defaultOpen>
+
+Name of the *backup* to create.
+
+</Accordion>
+
+<Accordion title="&lt;data sink name&gt;" id="<data-sink-name>" defaultOpen>
+
+Name of the [data sink](/content/sql/ddl/create-data-sink#sql-create-data-sink) to use to send the database *backup*
+files to the remote file store.
+
+</Accordion>
+
+<Accordion title="TYPE" id="type" defaultOpen>
+
+Type of *snapshot* to create.
+
+*Snapshot* type designations include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Snapshot Type</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>full</code></td>
+    <td>Create a *full snapshot* of the specified database objects.  This is the default when <code>CREATE</code> is specified.</td>
+  </tr>
+  <tr>
+    <td><code>incremental</code></td>
+    <td>Create a *snapshot* of the changes to the specified database objects since the most recent *snapshot* of any kind was created. This is the default when <code>CREATE</code> is omitted.</td>
+  </tr>
+  <tr>
+    <td><code>differential</code></td>
+    <td>Create a *snapshot* of the changes to the specified database objects since the most recent *full snapshot* was created.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="OBJECTS" id="objects" defaultOpen>
+
+List of key/value pairs, each being an `object type` and an `object name` of that type, to
+back up.
+
+
+<Note>
+The `OBJECTS` clause should only be specified for *full snapshots*.  Both
+*incremental* & *differential snapshots* will operate on the objects specified
+during the original *full snapshot* associated with the `backup name`
+specified for them.
+</Note>
+
+`object type` designations include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Object Type</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>ALL</code></td>
+    <td>[Schema](/content/sql/ddl/create-schema#sql-create-schema), and all the objects &amp; data it contains</td>
+  </tr>
+  <tr>
+    <td><code>CONTEXT</code></td>
+    <td>[SQL-GPT context](/content/sql/sqlgpt/create-context#sql-gpt-create-context)</td>
+  </tr>
+  <tr>
+    <td><code>CREDENTIAL</code></td>
+    <td>[Credential](/content/sql/ddl/create-credential#sql-create-credential)</td>
+  </tr>
+  <tr>
+    <td><code>DATA SINK</code></td>
+    <td>[Data sink](/content/sql/ddl/create-data-sink#sql-create-data-sink)</td>
+  </tr>
+  <tr>
+    <td><code>DATA SOURCE</code></td>
+    <td>[Data source](/content/sql/ddl/create-data-source#sql-create-data-source)</td>
+  </tr>
+  <tr>
+    <td><code>DIRECTORY</code></td>
+    <td>[KiFS directory](/content/sql/kifs)</td>
+  </tr>
+  <tr>
+    <td><code>FUNCTION</code></td>
+    <td>[UDF](/content/sql/udf/create-function#sql-create-function)</td>
+  </tr>
+  <tr>
+    <td><code>FUNCTION ENVIRONMENT</code></td>
+    <td>[UDF environment](/content/sql/udf/create-function-environment#sql-create-function-environment)</td>
+  </tr>
+  <tr>
+    <td><code>GRAPH</code></td>
+    <td>[Graph](/content/sql/graph).  Source tables, if applicable, are required in order to restore it.</td>
+  </tr>
+  <tr>
+    <td><code>PROCEDURE</code></td>
+    <td>[SQL procedure](/content/sql/procedure#sql-procedures)</td>
+  </tr>
+  <tr>
+    <td><code>RESOURCE GROUP</code></td>
+    <td>[Resource group](/content/sql/resource_group/create-resource-group#sql-rg-create)</td>
+  </tr>
+  <tr>
+    <td><code>ROLE</code></td>
+    <td>[User role](/content/sql/security/create-role#sql-security-role-mgmt)</td>
+  </tr>
+  <tr>
+    <td><code>STREAM</code></td>
+    <td>[Stream](/content/sql/ddl/create-stream#sql-create-stream)</td>
+  </tr>
+  <tr>
+    <td><code>TABLE</code></td>
+    <td>[Table](/content/sql/ddl/create-table#sql-create-table) or [view](/content/sql/ddl/create-view#sql-create-view)</td>
+  </tr>
+  <tr>
+    <td><code>USER</code></td>
+    <td>[User](/content/sql/security/create-user#sql-security-user-mgmt)</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of *backup* option name/value assignments will
+follow.
+
+See [Options](/content/sql/backup_restore/create-backup#sql-backup-create-opt) for the complete list of options.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-backup-create-opt"></a>
+
+
+## Options
+
+
+The following options can be specified to further modify a *backup*
+configuration.
+
+<AccordionGroup>
+
+<Accordion title="BLOCK_TABLE_MUTATIONS" id="block_table_mutations" defaultOpen>
+
+Block all data mutations on the tables being backed up, for the duration of the back up.  Blocked
+mutations are rejected with an error; they are not queued.  The default (`false`) is to allow
+mutations, blocking them on a given table only at the point a disk eviction of that table's data
+is necessary.
+
+
+<Info>
+Alterations to the type or attributes of a table are blocked for the duration of any
+back up, whether or not this option is used; this option governs data mutations
+specifically.
+</Info>
+
+</Accordion>
+
+<Accordion title="CHECKSUM" id="checksum" defaultOpen>
+
+Calculate and store a checksum of all backed-up objects.  The default (`false`) is to not create
+checksums.
+
+</Accordion>
+
+<Accordion title="COMMENT" id="comment" defaultOpen>
+
+Comment to associate with the *snapshot*.
+
+</Accordion>
+
+<Accordion title="DDL_ONLY" id="ddl_only" defaultOpen>
+
+For any table, only back up its DDL; don't back up its data.  The default (`false`) is to back
+up data and DDL.
+
+
+<Info>
+In this mode, subsequent *incremental* & *differential snapshot* attempts will return a
+warning and create no additional *snapshot* if only data has changed since the last *snapshot*.
+</Info>
+
+</Accordion>
+
+<Accordion title="DELETE_INTERMEDIATE_BACKUPS" id="delete_intermediate_backups" defaultOpen>
+
+For *differential snapshot* types only, delete all prior intermediate *differential* &
+*incremental snapshots* between the last *full snapshot* and this one for the given
+`backup name`.  The default (`false`) is to not delete intermediate *snapshots*.
+
+</Accordion>
+
+<Accordion title="DRY_RUN" id="dry_run" defaultOpen>
+
+Execute a dry run of a back up without actually backing up any files.  The default (`false`) is
+to not do a dry run.
+
+</Accordion>
+
+<Accordion title="MAX_INCREMENTAL_BACKUPS_TO_KEEP" id="max_incremental_backups_to_keep" defaultOpen>
+
+Maximum number of *incremental snapshots* to keep for the given `backup name`; if creating this
+*incremental snapshot* will cause the total number to exceed this maximum, the oldest
+*incremental snapshot* will be removed.  The default is unlimited.
+
+</Accordion>
+
+<Accordion title="RECREATE" id="recreate" defaultOpen>
+
+For *full snapshot* types only, replace the existing *backup* with a new *backup*, if it exists.
+The default (`false`) is to not replace the existing *backup* and return an error, if one
+exists.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-backup-create-ex"></a>
+
+
+## Examples
+
+
+For example, to create a *backup* named `schema_backup` with a *full snapshot*
+of schema `example_backup`, copying backup files to a target via *data source*
+`backup_ds`:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 80-82) */}
+```sql CREATE BACKUP (Full Snapshot) Example
+CREATE BACKUP schema_backup
+DATA SINK = backup_ds
+OBJECTS (ALL = example_backup)
+```
+
+To create an *incremental snapshot* based on the previous *snapshot* of the
+*backup* with the same name:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 136-137) */}
+```sql CREATE BACKUP (Incremental Snapshot) Example
+BACKUP schema_backup
+DATA SINK = backup_ds
+```
+
+To create a *differential snapshot* based on the previous *full snapshot* of the
+*backup* with the same name:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 192-194) */}
+```sql CREATE BACKUP (Differential Snapshot) Example
+BACKUP schema_backup
+TYPE = 'differential'
+DATA SINK = backup_ds
+```

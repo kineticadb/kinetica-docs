@@ -1,0 +1,144 @@
+---
+title: DESCRIBE WAL
+---
+
+<a id="sql-desc-wal"></a>
+
+
+Outputs the write-ahead log usage & configuration of the given *tables*.
+
+```sql title="DESCRIBE WAL Syntax"
+<DESC[RIBE]|SHOW> WAL [FOR] < [<schema name>.]<table name>[,...] | * >
+[WITH OPTIONS (<option name> = '<option value>'[,...])]
+```
+
+The columns returned are those of the
+[ki_wal](/content/catalogs/kinetica#sql-vc-kinetica) *virtual catalog* table, which describes
+each in detail.
+
+
+<Info>
+Only regular, persisted *tables* have a write-ahead log.  Temporary
+tables, parent tables, result tables, *views*, logical views, and
+[SQL procedures](/content/sql/procedure#sql-procedures) will return no record, so an
+empty result indicates that the named object has no write-ahead log--not that
+nothing has been written to it.
+</Info>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="FOR" id="for" defaultOpen>
+
+Optional keyword for clarity
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* containing the *table* whose write-ahead log will be described
+
+</Accordion>
+
+<Accordion title="&lt;table name&gt;" id="<table-name>" defaultOpen>
+
+Name of the *table* whose write-ahead log will be described
+
+</Accordion>
+
+<Accordion title="*" defaultOpen>
+
+Describe the write-ahead logs of all *tables*
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Options
+
+
+`SHOW_SETTINGS` is the only option accepted; any other will return an error.
+
+<AccordionGroup>
+
+<Accordion title="SHOW_SETTINGS" id="show_settings" defaultOpen>
+
+Whether to include the `SETTINGS` column in the output; the default is `true`
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Response
+
+
+The response to `DESCRIBE WAL` is a seven-column result set, one record per
+*table*:
+
+| Output Column | Description |
+| --- | --- |
+| `SCHEMA_NAME` | Name of the *schema* containing the *table* |
+| `TABLE_NAME` | Name of the *table* to which the write-ahead log belongs |
+| `WAL_SIZE` | Number of bytes currently held in the write-ahead log, summed across the toms holding the *table* |
+| `WAL_CAPACITY` | Maximum number of bytes the write-ahead log can hold, summed across the toms holding the *table* |
+| `PERCENT_USED` | Percentage of the write-ahead log's capacity currently in use |
+| `UNCOMMITTED` | Number of bytes written to the write-ahead log that have not yet been committed to the *table* |
+| `SETTINGS` | Write-ahead log configuration applied to the *table*, as JSON; omitted if `SHOW_SETTINGS` is `false` |
+
+
+<Info>
+`WAL_SIZE`, `WAL_CAPACITY`, `PERCENT_USED` & `UNCOMMITTED`
+will all be null if no part of the *table* reports a write-ahead log.  If a
+size is reported but no capacity is available, `WAL_SIZE` &
+`UNCOMMITTED` will be populated while `WAL_CAPACITY` & `PERCENT_USED`
+remain null.
+</Info>
+
+
+## Examples
+
+
+To describe the write-ahead log of a single *table*:
+
+{/* Source: /examples/sql/table/wal.kisql (lines 23) */}
+```sql DESCRIBE WAL Example
+DESCRIBE WAL FOR example.wal_product
+```
+
+{/* Source: /examples/sql/table/wal.out (lines 35-39) */}
+```sql DESCRIBE WAL Output
++---------------+---------------+------------+----------------+----------------------+---------------+-------------------------------------------------------------------------------------------------+
+| SCHEMA_NAME   | TABLE_NAME    |   WAL_SIZE |   WAL_CAPACITY |         PERCENT_USED |   UNCOMMITTED | SETTINGS                                                                                        |
++---------------+---------------+------------+----------------+----------------------+---------------+-------------------------------------------------------------------------------------------------+
+| example       | wal_product   |          0 |    10000000000 |   0.0                |             0 | {"checksum":"TRUE","max_segment_size":"500000000","segment_count":"10","sync_policy":"flush"}   |
++---------------+---------------+------------+----------------+----------------------+---------------+-------------------------------------------------------------------------------------------------+
+```
+
+To describe the write-ahead logs of several *tables*:
+
+{/* Source: /examples/sql/table/wal.kisql (lines 29) */}
+```sql DESCRIBE WAL Multiple Table Example
+DESCRIBE WAL FOR example.wal_product, example.wal_order
+```
+
+To describe the write-ahead log of a *table*, omitting its configuration:
+
+{/* Source: /examples/sql/table/wal.kisql (lines 35-36) */}
+```sql DESCRIBE WAL Without Settings Example
+DESCRIBE WAL FOR example.wal_product
+WITH OPTIONS (SHOW_SETTINGS = 'false')
+```
+
+{/* Source: /examples/sql/table/wal.out (lines 61-65) */}
+```sql DESCRIBE WAL Without Settings Output
++---------------+---------------+------------+----------------+----------------------+---------------+
+| SCHEMA_NAME   | TABLE_NAME    |   WAL_SIZE |   WAL_CAPACITY |         PERCENT_USED |   UNCOMMITTED |
++---------------+---------------+------------+----------------+----------------------+---------------+
+| example       | wal_product   |          0 |    10000000000 |   0.0                |             0 |
++---------------+---------------+------------+----------------+----------------------+---------------+
+```

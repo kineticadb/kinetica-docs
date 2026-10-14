@@ -1,0 +1,426 @@
+---
+title: CREATE CONTEXT
+---
+
+<a id="sql-gpt-create-context"></a>
+
+
+Creates a new [SQL-GPT context](/content/sql-gpt/concepts#sql-gpt-overview-context).
+The *context* can contain one or more base tables, a set of sample
+question/answer pairs, and a set of rules for the table to aid in generating
+appropriate SQL. While the tables, samples, and rules clauses are all optional,
+a *context* must contain at least one clause of any kind to be considered valid.
+
+```sql title="CREATE CONTEXT Syntax"
+CREATE [OR REPLACE] [TEMP] CONTEXT [<schema name>.]<context name>
+[<table definition clause>[,...],]
+[<sample definition clause>,]
+[<rule definition clause>]
+[WITH OPTIONS (ttl = '<ttl value>'[,...])]
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="OR REPLACE" id="or-replace" defaultOpen>
+
+Any existing *context* reference with the same name will be dropped before creating this
+one
+
+</Accordion>
+
+<Accordion title="TEMP" id="temp" defaultOpen>
+
+The *context* will be a temporary one; which means it will not be persisted (if the
+database is restarted, the *context* will be removed) and, if not continually accessed
+within the specified *TTL*, will be removed.
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the [schema](/content/sql/ddl/create-schema#sql-create-schema) containing the *context*
+
+</Accordion>
+
+<Accordion title="&lt;context name&gt;" id="<context-name>" defaultOpen>
+
+Name of the *context*
+
+</Accordion>
+
+<Accordion title="&lt;table definition clause&gt;" id="<table-definition-clause>" defaultOpen>
+
+Optional clause containing the definitions of all tables to be used within the *context*
+
+</Accordion>
+
+<Accordion title="&lt;sample definition clause&gt;" id="<sample-definition-clause>" defaultOpen>
+
+Optional clause containing sample question/answer pairs that can help *SQL-GPT*
+understand the relationships between natural language and the tables within the *context*
+
+</Accordion>
+
+<Accordion title="&lt;rule definition clause&gt;" id="<rule-definition-clause>" defaultOpen>
+
+Optional clause containing global rules *SQL-GPT* should take into account when generating
+SQL from the tables within the *context*
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of option/value assignments will follow.
+The following options are available:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>ttl</code></td>
+    <td>Time-to-live, in minutes, for the *context*.  If the *context* is not accessed for this amount of time, it will be automatically removed from the database.  If <code>TEMP</code> is not specified, this option will be ignored.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-gpt-create-context-table-def"></a>
+
+
+## Table Definition Clause
+
+
+The *table definition* clause provides information about a single table to
+*SQL-GPT*.  All parameters are optional except for the table name.  The
+*table definition* clause itself is also optional.
+
+
+<Note>
+Kinetica will pass the all columns of the table to SQL-GPT
+regardless of whether they are named in the `COMMENTS` or `RULES`
+sections.  To avoid consuming unnecessary space in the *SQL-GPT context* with
+the unused columns, create a view with descriptive column names containing
+only the columns needed for generating SQL.
+</Note>
+
+```sql title="Table Definition Clause Syntax"
+(
+    TABLE = [<schema name>.]<table name>
+    [COMMENT = '<table comment>']
+    [
+        COMMENTS =
+        (
+            <column name> = '<column comment>',
+            ...
+            <column name> = '<column comment>'
+        )
+    ]
+    [
+        RULES =
+        (
+            '<table rule>',
+            ...
+            '<table rule>'
+        )
+    ]
+)
+```
+
+
+<a id="parameters-1"></a>
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="TABLE" id="table" defaultOpen>
+
+Specifier for the mandatory table definition table name
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>-2" defaultOpen>
+
+Name of the [schema](/content/sql/ddl/create-schema#sql-create-schema) containing the table to include in the
+*context*
+
+</Accordion>
+
+<Accordion title="&lt;table name&gt;" id="<table-name>" defaultOpen>
+
+Name of the [table](/content/sql/ddl/create-table#sql-create-table) to include in the *context*
+
+</Accordion>
+
+<Accordion title="COMMENT" id="comment" defaultOpen>
+
+Specifier for an optional table comment
+
+</Accordion>
+
+<Accordion title="&lt;table comment&gt;" id="<table-comment>" defaultOpen>
+
+Note about the table that can give *SLQ-GPT* information about its use and the data it holds
+
+</Accordion>
+
+<Accordion title="COMMENTS" id="comments" defaultOpen>
+
+Specifier for an optional comma-separated list of column name & comment pairs
+
+</Accordion>
+
+<Accordion title="&lt;column name&gt;" id="<column-name>" defaultOpen>
+
+Name of a column in the given table
+
+</Accordion>
+
+<Accordion title="&lt;column comment&gt;" id="<column-comment>" defaultOpen>
+
+Note about the column that can give *SQL-GPT* information about its use and the specific data
+it holds
+
+</Accordion>
+
+<Accordion title="RULES" id="rules" defaultOpen>
+
+Specifier for an optional comma-separated list of rules for *SQL-GPT* to use in employing this
+table to generate SQL
+
+</Accordion>
+
+<Accordion title="&lt;table rule&gt;" id="<table-rule>" defaultOpen>
+
+Rule for *SQL-GPT* to use in employing this table to generate SQL; e.g., which columns should
+be considered (or not considered) when generating SQL using the table
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-gpt-create-context-sample-def"></a>
+
+
+## Sample Definition Clause
+
+
+A *sample definition* contains a set of question & answer pairs used to train
+*SQL-GPT* for generating SQL.  Few (if any) samples should be required to
+customize *SQL-GPT* for a use case.  The *sample definition* clause is optional.
+
+
+<Note>
+A *sample definition* should reference tables that are included
+in *table definitions* within either its own *context* or a separate
+*context* that is passed along with it into a
+[GENERATE SQL](/content/sql/sqlgpt/generate-sql#sql-gpt-generate-sql) or [EXECUTE_AI_QUERY](/content/sql/sqlgpt/execute-ai-query#sql-gpt-execute)
+command.  This ensures that *SQL-GPT* has a proper definition (and
+understanding) of the tables and columns referenced in each sample query.
+</Note>
+
+```sql title="Sample Definition Clause Syntax"
+(
+    SAMPLES =
+    (
+        '<question>' = '<SQL answer>',
+        ...
+        '<question>' = '<SQL answer>'
+    )
+)
+```
+
+
+<a id="parameters-2"></a>
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="SAMPLES" id="samples" defaultOpen>
+
+*Sample definition* specifier keyword
+
+</Accordion>
+
+<Accordion title="&lt;question&gt;" id="<question>" defaultOpen>
+
+Natural-language question that will be answered by the corresponding `<SQL answer>` query
+
+</Accordion>
+
+<Accordion title="&lt;SQL answer&gt;" id="<sql-answer>" defaultOpen>
+
+SQL query that answers `<question>` using the tables contained within the *context*
+
+
+<Info>
+Quoted constants within the query will need to be escaped as per standard SQL
+convention; e.g., `'lamp'` in the following:
+
+```
+'How many lamps?' = 'SELECT COUNT(*) FROM product WHERE type = ''lamp'';'
+```
+</Info>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-gpt-create-context-rule-def"></a>
+
+
+## Rule Definition Clause
+
+
+A *rule definition* contains a set of global rules that *SQL-GPT* should use in
+employing the various tables named in the *context* to generate SQL.  By
+convention, rules that apply to a specific table belong in the `RULES` section
+of the [table definition](/content/sql-gpt/concepts#sql-gpt-overview-context-clause-table),
+while rules that apply across tables or independently from any tables belong
+here.  The *rule definition* clause is optional.
+
+
+<Note>
+A *rule definition* should reference tables that are included
+in *table definitions* within either its own *context* or a separate
+*context* that is passed along with it into a
+[GENERATE SQL](/content/sql/sqlgpt/generate-sql#sql-gpt-generate-sql) or [EXECUTE_AI_QUERY](/content/sql/sqlgpt/execute-ai-query#sql-gpt-execute)
+command.  This ensures that *SQL-GPT* has a proper definition (and
+understanding) of any tables and columns referenced in each rule.
+</Note>
+
+```sql title="Rule Definition Clause Syntax"
+(
+    RULES =
+    (
+        '<global rule>',
+        ...
+        '<global rule>'
+    )
+)
+```
+
+
+<a id="parameters-3"></a>
+### Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="RULES" id="rules-2" defaultOpen>
+
+Global *rule definition* specifier keyword
+
+</Accordion>
+
+<Accordion title="&lt;global rule&gt;" id="<global-rule>" defaultOpen>
+
+Global rule for *SQL-GPT* to use in employing multiple tables to generate SQL (joins, etc.) or
+when referencing database features that are independent of any table (functions, etc.)
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-gpt-create-context-example"></a>
+
+
+### Example
+
+
+The following example creates a *SQL-GPT context* with the following criteria:
+
+* Contains one table, `atc_current_position`, with:
+
+  * a description
+  * 4 column comments
+  * 1 rule suggesting avoidance of one of the columns
+
+* Contains one table, `atc_points`, with no extra definitions
+* Contains one table, `airport_positions`, with:
+
+  * a description
+  * 2 column comments
+
+* Contains 2 sample questions and their corresponding queries
+* Contains 1 global rule suggesting how the `atc_current_position` &
+  `atc_points` tables should be joined together
+
+{/* Source: /examples/sql/sql-gpt/syntax.kisql (lines 74-128) */}
+```sql CREATE CONTEXT Example
+CREATE CONTEXT example.atc_ctx
+(
+	TABLE = example.atc_current_position
+	COMMENT = 'Current position of aircraft.'
+	COMMENTS =
+	(
+		callsign = 'Aircraft callsign',
+		ts = 'timestamp of most recent data point.',
+		x = 'longitude position',
+		y = 'latitude position'
+	)
+	RULES =
+	(
+		'Do not use the id column of the atc_current_position table'
+	)
+),
+(
+	TABLE = example.atc_points
+),
+(
+	TABLE = example.airport_positions
+	COMMENT = 'International airports and the centroid of their locations'
+	COMMENTS =
+	(
+		airport_code = 'Name of airport',
+		airport_centroid = 'Center of location of airport'
+	)
+),
+(
+	SAMPLES =
+	(
+		'What are the tracks for callsign UAL246?' =
+		'
+			SELECT ts, x, y
+			FROM example.atc_points
+			WHERE callsign = ''UAL246''
+		',
+
+		'What is the centroid of DCA airport?' =
+		'
+			SELECT airport_centroid
+			FROM example.airport_positions
+			WHERE airport_code = ''DCA''
+		'
+	)
+),
+(
+	RULES =
+	(
+		'
+			Use the ST_CONTAINS() function to join the airport_centroid column of the
+			airport_positions table with the x and y columns of the atc_current_position table
+		'
+	)
+)
+```

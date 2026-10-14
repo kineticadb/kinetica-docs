@@ -1,0 +1,316 @@
+---
+title: CREATE GRAPH
+---
+
+<a id="sql-graph-create"></a>
+
+
+Creates a new [graph](/content/graph_solver/network_graph_solver). The
+nodes and edges of a graph are optionally weighted and/or restricted to aid in
+calculating various ways to traverse the graph. Graphs comprise a maximum of
+four components that each have unique specifications and ways they can be
+combined to define the graph. Review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and
+[Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information.
+
+```sql title="CREATE GRAPH Syntax"
+CREATE [OR REPLACE] [DIRECTED] GRAPH [<schema name>.]<graph name>
+(
+    EDGES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,
+    [NODES => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+    [WEIGHTS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+    [RESTRICTIONS => <INPUT_TABLE(<table/query>) | INPUT_TABLES((<table/query>)[,...])>,]
+    [OPTIONS => <KV_PAIRS>('<option key>' = '<option value>'[,...])]
+)
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="OR REPLACE" id="or-replace" defaultOpen>
+
+Any existing *graph* with the same name will be dropped before creating this one
+
+</Accordion>
+
+<Accordion title="DIRECTED" id="directed" defaultOpen>
+
+Optional keyword used to create the *graph* as [directed](/content/graph_solver/network_graph_solver#directed-graphs)
+
+</Accordion>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* that will contain the created *graph*; if no *schema* is specified, the *graph* will be
+created in the calling user's [default schema](/content/concepts/schemas#schema-default)
+
+</Accordion>
+
+<Accordion title="&lt;graph name&gt;" id="<graph-name>" defaultOpen>
+
+Name of the *graph*, which can be referenced in subsequent commands
+
+</Accordion>
+
+<Accordion title="EDGES" id="edges" defaultOpen>
+
+*Graph* component, provided as table column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *edges* of the graph; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and
+[Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="NODES" id="nodes" defaultOpen>
+
+Optional *graph* component, provided as column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *nodes* of the graph; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and
+[Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="WEIGHTS" id="weights" defaultOpen>
+
+Optional *graph* component, provided as column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *weights* of the graph; review [Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and
+[Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="RESTRICTIONS" id="restrictions" defaultOpen>
+
+Optional *graph* component, provided as column names, expressions, or constants using the SQL `INPUT_TABLE` or
+`INPUT_TABLES` function, to use for identifying the *restrictions* of the graph; review
+[Components and Identifiers](/content/graph_solver/network_graph_solver#identifiers) and [Identifier Combinations](/content/graph_solver/network_graph_solver#id-combos) for more information
+
+
+<Info>
+The input can be either the name of a table with appropriately named columns; or a query, to use
+specific columns or other SQL features).
+</Info>
+
+</Accordion>
+
+<Accordion title="OPTIONS" id="options" defaultOpen>
+
+Optional indicator that a list of connection option/value assignments will follow, passed as a comma-delimited
+list of key/value pairs to the `KV_PAIRS` function
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Option</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>add_table_monitor</code></td>
+    <td>Adds a table monitor to every table used in the creation of the graph; this table monitor will trigger the graph to update dynamically upon inserts to the source table(s). Note that upon database restart, if <code>save_persist</code> is also set to *true*, the graph will be fully reconstructed and the table monitors will be reattached. For more details on table monitors, see [Table Monitors](/content/concepts/table_monitors). The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>add_turns</code></td>
+    <td>Adds dummy "pillowed" edges around intersection *nodes* where there are more than three *edges* so that additional *weight* penalties can be imposed by the solve endpoints (increases the total number of *edges*). The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>allow_multiple_edges</code></td>
+    <td>Enables *multigraph* capability--pairs of nodes can be connected by more than one edge.  Without this option, undirected graphs can only have one edge between each pair of nodes, and directed graphs can have one edge in each direction between each pair of nodes--"duplicate" edges are discarded.</td>
+  </tr>
+  <tr>
+    <td><code>cluster_graph_schema</code></td>
+    <td>If <code>export_graph_schema</code> is *true*, outputs the graph's *schema* into a table named <code>&lt;graph_name&gt;_clusters</code></td>
+  </tr>
+  <tr>
+    <td><code>export_graph_schema</code></td>
+    <td>Exports a graph's *schema* in [Graphviz DOT](https://graphviz.org/doc/info/lang.html) format. The *schema* is a conversion of the graph into a label-based ontology, done by grouping the nodes using the Louvain clustering algorithm. This *schema* is made available in two ways: <ul><li>visually, by clicking \{\{&lt; guilabel "View Schema" &gt;\}\} in the result of an <code>CREATE GRAPH</code> command in a [SQL Block](/content/admin/workbench/ui/explore#wb-explore-ws-sb) within [Workbench](/content/admin/workbench)</li><li>as text, under the <code>info</code> and then <code>dot</code> keys of the response to a native API call to [/execute/sql](/content/api/rest/execute_sql_rest)</li></ul></td>
+  </tr>
+  <tr>
+    <td><code>graph_table</code></td>
+    <td>If specified, the created graph is also created as a table with the given name, in <code>[schema_name.]table_name</code> format, using standard [name resolution rules](/content/sql/naming#sql-name-resolution) and meeting [table naming criteria](/content/sql/naming#sql-naming-criteria). The table will have the following identifier columns: <code>EDGE_ID</code>, <code>EDGE_NODE1_ID</code>, <code>EDGE_NODE2_ID</code>. If left blank, no table is created. The default value is blank.</td>
+  </tr>
+  <tr>
+    <td><code>is_partitioned</code></td>
+    <td>If set to *true*, the graph will be partitioned across the servers specified in <code>server_id</code>; if *false*, the graph will be replicated across those servers.  The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>label_delimiter</code></td>
+    <td>If specified, the delimiter to use when parsing edge labels.  All labels separated by this delimiter will be applied to the corresponding edge.</td>
+  </tr>
+  <tr>
+    <td><code>merge_tolerance</code></td>
+    <td>If node geospatial positions are input (e.g., <code>POINT(X Y)</code>), determines the minimum separation allowed between unique nodes. If nodes are within the tolerance of each other, they will be merged as a single node. The default value is <code>1.0E-5</code>.</td>
+  </tr>
+  <tr>
+    <td><code>recreate</code></td>
+    <td>If set to *true* and the graph already exists, the graph is deleted and recreated. The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>save_persist</code></td>
+    <td>If set to *true*, the graph will be saved in the persist directory (see the [config reference](/content/config#config-main-persistence) for more information). If set to *false*, the graph will be removed when the graph server is shutdown. The default value is *false*.</td>
+  </tr>
+  <tr>
+    <td><code>schema_edge_labelkeys</code></td>
+    <td>If <code>export_graph_schema</code> is *true*, generates the label-based *schema* by collapsing edges based on the their label keys; otherwise, *schema* edges are created from the edge labels.</td>
+  </tr>
+  <tr>
+    <td><code>schema_node_labelkeys</code></td>
+    <td>If <code>export_graph_schema</code> is *true*, generates the label-based *schema* by collapsing nodes based on the their label keys; otherwise, *schema* nodes are created from the node labels.</td>
+  </tr>
+  <tr>
+    <td><code>server_id</code></td>
+    <td>Indicates on which graph server(s) to create the graph.  Default is to create on the server with the most available memory.  Can be a single server ID, a comma-separated list of IDs, or <code>all</code> for all servers.</td>
+  </tr>
+  <tr>
+    <td><code>simplify</code></td>
+    <td>Simplifies the graph topology at 2-valence by collapsing edge.</td>
+  </tr>
+  <tr>
+    <td><code>use_rtree</code></td>
+    <td>Use a range tree structure to accelerate and improve the accuracy of snapping, especially to *edges*.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+<CodeGroup>
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 119-136) */}
+```sql Edges & Weights Example
+CREATE GRAPH sample_graph
+(
+	EDGES => INPUT_TABLE
+	(
+		SELECT
+			id AS ID,
+			wktline AS WKTLINE
+		FROM sample_map
+	),
+	WEIGHTS => INPUT_TABLE
+	(
+		SELECT
+			id AS EDGE_ID,
+			cost AS VALUESPECIFIED
+		FROM sample_map
+	),
+	OPTIONS => KV_PAIRS(recreate = 'true', graph_table = 'sample_graph_table')
+)
+```
+
+{/* Source: /examples/sql/graph/graph.kisql (lines 139-162) */}
+```sql Nodes/Edges & Weights Example
+CREATE GRAPH big_cities_graph
+(
+	NODES => INPUT_TABLE
+	(
+		SELECT
+			city_location AS WKTPOINT
+		FROM big_cities
+	),
+	EDGES => INPUT_TABLE
+	(
+		SELECT
+			city1_location AS NODE1_WKTPOINT,
+			city2_location AS NODE2_WKTPOINT
+		FROM big_cities_map
+	),
+	WEIGHTS => INPUT_TABLE
+	(
+		SELECT
+			(REMOVE_NULLABLE(ST_MAKELINE(city1_location, city2_location))) AS EDGE_WKTLINE,
+			trip_time AS VALUESPECIFIED
+		FROM big_cities_map
+	),
+	OPTIONS => KV_PAIRS(recreate = 'true', graph_table = 'big_cities_graph_table')
+)
+```
+
+{/* Source: /examples/sql/graph/graph_property.kisql (lines 31-55) */}
+```sql Label & Label Key from Constants Example
+CREATE OR REPLACE GRAPH people
+(
+	NODES => INPUT_TABLES
+	(
+		(SELECT 'Gender' AS LABEL_KEY, 'MALE:FEMALE' AS LABEL),
+		(SELECT 'Interest' AS LABEL_KEY, 'golf:business:dance:chess' AS LABEL),
+
+		(SELECT 'Jane' AS NAME, 'FEMALE:business' AS LABEL),
+		(SELECT 'Bill' AS NAME, 'MALE:golf' AS LABEL),
+		(SELECT 'Susan' AS NAME, 'FEMALE:dance' AS LABEL),
+		(SELECT 'Alex' AS NAME, 'MALE:chess' AS LABEL),
+		(SELECT 'Tom' AS NAME, 'MALE:chess' AS LABEL)
+	),
+	EDGES => INPUT_TABLES
+	(
+		(SELECT 'Relation' AS LABEL_KEY, 'Friend:Family' AS LABEL),
+
+		(SELECT 'Jane' AS NODE1_NAME, 'Bill' AS NODE2_NAME, 'Friend' AS LABEL),
+		(SELECT 'Bill' AS NODE1_NAME, 'Alex' AS NODE2_NAME, 'Family' AS LABEL),
+		(SELECT 'Bill' AS NODE1_NAME, 'Susan' AS NODE2_NAME, 'Friend' AS LABEL),
+		(SELECT 'Susan' AS NODE1_NAME, 'Alex' AS NODE2_NAME, 'Friend' AS LABEL),
+		(SELECT 'Alex' AS NODE1_NAME, 'Tom' AS NODE2_NAME, 'Friend' AS LABEL)
+	),
+	OPTIONS => KV_PAIRS(label_delimiter = ':', graph_table = 'people_graph_table')
+)
+```
+
+{/* Source: /examples/sql/graph/graph_imdb.kisql (lines 100-126) */}
+```sql Label & Label Key from Tables Example
+CREATE DIRECTED GRAPH imdb
+(
+	NODES => INPUT_TABLES
+	(
+		-- Implicit labeling of movie nodes with the LABEL_KEY 'movie', as all movies have an associated genre
+		(SELECT DISTINCT genre AS LABEL, 'movie' AS LABEL_KEY FROM movie),
+		-- Implicit labeling of person nodes with the LABEL_KEY 'person', as all persons have an associated profession
+		(SELECT DISTINCT profession AS LABEL, 'person' AS LABEL_KEY FROM person),
+
+		-- Give each movie node a genre label; the LABEL_KEY 'movie' will also be associated with each
+		(SELECT title AS NAME, genre AS LABEL FROM movie),
+		-- Give each person node a profession label; the LABEL_KEY 'person' will also be associated with each
+		(SELECT name AS NAME, profession AS LABEL FROM person),
+
+		(SELECT DISTINCT CHAR64(YEAR(DOB)) AS NAME, CHAR64('year') AS LABEL FROM person),
+		(SELECT DISTINCT CHAR64(released) AS NAME, CHAR64('year') AS LABEL FROM movie)
+	),
+	EDGES => INPUT_TABLES
+	(
+		(SELECT DISTINCT participation AS LABEL, 'participation' AS LABEL_KEY FROM imdb),
+
+		(SELECT person AS NODE1_NAME, film AS NODE2_NAME, participation AS LABEL FROM imdb),
+		(SELECT title AS NODE1_NAME, CHAR64(released) AS NODE2_NAME, CHAR64('released') AS LABEL FROM movie),
+		(SELECT name AS NODE1_NAME, CHAR64(YEAR(dob)) AS NODE2_NAME, CHAR64('born') AS LABEL FROM person)
+	),
+	OPTIONS => KV_PAIRS(label_delimiter = ':', graph_table = 'imdb_graph_table')
+)
+```
+
+</CodeGroup>

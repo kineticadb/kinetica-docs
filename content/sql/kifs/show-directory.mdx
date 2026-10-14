@@ -1,0 +1,83 @@
+---
+title: SHOW DIRECTORY
+---
+
+<a id="sql-kifs-show-dir"></a>
+
+
+Outputs the DDL statement required to reconstruct one or all
+[KiFS directories](/content/tools/kifs_api#kifs-directory).
+
+```sql title="SHOW DIRECTORY Syntax"
+SHOW DIRECTOR[Y|IES] [ '<directory name>' | * ]
+```
+
+
+<Info>
+Only one *directory* can be named; a comma-separated list will return
+an error.  To output a *directory's* detail instead of its DDL, see
+[LIST DIRECTORY](/content/sql/kifs/list-directory#sql-kifs-list-dir).
+</Info>
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;directory name&gt;" id="<directory-name>" defaultOpen>
+
+Name of the existing *directory* whose DDL will be output.
+Use `*`, or omit the name entirely, to output the DDL of all
+*directories*.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Response
+
+
+The response to `SHOW DIRECTORY` is a single-column result set:
+
+| Output Column | Description |
+| --- | --- |
+| `DDL` | The `CREATE DIRECTORY` statement that would recreate the *directory*, including its configured options |
+
+
+## Examples
+
+
+To output the DDL for a *directory*, `kdata`:
+
+{/* Source: /examples/sql/kifs.kisql (lines 53) */}
+```sql SHOW DIRECTORY Example
+SHOW DIRECTORY 'kdata';
+```
+
+{/* Source: /examples/sql/kifs.out (lines 355-362) */}
+```sql SHOW DIRECTORY Output
+| kdata/products.csv       | 1343   | admin        | 2026-10-09 19:40:44.675   |
+| kdata/employee.pq        | 2918   | admin        | 2026-10-09 19:40:44.771   |
+| kdata/employee.csv       | 1148   | admin        | 2026-10-09 19:40:44.771   |
+| kdata/employee.parquet   | 2918   | admin        | 2026-10-09 19:40:44.771   |
++--------------------------+--------+--------------+---------------------------+
+Rows read: 5
+
+SHOW FILES 'kdata';
+```
+
+To output the DDL for all *directories*:
+
+{/* Source: /examples/sql/kifs.kisql (lines 42) */}
+```sql SHOW DIRECTORIES (All Directories) Example
+SHOW DIRECTORIES *;
+```
+
+
+<Info>
+The DDL for a *home directory* is
+emitted with an empty *directory* name, the owning user being given in a
+`create_home_directory` option instead.
+</Info>

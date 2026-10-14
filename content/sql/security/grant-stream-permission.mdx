@@ -1,0 +1,43 @@
+---
+title: GRANT Stream Permission
+---
+
+<a id="sql-security-priv-mgmt-stream-grant"></a>
+
+
+[Stream permissions](/content/security/sec_concepts#security-concepts-permissions-monitor),
+which allow removal & display of [streams](/content/sql/ddl/create-stream#sql-create-stream),
+can be granted directly to
+[users](/content/security/sec_concepts#security-concepts-users) or
+[roles](/content/security/sec_concepts#security-concepts-roles).
+
+```sql title="GRANT Stream Permission Syntax"
+GRANT ADMIN [PRIVILEGES]
+ON <ALL STREAMS [IN [SCHEMA] <schema reference>] | STREAM <stream reference>>
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+```sql title="GRANT Create Stream Permission Syntax"
+GRANT CREATE [PRIVILEGES] ON STREAMS
+[IN [SCHEMA] <schema reference>]
+TO <user name | role name> [WITH GRANT OPTION]
+```
+
+| Permission | Description |
+| --- | --- |
+| `ADMIN` | Drop the given *stream*. |
+| `<stream reference>` | The name of the stream to which access is being granted, or a wildcard expression signifying the streams to which access is being granted.  The following forms are valid: <br/> <br/> *&lt;schema&gt;.&lt;stream&gt;*: Fully-qualified stream name in the specified schema <br/> <br/> `*.*`: All existing streams that the granting user can see, across all schemas <br/> <br/> `*`: All existing schemas the granting user can see, which grants access to all streams in those schemas now and in the future <br/> <br/> *&lt;schema&gt;*: All streams in the specified schema <br/> <br/> *&lt;stream&gt;*: Stream in the default schema. If a schema exists with the same name, it will be used. To avoid this, specify the fully- qualified stream name. |
+| `<schema reference>` | The schema the permission applies to (with the `ALL` or `CREATE` forms).  If the IN [SCHEMA] clause is omitted, the permission applies across all schemas, both now and in the future.  Wildcards are not permitted with the IN keyword. |
+| `WITH GRANT OPTION` | Grant this permission with a [grant option](/content/security/sec_concepts#security-concepts-permissions-grant-option) to grant it to others. |
+
+
+## Examples
+
+
+To grant administrative access on the *stream* named
+**kin_stream** to the **auser** *user*:
+
+{/* Source: /examples/sql/stream/stream.kisql (lines 67) */}
+```sql GRANT Stream Administrative Permission Example
+GRANT ADMIN ON STREAM example.kin_stream TO auser
+```

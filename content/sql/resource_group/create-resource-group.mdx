@@ -1,0 +1,220 @@
+---
+title: CREATE RESOURCE GROUP
+---
+
+<a id="sql-rg-create"></a>
+
+
+*Resource groups* require only a name to be created, all limits are optional.
+*Resource group* names are case-sensitive and must contain only letters, digits,
+and underscores, and cannot begin with a digit.  A *resource group* must also
+not be named the same as an existing *resource group*, including the default
+*resource groups*: **kinetica_system_resource_group** &
+**kinetica_default_resource_group**.
+
+```sql title="CREATE RESOURCE GROUP Syntax"
+CREATE RESOURCE GROUP <resource group name>
+[ RANK <FIRST | LAST | BEFORE <group name> | AFTER <group name>> ]
+[
+    TIER LIMITS
+    (
+        <tier name> USING (<tier property name> = <tier property value>[,...]),
+        ...
+        <tier name> USING (<tier property name> = <tier property value>[,...])
+    )
+]
+[ WITH OPTIONS (<resource property name> = <resource property value>[,...]) ]
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;resource group name&gt;" id="<resource-group-name>" defaultOpen>
+
+Name of the [resource group](/content/rm/concepts#rm-concepts-resource-groups) to create.
+
+</Accordion>
+
+<Accordion title="RANK" id="rank" defaultOpen>
+
+Designation of where in the ordering of applicable *resource groups* this one should exist.  For
+a given set of *resource groups*, the one that is ranked before all the others will be used.
+
+`RANK` designations include:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Keyword</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>FIRST</code></td>
+    <td>Make this *resource group* the new first one in the ordering.</td>
+  </tr>
+  <tr>
+    <td><code>LAST</code></td>
+    <td>Make this *resource group* the new last one in the ordering.</td>
+  </tr>
+  <tr>
+    <td><code>BEFORE &lt;group name&gt;</code></td>
+    <td>Place this *resource group* before the one specified by <code>group name</code> in the ordering.</td>
+  </tr>
+  <tr>
+    <td><code>AFTER &lt;group name&gt;</code></td>
+    <td>Place this *resource group* after the one specified by <code>group name</code> in the ordering.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="TIER LIMITS" id="tier-limits" defaultOpen>
+
+Optional indicator that a set of [tier](/content/rm/concepts#rm-concepts-tiers) names and corresponding
+property assignments will follow.
+
+Parameters for each *tier* assignment are as follows:
+
+
+<div>
+<table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">
+  <thead>
+  <tr>
+    <th>Keyword</th>
+    <th>Description</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr>
+    <td><code>tier name</code></td>
+    <td>Name of the *tier* to which limits will be assigned: <div><table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">  <thead>  <tr>    <th>Name</th>    <th>Description</th>  </tr>  </thead>  <tbody>  <tr>    <td><code>VRAM</code></td>    <td>Configure the [VRAM tier](/content/rm/concepts#rm-concepts-tiers-vram).</td>  </tr>  <tr>    <td><code>RAM</code></td>    <td>Configure the [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram).</td>  </tr>  </tbody></table></div></td>
+  </tr>
+  <tr>
+    <td><code>tier property name</code></td>
+    <td>Name of the *tier* property to which a limit will be assigned: <div><table class="table w-full [&_td]:min-w-[150px] [&_th]:text-left [&_td[data-numeric]]:tabular-nums">  <thead>  <tr>    <th>Property</th>    <th>Description</th>  </tr>  </thead>  <tbody>  <tr>    <td><code>max_memory</code></td>    <td>Maximum amount of memory per rank per GPU that can be used in the *VRAM tier*, or maximum amount of memory per rank that can be used in the *RAM tier*.</td>  </tr>  </tbody></table></div></td>
+  </tr>
+  <tr>
+    <td><code>tier property value</code></td>
+    <td>Value to assign the corresponding *tier* property.</td>
+  </tr>
+  </tbody>
+</table>
+</div>
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of *resource group* property option/value
+assignments will follow.
+
+See [Options](/content/sql/resource_group/create-resource-group#sql-rg-create-opt) for the complete list of options.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-rg-create-opt"></a>
+
+
+## Options
+
+
+The following options can be specified to further modify a *resource group*
+configuration.
+
+<AccordionGroup>
+
+<Accordion title="max_cpu_concurrency" id="max_cpu_concurrency" defaultOpen>
+
+Maximum number of simultaneous threads that will be used to execute a request, per rank.
+Must be &gt;= *4*.
+
+</Accordion>
+
+<Accordion title="max_data" id="max_data" defaultOpen>
+
+Maximum amount of data, per rank, in bytes, that can be used by all database objects within this
+group; for example, a `max_data` of *1000000000* would limit a user with this *resource group*
+to a per-rank total of *1GB* of data usage across all tables, views, graphs, etc., including
+temporary objects supporting data processing operations (queries, materialized views, etc.).
+
+</Accordion>
+
+<Accordion title="max_scheduling_priority" id="max_scheduling_priority" defaultOpen>
+
+Maximum [scheduling priority](/content/rm/concepts#rm-concepts-scheduling-priority) of a task.
+
+</Accordion>
+
+<Accordion title="max_tier_priority" id="max_tier_priority" defaultOpen>
+
+Maximum [eviction priority](/content/rm/concepts#rm-concepts-eviction-priority) of a tiered object.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+<a id="sql-rg-create-ex"></a>
+
+
+## Examples
+
+
+To create a simple **unlimited** *resource group* with default settings:
+
+{/* Source: /examples/sql/resource_group.kisql (lines 18) */}
+```sql CREATE RESOURCE GROUP Example
+CREATE RESOURCE GROUP unlimited
+```
+
+To create a **memory_over_execution** *resource group*, with high *tier*
+capacity limits, but low execution options:
+
+{/* Source: /examples/sql/resource_group.kisql (lines 24-35) */}
+```sql CREATE RESOURCE GROUP with Tier Limits & Options Example
+CREATE RESOURCE GROUP memory_over_execution
+TIER LIMITS
+(
+    VRAM USING (max_memory = 10737418240),
+    RAM USING (max_memory = 107374182400)
+)
+WITH OPTIONS
+(
+    max_cpu_concurrency = 5,
+    max_scheduling_priority = 30,
+    max_tier_priority = 4
+)
+```
+
+To create a **execution_over_memory** *resource group*, with lower *tier*
+capacity limits, but higher execution options, as compared to the
+**memory_over_execution** group:
+
+{/* Source: /examples/sql/resource_group.kisql (lines 41-53) */}
+```sql CREATE RESOURCE GROUP with Ranking Example
+CREATE RESOURCE GROUP execution_over_memory
+RANK BEFORE memory_over_execution
+TIER LIMITS
+(
+    VRAM USING (max_memory = 1073741824),
+    RAM USING (max_memory = 10737418240)
+)
+WITH OPTIONS
+(
+    max_cpu_concurrency = 7,
+    max_scheduling_priority = 70,
+    max_tier_priority = 10
+)
+```

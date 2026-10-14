@@ -1,0 +1,96 @@
+---
+title: DESCRIBE BACKUP
+---
+
+<a id="sql-backup-desc"></a>
+
+
+Outputs the detail of *snapshots* of one or more
+[backups](/content/sql/backup_restore/create-backup#sql-backup-create) accessible via the given
+[data source](/content/sql/ddl/create-data-source#sql-create-data-source).
+
+```sql title="DESCRIBE BACKUP Syntax"
+DESC[RIBE] BACKUP < <backup name> | "<backup name>*" | * >
+DATA SOURCE <data source name>
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;backup name&gt;" id="<backup-name>" defaultOpen>
+
+Name of the *backup(s)* to describe that are accessible via the *data source* given by
+`<data source name>`.
+
+Use `<backup name>*` to describe all *backups* that start with `backup name`.
+
+Use `*` instead of `<backup name>` to describe all *backups*.
+
+</Accordion>
+
+<Accordion title="&lt;data source name&gt;" id="<data-source-name>" defaultOpen>
+
+Name of the [data source](/content/sql/ddl/create-data-source#sql-create-data-source) to use to retrieve the database
+*backup* file information from the remote file store.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Response
+
+
+The response to `DESCRIBE BACKUP` is a 13-column result set:
+
+| Output Column | Description |
+| --- | --- |
+| `BACKUP_NAME` | Unique name for the *backup* file set |
+| `BACKUP_ID` | Unique ID of the *snapshot* within the *backup* |
+| `BACKUP_TYPE` | Type of the *snapshot*; see [CREATE BACKUP](/content/sql/backup_restore/create-backup#sql-backup-create) for values |
+| `TIME` | Timestamp at which the *snapshot* was initiated |
+| `DURATION` | Duration, in milliseconds, of the *snapshot* processing |
+| `CLUSTER_ID` | Identifier of the cluster backed-up, within an HA ring |
+| `HOST_NAME` | Hostname of the server on which the *snapshot* was created |
+| `HOST_ID` | IP address of the server on which the *snapshot* was created |
+| `OBJECTS` | List of objects backed up and their respective types |
+| `SIZE` | Size, in bytes, of the backed-up data files contained within the *snapshot* |
+| `FILES` | Number of backed-up data files contained within the *snapshot* |
+| `RECORDS` | Number of data records contained within the *snapshot* |
+| `COMMENT` | Comment associated with the *snapshot* |
+
+<a id="sql-backup-desc-ex"></a>
+
+
+## Examples
+
+
+For example, to output the detail for a *backup*, `schema_backup`, via a
+*data source*, `restore_ds`, through which the *backup* files can be accessed:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 85-86) */}
+```sql DESCRIBE BACKUP Example
+DESCRIBE BACKUP schema_backup
+DATA SOURCE = restore_ds
+```
+
+To output the detail for all *backups* whose name starts with `conf` that are
+accessible via the `restore_ds` *data source*:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 476-477) */}
+```sql DESCRIBE BACKUP (All Backups with Prefix at Data Source) Example
+DESCRIBE BACKUP "conf*"
+DATA SOURCE = restore_ds
+```
+
+To output the detail for all *backups* that are accessible via the
+`restore_ds` *data source*:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 480-481) */}
+```sql DESCRIBE BACKUP (All Backups at Data Source) Example
+DESCRIBE BACKUP *
+DATA SOURCE = restore_ds
+```

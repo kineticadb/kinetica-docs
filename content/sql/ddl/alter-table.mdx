@@ -23,6 +23,7 @@ Any of the following facets of a table can be altered:
 * [Foreign Keys](/content/sql/ddl/alter-table#sql-alter-table-foreign-key-add)
 * [Partitions](/content/sql/ddl/alter-table#sql-alter-table-partition-add)
 * [Tier Strategy](/content/sql/ddl/alter-table#sql-alter-table-set-tier-strategy)
+* [Write-Ahead Log](/content/sql/ddl/alter-table#sql-alter-table-set-wal-options)
 * [External Data Source Subscription](/content/sql/ddl/alter-table#sql-alter-table-manage-sub)
 
 
@@ -846,6 +847,123 @@ RESET TIER STRATEGY
 ```
 
 
+<a id="sql-alter-table-set-wal-options"></a>
+
+
+## Set Write-Ahead Log Options
+
+
+The write-ahead log configuration of a table can be modified, or reverted to the
+database-wide configuration.
+
+```sql title="Set Write-Ahead Log Options Syntax"
+ALTER TABLE [<schema name>.]<table name>
+SET WAL OPTIONS (<option name> = '<option value>'[,...])
+```
+
+
+<Info>
+Only one *table* can be altered per statement, and the target must be
+a *table*; altering the write-ahead log of a *view* or a *materialized view*
+will return an error.  Option names are case-insensitive.
+</Info>
+
+Changes take effect immediately and persist across database restarts.  Raising
+`SEGMENT_COUNT` reserves no disk space in advance.
+
+
+<Note>
+Once a *table*'s write-ahead log has been configured here, it
+will no longer pick up later database-wide write-ahead log changes; a *table*
+that has never been configured individually continues to receive them.  Use
+`RESTORE_SYSTEM_SETTINGS` to return a *table* to the database-wide
+configuration and have it accept subsequent database-wide changes again.
+Where the database determines segment count automatically, a restored *table*
+returns to the default count and is re-evaluated the next time the database
+restarts.
+</Note>
+
+
+### Options
+
+
+<AccordionGroup>
+
+<Accordion title="MAX_SEGMENT_SIZE" id="max_segment_size" defaultOpen>
+
+Maximum size, in bytes, of an individual segment file
+
+</Accordion>
+
+<Accordion title="SEGMENT_COUNT" id="segment_count" defaultOpen>
+
+Approximate number of segment files across which the write-ahead log is split; must be at
+least `2`
+
+</Accordion>
+
+<Accordion title="SYNC_POLICY" id="sync_policy" defaultOpen>
+
+How write-ahead log entries are synchronized to disk:
+
+* `none` - disables the write-ahead log for the *table*
+* `background` - entries are written periodically, rather than immediately after each
+  operation
+* `flush` - entries are protected in the event of a database crash
+* `fsync` - entries are protected in the event of an OS crash
+
+</Accordion>
+
+<Accordion title="CHECKSUM" id="checksum" defaultOpen>
+
+Whether each entry is verified against a protective checksum; the default is `true`
+
+</Accordion>
+
+<Accordion title="RESTORE_SYSTEM_SETTINGS" id="restore_system_settings" defaultOpen>
+
+Whether to revert the *table* to the database-wide write-ahead log configuration; cannot
+be used with any other option.  The default is `false`
+
+</Accordion>
+
+</AccordionGroup>
+
+For example, to split the write-ahead log of the `wal_product` table across 20
+segments and protect its entries against an OS crash:
+
+{/* Source: /examples/sql/table/wal.kisql (lines 42-43) */}
+```sql Set Write-Ahead Log Options Example
+ALTER TABLE example.wal_product
+SET WAL OPTIONS (SEGMENT_COUNT = '20', SYNC_POLICY = 'fsync')
+```
+
+To revert that table to the database-wide write-ahead log configuration:
+
+{/* Source: /examples/sql/table/wal.kisql (lines 51-52) */}
+```sql Restore Write-Ahead Log Settings Example
+ALTER TABLE example.wal_product
+SET WAL OPTIONS (RESTORE_SYSTEM_SETTINGS = 'true')
+```
+
+{/* Source: /examples/sql/table/wal.out (lines 95-99) */}
+```sql Restore Write-Ahead Log Settings Output
++---------------+---------------+------------+----------------+----------------------+---------------+-------------------------------------------------------------------------------------------------+
+| SCHEMA_NAME   | TABLE_NAME    |   WAL_SIZE |   WAL_CAPACITY |         PERCENT_USED |   UNCOMMITTED | SETTINGS                                                                                        |
++---------------+---------------+------------+----------------+----------------------+---------------+-------------------------------------------------------------------------------------------------+
+| example       | wal_product   |          0 |    10000000000 |   0.0                |             0 | {"checksum":"TRUE","max_segment_size":"500000000","segment_count":"10","sync_policy":"flush"}   |
++---------------+---------------+------------+----------------+----------------------+---------------+-------------------------------------------------------------------------------------------------+
+```
+
+
+<Info>
+The `flush_frequency` setting, which governs how often entries are
+written under the `background` sync policy, applies database-wide and has
+no per-*table* equivalent.  It, and any other database-wide write-ahead log
+change, is made via [/alter/wal](/content/api/rest/alter_wal_rest) rather than
+through SQL.
+</Info>
+
 <a id="sql-alter-table-manage-sub"></a>
 
 
@@ -866,7 +984,7 @@ ALTER TABLE [<schema name>.]<table name>
 Once unsubscribed, there is no way to re-subscribe the table to the
 *data source* via `ALTER TABLE`.  An *external table* will need to be
 re-created, while a table whose subscription was initiated through the
-[LOAD INTO](/content/sql/load#sql-load-file-server) command can have that command
+[LOAD INTO](/content/sql/load/load-into#sql-load-file-server) command can have that command
 re-executed.
 </Info>
 
