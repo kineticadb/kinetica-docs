@@ -1,0 +1,127 @@
+---
+title: "aggregate_group_by"
+---
+
+<div className="kinetica-typedoc">
+<div className="section tsd-panel tsd-member">
+<h3 className="tsd-anchor-link" id="aggregate_group_by"><span>aggregate\_group\_by</span></h3>
+<ul className="tsd-signatures">
+<li className="">
+<div className="tsd-signature tsd-anchor-link" id="aggregate_group_by-1"><span className="tsd-kind-call-signature">aggregate\_group\_by</span><span className="tsd-signature-symbol">(</span><br /> <span className="tsd-kind-parameter">table\_name</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">column\_names</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">\[\]</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">offset</span><span className="tsd-signature-symbol">?:</span> <span className="tsd-signature-type">number</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">limit</span><span className="tsd-signature-symbol">?:</span> <span className="tsd-signature-type">number</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">options</span><span className="tsd-signature-symbol">?:</span> <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">&gt;</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">callback</span><span className="tsd-signature-symbol">?:</span> <a href="/content/api/typescript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a><span className="tsd-signature-symbol">,</span><br /><span className="tsd-signature-symbol">)</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/typescript/interfaces/AggregateGroupByResponse" className="tsd-signature-type tsd-kind-interface">AggregateGroupByResponse</a><span className="tsd-signature-symbol">&gt;</span></div>
+<div className="tsd-description">
+<div className="tsd-comment tsd-typography">
+<p>Calculates unique combinations (groups) of values for the given columns in a given table or view and computes aggregates on each unique combination. This is somewhat analogous to an SQL-style SELECT...GROUP BY.</p>
+<p>For aggregation details and examples, see Aggregation. For limitations, see Aggregation Limitations.</p>
+<p>Any column(s) can be grouped on, and all column types except unrestricted-length strings may be used for computing applicable aggregates.</p>
+<p>The results can be paged via the <code>offset</code> and <code>limit</code> parameters. For example, to get 10 groups with the largest counts the inputs would be: limit=10, options={"{"}&quot;sort\_order&quot;:&quot;descending&quot;, &quot;sort\_by&quot;:&quot;value&quot;{"}"}.</p>
+<p><code>options</code> can be used to customize behavior of this call e.g. filtering or sorting the results.</p>
+<p>To group by columns 'x' and 'y' and compute the number of objects within each group, use: column\_names=\['x','y','count(\*)'\].</p>
+<p>To also compute the sum of 'z' over each group, use: column\_names=\['x','y','count(\*)','sum(z)'\].</p>
+<p>Available aggregation functions are: count(\*), sum, min, max, avg, mean, stddev, stddev\_pop, stddev\_samp, var, var\_pop, var\_samp, arg\_min, arg\_max and count\_distinct.</p>
+<p>Available grouping functions are Rollup, Cube, and Grouping Sets</p>
+<p>This service also provides support for Pivot operations.</p>
+<p>Filtering on aggregates is supported via expressions using aggregation functions supplied to having.</p>
+<p>The response is returned as a dynamic schema. For details see: dynamic schemas documentation.</p>
+<p>If a result\_table name is specified in the <code>options</code>, the results are stored in a new table with that name--no results are returned in the response. Both the table name and resulting column names must adhere to standard naming conventions; column/aggregation expressions will need to be aliased. If the source table's shard key is used as the grouping column(s) and all result records are selected (<code>offset</code> is 0 and <code>limit</code> is -9999), the result table will be sharded, in all other cases it will be replicated. Sorting will properly function only if the result table is replicated or if there is only one processing node and should not be relied upon in other cases. Not available when any of the values of <code>column\_names</code> is an unrestricted-length string.</p>
+</div>
+<div className="tsd-parameters">
+<h4 className="tsd-parameters-title">Parameters</h4>
+<ul className="tsd-parameter-list">
+<li>
+<span><span className="tsd-kind-parameter">table\_name</span>: <span className="tsd-signature-type">string</span></span>
+<div className="tsd-comment tsd-typography">
+<p>Name of an existing table or view on which the operation will be performed, in \[schema\_name.\]table\_name format, using standard name resolution rules.</p>
+</div>
+</li>
+<li>
+<span><span className="tsd-kind-parameter">column\_names</span>: <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">\[\]</span></span>
+<div className="tsd-comment tsd-typography">
+<p>List of one or more column names, expressions, and aggregate expressions.</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">offset</span>: <span className="tsd-signature-type">number</span></span>
+<div className="tsd-comment tsd-typography">
+<p>A positive integer indicating the number of initial results to skip (this can be useful for paging through the results).</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">limit</span>: <span className="tsd-signature-type">number</span></span>
+<div className="tsd-comment tsd-typography">
+<p>A positive integer indicating the maximum number of results to be returned, or END\_OF\_SET (-9999) to indicate that the maximum number of results allowed by the server should be returned. The number of records returned will never exceed the server's own limit, defined by the max\_get\_records\_size parameter in the server configuration. Use <code>has\_more\_records</code> to see if more records exist in the result to be fetched, and <code>offset</code> and <code>limit</code> to request subsequent pages of results.</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">options</span>: <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">&gt;</span></span>
+<div className="tsd-comment tsd-typography">
+<p>Optional parameters.</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">callback</span>: <a href="/content/api/typescript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a></span>
+<div className="tsd-comment tsd-typography">
+<p>Optional callback function</p>
+</div>
+</li>
+</ul>
+</div>
+<h4 className="tsd-returns-title">Returns <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/typescript/interfaces/AggregateGroupByResponse" className="tsd-signature-type tsd-kind-interface">AggregateGroupByResponse</a><span className="tsd-signature-symbol">&gt;</span></h4>
+<p>Promise&lt;Types.AggregateGroupByResponse&gt; - Promise resolving to the response</p>
+<div className="aside tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/kineticadb/kinetica-api-typescript/blob/master/src/GPUdb.ts#L3000">src/GPUdb.ts:3000</a></li>
+</ul>
+</div>
+</div>
+</li>
+</ul>
+</div><div className="section tsd-panel tsd-member">
+<h3 className="tsd-anchor-link" id="aggregate_group_by_request"><span>aggregate\_group\_by\_request</span></h3>
+<ul className="tsd-signatures">
+<li className="">
+<div className="tsd-signature tsd-anchor-link" id="aggregate_group_by_request-1"><span className="tsd-kind-call-signature">aggregate\_group\_by\_request</span><span className="tsd-signature-symbol">(</span><br /> <span className="tsd-kind-parameter">request</span><span className="tsd-signature-symbol">:</span> <a href="/content/api/typescript/interfaces/AggregateGroupByRequest" className="tsd-signature-type tsd-kind-interface">AggregateGroupByRequest</a><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">callback</span><span className="tsd-signature-symbol">?:</span> <a href="/content/api/typescript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a><span className="tsd-signature-symbol">,</span><br /><span className="tsd-signature-symbol">)</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/typescript/interfaces/AggregateGroupByResponse" className="tsd-signature-type tsd-kind-interface">AggregateGroupByResponse</a><span className="tsd-signature-symbol">&gt;</span></div>
+<div className="tsd-description">
+<div className="tsd-comment tsd-typography">
+<p>Calculates unique combinations (groups) of values for the given columns in a given table or view and computes aggregates on each unique combination. This is somewhat analogous to an SQL-style SELECT...GROUP BY.</p>
+<p>For aggregation details and examples, see Aggregation. For limitations, see Aggregation Limitations.</p>
+<p>Any column(s) can be grouped on, and all column types except unrestricted-length strings may be used for computing applicable aggregates.</p>
+<p>The results can be paged via the <code>offset</code> and <code>limit</code> parameters. For example, to get 10 groups with the largest counts the inputs would be: limit=10, options={"{"}&quot;sort\_order&quot;:&quot;descending&quot;, &quot;sort\_by&quot;:&quot;value&quot;{"}"}.</p>
+<p><code>options</code> can be used to customize behavior of this call e.g. filtering or sorting the results.</p>
+<p>To group by columns 'x' and 'y' and compute the number of objects within each group, use: column\_names=\['x','y','count(\*)'\].</p>
+<p>To also compute the sum of 'z' over each group, use: column\_names=\['x','y','count(\*)','sum(z)'\].</p>
+<p>Available aggregation functions are: count(\*), sum, min, max, avg, mean, stddev, stddev\_pop, stddev\_samp, var, var\_pop, var\_samp, arg\_min, arg\_max and count\_distinct.</p>
+<p>Available grouping functions are Rollup, Cube, and Grouping Sets</p>
+<p>This service also provides support for Pivot operations.</p>
+<p>Filtering on aggregates is supported via expressions using aggregation functions supplied to having.</p>
+<p>The response is returned as a dynamic schema. For details see: dynamic schemas documentation.</p>
+<p>If a result\_table name is specified in the <code>options</code>, the results are stored in a new table with that name--no results are returned in the response. Both the table name and resulting column names must adhere to standard naming conventions; column/aggregation expressions will need to be aliased. If the source table's shard key is used as the grouping column(s) and all result records are selected (<code>offset</code> is 0 and <code>limit</code> is -9999), the result table will be sharded, in all other cases it will be replicated. Sorting will properly function only if the result table is replicated or if there is only one processing node and should not be relied upon in other cases. Not available when any of the values of <code>column\_names</code> is an unrestricted-length string.</p>
+</div>
+<div className="tsd-parameters">
+<h4 className="tsd-parameters-title">Parameters</h4>
+<ul className="tsd-parameter-list">
+<li>
+<span><span className="tsd-kind-parameter">request</span>: <a href="/content/api/typescript/interfaces/AggregateGroupByRequest" className="tsd-signature-type tsd-kind-interface">AggregateGroupByRequest</a></span>
+<div className="tsd-comment tsd-typography">
+<p>Request object containing the parameters for the operation</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">callback</span>: <a href="/content/api/typescript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a></span>
+<div className="tsd-comment tsd-typography">
+<p>Optional callback function</p>
+</div>
+</li>
+</ul>
+</div>
+<h4 className="tsd-returns-title">Returns <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/typescript/interfaces/AggregateGroupByResponse" className="tsd-signature-type tsd-kind-interface">AggregateGroupByResponse</a><span className="tsd-signature-symbol">&gt;</span></h4>
+<p>Promise&lt;Types.AggregateGroupByResponse&gt; - Promise resolving to the response</p>
+<div className="aside tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/kineticadb/kinetica-api-typescript/blob/master/src/GPUdb.ts#L2910">src/GPUdb.ts:2910</a></li>
+</ul>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</div>

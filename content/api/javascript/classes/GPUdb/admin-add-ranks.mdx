@@ -1,0 +1,107 @@
+---
+title: "admin_add_ranks"
+---
+
+<div className="kinetica-typedoc">
+<div className="section tsd-panel tsd-member">
+<h3 className="tsd-anchor-link" id="admin_add_ranks"><span>admin\_add\_ranks</span></h3>
+<ul className="tsd-signatures">
+<li className="">
+<div className="tsd-signature tsd-anchor-link" id="admin_add_ranks-1"><span className="tsd-kind-call-signature">admin\_add\_ranks</span><span className="tsd-signature-symbol">(</span><br /> <span className="tsd-kind-parameter">hosts</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">\[\]</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">config\_params</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">&gt;</span><span className="tsd-signature-symbol">\[\]</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">options</span><span className="tsd-signature-symbol">?:</span> <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">&gt;</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">callback</span><span className="tsd-signature-symbol">?:</span> <a href="/content/api/javascript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a><span className="tsd-signature-symbol">,</span><br /><span className="tsd-signature-symbol">)</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/javascript/interfaces/AdminAddRanksResponse" className="tsd-signature-type tsd-kind-interface">AdminAddRanksResponse</a><span className="tsd-signature-symbol">&gt;</span></div>
+<div className="tsd-description">
+<div className="tsd-comment tsd-typography">
+<p>Add one or more ranks to an existing Kinetica cluster. The new ranks will not contain any data initially (other than replicated tables) and will not be assigned any shards. To rebalance data and shards across the cluster, use <code>admin\_rebalance</code>.</p>
+<p>The database must be offline for this operation, see <code>admin\_offline</code></p>
+<p>For example, if attempting to add three new ranks (two ranks on host 172.123.45.67 and one rank on host 172.123.45.68) to a Kinetica cluster with additional configuration parameters:</p>
+<ul>
+<li><code>hosts</code> would be an array including 172.123.45.67 in the first two indices (signifying two ranks being added to host 172.123.45.67) and 172.123.45.68 in the last index (signifying one rank being added to host 172.123.45.67)</li>
+<li><code>config\_params</code> would be an array of maps, with each map corresponding to the ranks being added in <code>hosts</code>. The key of each map would be the configuration parameter name and the value would be the parameter's value, e.g. '{"{"}&quot;rank.gpu&quot;:&quot;1&quot;{"}"}'</li>
+</ul>
+<p>This endpoint's processing includes copying all replicated table data to the new rank(s) and therefore could take a long time. The API call may time out if run directly. It is recommended to run this endpoint asynchronously via <code>create\_job</code>.</p>
+<p><strong>Note:</strong> This method should be used for on-premise deployments only.</p>
+</div>
+<div className="tsd-parameters">
+<h4 className="tsd-parameters-title">Parameters</h4>
+<ul className="tsd-parameter-list">
+<li>
+<span><span className="tsd-kind-parameter">hosts</span>: <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">\[\]</span></span>
+<div className="tsd-comment tsd-typography">
+<p>Array of host IP addresses (matching a hostN.address from the gpudb.conf file), or host identifiers (e.g. 'host0' from the gpudb.conf file), on which to add ranks to the cluster. The hosts must already be in the cluster. If needed beforehand, to add a new host to the cluster use <code>admin\_add\_host</code>. Include the same entry as many times as there are ranks to add to the cluster, e.g., if two ranks on host 172.123.45.67 should be added, <code>hosts</code> could look like '\[&quot;172.123.45.67&quot;, &quot;172.123.45.67&quot;\]'. All ranks will be added simultaneously, i.e. they're not added in the order of this array. Each entry in this array corresponds to the entry at the same index in the <code>config\_params</code>.</p>
+</div>
+</li>
+<li>
+<span><span className="tsd-kind-parameter">config\_params</span>: <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">&gt;</span><span className="tsd-signature-symbol">\[\]</span></span>
+<div className="tsd-comment tsd-typography">
+<p>Array of maps containing configuration parameters to apply to the new ranks found in <code>hosts</code>. For example, '{"{"}&quot;rank.gpu&quot;:&quot;2&quot;, &quot;tier.ram.rank.limit&quot;:&quot;10000000000&quot;{"}"}'. Currently, the available parameters are rank-specific parameters in the Network, Hardware, Text Search, and RAM Tiered Storage sections in the gpudb.conf file, with the key exception of the 'rankN.host' settings in the Network section that will be determined by <code>hosts</code> instead. Though many of these configuration parameters typically are affixed with 'rankN' in the gpudb.conf file (where N is the rank number), the 'N' should be omitted in <code>config\_params</code> as the new rank number(s) are not allocated until the ranks have been added to the cluster. Each entry in this array corresponds to the entry at the same index in the <code>hosts</code>. This array must either be completely empty or have the same number of elements as the <code>hosts</code>. An empty <code>config\_params</code> array will result in the new ranks being set with default parameters.</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">options</span>: <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">&gt;</span></span>
+<div className="tsd-comment tsd-typography">
+<p>Optional parameters.</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">callback</span>: <a href="/content/api/javascript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a></span>
+<div className="tsd-comment tsd-typography">
+<p>Optional callback function</p>
+</div>
+</li>
+</ul>
+</div>
+<h4 className="tsd-returns-title">Returns <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/javascript/interfaces/AdminAddRanksResponse" className="tsd-signature-type tsd-kind-interface">AdminAddRanksResponse</a><span className="tsd-signature-symbol">&gt;</span></h4>
+<p>Promise&lt;Types.AdminAddRanksResponse&gt; - Promise resolving to the response</p>
+<div className="aside tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/kineticadb/kinetica-api-typescript/blob/master/src/GPUdb.ts#L1757">src/GPUdb.ts:1757</a></li>
+</ul>
+</div>
+</div>
+</li>
+</ul>
+</div><div className="section tsd-panel tsd-member">
+<h3 className="tsd-anchor-link" id="admin_add_ranks_request"><span>admin\_add\_ranks\_request</span></h3>
+<ul className="tsd-signatures">
+<li className="">
+<div className="tsd-signature tsd-anchor-link" id="admin_add_ranks_request-1"><span className="tsd-kind-call-signature">admin\_add\_ranks\_request</span><span className="tsd-signature-symbol">(</span><br /> <span className="tsd-kind-parameter">request</span><span className="tsd-signature-symbol">:</span> <a href="/content/api/javascript/interfaces/AdminAddRanksRequest" className="tsd-signature-type tsd-kind-interface">AdminAddRanksRequest</a><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">callback</span><span className="tsd-signature-symbol">?:</span> <a href="/content/api/javascript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a><span className="tsd-signature-symbol">,</span><br /><span className="tsd-signature-symbol">)</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/javascript/interfaces/AdminAddRanksResponse" className="tsd-signature-type tsd-kind-interface">AdminAddRanksResponse</a><span className="tsd-signature-symbol">&gt;</span></div>
+<div className="tsd-description">
+<div className="tsd-comment tsd-typography">
+<p>Add one or more ranks to an existing Kinetica cluster. The new ranks will not contain any data initially (other than replicated tables) and will not be assigned any shards. To rebalance data and shards across the cluster, use <code>admin\_rebalance</code>.</p>
+<p>The database must be offline for this operation, see <code>admin\_offline</code></p>
+<p>For example, if attempting to add three new ranks (two ranks on host 172.123.45.67 and one rank on host 172.123.45.68) to a Kinetica cluster with additional configuration parameters:</p>
+<ul>
+<li><code>hosts</code> would be an array including 172.123.45.67 in the first two indices (signifying two ranks being added to host 172.123.45.67) and 172.123.45.68 in the last index (signifying one rank being added to host 172.123.45.67)</li>
+<li><code>config\_params</code> would be an array of maps, with each map corresponding to the ranks being added in <code>hosts</code>. The key of each map would be the configuration parameter name and the value would be the parameter's value, e.g. '{"{"}&quot;rank.gpu&quot;:&quot;1&quot;{"}"}'</li>
+</ul>
+<p>This endpoint's processing includes copying all replicated table data to the new rank(s) and therefore could take a long time. The API call may time out if run directly. It is recommended to run this endpoint asynchronously via <code>create\_job</code>.</p>
+<p><strong>Note:</strong> This method should be used for on-premise deployments only.</p>
+</div>
+<div className="tsd-parameters">
+<h4 className="tsd-parameters-title">Parameters</h4>
+<ul className="tsd-parameter-list">
+<li>
+<span><span className="tsd-kind-parameter">request</span>: <a href="/content/api/javascript/interfaces/AdminAddRanksRequest" className="tsd-signature-type tsd-kind-interface">AdminAddRanksRequest</a></span>
+<div className="tsd-comment tsd-typography">
+<p>Request object containing the parameters for the operation</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">callback</span>: <a href="/content/api/javascript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a></span>
+<div className="tsd-comment tsd-typography">
+<p>Optional callback function</p>
+</div>
+</li>
+</ul>
+</div>
+<h4 className="tsd-returns-title">Returns <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/javascript/interfaces/AdminAddRanksResponse" className="tsd-signature-type tsd-kind-interface">AdminAddRanksResponse</a><span className="tsd-signature-symbol">&gt;</span></h4>
+<p>Promise&lt;Types.AdminAddRanksResponse&gt; - Promise resolving to the response</p>
+<div className="aside tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/kineticadb/kinetica-api-typescript/blob/master/src/GPUdb.ts#L1693">src/GPUdb.ts:1693</a></li>
+</ul>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</div>

@@ -734,18 +734,40 @@ URL of the *model* host service.
 
 For example, to create a remote model, first create an API key *credential*:
 
-{/* Source: /examples/sql/vector/embeddings.kisql (lines 51-53) */}
+<CodeGroup>
+
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 58-60) */}
+```sql OpenAI API Credential Example
+CREATE CREDENTIAL example.openai_api_cred
+TYPE = 'openai_api_key',
+SECRET = 'sk-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+```
+
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 146-148) */}
 ```sql Nvidia API Credential Example
 CREATE CREDENTIAL example.nvidia_api_cred
 TYPE = 'nvidia_api_key',
 SECRET = 'nvapi-abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
 ```
 
+</CodeGroup>
+
 Then, create the model:
 
 <CodeGroup>
 
-{/* Source: /examples/sql/vector/embeddings.kisql (lines 56-62) */}
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 63-69) */}
+```sql OpenAI Model Example
+CREATE MODEL openai_remote_model
+WITH OPTIONS
+(
+	CREDENTIAL = 'example.openai_api_cred',
+	REMOTE_MODEL_NAME = 'text-embedding-3-small',
+	REMOTE_MODEL_LOCATION = 'https://api.openai.com/v1/embeddings'
+)
+```
+
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 151-157) */}
 ```sql Nvidia Remote Model Example
 CREATE MODEL nvidia_remote_model
 WITH OPTIONS
@@ -756,7 +778,7 @@ WITH OPTIONS
 )
 ```
 
-{/* Source: /examples/sql/vector/embeddings.kisql (lines 155-160) */}
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 250-255) */}
 ```sql Nvidia Local (No Key) Model Example
 CREATE MODEL nvidia_local_model
 WITH OPTIONS
@@ -772,12 +794,17 @@ Optionally, set the model as the default one:
 
 <CodeGroup>
 
-{/* Source: /examples/sql/vector/embeddings.kisql (lines 73) */}
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 80) */}
+```sql OpenAI Default Model Example
+ALTER SYSTEM SET PROPERTIES ('ai_api_embeddings_model' = 'openai_remote_model')
+```
+
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 168) */}
 ```sql Nvidia Default Remote Model Example
 ALTER SYSTEM SET PROPERTIES ('ai_api_embeddings_model' = 'nvidia_remote_model')
 ```
 
-{/* Source: /examples/sql/vector/embeddings.kisql (lines 165) */}
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 260) */}
 ```sql Nvidia Default Local (No Key) Model Example
 ALTER SYSTEM SET PROPERTIES ('ai_api_embeddings_model' = 'nvidia_local_model')
 ```
@@ -839,10 +866,10 @@ URL of the *model* host service.
 
 For example, to change the name of the remote model referenced:
 
-{/* Source: /examples/sql/vector/embeddings.kisql (lines 67-68) */}
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 74-75) */}
 ```sql ALTER MODEL Example
-ALTER MODEL nvidia_remote_model
-SET REMOTE_MODEL_NAME = 'nvidia/nemotron-3-embed-1b'
+ALTER MODEL openai_remote_model
+SET REMOTE_MODEL_NAME = 'text-embedding-3-small'
 ```
 
 
@@ -891,7 +918,7 @@ will be used.
 
 To set the default to another model and avoid having to specify this parameter:
 
-{/* Source: /examples/sql/vector/embeddings.kisql (lines 73) */}
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 168) */}
 ```sql Set Default Embeddings Model Example
 ALTER SYSTEM SET PROPERTIES ('ai_api_embeddings_model' = 'nvidia_remote_model')
 ```
@@ -956,7 +983,7 @@ For example, to generate embeddings with various models:
 
 <CodeGroup>
 
-{/* Source: /examples/sql/vector/embeddings.kisql (lines 179-187) */}
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 274-282) */}
 ```sql Generate Embeddings (Default) Example
 SELECT * FROM TABLE /* KI_HINT_SAVE_UDF_STATS */
 (
@@ -969,7 +996,22 @@ SELECT * FROM TABLE /* KI_HINT_SAVE_UDF_STATS */
 )
 ```
 
-{/* Source: /examples/sql/vector/embeddings.kisql (lines 79-89) */}
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 86-96) */}
+```sql Generate Embeddings (OpenAI) Example
+SELECT * FROM TABLE /* KI_HINT_SAVE_UDF_STATS */
+(
+	GENERATE_EMBEDDINGS
+	(
+		MODEL_NAME => 'openai_remote_model',
+		EMBEDDING_TABLE => INPUT_TABLE(example.fine_food_reviews),
+		EMBEDDING_INPUT_COLUMNS => 'Summary,Text',
+		EMBEDDING_OUTPUT_COLUMNS => 'Summary_emb,Text_emb',
+		DIMENSIONS => 1536
+	)
+)
+```
+
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 174-184) */}
 ```sql Generate Source Embeddings (Nvidia) Example
 SELECT * FROM TABLE /* KI_HINT_SAVE_UDF_STATS */
 (
@@ -984,7 +1026,7 @@ SELECT * FROM TABLE /* KI_HINT_SAVE_UDF_STATS */
 )
 ```
 
-{/* Source: /examples/sql/vector/embeddings.kisql (lines 101-112) */}
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 196-207) */}
 ```sql Generate Query Embeddings (Nvidia) Example
 SELECT * FROM TABLE /* KI_HINT_SAVE_UDF_STATS */
 (
@@ -1015,7 +1057,43 @@ performed dynamically on a given data set.
 For example, to search for *healthy food* references within a data set of
 product reviews:
 
-{/* Source: /examples/sql/vector/embeddings.kisql (lines 118-149) */}
+<CodeGroup>
+
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 107-136) */}
+```sql Vector Search with Embeddings (OpenAI) Example
+SELECT /* KI_HINT_SAVE_UDF_STATS */
+	COSINE_DISTANCE(p.Text_emb, q.query_emb) as dist,
+	p.ProductId,
+	p.UserId,
+	p.Summary,
+	p.Text
+FROM
+	TABLE
+	(
+		GENERATE_EMBEDDINGS
+		(
+			MODEL_NAME => 'openai_remote_model',
+			EMBEDDING_TABLE => INPUT_TABLE(SELECT * FROM example.fine_food_reviews WHERE Score > 3),
+			EMBEDDING_INPUT_COLUMNS => 'Summary,Text',
+			EMBEDDING_OUTPUT_COLUMNS => 'Summary_emb,Text_emb',
+			DIMENSIONS => 1536
+		)
+	) p,
+	TABLE
+	(
+		GENERATE_EMBEDDINGS
+		(
+			MODEL_NAME => 'openai_remote_model',
+			EMBEDDING_TABLE => INPUT_TABLE(SELECT 'healthy food' AS query),
+			EMBEDDING_INPUT_COLUMNS => 'query',
+			EMBEDDING_OUTPUT_COLUMNS => 'query_emb',
+			DIMENSIONS => 1536
+		)
+	) q
+ORDER BY 1
+```
+
+{/* Source: /examples/sql/vector/embeddings.kisql (lines 213-244) */}
 ```sql Vector Search with Embeddings (Nvidia) Example
 SELECT /* KI_HINT_SAVE_UDF_STATS */
 	COSINE_DISTANCE(p.Text_emb, q.query_emb) as dist,
@@ -1050,3 +1128,5 @@ FROM
 	) q
 ORDER BY 1
 ```
+
+</CodeGroup>

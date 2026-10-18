@@ -1,0 +1,109 @@
+---
+title: "update_records"
+---
+
+<div className="kinetica-typedoc">
+<div className="section tsd-panel tsd-member">
+<h3 className="tsd-anchor-link" id="update_records"><span>update\_records</span></h3>
+<ul className="tsd-signatures">
+<li className="">
+<div className="tsd-signature tsd-anchor-link" id="update_records-1"><span className="tsd-kind-call-signature">update\_records</span><span className="tsd-signature-symbol">(</span><br /> <span className="tsd-kind-parameter">table\_name</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">expressions</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">\[\]</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">new\_values\_maps</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">string</span> <span className="tsd-signature-symbol">|</span> <span className="tsd-signature-type">null</span><span className="tsd-signature-symbol">&gt;</span><span className="tsd-signature-symbol">\[\]</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">data</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">any</span><span className="tsd-signature-symbol">&gt;</span><span className="tsd-signature-symbol">\[\]</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">options</span><span className="tsd-signature-symbol">?:</span> <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">&gt;</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">callback</span><span className="tsd-signature-symbol">?:</span> <a href="/content/api/javascript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a><span className="tsd-signature-symbol">,</span><br /><span className="tsd-signature-symbol">)</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/javascript/interfaces/UpdateRecordsResponse" className="tsd-signature-type tsd-kind-interface">UpdateRecordsResponse</a><span className="tsd-signature-symbol">&gt;</span></div>
+<div className="tsd-description">
+<div className="tsd-comment tsd-typography">
+<p>Runs multiple predicate-based updates in a single call. With the list of given expressions, any matching record's column values will be updated as provided in <code>new\_values\_maps</code>. There is also an optional 'upsert' capability where if a particular predicate doesn't match any existing record, then a new record can be inserted.</p>
+<p>Note that this operation can only be run on an original table and not on a result view.</p>
+<p>This operation can update primary key values. By default only 'pure primary key' predicates are allowed when updating primary key values. If the primary key for a table is the column 'attr1', then the operation will only accept predicates of the form: &quot;attr1 == 'foo'&quot; if the attr1 column is being updated. For a composite primary key (e.g. columns 'attr1' and 'attr2') then this operation will only accept predicates of the form: &quot;(attr1 == 'foo') and (attr2 == 'bar')&quot;. Meaning, all primary key columns must appear in an equality predicate in the expressions. Furthermore each 'pure primary key' predicate must be unique within a given request. These restrictions can be removed by utilizing some available options through <code>options</code>.</p>
+<p>The update\_on\_existing\_pk option specifies the record primary key collision policy for tables with a primary key, while ignore\_existing\_pk specifies the record primary key collision error-suppression policy when those collisions result in the update being rejected. Both are ignored on tables with no primary key.</p>
+</div>
+<div className="tsd-parameters">
+<h4 className="tsd-parameters-title">Parameters</h4>
+<ul className="tsd-parameter-list">
+<li>
+<span><span className="tsd-kind-parameter">table\_name</span>: <span className="tsd-signature-type">string</span></span>
+<div className="tsd-comment tsd-typography">
+<p>Name of table to be updated, in \[schema\_name.\]table\_name format, using standard name resolution rules. Must be a currently existing table and not a view.</p>
+</div>
+</li>
+<li>
+<span><span className="tsd-kind-parameter">expressions</span>: <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">\[\]</span></span>
+<div className="tsd-comment tsd-typography">
+<p>A list of the actual predicates, one for each update; format should follow the guidelines <code>filter</code>.</p>
+</div>
+</li>
+<li>
+<span><span className="tsd-kind-parameter">new\_values\_maps</span>: <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">string</span> <span className="tsd-signature-symbol">|</span> <span className="tsd-signature-type">null</span><span className="tsd-signature-symbol">&gt;</span><span className="tsd-signature-symbol">\[\]</span></span>
+<div className="tsd-comment tsd-typography">
+<p>List of new values for the matching records. Each element is a map with (key, value) pairs where the keys are the names of the columns whose values are to be updated; the values are the new values. The number of elements in the list should match the length of <code>expressions</code>.</p>
+</div>
+</li>
+<li>
+<span><span className="tsd-kind-parameter">data</span>: <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">any</span><span className="tsd-signature-symbol">&gt;</span><span className="tsd-signature-symbol">\[\]</span></span>
+<div className="tsd-comment tsd-typography">
+<p>Data records to process</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">options</span>: <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">&gt;</span></span>
+<div className="tsd-comment tsd-typography">
+<p>Optional parameters.</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">callback</span>: <a href="/content/api/javascript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a></span>
+<div className="tsd-comment tsd-typography">
+<p>Optional callback function</p>
+</div>
+</li>
+</ul>
+</div>
+<h4 className="tsd-returns-title">Returns <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/javascript/interfaces/UpdateRecordsResponse" className="tsd-signature-type tsd-kind-interface">UpdateRecordsResponse</a><span className="tsd-signature-symbol">&gt;</span></h4>
+<p>Promise&lt;Types.UpdateRecordsResponse&gt; - Promise resolving to the response</p>
+<div className="aside tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/kineticadb/kinetica-api-typescript/blob/master/src/GPUdb.ts#L14579">src/GPUdb.ts:14579</a></li>
+</ul>
+</div>
+</div>
+</li>
+</ul>
+</div><div className="section tsd-panel tsd-member">
+<h3 className="tsd-anchor-link" id="update_records_request"><span>update\_records\_request</span></h3>
+<ul className="tsd-signatures">
+<li className="">
+<div className="tsd-signature tsd-anchor-link" id="update_records_request-1"><span className="tsd-kind-call-signature">update\_records\_request</span><span className="tsd-signature-symbol">(</span><br /> <span className="tsd-kind-parameter">request</span><span className="tsd-signature-symbol">:</span> <a href="/content/api/javascript/interfaces/UpdateRecordsRequest" className="tsd-signature-type tsd-kind-interface">UpdateRecordsRequest</a><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">callback</span><span className="tsd-signature-symbol">?:</span> <a href="/content/api/javascript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a><span className="tsd-signature-symbol">,</span><br /><span className="tsd-signature-symbol">)</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/javascript/interfaces/UpdateRecordsResponse" className="tsd-signature-type tsd-kind-interface">UpdateRecordsResponse</a><span className="tsd-signature-symbol">&gt;</span></div>
+<div className="tsd-description">
+<div className="tsd-comment tsd-typography">
+<p>Runs multiple predicate-based updates in a single call. With the list of given expressions, any matching record's column values will be updated as provided in <code>new\_values\_maps</code>. There is also an optional 'upsert' capability where if a particular predicate doesn't match any existing record, then a new record can be inserted.</p>
+<p>Note that this operation can only be run on an original table and not on a result view.</p>
+<p>This operation can update primary key values. By default only 'pure primary key' predicates are allowed when updating primary key values. If the primary key for a table is the column 'attr1', then the operation will only accept predicates of the form: &quot;attr1 == 'foo'&quot; if the attr1 column is being updated. For a composite primary key (e.g. columns 'attr1' and 'attr2') then this operation will only accept predicates of the form: &quot;(attr1 == 'foo') and (attr2 == 'bar')&quot;. Meaning, all primary key columns must appear in an equality predicate in the expressions. Furthermore each 'pure primary key' predicate must be unique within a given request. These restrictions can be removed by utilizing some available options through <code>options</code>.</p>
+<p>The update\_on\_existing\_pk option specifies the record primary key collision policy for tables with a primary key, while ignore\_existing\_pk specifies the record primary key collision error-suppression policy when those collisions result in the update being rejected. Both are ignored on tables with no primary key.</p>
+</div>
+<div className="tsd-parameters">
+<h4 className="tsd-parameters-title">Parameters</h4>
+<ul className="tsd-parameter-list">
+<li>
+<span><span className="tsd-kind-parameter">request</span>: <a href="/content/api/javascript/interfaces/UpdateRecordsRequest" className="tsd-signature-type tsd-kind-interface">UpdateRecordsRequest</a></span>
+<div className="tsd-comment tsd-typography">
+<p>Request object containing the parameters for the operation</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">callback</span>: <a href="/content/api/javascript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a></span>
+<div className="tsd-comment tsd-typography">
+<p>Optional callback function</p>
+</div>
+</li>
+</ul>
+</div>
+<h4 className="tsd-returns-title">Returns <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/javascript/interfaces/UpdateRecordsResponse" className="tsd-signature-type tsd-kind-interface">UpdateRecordsResponse</a><span className="tsd-signature-symbol">&gt;</span></h4>
+<p>Promise&lt;Types.UpdateRecordsResponse&gt; - Promise resolving to the response</p>
+<div className="aside tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/kineticadb/kinetica-api-typescript/blob/master/src/GPUdb.ts#L14517">src/GPUdb.ts:14517</a></li>
+</ul>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</div>

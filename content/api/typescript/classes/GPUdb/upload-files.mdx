@@ -1,0 +1,115 @@
+---
+title: "upload_files"
+---
+
+<div className="kinetica-typedoc">
+<div className="section tsd-panel tsd-member">
+<h3 className="tsd-anchor-link" id="upload_files"><span>upload\_files</span></h3>
+<ul className="tsd-signatures">
+<li className="">
+<div className="tsd-signature tsd-anchor-link" id="upload_files-1"><span className="tsd-kind-call-signature">upload\_files</span><span className="tsd-signature-symbol">(</span><br /> <span className="tsd-kind-parameter">file\_names</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">\[\]</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">file\_data</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">\[\]</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">options</span><span className="tsd-signature-symbol">?:</span> <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">&gt;</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">callback</span><span className="tsd-signature-symbol">?:</span> <a href="/content/api/typescript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a><span className="tsd-signature-symbol">,</span><br /><span className="tsd-signature-symbol">)</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/typescript/interfaces/UploadFilesResponse" className="tsd-signature-type tsd-kind-interface">UploadFilesResponse</a><span className="tsd-signature-symbol">&gt;</span></div>
+<div className="tsd-description">
+<div className="tsd-comment tsd-typography">
+<p>Uploads one or more files to KiFS. There are two methods for uploading files: load files in their entirety, or load files in parts. The latter is recommended for files of approximately 60 MB or larger.</p>
+<p>To upload files in their entirety, populate <code>file\_names</code> with the file names to upload into on KiFS, and their respective byte content in <code>file\_data</code>.</p>
+<p>Multiple steps are involved when uploading in multiple parts. Only one file at a time can be uploaded in this manner. A user-provided UUID is utilized to tie all the upload steps together for a given file. To upload a file in multiple parts:</p>
+<ol>
+<li>Provide the file name in <code>file\_names</code>, the UUID in the multipart\_upload\_uuid key in <code>options</code>, and a multipart\_operation value of init.</li>
+<li>Upload one or more parts by providing the file name, the part data in <code>file\_data</code>, the UUID, a multipart\_operation value of upload\_part, and the part number in the multipart\_upload\_part\_number. The part numbers must start at 1 and increase incrementally. Parts may not be uploaded out of order.</li>
+<li>Complete the upload by providing the file name, the UUID, and a multipart\_operation value of complete.</li>
+</ol>
+<p>Multipart uploads in progress may be canceled by providing the file name, the UUID, and a multipart\_operation value of cancel. If an new upload is initialized with a different UUID for an existing upload in progress, the pre-existing upload is automatically canceled in favor of the new upload.</p>
+<p>The multipart upload must be completed for the file to be usable in KiFS. Information about multipart uploads in progress is available in <code>show\_files</code>.</p>
+<p>File data may be pre-encoded using base64 encoding. This should be indicated using the file\_encoding option, and is recommended when using JSON serialization.</p>
+<p>Each file path must reside in a top-level KiFS directory, i.e. one of the directories listed in <code>show\_directories</code>. The user must have write permission on the directory. Nested directories are permitted in file name paths. Directories are delineated with the directory separator of '/'. For example, given the file path '/a/b/c/d.txt', 'a' must be a KiFS directory.</p>
+<p>These characters are allowed in file name paths: letters, numbers, spaces, the path delimiter of '/', and the characters: '.' '-' ':' '\[' '\]' '(' ')' '#' '='.</p>
+</div>
+<div className="tsd-parameters">
+<h4 className="tsd-parameters-title">Parameters</h4>
+<ul className="tsd-parameter-list">
+<li>
+<span><span className="tsd-kind-parameter">file\_names</span>: <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">\[\]</span></span>
+<div className="tsd-comment tsd-typography">
+<p>An array of full file name paths to be used for the files uploaded to KiFS. File names may have any number of nested directories in their paths, but the top-level directory must be an existing KiFS directory. Each file must reside in or under a top-level directory. A full file name path cannot be larger than 1024 characters.</p>
+</div>
+</li>
+<li>
+<span><span className="tsd-kind-parameter">file\_data</span>: <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">\[\]</span></span>
+<div className="tsd-comment tsd-typography">
+<p>File data for the files being uploaded, for the respective files in <code>file\_names</code>.</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">options</span>: <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">&gt;</span></span>
+<div className="tsd-comment tsd-typography">
+<p>Optional parameters.</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">callback</span>: <a href="/content/api/typescript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a></span>
+<div className="tsd-comment tsd-typography">
+<p>Optional callback function</p>
+</div>
+</li>
+</ul>
+</div>
+<h4 className="tsd-returns-title">Returns <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/typescript/interfaces/UploadFilesResponse" className="tsd-signature-type tsd-kind-interface">UploadFilesResponse</a><span className="tsd-signature-symbol">&gt;</span></h4>
+<p>Promise&lt;Types.UploadFilesResponse&gt; - Promise resolving to the response</p>
+<div className="aside tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/kineticadb/kinetica-api-typescript/blob/master/src/GPUdb.ts#L14733">src/GPUdb.ts:14733</a></li>
+</ul>
+</div>
+</div>
+</li>
+</ul>
+</div><div className="section tsd-panel tsd-member">
+<h3 className="tsd-anchor-link" id="upload_files_request"><span>upload\_files\_request</span></h3>
+<ul className="tsd-signatures">
+<li className="">
+<div className="tsd-signature tsd-anchor-link" id="upload_files_request-1"><span className="tsd-kind-call-signature">upload\_files\_request</span><span className="tsd-signature-symbol">(</span><br /> <span className="tsd-kind-parameter">request</span><span className="tsd-signature-symbol">:</span> <a href="/content/api/typescript/interfaces/UploadFilesRequest" className="tsd-signature-type tsd-kind-interface">UploadFilesRequest</a><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">callback</span><span className="tsd-signature-symbol">?:</span> <a href="/content/api/typescript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a><span className="tsd-signature-symbol">,</span><br /><span className="tsd-signature-symbol">)</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/typescript/interfaces/UploadFilesResponse" className="tsd-signature-type tsd-kind-interface">UploadFilesResponse</a><span className="tsd-signature-symbol">&gt;</span></div>
+<div className="tsd-description">
+<div className="tsd-comment tsd-typography">
+<p>Uploads one or more files to KiFS. There are two methods for uploading files: load files in their entirety, or load files in parts. The latter is recommended for files of approximately 60 MB or larger.</p>
+<p>To upload files in their entirety, populate <code>file\_names</code> with the file names to upload into on KiFS, and their respective byte content in <code>file\_data</code>.</p>
+<p>Multiple steps are involved when uploading in multiple parts. Only one file at a time can be uploaded in this manner. A user-provided UUID is utilized to tie all the upload steps together for a given file. To upload a file in multiple parts:</p>
+<ol>
+<li>Provide the file name in <code>file\_names</code>, the UUID in the multipart\_upload\_uuid key in <code>options</code>, and a multipart\_operation value of init.</li>
+<li>Upload one or more parts by providing the file name, the part data in <code>file\_data</code>, the UUID, a multipart\_operation value of upload\_part, and the part number in the multipart\_upload\_part\_number. The part numbers must start at 1 and increase incrementally. Parts may not be uploaded out of order.</li>
+<li>Complete the upload by providing the file name, the UUID, and a multipart\_operation value of complete.</li>
+</ol>
+<p>Multipart uploads in progress may be canceled by providing the file name, the UUID, and a multipart\_operation value of cancel. If an new upload is initialized with a different UUID for an existing upload in progress, the pre-existing upload is automatically canceled in favor of the new upload.</p>
+<p>The multipart upload must be completed for the file to be usable in KiFS. Information about multipart uploads in progress is available in <code>show\_files</code>.</p>
+<p>File data may be pre-encoded using base64 encoding. This should be indicated using the file\_encoding option, and is recommended when using JSON serialization.</p>
+<p>Each file path must reside in a top-level KiFS directory, i.e. one of the directories listed in <code>show\_directories</code>. The user must have write permission on the directory. Nested directories are permitted in file name paths. Directories are delineated with the directory separator of '/'. For example, given the file path '/a/b/c/d.txt', 'a' must be a KiFS directory.</p>
+<p>These characters are allowed in file name paths: letters, numbers, spaces, the path delimiter of '/', and the characters: '.' '-' ':' '\[' '\]' '(' ')' '#' '='.</p>
+</div>
+<div className="tsd-parameters">
+<h4 className="tsd-parameters-title">Parameters</h4>
+<ul className="tsd-parameter-list">
+<li>
+<span><span className="tsd-kind-parameter">request</span>: <a href="/content/api/typescript/interfaces/UploadFilesRequest" className="tsd-signature-type tsd-kind-interface">UploadFilesRequest</a></span>
+<div className="tsd-comment tsd-typography">
+<p>Request object containing the parameters for the operation</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">callback</span>: <a href="/content/api/typescript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a></span>
+<div className="tsd-comment tsd-typography">
+<p>Optional callback function</p>
+</div>
+</li>
+</ul>
+</div>
+<h4 className="tsd-returns-title">Returns <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/typescript/interfaces/UploadFilesResponse" className="tsd-signature-type tsd-kind-interface">UploadFilesResponse</a><span className="tsd-signature-symbol">&gt;</span></h4>
+<p>Promise&lt;Types.UploadFilesResponse&gt; - Promise resolving to the response</p>
+<div className="aside tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/kineticadb/kinetica-api-typescript/blob/master/src/GPUdb.ts#L14657">src/GPUdb.ts:14657</a></li>
+</ul>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</div>

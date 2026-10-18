@@ -1,9 +1,36 @@
 ---
 title: "Overview"
-description: "Overview — Kinetica API"
+description: "Overview — Kinetica JavaScript API"
 ---
 
-<div className="kinetica-jsdoc">
-<h1 className="page-title">Home</h1>
-<h3> </h3>
+<div className="kinetica-typedoc">
+<div className="tsd-page-title"> </div>
+<div className="tsd-panel tsd-typography">
+<h1 id="kinetica-javascript-api" className="tsd-anchor-link">Kinetica JavaScript API</h1>
+<p>The JavaScript API for a web page is a single file, <code>dist/standalone/GPUdb.js</code>, available from the <a href="https://github.com/kineticadb/kinetica-api-typescript">kinetica-api-typescript</a> repository and in the <code>@kinetica/gpudb-api</code> npm package. Load it with a <code>&lt;script&gt;</code> tag; it defines a global <code>GPUdb</code> class:</p>
+<div>
+
+```
+<script src="GPUdb.js"></script>
+<script>
+  var gpudb = new GPUdb('http://localhost:9191');
+  gpudb.show_system_properties({}, function (err, data) { console.log(data); });
+</script>
+```
+
+</div>
+<p>Only the <code>GPUdb</code> class is global. Everything else is reached through it: <code>GPUdb.Type</code> (and <code>GPUdb.Type.Column</code>), <code>GPUdb.FileHandler</code>, <code>GPUdb.RingList</code>, <code>GPUdb.encode</code> / <code>decode</code>, <code>GPUdb.END\_OF\_SET</code>, <code>GPUdb.VERSION</code>, and the other static members listed on the class.</p>
+<h2 id="synchronous-calls" className="tsd-anchor-link">Synchronous calls</h2>
+<p>Unlike the npm package's other builds, this file makes <strong>synchronous</strong> requests by default: an endpoint called without a callback blocks and returns its response, as the earlier JavaScript API did. Pass a callback, or construct the client with <code>sync: false</code> to get promises instead:</p>
+<div>
+
+```
+var gpudb = new GPUdb('http://localhost:9191', { sync: false });
+gpudb.show_system_properties({}).then(function (data) { console.log(data); });
+```
+
+</div>
+<p>Synchronous requests block the browser's UI thread and are deprecated by browsers, so treat them as a migration aid. The transport is chosen automatically: <code>fetch</code>, or a blocking <code>XMLHttpRequest</code> for synchronous calls.</p>
+<p>Applications built with a bundler (webpack, Vite, esbuild) should instead install <code>@kinetica/gpudb-api</code> and import it; see the TypeScript API reference.</p>
+</div>
 </div>

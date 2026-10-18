@@ -1,0 +1,111 @@
+---
+title: "aggregate_statistics"
+---
+
+<div className="kinetica-typedoc">
+<div className="section tsd-panel tsd-member">
+<h3 className="tsd-anchor-link" id="aggregate_statistics"><span>aggregate\_statistics</span></h3>
+<ul className="tsd-signatures">
+<li className="">
+<div className="tsd-signature tsd-anchor-link" id="aggregate_statistics-1"><span className="tsd-kind-call-signature">aggregate\_statistics</span><span className="tsd-signature-symbol">(</span><br /> <span className="tsd-kind-parameter">table\_name</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">column\_name</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">stats</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">options</span><span className="tsd-signature-symbol">?:</span> <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">&gt;</span><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">callback</span><span className="tsd-signature-symbol">?:</span> <a href="/content/api/typescript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a><span className="tsd-signature-symbol">,</span><br /><span className="tsd-signature-symbol">)</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/typescript/interfaces/AggregateStatisticsResponse" className="tsd-signature-type tsd-kind-interface">AggregateStatisticsResponse</a><span className="tsd-signature-symbol">&gt;</span></div>
+<div className="tsd-description">
+<div className="tsd-comment tsd-typography">
+<p>Calculates the requested statistics of the given column(s) in a given table.</p>
+<p>The available statistics are: count (number of total objects), mean, stdv (standard deviation), variance, skew, kurtosis, sum, min, max, weighted\_average, cardinality (unique count), estimated\_cardinality, percentile, and percentile\_rank.</p>
+<p>Estimated cardinality is calculated by using the hyperloglog approximation technique.</p>
+<p>Percentiles and percentile ranks are approximate and are calculated using the t-digest algorithm. They must include the desired percentile/percentile\_rank. To compute multiple percentiles each value must be specified separately (i.e. 'percentile(75.0),percentile(99.0),percentile\_rank(1234.56),percentile\_rank(-5)').</p>
+<p>A second, comma-separated value can be added to the percentile statistic to calculate percentile resolution, e.g., a 50th percentile with 200 resolution would be 'percentile(50,200)'.</p>
+<p>The weighted average statistic requires a weight column to be specified in weight\_column\_name. The weighted average is then defined as the sum of the products of <code>column\_name</code> times the weight\_column\_name values divided by the sum of the weight\_column\_name values.</p>
+<p>Additional columns can be used in the calculation of statistics via additional\_column\_names. Values in these columns will be included in the overall aggregate calculation--individual aggregates will not be calculated per additional column. For instance, requesting the count and mean of <code>column\_name</code> x and additional\_column\_names y and z, where x holds the numbers 1-10, y holds 11-20, and z holds 21-30, would return the total number of x, y, and z values (30), and the single average value across all x, y, and z values (15.5).</p>
+<p>The response includes a list of key/value pairs of each statistic requested and its corresponding value.</p>
+</div>
+<div className="tsd-parameters">
+<h4 className="tsd-parameters-title">Parameters</h4>
+<ul className="tsd-parameter-list">
+<li>
+<span><span className="tsd-kind-parameter">table\_name</span>: <span className="tsd-signature-type">string</span></span>
+<div className="tsd-comment tsd-typography">
+<p>Name of the table on which the statistics operation will be performed, in \[schema\_name.\]table\_name format, using standard name resolution rules.</p>
+</div>
+</li>
+<li>
+<span><span className="tsd-kind-parameter">column\_name</span>: <span className="tsd-signature-type">string</span></span>
+<div className="tsd-comment tsd-typography">
+<p>Name of the primary column for which the statistics are to be calculated.</p>
+</div>
+</li>
+<li>
+<span><span className="tsd-kind-parameter">stats</span>: <span className="tsd-signature-type">string</span></span>
+<div className="tsd-comment tsd-typography">
+<p>Comma separated list of the statistics to calculate, e.g. &quot;sum,mean&quot;.</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">options</span>: <span className="tsd-signature-type">Record</span><span className="tsd-signature-symbol">&lt;</span><span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">,</span> <span className="tsd-signature-type">string</span><span className="tsd-signature-symbol">&gt;</span></span>
+<div className="tsd-comment tsd-typography">
+<p>Optional parameters.</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">callback</span>: <a href="/content/api/typescript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a></span>
+<div className="tsd-comment tsd-typography">
+<p>Optional callback function</p>
+</div>
+</li>
+</ul>
+</div>
+<h4 className="tsd-returns-title">Returns <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/typescript/interfaces/AggregateStatisticsResponse" className="tsd-signature-type tsd-kind-interface">AggregateStatisticsResponse</a><span className="tsd-signature-symbol">&gt;</span></h4>
+<p>Promise&lt;Types.AggregateStatisticsResponse&gt; - Promise resolving to the response</p>
+<div className="aside tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/kineticadb/kinetica-api-typescript/blob/master/src/GPUdb.ts#L3403">src/GPUdb.ts:3403</a></li>
+</ul>
+</div>
+</div>
+</li>
+</ul>
+</div><div className="section tsd-panel tsd-member">
+<h3 className="tsd-anchor-link" id="aggregate_statistics_request"><span>aggregate\_statistics\_request</span></h3>
+<ul className="tsd-signatures">
+<li className="">
+<div className="tsd-signature tsd-anchor-link" id="aggregate_statistics_request-1"><span className="tsd-kind-call-signature">aggregate\_statistics\_request</span><span className="tsd-signature-symbol">(</span><br /> <span className="tsd-kind-parameter">request</span><span className="tsd-signature-symbol">:</span> <a href="/content/api/typescript/interfaces/AggregateStatisticsRequest" className="tsd-signature-type tsd-kind-interface">AggregateStatisticsRequest</a><span className="tsd-signature-symbol">,</span><br /> <span className="tsd-kind-parameter">callback</span><span className="tsd-signature-symbol">?:</span> <a href="/content/api/typescript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a><span className="tsd-signature-symbol">,</span><br /><span className="tsd-signature-symbol">)</span><span className="tsd-signature-symbol">:</span> <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/typescript/interfaces/AggregateStatisticsResponse" className="tsd-signature-type tsd-kind-interface">AggregateStatisticsResponse</a><span className="tsd-signature-symbol">&gt;</span></div>
+<div className="tsd-description">
+<div className="tsd-comment tsd-typography">
+<p>Calculates the requested statistics of the given column(s) in a given table.</p>
+<p>The available statistics are: count (number of total objects), mean, stdv (standard deviation), variance, skew, kurtosis, sum, min, max, weighted\_average, cardinality (unique count), estimated\_cardinality, percentile, and percentile\_rank.</p>
+<p>Estimated cardinality is calculated by using the hyperloglog approximation technique.</p>
+<p>Percentiles and percentile ranks are approximate and are calculated using the t-digest algorithm. They must include the desired percentile/percentile\_rank. To compute multiple percentiles each value must be specified separately (i.e. 'percentile(75.0),percentile(99.0),percentile\_rank(1234.56),percentile\_rank(-5)').</p>
+<p>A second, comma-separated value can be added to the percentile statistic to calculate percentile resolution, e.g., a 50th percentile with 200 resolution would be 'percentile(50,200)'.</p>
+<p>The weighted average statistic requires a weight column to be specified in weight\_column\_name. The weighted average is then defined as the sum of the products of <code>column\_name</code> times the weight\_column\_name values divided by the sum of the weight\_column\_name values.</p>
+<p>Additional columns can be used in the calculation of statistics via additional\_column\_names. Values in these columns will be included in the overall aggregate calculation--individual aggregates will not be calculated per additional column. For instance, requesting the count and mean of <code>column\_name</code> x and additional\_column\_names y and z, where x holds the numbers 1-10, y holds 11-20, and z holds 21-30, would return the total number of x, y, and z values (30), and the single average value across all x, y, and z values (15.5).</p>
+<p>The response includes a list of key/value pairs of each statistic requested and its corresponding value.</p>
+</div>
+<div className="tsd-parameters">
+<h4 className="tsd-parameters-title">Parameters</h4>
+<ul className="tsd-parameter-list">
+<li>
+<span><span className="tsd-kind-parameter">request</span>: <a href="/content/api/typescript/interfaces/AggregateStatisticsRequest" className="tsd-signature-type tsd-kind-interface">AggregateStatisticsRequest</a></span>
+<div className="tsd-comment tsd-typography">
+<p>Request object containing the parameters for the operation</p>
+</div>
+</li>
+<li>
+<span><code className="tsd-tag">Optional</code><span className="tsd-kind-parameter">callback</span>: <a href="/content/api/typescript/types/GPUdbCallback" className="tsd-signature-type tsd-kind-type-alias">GPUdbCallback</a></span>
+<div className="tsd-comment tsd-typography">
+<p>Optional callback function</p>
+</div>
+</li>
+</ul>
+</div>
+<h4 className="tsd-returns-title">Returns <span className="tsd-signature-type">Promise</span><span className="tsd-signature-symbol">&lt;</span><a href="/content/api/typescript/interfaces/AggregateStatisticsResponse" className="tsd-signature-type tsd-kind-interface">AggregateStatisticsResponse</a><span className="tsd-signature-symbol">&gt;</span></h4>
+<p>Promise&lt;Types.AggregateStatisticsResponse&gt; - Promise resolving to the response</p>
+<div className="aside tsd-sources">
+<ul>
+<li>Defined in <a href="https://github.com/kineticadb/kinetica-api-typescript/blob/master/src/GPUdb.ts#L3340">src/GPUdb.ts:3340</a></li>
+</ul>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</div>
