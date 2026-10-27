@@ -1,0 +1,330 @@
+---
+title: "WorkerList"
+description: "WorkerList — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/worker_list/index">worker\_list</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L57-L67">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub struct WorkerList {"{"} <span className="comment">/\* private fields \*/</span> {"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>A list of worker URLs to use for multi-head operations.</p>
+<p>The addresses belong to the <strong>connection</strong>, not to this list. A <a href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica"><code>Kinetica</code></a> instance discovers each cluster’s rank addresses, applies the connection’s hostname regex to them, and keeps the result per cluster; this struct is a view onto that, held by a bulk inserter or record retriever.</p>
+<p>It does not resolve or filter addresses of its own. A filter has no coherent meaning here, because it cannot survive a failover: one tuned for a cluster’s addressing may match nothing on the next, and multi-head objects fail over with the connection. Set the regex on the connection instead — see <code>KineticaOptions::set\_hostname\_regex</code> — where it is applied to every cluster as that cluster is discovered.</p>
+<p>The one choice that <span className="em">is</span> meaningful per object is declining multi-head altogether; see <a href="/content/api/rust/worker_list/struct.WorkerList#method.empty" title="associated function gpudb_api::worker_list::WorkerList::empty"><code>WorkerList::empty</code></a>. That names an intent rather than an address, and an intent transfers across clusters where a list of addresses does not.</p>
+<p>Note entry <code>i</code> of this list is rank <code>i + 1</code>; the head rank is not a member, and a rank removed from the cluster keeps its slot as <code>None</code>. The worker indices in the shard routing table are rank numbers, so compacting the list would silently misroute every rank above the hole.</p>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use gpudb_api::{Kinetica, KineticaOptions, WorkerList};
+use std::sync::Arc;
+
+let options = KineticaOptions::new();
+let kinetica = Arc::new(
+    Kinetica::new(vec!["http://localhost:9191".to_string()], options).await?
+);
+
+// Use the addresses the connection discovered for its current cluster
+let worker_list = WorkerList::from_cluster(&kinetica);
+
+// Or decline multi-head for one inserter/retriever, keeping fail-over
+let head_node_only = WorkerList::empty();
+```
+
+</div>
+</div>
+</div>
+<h2 id="implementations" className="section-header">Implementations</h2>
+<div id="implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-WorkerList" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L77-L274">Source</a>
+<h3 className="code-header">impl <a className="struct" href="/content/api/rust/worker_list/struct.WorkerList" title="struct gpudb_api::worker_list::WorkerList">WorkerList</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.empty" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L94-L99">Source</a>
+<h4 className="code-header">pub fn <a href="#method.empty" className="fn">empty</a>() -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Creates an empty <a href="/content/api/rust/worker_list/struct.WorkerList" title="struct gpudb_api::worker_list::WorkerList"><code>WorkerList</code></a>, which declines multi-head operations for the bulk inserter or record retriever it is given to.</p>
+<p>That object will route through the head node for its lifetime. The choice is authoritative: it is not undone when the worker list is rebuilt after a failover or a shard rebalance.</p>
+<p>This is the way to decline multi-head for a single object while keeping the connection’s fail-over. Disabling auto-discovery is not equivalent — it also stops the client discovering the other clusters in an HA ring, so it costs fail-over as well.</p>
+<p>Nothing inside this crate may use this constructor: it is a caller’s way of expressing an intent, and an internal use would silently pin its own list to head-node-only. Internal code wanting a list with no addresses builds one through <a href="/content/api/rust/worker_list/struct.WorkerList#method.with_urls" title="associated function gpudb_api::worker_list::WorkerList::with_urls"><code>WorkerList::with\_urls</code></a> instead.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.from_cluster" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L125-L127">Source</a>
+<h4 className="code-header">pub fn <a href="#method.from_cluster" className="fn">from\_cluster</a>(db: &amp;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Creates a <a href="/content/api/rust/worker_list/struct.WorkerList" title="struct gpudb_api::worker_list::WorkerList"><code>WorkerList</code></a> from the worker rank addresses the given connection has already discovered for the cluster it is currently on.</p>
+<p>This reads the connection’s addresses; it does not query the server or re-resolve them. They were filtered through the connection’s hostname regex when that cluster was discovered, so they already reflect it.</p>
+<p>If the connection has no worker addresses for the current cluster — multi-head is off at the server, or the cluster advertises none this client can use — the list is empty and the object using it operates through the head node.</p>
+<h5 id="arguments">Arguments</h5>
+<ul>
+<li><code>db</code> - The Kinetica instance whose addresses to use</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.is_multi_head_enabled" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L158-L160">Source</a>
+<h4 className="code-header">pub fn <a href="#method.is_multi_head_enabled" className="fn">is\_multi\_head\_enabled</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Whether multi-head operations can be used with this list.</p>
+<h5 id="returns">Returns</h5>
+<p>Whether the list names any worker rank.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.len" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L175-L177">Source</a>
+<h4 className="code-header">pub fn <a href="#method.len" className="fn">len</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the number of workers in the list.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.is_empty" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L180-L182">Source</a>
+<h4 className="code-header">pub fn <a href="#method.is_empty" className="fn">is\_empty</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns <code>true</code> if the worker list is empty.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L194-L196">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get" className="fn">get</a>(&amp;self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a className="struct" href="https://docs.rs/url/2.5.7/url/struct.Url.html" title="struct url::Url">Url</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Gets the URL at the specified index.</p>
+<h5 id="arguments-1">Arguments</h5>
+<ul>
+<li><code>index</code> - The index of the worker URL to get (0-based, corresponds to rank-1)</li>
+</ul>
+<h5 id="returns-1">Returns</h5>
+<p>The URL at the specified index, or <code>None</code> if the rank was removed or the index is out of bounds.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.urls" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L201-L203">Source</a>
+<h4 className="code-header">pub fn <a href="#method.urls" className="fn">urls</a>(&amp;self) -&gt; &amp;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="https://docs.rs/url/2.5.7/url/struct.Url.html" title="struct url::Url">Url</a>&gt;&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns a reference to the underlying vector of URLs.</p>
+<p><code>None</code> entries represent removed worker ranks.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.iter" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L209-L211">Source</a>
+<h4 className="code-header">pub fn <a href="#method.iter" className="fn">iter</a>(&amp;self) -&gt; impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/iter/traits/iterator/trait.Iterator.html" title="trait core::iter::traits::iterator::Iterator">Iterator</a>&lt;Item = &amp;<a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="https://docs.rs/url/2.5.7/url/struct.Url.html" title="struct url::Url">Url</a>&gt;&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns an iterator over the URLs in the worker list.</p>
+<p>This iterator yields references to <code>Option&lt;Url&gt;</code>, where <code>None</code> represents removed worker ranks.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.push" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L218-L220">Source</a>
+<h4 className="code-header">pub fn <a href="#method.push" className="fn">push</a>(&amp;mut self, url: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="https://docs.rs/url/2.5.7/url/struct.Url.html" title="struct url::Url">Url</a>&gt;)</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Adds a URL to the worker list.</p>
+<h5 id="arguments-2">Arguments</h5>
+<ul>
+<li><code>url</code> - The URL to add, or <code>None</code> to add a placeholder for a removed rank</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.add" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L227-L229">Source</a>
+<h4 className="code-header">pub fn <a href="#method.add" className="fn">add</a>(&amp;mut self, url: <a className="struct" href="https://docs.rs/url/2.5.7/url/struct.Url.html" title="struct url::Url">Url</a>)</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Adds a URL to the worker list (convenience method that wraps in <code>Some</code>).</p>
+<h5 id="arguments-3">Arguments</h5>
+<ul>
+<li><code>url</code> - The URL to add</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.to_url_strings" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L248-L253">Source</a>
+<h4 className="code-header">pub fn <a href="#method.to_url_strings" className="fn">to\_url\_strings</a>(&amp;self) -&gt; <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Converts the worker list to a vector of URL strings.</p>
+<p>This method filters out <code>None</code> entries (removed ranks) and returns only the valid URL strings.</p>
+<h5 id="never-use-this-for-shard-routing">Never use this for shard routing</h5>
+<p>The result is <strong>compacted</strong>, so its indices are no longer rank numbers. Routing a sharded record through these indices sends every rank above a removed one to the wrong host. Use <a href="/content/api/rust/worker_list/struct.WorkerList#method.urls" title="method gpudb_api::worker_list::WorkerList::urls"><code>Self::urls</code></a> and index by slot, or let the bulk inserter build its rank mapping from the slot positions. This is only safe where any live worker will do — round-robin distribution, health checks, and the like.</p>
+<h5 id="returns-2">Returns</h5>
+<p>A vector of URL strings for all valid (non-removed) workers.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.into_url_strings" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L268-L273">Source</a>
+<h4 className="code-header">pub fn <a href="#method.into_url_strings" className="fn">into\_url\_strings</a>(self) -&gt; <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Consumes the worker list and returns a vector of URL strings.</p>
+<p>This method filters out <code>None</code> entries (removed ranks) and returns only the valid URL strings.</p>
+<h5 id="never-use-this-for-shard-routing-1">Never use this for shard routing</h5>
+<p>The result is compacted; see <a href="/content/api/rust/worker_list/struct.WorkerList#method.to_url_strings" title="method gpudb_api::worker_list::WorkerList::to_url_strings"><code>Self::to\_url\_strings</code></a> for why that makes it unusable for routing sharded records.</p>
+<h5 id="returns-3">Returns</h5>
+<p>A vector of URL strings for all valid (non-removed) workers.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<h2 id="trait-implementations" className="section-header">Trait Implementations</h2>
+<div id="trait-implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Clone-for-WorkerList" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L56">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> for <a className="struct" href="/content/api/rust/worker_list/struct.WorkerList" title="struct gpudb_api::worker_list::WorkerList">WorkerList</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L56">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone" className="fn">clone</a>(&amp;self) -&gt; <a className="struct" href="/content/api/rust/worker_list/struct.WorkerList" title="struct gpudb_api::worker_list::WorkerList">WorkerList</a></h4>
+</div>
+</div>
+<div className="docblock">Returns a duplicate of the value. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone">Read more</a></div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone_from" className="section method trait-impl">
+<span className="rightside"><span className="since" title="Stable since Rust version 1.0.0, const unstable">1.0.0 (const: <a href="https://github.com/rust-lang/rust/issues/142757" title="Tracking issue for const_clone">unstable</a>)</span> · <a className="src" href="https://doc.rust-lang.org/1.98.1/src/core/clone.rs.html#245-247">Source</a></span>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from" className="fn">clone\_from</a>(&amp;mut self, source: &amp;Self)</h4>
+</div>
+</div>
+<div className="docblock">Performs copy-assignment from <code>source</code>. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Debug-for-WorkerList" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L56">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> for <a className="struct" href="/content/api/rust/worker_list/struct.WorkerList" title="struct gpudb_api::worker_list::WorkerList">WorkerList</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.fmt" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L56">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt" className="fn">fmt</a>(&amp;self, f: &amp;mut <a className="struct" href="https://doc.rust-lang.org/1.98.1/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>&lt;'\_&gt;) -&gt; <a className="type" href="https://doc.rust-lang.org/1.98.1/core/fmt/type.Result.html" title="type core::fmt::Result">Result</a></h4>
+</div>
+</div>
+<div className="docblock">Formats the value using the given formatter. <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Default-for-WorkerList" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L71-L75">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html" title="trait core::default::Default">Default</a> for <a className="struct" href="/content/api/rust/worker_list/struct.WorkerList" title="struct gpudb_api::worker_list::WorkerList">WorkerList</a></h3>
+<div className="docblock">
+<p>The same as <a href="/content/api/rust/worker_list/struct.WorkerList#method.empty" title="associated function gpudb_api::worker_list::WorkerList::empty"><code>WorkerList::empty</code></a>, which declines multi-head operations. Internal code must not use it, as <code>empty</code> says.</p>
+</div>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.default" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L72-L74">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html#tymethod.default" className="fn">default</a>() -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">Returns the “default value” for a type. <a href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html#tymethod.default">Read more</a></div>
+</div>
+</div>
+</div>
+<div id="impl-Eq-for-WorkerList" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L287">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/cmp/trait.Eq.html" title="trait core::cmp::Eq">Eq</a> for <a className="struct" href="/content/api/rust/worker_list/struct.WorkerList" title="struct gpudb_api::worker_list::WorkerList">WorkerList</a></h3>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-PartialEq-for-WorkerList" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L276-L285">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/cmp/trait.PartialEq.html" title="trait core::cmp::PartialEq">PartialEq</a> for <a className="struct" href="/content/api/rust/worker_list/struct.WorkerList" title="struct gpudb_api::worker_list::WorkerList">WorkerList</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.eq" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/worker_list.rs#L282-L284">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/cmp/trait.PartialEq.html#tymethod.eq" className="fn">eq</a>(&amp;self, other: &amp;Self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Two lists are equal when they name the same ranks, holes included.</p>
+<p>The head-node-only intent is deliberately excluded: this compares addresses, and it is what the rebuild paths use to decide whether a cluster’s addresses have actually changed.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.ne" className="section method trait-impl">
+<span className="rightside"><span className="since" title="Stable since Rust version 1.0.0, const unstable">1.0.0 (const: <a href="https://github.com/rust-lang/rust/issues/143800" title="Tracking issue for const_cmp">unstable</a>)</span> · <a className="src" href="https://doc.rust-lang.org/1.98.1/src/core/cmp.rs.html#263">Source</a></span>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/cmp/trait.PartialEq.html#method.ne" className="fn">ne</a>(&amp;self, other: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.reference.html">&amp;Rhs</a>) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">Tests for <code>!=</code>. The default implementation is almost always sufficient, and should not be overridden without very good reason.</div>
+</div>
+</div>
+</div>
+</div>
+</div>

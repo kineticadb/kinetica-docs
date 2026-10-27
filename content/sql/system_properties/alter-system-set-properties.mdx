@@ -351,7 +351,55 @@ disabled, manifests are re-fetched and re-parsed on every scan.
 
 </Accordion>
 
+<Accordion title="file_cache.&lt;cache name&gt;.enabled" id="file_cache<cache-name>enabled" defaultOpen>
+
+Enable or disable the given [file cache](/content/config#config-main-file-cache).  When disabled,
+reads bypass the cache and go directly to their source.
+
+</Accordion>
+
+<Accordion title="file_cache.&lt;cache name&gt;.max_disk_size" id="file_cache<cache-name>max_disk_size" defaultOpen>
+
+Maximum size, in bytes, of the data the given file cache can hold on disk.
+
+</Accordion>
+
+<Accordion title="file_cache.&lt;cache name&gt;.max_memory_size" id="file_cache<cache-name>max_memory_size" defaultOpen>
+
+Maximum size, in bytes, of the data the given file cache can hold in memory.
+
+</Accordion>
+
+<Accordion title="file_cache.&lt;cache name&gt;.stats_window" id="file_cache<cache-name>stats_window" defaultOpen>
+
+Time span, in seconds, over which the given file cache's hit & miss statistics are kept.
+
+</Accordion>
+
+<Accordion title="file_cache.&lt;cache name&gt;.clear" id="file_cache<cache-name>clear" defaultOpen>
+
+Set to `true` to remove all entries from the given file cache, as with
+[CLEAR FILE CACHE](/content/sql/system_properties/clear-file-cache#sql-clear-file-cache).  This is an action, not a setting; it is
+not retained.
+
+</Accordion>
+
+<Accordion title="file_cache.&lt;cache name&gt;.flush" id="file_cache<cache-name>flush" defaultOpen>
+
+Set to `true` to move the entries the given file cache holds in memory to disk, as disk
+space allows, freeing the memory they occupied.  This is an action, not a setting; it is
+not retained.
+
+</Accordion>
+
 </AccordionGroup>
+
+For the `file_cache` properties, `<cache name>` is the name of a file cache
+(currently, only `external_files`), or `default` to apply the change to all
+file caches.  A file cache's `persistence` and `block_size` can only be
+set in the [system configuration](/content/config#config-main-file-cache), not
+while the system is running.  To see a file cache's current settings, use
+[DESCRIBE FILE CACHE](/content/sql/system_properties/describe-file-cache#describe-file-cache).
 
 
 ## Examples
@@ -375,4 +423,21 @@ database is restarted:
 ```sql ALTER SYSTEM SET Default Embedding Model Temporarily Example
 ALTER SYSTEM SET PROPERTIES ('ai_enable_rag' = 'true')
 WITH OPTIONS ('persist' = 'false')
+```
+
+To reduce the memory available to the external files
+[file cache](/content/config#config-main-file-cache) to 1 GB until the database
+is restarted:
+
+{/* Source: /examples/sql/file_cache.kisql (lines 22-23) */}
+```sql ALTER SYSTEM SET File Cache Memory Limit Example
+ALTER SYSTEM SET PROPERTIES ('file_cache.external_files.max_memory_size' = '1073741824')
+WITH OPTIONS ('persist' = 'false')
+```
+
+To move the entries held in memory by all file caches to disk:
+
+{/* Source: /examples/sql/file_cache.kisql (lines 28) */}
+```sql ALTER SYSTEM SET File Cache Flush Example
+ALTER SYSTEM SET PROPERTIES ('file_cache.default.flush' = 'true')
 ```

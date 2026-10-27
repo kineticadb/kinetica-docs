@@ -1,0 +1,88 @@
+---
+title: "avro"
+description: "avro — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/avro.rs#L1-L701">Source</a> </span>
+</div>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>High-performance Avro encoding and decoding utilities.</p>
+<p>This module provides optimized Avro serialization and deserialization using <code>serde\_avro\_fast</code> for best performance, with <code>rayon</code> parallelism for large batches.</p>
+<h2 id="performance">Performance</h2>
+<ul>
+<li><strong>Encoding</strong>: Uses <code>serde\_avro\_fast</code> for 2-3x faster encoding than <code>apache\_avro</code></li>
+<li><strong>Decoding</strong>: Uses <code>serde\_avro\_fast</code> + rayon for up to 8x faster decoding</li>
+<li><strong>Parallelism</strong>: Automatically enabled for batches above threshold (500 records)</li>
+</ul>
+<p>These helpers split large batches over rayon’s threads, with the results of a sequential pass: records come back in order, and a batch with several bad records reports the first of them. Failures read “Could not encode object: …” and “Could not decode object: …”.</p>
+<h2 id="usage">Usage</h2>
+<h3 id="encoding-records">Encoding Records</h3>
+<div>
+
+```rust
+use gpudb_api::avro::{encode_records, parse_fast_schema};
+
+let schema = parse_fast_schema(schema_str)?;
+let encoded: Vec<Vec<u8>> = encode_records(&schema, &records)?;
+```
+
+</div>
+<h3 id="decoding-records">Decoding Records</h3>
+<div>
+
+```rust
+use gpudb_api::avro::{decode_records, parse_fast_schema};
+
+#[derive(serde::Deserialize)]
+struct Employee { id: i32, name: String }
+
+let schema = parse_fast_schema(&response.type_schema)?;
+let employees: Vec<Employee> = decode_records(&schema, &response.records_binary)?;
+```
+
+</div>
+</div>
+</div>
+<h2 id="constants" className="section-header">Constants</h2>
+<div className="dl item-table">
+<div id="constant.PARALLEL_THRESHOLD" className="dt constant-def"><code>pub const PARALLEL\_THRESHOLD: usize = 500;</code></div>
+<div className="dd">
+<p>Threshold for switching to parallel processing. Below this count, sequential processing is faster due to thread spawning overhead. Based on benchmarks: parallel becomes beneficial around 500 records.</p>
+</div>
+</div>
+<h2 id="functions" className="section-header">Functions</h2>
+<div className="dl item-table">
+<div className="dt"><a className="fn" href="/content/api/rust/avro/fn.decode_records" title="fn gpudb_api::avro::decode_records">decode\_<wbr />records</a></div>
+<div className="dd">Decodes binary Avro records to typed Rust structs.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/avro/fn.decode_records_parallel" title="fn gpudb_api::avro::decode_records_parallel">decode\_<wbr />records\_<wbr />parallel</a></div>
+<div className="dd">Decodes binary Avro records in parallel using serde\_avro\_fast + rayon.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/avro/fn.decode_records_sequential" title="fn gpudb_api::avro::decode_records_sequential">decode\_<wbr />records\_<wbr />sequential</a></div>
+<div className="dd">Decodes binary Avro records sequentially using serde\_avro\_fast.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/avro/fn.decode_single" title="fn gpudb_api::avro::decode_single">decode\_<wbr />single</a></div>
+<div className="dd">Decodes a single binary Avro record using a pre-parsed schema.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/avro/fn.decode_with_fast_schema" title="fn gpudb_api::avro::decode_with_fast_schema">decode\_<wbr />with\_<wbr />fast\_<wbr />schema</a></div>
+<div className="dd">Decodes binary Avro records using a pre-parsed serde\_avro\_fast schema.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/avro/fn.encode_arc_records_parallel" title="fn gpudb_api::avro::encode_arc_records_parallel">encode\_<wbr />arc\_<wbr />records\_<wbr />parallel</a></div>
+<div className="dd">Encodes Arc-wrapped records in parallel.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/avro/fn.encode_arc_records_partitioned" title="fn gpudb_api::avro::encode_arc_records_partitioned">encode\_<wbr />arc\_<wbr />records\_<wbr />partitioned</a></div>
+<div className="dd">Encodes Arc-wrapped records, partitioning the batch over threads.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/avro/fn.encode_records" title="fn gpudb_api::avro::encode_records">encode\_<wbr />records</a></div>
+<div className="dd">Encodes records to Avro binary format.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/avro/fn.encode_records_parallel" title="fn gpudb_api::avro::encode_records_parallel">encode\_<wbr />records\_<wbr />parallel</a></div>
+<div className="dd">Encodes records in parallel using serde\_avro\_fast + rayon.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/avro/fn.encode_records_partitioned" title="fn gpudb_api::avro::encode_records_partitioned">encode\_<wbr />records\_<wbr />partitioned</a></div>
+<div className="dd">Encodes records, partitioning the batch over threads (non-Arc version).</div>
+<div className="dt"><a className="fn" href="/content/api/rust/avro/fn.encode_records_sequential" title="fn gpudb_api::avro::encode_records_sequential">encode\_<wbr />records\_<wbr />sequential</a></div>
+<div className="dd">Encodes records sequentially using serde\_avro\_fast.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/avro/fn.encode_single" title="fn gpudb_api::avro::encode_single">encode\_<wbr />single</a></div>
+<div className="dd">Encodes a single record to Avro binary format.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/avro/fn.parse_fast_schema" title="fn gpudb_api::avro::parse_fast_schema">parse\_<wbr />fast\_<wbr />schema</a></div>
+<div className="dd">Parses a schema string into a serde\_avro\_fast Schema for direct use.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/avro/fn.parse_schema" title="fn gpudb_api::avro::parse_schema">parse\_<wbr />schema</a></div>
+<div className="dd">Parses a schema string into a serde\_avro\_fast Schema.</div>
+</div>
+</div>

@@ -1,0 +1,146 @@
+---
+title: "filesystem"
+description: "filesystem — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/mod.rs#L1-L108">Source</a> </span>
+</div>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>KiFS (Kinetica File System) API module.</p>
+<p>This module provides a high-level API for interacting with Kinetica’s distributed file system (KiFS). It supports file uploads, downloads, directory management, and file operations with support for both single-file and multi-part transfers.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li><strong>File Upload</strong>: Upload single files or multiple files with glob pattern support</li>
+<li><strong>File Download</strong>: Download single files or entire directories</li>
+<li><strong>Directory Management</strong>: Create, delete, and list KiFS directories</li>
+<li><strong>Progress Callbacks</strong>: Optional listeners for tracking upload/download progress</li>
+<li><strong>Multi-part Transfers</strong>: Automatic handling of large files using chunked transfers</li>
+<li><strong>Glob Pattern Support</strong>: Use patterns like <code>\*.csv</code> or <code>data/\*\*/\*.json</code> for batch operations</li>
+</ul>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use gpudb_api::{Kinetica, KineticaOptions};
+use gpudb_api::filesystem::{KifsFileHandler, KifsFileHandlerOptions, UploadOptions};
+use std::sync::Arc;
+
+let kinetica = Arc::new(
+    Kinetica::new(vec!["http://localhost:9191".to_string()], KineticaOptions::new()).await?
+);
+
+// Create a file handler
+let handler = KifsFileHandler::new(kinetica, None);
+
+// Create a directory
+handler.create_directory("my_directory", true).await?;
+
+// Upload a file
+handler.upload("/path/to/file.csv", "my_directory", None, None).await?;
+
+// Upload multiple files with glob pattern
+handler.upload("/data/*.csv", "my_directory", None, None).await?;
+
+// Download a file
+handler.download("my_directory/file.csv", "/local/path", None, None).await?;
+
+// List files in a directory
+let files = handler.show_files(vec!["my_directory".to_string()]).await?;
+for file in files {
+    println!("File: {} ({} bytes)", file.file_name, file.file_size);
+}
+
+// Delete a file
+handler.delete_files(vec!["my_directory/file.csv".to_string()], true).await?;
+
+// Delete a directory
+handler.delete_directory("my_directory", true, true).await?;
+```
+
+</div>
+</div>
+</div>
+<h2 id="modules" className="section-header">Modules</h2>
+<div className="dl item-table">
+<div className="dt"><a className="mod" href="/content/api/rust/filesystem/ingest_option/index" title="mod gpudb_api::filesystem::ingest_option">ingest\_<wbr />option</a></div>
+<div className="dd">Names of the ingest options.</div>
+<div className="dt"><a className="mod" href="/content/api/rust/filesystem/table_creation_option/index" title="mod gpudb_api::filesystem::table_creation_option">table\_<wbr />creation\_<wbr />option</a></div>
+<div className="dd">Names of the table creation options.</div>
+</div>
+<h2 id="structs" className="section-header">Structs</h2>
+<div className="dl item-table">
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.DownloadOptions" title="struct gpudb_api::filesystem::DownloadOptions">Download<wbr />Options</a></div>
+<div className="dd">Options for file download operations.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.FnDownloadListener" title="struct gpudb_api::filesystem::FnDownloadListener">FnDownload<wbr />Listener</a></div>
+<div className="dd">A simple download listener that wraps callback functions.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.FnUploadListener" title="struct gpudb_api::filesystem::FnUploadListener">FnUpload<wbr />Listener</a></div>
+<div className="dd">A simple upload listener that wraps callback functions.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.IngestOptions" title="struct gpudb_api::filesystem::IngestOptions">Ingest<wbr />Options</a></div>
+<div className="dd">Options for ingesting files: the options of <code>/insert/records/fromfiles</code>.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.IngestResult" title="struct gpudb_api::filesystem::IngestResult">Ingest<wbr />Result</a></div>
+<div className="dd">What an ingest did.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.KifsDirectoryInfo" title="struct gpudb_api::filesystem::KifsDirectoryInfo">Kifs<wbr />Directory<wbr />Info</a></div>
+<div className="dd">Information about a KiFS directory.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.KifsFileHandler" title="struct gpudb_api::filesystem::KifsFileHandler">Kifs<wbr />File<wbr />Handler</a></div>
+<div className="dd">Main class for interacting with the Kinetica File System (KiFS).</div>
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.KifsFileHandlerOptions" title="struct gpudb_api::filesystem::KifsFileHandlerOptions">Kifs<wbr />File<wbr />Handler<wbr />Options</a></div>
+<div className="dd">Options for the KiFS file handler.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.KifsFileInfo" title="struct gpudb_api::filesystem::KifsFileInfo">Kifs<wbr />File<wbr />Info</a></div>
+<div className="dd">Information about a KiFS file.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.MultiPartDownloadInfo" title="struct gpudb_api::filesystem::MultiPartDownloadInfo">Multi<wbr />Part<wbr />Download<wbr />Info</a></div>
+<div className="dd">Information about a part of a multi-part download.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.MultiPartUploadInfo" title="struct gpudb_api::filesystem::MultiPartUploadInfo">Multi<wbr />Part<wbr />Upload<wbr />Info</a></div>
+<div className="dd">Information about a multi-part upload operation.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.NoOpDownloadListener" title="struct gpudb_api::filesystem::NoOpDownloadListener">NoOp<wbr />Download<wbr />Listener</a></div>
+<div className="dd">A no-op download listener that ignores all callbacks. Useful for operations where progress tracking is not needed.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.NoOpUploadListener" title="struct gpudb_api::filesystem::NoOpUploadListener">NoOp<wbr />Upload<wbr />Listener</a></div>
+<div className="dd">A no-op upload listener that ignores all callbacks. Useful for operations where progress tracking is not needed.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">Operation<wbr />Result</a></div>
+<div className="dd">Result of an upload or download operation.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.TableCreationOptions" title="struct gpudb_api::filesystem::TableCreationOptions">Table<wbr />Creation<wbr />Options</a></div>
+<div className="dd">Options for the table an ingest creates: the create table options of <code>/insert/records/fromfiles</code>.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/filesystem/struct.UploadOptions" title="struct gpudb_api::filesystem::UploadOptions">Upload<wbr />Options</a></div>
+<div className="dd">Options for file upload operations.</div>
+</div>
+<h2 id="enums" className="section-header">Enums</h2>
+<div className="dl item-table">
+<div className="dt"><a className="enum" href="/content/api/rust/filesystem/enum.ErrorHandlingMode" title="enum gpudb_api::filesystem::ErrorHandlingMode">Error<wbr />Handling<wbr />Mode</a></div>
+<div className="dd">How the server handles a record it cannot insert.</div>
+<div className="dt"><a className="enum" href="/content/api/rust/filesystem/enum.FileType" title="enum gpudb_api::filesystem::FileType">File<wbr />Type</a></div>
+<div className="dd">The type of the files ingested.</div>
+<div className="dt"><a className="enum" href="/content/api/rust/filesystem/enum.MultiPartOperation" title="enum gpudb_api::filesystem::MultiPartOperation">Multi<wbr />Part<wbr />Operation</a></div>
+<div className="dd">Multi-part operation stages for upload/download. Where there is no stage, an <code>Option&lt;MultiPartOperation&gt;</code> is <code>None</code>.</div>
+<div className="dt"><a className="enum" href="/content/api/rust/filesystem/enum.OpMode" title="enum gpudb_api::filesystem::OpMode">OpMode</a></div>
+<div className="dd">Indicates whether an operation is an upload or download.</div>
+<div className="dt"><a className="enum" href="/content/api/rust/filesystem/enum.PartitionType" title="enum gpudb_api::filesystem::PartitionType">Partition<wbr />Type</a></div>
+<div className="dd">How a table created for the ingest is partitioned.</div>
+<div className="dt"><a className="enum" href="/content/api/rust/filesystem/enum.TypeInferenceMode" title="enum gpudb_api::filesystem::TypeInferenceMode">Type<wbr />Inference<wbr />Mode</a></div>
+<div className="dd">How the server infers the types of the columns of a table it creates.</div>
+</div>
+<h2 id="constants" className="section-header">Constants</h2>
+<div className="dl item-table">
+<div id="constant.KIFS_PATH_PREFIX" className="dt constant-def"><code>pub const KIFS\_PATH\_PREFIX: &amp;str = &quot;kifs://&quot;;</code></div>
+<div className="dd">
+<p>Prefix to use when referencing KiFS files; e.g., for purposes of file ingest.</p>
+</div>
+<div id="constant.KIFS_PATH_SEPARATOR" className="dt constant-def"><code>pub const KIFS\_PATH\_SEPARATOR: &amp;str = &quot;/&quot;;</code></div>
+<div className="dd">
+<p>Separator character between a KiFS directory and KiFS file name. This can also be used within a file name to create a virtual directory within a path.</p>
+</div>
+<div id="constant.REMOTE_USER_HOME_DIR_PREFIX" className="dt constant-def"><code>pub const REMOTE\_USER\_HOME\_DIR\_PREFIX: &amp;str = &quot;\~&quot;;</code></div>
+<div className="dd">
+<p>Alias for a user’s home directory.</p>
+</div>
+</div>
+<h2 id="traits" className="section-header">Traits</h2>
+<div className="dl item-table">
+<div className="dt"><a className="trait" href="/content/api/rust/filesystem/trait.FileDownloadListener" title="trait gpudb_api::filesystem::FileDownloadListener">File<wbr />Download<wbr />Listener</a></div>
+<div className="dd">Listener trait for file download progress callbacks.</div>
+<div className="dt"><a className="trait" href="/content/api/rust/filesystem/trait.FileUploadListener" title="trait gpudb_api::filesystem::FileUploadListener">File<wbr />Upload<wbr />Listener</a></div>
+<div className="dd">Listener trait for file upload progress callbacks.</div>
+</div>
+</div>

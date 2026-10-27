@@ -48,7 +48,7 @@ The *Kinetica Virtual Catalog* tables reside in the `ki_catalog` schema.
 | [ki_file_cache_stats](#ki-file-cache-stats) | Hit, eviction, & I/O statistics for each file cache, per worker rank. |
 | [ki_fk_constraints](#ki-fk-constraints) | Foreign keys, one record per column specified in each foreign key. |
 | [ki_functions](#ki-functions) | Scalar, aggregate, window, and user-defined functions. |
-| [ki_ha_consumers](#ki-ha-consumers) | Consumer processes of Kafka HA queues. |
+| [ki_ha_consumers](#ki-ha-consumers) | Queues consumed for high availability, and their backlogs. |
 | [ki_indexes](#ki-indexes) | Table indexes and their configuration. |
 | [ki_ingest_file_info](#ki-ingest-file-info) | Name & date of data files loaded into the database. |
 | [ki_internal_stats](#ki-internal-stats) | Internal database measurements, per subsystem & worker rank. |
@@ -271,13 +271,17 @@ depend on all of the *tables* & *views* referenced in its corresponding query.
 
 
 <a id="ki-file-cache-entries"></a>
+
+
+<a id="ki-file-cache-entries-1"></a>
 ### ki_file_cache_entries
 
 
 Each record in `ki_file_cache_entries` represents a single entry held in one
 of the database's file caches on a given worker rank, at the time this catalog
 table was queried.  See [ki_file_cache_stats](#ki-file-cache-stats) for the cumulative statistics of
-the caches themselves.
+the caches themselves, and [CLEAR FILE CACHE](/content/sql/system_properties/clear-file-cache#sql-clear-file-cache)
+to remove all entries from a cache.
 
 
 | Column Name | Column Type | Description |
@@ -290,6 +294,9 @@ the caches themselves.
 
 
 <a id="ki-file-cache-stats"></a>
+
+
+<a id="ki-file-cache-stats-1"></a>
 ### ki_file_cache_stats
 
 
@@ -408,17 +415,24 @@ function, a [UDF/UDTF](/content/sql/udf), or a
 ### ki_ha_consumers
 
 
-Each record in `ki_ha_consumers` represents a process that consumes messages
-from the Kafka HA queues.
+Each record in `ki_ha_consumers` represents a queue that the database consumes for
+[high availability](/content/ha), and how many of its messages are waiting to
+be consumed.  A Kafka queue has one record for each of its partitions; a
+RabbitMQ queue has a single record.
 
 
 | Column Name | Column Type | Description |
 | --- | --- | --- |
-| `queue_name` | `VARCHAR(256)` | Unique name associated with the Kafka HA queue used by this consumer. |
-| `queue_size` | `BIGINT` | Number of messages in the Kafka HA queue waiting to be consumed. |
-| `last_recv_time` | `TIMESTAMP` | Time of the most recently consumed message from the Kafka HA queue. |
-| `last_recv_job_id` | `BIGINT` | Job ID associated with the most recently consumed message from the Kafka HA queue. |
-| `source_rank` | `INTEGER` | Rank on which this HA consumer resides. |
+| `queue_name` | `VARCHAR(256)` | Name of the HA queue. |
+| `role` | `VARCHAR(16)` | What the queue carries: <br/> <br/> * `commands` - all operations in single-consumer mode; operations other than inserts in multi-consumer mode <br/> * `inserts` - inserts in multi-consumer mode, consumed by a group the worker ranks share <br/> * `replay` - this cluster's replay history <br/> * `replay_active` - the queue being replayed, during a disaster recovery replay |
+| `partition_id` | `INTEGER` | Kafka partition of the queue this record represents; null for a RabbitMQ queue, which is represented as a whole. |
+| `consumer_group` | `VARCHAR(256)` | Kafka consumer group whose offsets are reported; null for a RabbitMQ queue and for a replay queue that is not being consumed. |
+| `high_offset` | `BIGINT` | Offset of the next message to be written to the partition; null if it could not be read. |
+| `committed_offset` | `BIGINT` | Most recent offset committed by the consumer group; null if the group has committed none, or if it could not be read. |
+| `queue_size` | `BIGINT` | Number of messages in the partition or queue waiting to be consumed; null if it could not be measured. |
+| `assigned_rank` | `INTEGER` | Rank consuming the partition or queue; null if no single rank is consuming it. |
+| `last_recv_time` | `TIMESTAMP` | Time the consuming rank last received a message. |
+| `last_recv_job_id` | `BIGINT` | Job ID associated with the message the consuming rank last received. |
 
 
 <a id="ki-indexes"></a>
@@ -626,17 +640,14 @@ those in the virtual catalog tables.
 ### ki_partitions
 
 
-Each record in `ki_partitions` represents one chunk of a table's data, as
-held in one tier by one TOM of one worker rank.  Tables that are not
+Each record in `ki_partitions` represents one chunk of a table's data, as held by
+one TOM of one worker rank.  Tables that are not
 [partitioned](/content/concepts/tables#partitioning) are listed as well, with a
 `partition_type` of `NONE`.
 
-A partition normally spans many chunks across ranks, and a chunk held in more
-than one tier (e.g., both `RAM` and `PERSIST`) is listed once per tier, with
-the same `num_rows` in each.  To total the records in a table or partition,
-count each chunk only once; for instance, take the largest `num_rows` among
-the records sharing a `rank_num`, `tom`, `partition_id`, & `chunk_id`,
-and sum those.
+A partition normally spans many chunks across ranks and TOMs.  Each chunk is
+listed once, however many tiers hold a copy of it, so the number of records in
+a table or partition is the sum of `num_rows` over its records.
 
 
 | Column Name | Column Type | Description |
@@ -654,8 +665,8 @@ and sum those.
 | `max_val` | `VARCHAR` | Maximum partition key value contained within this chunk, in its internal (encoded) form. Only reported for some chunks of interval- and series-partitioned tables; empty otherwise. |
 | `num_rows` | `BIGINT` | Number of records in this chunk.  This is a physical count, which includes deleted records until the chunk is compacted, so it can exceed the table's `COUNT(*)`. |
 | `logical_bytes` | `BIGINT` | Size of this chunk's column data, uncompressed, in bytes. |
-| `actual_bytes` | `BIGINT` | Number of bytes this copy of the chunk occupies in its tier, which can differ from `logical_bytes` due to compression and storage overhead. |
-| `tier` | `VARCHAR(32)` | Tier holding this copy of the chunk.  A chunk held in more than one tier has one record for each tier. <br/> <br/> `PERSIST`: [Persist tier](/content/rm/concepts#rm-concepts-tiers-persist) <br/> <br/> `RAM`: [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram) |
+| `actual_bytes` | `BIGINT` | Number of bytes the chunk occupies in the persist tier; if the chunk is not in the persist tier, in a cold storage tier; otherwise, in the first tier listed in `tier`.  This can differ from `logical_bytes` due to compression and storage overhead. |
+| `tier` | `VARCHAR(32)` | Comma-separated list of the tiers holding a copy of this chunk's data, in tier order; e.g., `RAM,PERSIST`.  The tiers are: <br/> <br/> `PERSIST`: [Persist tier](/content/rm/concepts#rm-concepts-tiers-persist) <br/> <br/> `RAM`: [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram) |
 
 
 <a id="ki-periodic-objects"></a>
@@ -885,12 +896,15 @@ Each record in `ki_schemas` represents a
 
 
 <a id="ki-statistics"></a>
+
+
+<a id="ki-statistics-1"></a>
 ### ki_statistics
 
 
 Each record in `ki_statistics` represents the statistics gathered for a
 single column of a table.  Only those columns for which statistics have been
-collected--via
+collected--via [COLLECT STATISTICS](/content/sql/ddl/collect-statistics#sql-collect-statistics) or
 [/collect/statistics](/content/api/rest/collect_statistics_rest)--will be
 represented here; temporary tables are excluded.
 

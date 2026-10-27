@@ -1,0 +1,176 @@
+---
+title: "ShardColumnType"
+description: "ShardColumnType — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/record_key_builder/index">record\_key\_builder</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_key_builder.rs#L35-L56">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub enum ShardColumnType {"{"}<br /><div className="details toggle type-contents-toggle">    Boolean,<br />&nbsp;&nbsp;&nbsp;&nbsp;Int8,<br />&nbsp;&nbsp;&nbsp;&nbsp;Int16,<br />&nbsp;&nbsp;&nbsp;&nbsp;Int,<br />&nbsp;&nbsp;&nbsp;&nbsp;Long,<br />&nbsp;&nbsp;&nbsp;&nbsp;Float,<br />&nbsp;&nbsp;&nbsp;&nbsp;Double,<br />&nbsp;&nbsp;&nbsp;&nbsp;Timestamp,<br />&nbsp;&nbsp;&nbsp;&nbsp;DateTime,<br />&nbsp;&nbsp;&nbsp;&nbsp;Date,<br />&nbsp;&nbsp;&nbsp;&nbsp;Time,<br />&nbsp;&nbsp;&nbsp;&nbsp;Ipv4,<br />&nbsp;&nbsp;&nbsp;&nbsp;Uuid,<br />&nbsp;&nbsp;&nbsp;&nbsp;Ulong,<br />&nbsp;&nbsp;&nbsp;&nbsp;Decimal {"{"}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;precision: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;{"}"},<br />&nbsp;&nbsp;&nbsp;&nbsp;Char {"{"}<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;length: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;{"}"},<br />&nbsp;&nbsp;&nbsp;&nbsp;String,<br /></div>{"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>The type of a shard-key column, resolved once from the table schema.</p>
+<p>This exists so the mapping from column type to key encoding is a <code>match</code> on a fieldless-ish enum rather than on a <code>&amp;str</code>. Both the ingest and look-up paths dispatch through \[<code>add\_shard\_value</code>\], and an enum makes a missing arm a compile error in both.</p>
+<p>It was a <code>String</code> matched with <code>match ….as\_str()</code>, which meant every dispatch needed a <code>\_</code> catch-all — and the catch-all silently absorbed <code>decimal</code> and <code>ulong</code> on the look-up path, hashing them as strings while ingest encoded them numerically. Records went to one rank and look-ups to another.</p>
+<p>The decimal and char parameters live in the variants rather than in side tables keyed by column index, so a type can no longer be separated from the parameters it needs to encode.</p>
+</div>
+</div>
+<h2 id="variants" className="variants section-header">Variants</h2>
+<div className="variants">
+<div id="variant.Boolean" className="section variant">
+<h3 className="code-header">Boolean</h3>
+</div>
+<div id="variant.Int8" className="section variant">
+<h3 className="code-header">Int8</h3>
+</div>
+<div id="variant.Int16" className="section variant">
+<h3 className="code-header">Int16</h3>
+</div>
+<div id="variant.Int" className="section variant">
+<h3 className="code-header">Int</h3>
+</div>
+<div id="variant.Long" className="section variant">
+<h3 className="code-header">Long</h3>
+</div>
+<div id="variant.Float" className="section variant">
+<h3 className="code-header">Float</h3>
+</div>
+<div id="variant.Double" className="section variant">
+<h3 className="code-header">Double</h3>
+</div>
+<div id="variant.Timestamp" className="section variant">
+<h3 className="code-header">Timestamp</h3>
+</div>
+<div id="variant.DateTime" className="section variant">
+<h3 className="code-header">DateTime</h3>
+</div>
+<div id="variant.Date" className="section variant">
+<h3 className="code-header">Date</h3>
+</div>
+<div id="variant.Time" className="section variant">
+<h3 className="code-header">Time</h3>
+</div>
+<div id="variant.Ipv4" className="section variant">
+<h3 className="code-header">Ipv4</h3>
+</div>
+<div id="variant.Uuid" className="section variant">
+<h3 className="code-header">Uuid</h3>
+</div>
+<div id="variant.Ulong" className="section variant">
+<h3 className="code-header">Ulong</h3>
+</div>
+<div id="variant.Decimal" className="section variant">
+<h3 className="code-header">Decimal</h3>
+</div>
+<div className="sub-variant" id="variant.Decimal.fields">
+<h4>Fields</h4>
+<div className="sub-variant-field"><span id="variant.Decimal.field.precision" className="section-header"><code>precision: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></code></span></div>
+<div className="sub-variant-field"><span id="variant.Decimal.field.scale" className="section-header"><code>scale: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></code></span></div>
+</div>
+<div id="variant.Char" className="section variant">
+<h3 className="code-header">Char</h3>
+</div>
+<div className="sub-variant" id="variant.Char.fields">
+<h4>Fields</h4>
+<div className="sub-variant-field"><span id="variant.Char.field.length" className="section-header"><code>length: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></code></span></div>
+</div>
+<div id="variant.String" className="section variant">
+<h3 className="code-header">String</h3>
+</div>
+<div className="docblock">
+<p>Anything else, hashed as a string. This is the encoding for <code>string</code> columns and the fallback for a type the server adds that this client does not know yet.</p>
+</div>
+</div>
+<h2 id="trait-implementations" className="section-header">Trait Implementations</h2>
+<div id="trait-implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Clone-for-ShardColumnType" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_key_builder.rs#L34">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> for <a className="enum" href="/content/api/rust/record_key_builder/enum.ShardColumnType" title="enum gpudb_api::record_key_builder::ShardColumnType">ShardColumnType</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_key_builder.rs#L34">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone" className="fn">clone</a>(&amp;self) -&gt; <a className="enum" href="/content/api/rust/record_key_builder/enum.ShardColumnType" title="enum gpudb_api::record_key_builder::ShardColumnType">ShardColumnType</a></h4>
+</div>
+</div>
+<div className="docblock">Returns a duplicate of the value. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone">Read more</a></div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone_from" className="section method trait-impl">
+<span className="rightside"><span className="since" title="Stable since Rust version 1.0.0, const unstable">1.0.0 (const: <a href="https://github.com/rust-lang/rust/issues/142757" title="Tracking issue for const_clone">unstable</a>)</span> · <a className="src" href="https://doc.rust-lang.org/1.98.1/src/core/clone.rs.html#245-247">Source</a></span>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from" className="fn">clone\_from</a>(&amp;mut self, source: &amp;Self)</h4>
+</div>
+</div>
+<div className="docblock">Performs copy-assignment from <code>source</code>. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from">Read more</a></div>
+</div>
+</div>
+</div>
+<div id="impl-Copy-for-ShardColumnType" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_key_builder.rs#L34">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Copy.html" title="trait core::marker::Copy">Copy</a> for <a className="enum" href="/content/api/rust/record_key_builder/enum.ShardColumnType" title="enum gpudb_api::record_key_builder::ShardColumnType">ShardColumnType</a></h3>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Debug-for-ShardColumnType" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_key_builder.rs#L34">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> for <a className="enum" href="/content/api/rust/record_key_builder/enum.ShardColumnType" title="enum gpudb_api::record_key_builder::ShardColumnType">ShardColumnType</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.fmt" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_key_builder.rs#L34">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt" className="fn">fmt</a>(&amp;self, f: &amp;mut <a className="struct" href="https://doc.rust-lang.org/1.98.1/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>&lt;'\_&gt;) -&gt; <a className="type" href="https://doc.rust-lang.org/1.98.1/core/fmt/type.Result.html" title="type core::fmt::Result">Result</a></h4>
+</div>
+</div>
+<div className="docblock">Formats the value using the given formatter. <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt">Read more</a></div>
+</div>
+</div>
+</div>
+<div id="impl-Eq-for-ShardColumnType" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_key_builder.rs#L34">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/cmp/trait.Eq.html" title="trait core::cmp::Eq">Eq</a> for <a className="enum" href="/content/api/rust/record_key_builder/enum.ShardColumnType" title="enum gpudb_api::record_key_builder::ShardColumnType">ShardColumnType</a></h3>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-PartialEq-for-ShardColumnType" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_key_builder.rs#L34">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/cmp/trait.PartialEq.html" title="trait core::cmp::PartialEq">PartialEq</a> for <a className="enum" href="/content/api/rust/record_key_builder/enum.ShardColumnType" title="enum gpudb_api::record_key_builder::ShardColumnType">ShardColumnType</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.eq" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_key_builder.rs#L34">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/cmp/trait.PartialEq.html#tymethod.eq" className="fn">eq</a>(&amp;self, other: &amp;<a className="enum" href="/content/api/rust/record_key_builder/enum.ShardColumnType" title="enum gpudb_api::record_key_builder::ShardColumnType">ShardColumnType</a>) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">Tests for <code>self</code> and <code>other</code> values to be equal, and is used by <code>==</code>.</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.ne" className="section method trait-impl">
+<span className="rightside"><span className="since" title="Stable since Rust version 1.0.0, const unstable">1.0.0 (const: <a href="https://github.com/rust-lang/rust/issues/143800" title="Tracking issue for const_cmp">unstable</a>)</span> · <a className="src" href="https://doc.rust-lang.org/1.98.1/src/core/cmp.rs.html#263">Source</a></span>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/cmp/trait.PartialEq.html#method.ne" className="fn">ne</a>(&amp;self, other: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.reference.html">&amp;Rhs</a>) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">Tests for <code>!=</code>. The default implementation is almost always sufficient, and should not be overridden without very good reason.</div>
+</div>
+</div>
+</div>
+<div id="impl-StructuralPartialEq-for-ShardColumnType" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_key_builder.rs#L34">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.StructuralPartialEq.html" title="trait core::marker::StructuralPartialEq">StructuralPartialEq</a> for <a className="enum" href="/content/api/rust/record_key_builder/enum.ShardColumnType" title="enum gpudb_api::record_key_builder::ShardColumnType">ShardColumnType</a></h3>
+</div>
+</div>
+</div>

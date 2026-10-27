@@ -1,0 +1,159 @@
+---
+title: "GetGraphEntitiesResponse"
+description: "GetGraphEntitiesResponse — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/generated/index">generated</a>::<wbr /><a href="/content/api/rust/generated/api/index">api</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14617-L14685">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub struct GetGraphEntitiesResponse {"{"}<br />&nbsp;&nbsp;&nbsp;&nbsp;pub result: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub entities\_int: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>&gt;,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub entities\_string: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub entities\_double: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.f64.html">f64</a>&gt;,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub entities\_weight: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.f32.html">f32</a>&gt;,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub labels: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub info: <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,<br />{"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>The response from the <code>/get/graph/entities</code> endpoint.</p>
+</div>
+</div>
+<h2 id="fields" className="fields section-header">Fields</h2>
+<span id="structfield.result" className="structfield section-header"><code>result: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></code></span>
+<div className="docblock">
+<p>Indicates a successful retrieval.</p>
+</div>
+<span id="structfield.entities_int" className="structfield section-header"><code>entities\_int: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>&gt;</code></span>
+<div className="docblock">
+<p>Flat array of entity data for integer-identifier graphs with a repeating stride. For node entities (stride 2): \[node\_id, label\_index, …\]. For edge entities (stride 4): \[edge\_id, node1\_id, node2\_id, label\_index, …\]. Populated when the graph uses integer identifiers; empty otherwise. The label\_index is a 1-based index into the <code>labels</code> array; 0 indicates no label. When the request option ‘concise\_edge\_connectivity’ is ‘true’, this array is also used (regardless of graph identifier type) for edge entities and carries \[edge\_id, node1\_index, node2\_index, edge\_label\_index\] where node1\_index/node2\_index are 0-based positions into the node array returned from a paired node call on the same graph.</p>
+</div>
+<span id="structfield.entities_string" className="structfield section-header"><code>entities\_string: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</code></span>
+<div className="docblock">
+<p>Flat array of entity data for name-identifier (string) graphs only. For node entities (stride 2): \[node\_name, label\_index, …\]. For edge entities (stride 4): \[edge\_id, node1\_name, node2\_name, label\_index, …\]. Populated only when the graph uses string identifiers. Empty for integer-identifier graphs (data goes to <code>entities\_int</code>) and for WKT/geo-XY graphs (data always goes to <code>entities\_double</code> — ‘POINT(x y)’ strings are never emitted). The label\_index is a string representation of a 1-based index into the <code>labels</code> array; ‘0’ indicates no label.</p>
+</div>
+<span id="structfield.entities_double" className="structfield section-header"><code>entities\_double: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.f64.html">f64</a>&gt;</code></span>
+<div className="docblock">
+<p>Compact double-packed payload for WKT (geo/XY) graphs. WKT graphs ALWAYS use this array — ‘POINT(x y)’ strings are never emitted anywhere. Stride 3 for nodes: \[x, y, label\_index, …\]. Stride 6 for edges (non-concise): \[edge\_id, x0, y0, x1, y1, label\_index, …\]. Empty for non-WKT graphs and when concise mode emits edges into <code>entities\_int</code> instead. label\_index/edge\_id occupy double slots (representable exactly up to 2^53). When ‘concise\_edge\_connectivity’ is ‘true’ and entity\_type is ‘node’, tombstoned (deleted) WKT slots emit \[0.0, 0.0, 0.0\] to keep position indices stable. Roughly 4x smaller on the wire than ‘POINT(x y)’ strings and avoids any client-side regex parse.</p>
+</div>
+<span id="structfield.entities_weight" className="structfield section-header"><code>entities\_weight: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.f32.html">f32</a>&gt;</code></span>
+<div className="docblock">
+<p>Per-edge weight values, populated only when the request option ‘include\_weights’ is ‘true’ and <code>options entity\_type</code> is ‘edge’. Stride 1, aligned 1:1 with the edge records emitted in <code>entities\_int</code> or <code>entities\_string</code> (i.e. the i-th weight corresponds to the i-th edge record). Empty when the graph has no weights component, when requesting nodes, or when the option is not set. Single-precision float matches the graph server’s native weight storage.</p>
+</div>
+<span id="structfield.labels" className="structfield section-header"><code>labels: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</code></span>
+<div className="docblock">
+<p>Array of distinct label strings. The label\_index values in <code>entities\_int</code>, <code>entities\_string</code>, or <code>entities\_double</code> are 1-based indexes into this array; index 0 means no label.</p>
+</div>
+<span id="structfield.info" className="structfield section-header"><code>info: <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</code></span>
+<div className="docblock">
+<p>Additional information map. Contains the following keys: ‘identifier\_type’ — describes the graph’s native node identifier type: ‘int’, ‘string’, or ‘wkt’ (geo/XY graph). ‘payload\_type’ — describes which array actually holds this response payload: ‘int’ (<code>entities\_int</code>), ‘string’ (<code>entities\_string</code>), or ‘double’ (<code>entities\_double</code>). WKT graphs ALWAYS use ‘double’ for both nodes and edges — ‘POINT(x y)’ strings are never emitted. In concise edge mode payload\_type is ‘int’ regardless of graph type. Clients should dispatch on ‘payload\_type’, not ‘identifier\_type’, to parse the response. ‘total\_count’ — total number of entities available in the graph for the requested entity\_type, used for pagination; this is the live (non-deleted) count by default, or the raw count (including deleted slots) when ‘concise\_edge\_connectivity’ is true for a node request. ‘status\_message’ — set to ‘Cancelled’ if the request was cancelled mid-iteration (with <code>result</code> set to false). ‘concise\_edge\_connectivity’ — set to ‘true’ when the response was produced with the concise option (edges emitted as \[edge\_id, v0\_index, v1\_index, label\_idx\] in <code>entities\_int</code>; WKT-graph nodes emitted as \[x, y, label\_idx\] in <code>entities\_double</code>; non-WKT nodes still in their native array; node output includes deleted slots to keep indices stable). ‘include\_weights’ — set to ‘true’ when <code>entities\_weight</code> is populated.</p>
+</div>
+<h2 id="trait-implementations" className="section-header">Trait Implementations</h2>
+<div id="trait-implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Clone-for-GetGraphEntitiesResponse" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14616">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GetGraphEntitiesResponse" title="struct gpudb_api::generated::api::GetGraphEntitiesResponse">GetGraphEntitiesResponse</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14616">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone" className="fn">clone</a>(&amp;self) -&gt; <a className="struct" href="/content/api/rust/generated/api/struct.GetGraphEntitiesResponse" title="struct gpudb_api::generated::api::GetGraphEntitiesResponse">GetGraphEntitiesResponse</a></h4>
+</div>
+</div>
+<div className="docblock">Returns a duplicate of the value. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone">Read more</a></div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone_from" className="section method trait-impl">
+<span className="rightside"><span className="since" title="Stable since Rust version 1.0.0, const unstable">1.0.0 (const: <a href="https://github.com/rust-lang/rust/issues/142757" title="Tracking issue for const_clone">unstable</a>)</span> · <a className="src" href="https://doc.rust-lang.org/1.98.1/src/core/clone.rs.html#245-247">Source</a></span>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from" className="fn">clone\_from</a>(&amp;mut self, source: &amp;Self)</h4>
+</div>
+</div>
+<div className="docblock">Performs copy-assignment from <code>source</code>. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Debug-for-GetGraphEntitiesResponse" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14616">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GetGraphEntitiesResponse" title="struct gpudb_api::generated::api::GetGraphEntitiesResponse">GetGraphEntitiesResponse</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.fmt" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14616">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt" className="fn">fmt</a>(&amp;self, f: &amp;mut <a className="struct" href="https://doc.rust-lang.org/1.98.1/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>&lt;'\_&gt;) -&gt; <a className="type" href="https://doc.rust-lang.org/1.98.1/core/fmt/type.Result.html" title="type core::fmt::Result">Result</a></h4>
+</div>
+</div>
+<div className="docblock">Formats the value using the given formatter. <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Default-for-GetGraphEntitiesResponse" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14616">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html" title="trait core::default::Default">Default</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GetGraphEntitiesResponse" title="struct gpudb_api::generated::api::GetGraphEntitiesResponse">GetGraphEntitiesResponse</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.default" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14616">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html#tymethod.default" className="fn">default</a>() -&gt; <a className="struct" href="/content/api/rust/generated/api/struct.GetGraphEntitiesResponse" title="struct gpudb_api::generated::api::GetGraphEntitiesResponse">GetGraphEntitiesResponse</a></h4>
+</div>
+</div>
+<div className="docblock">Returns the “default value” for a type. <a href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html#tymethod.default">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Deserialize%3C'de%3E-for-GetGraphEntitiesResponse" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14616">Source</a>
+<h3 className="code-header">impl&lt;'de&gt; <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/de/trait.Deserialize.html" title="trait serde_core::de::Deserialize">Deserialize</a>&lt;'de&gt; for <a className="struct" href="/content/api/rust/generated/api/struct.GetGraphEntitiesResponse" title="struct gpudb_api::generated::api::GetGraphEntitiesResponse">GetGraphEntitiesResponse</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.deserialize" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14616">Source</a>
+<h4 className="code-header">
+fn <a href="https://docs.rs/serde_core/1.0.228/serde_core/de/trait.Deserialize.html#tymethod.deserialize" className="fn">deserialize</a>&lt;\_\_D&gt;(\_\_deserializer: \_\_D) -&gt;<a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, \_\_D::<a className="associatedtype" href="https://docs.rs/serde_core/1.0.228/serde_core/de/trait.Deserializer.html#associatedtype.Error" title="type serde_core::de::Deserializer::Error">Error</a>&gt;
+<div className="where">where \_\_D: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/de/trait.Deserializer.html" title="trait serde_core::de::Deserializer">Deserializer</a>&lt;'de&gt;,</div>
+</h4>
+</div>
+</div>
+<div className="docblock">Deserialize this value from the given Serde deserializer. <a href="https://docs.rs/serde_core/1.0.228/serde_core/de/trait.Deserialize.html#tymethod.deserialize">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Serialize-for-GetGraphEntitiesResponse" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14616">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html" title="trait serde_core::ser::Serialize">Serialize</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GetGraphEntitiesResponse" title="struct gpudb_api::generated::api::GetGraphEntitiesResponse">GetGraphEntitiesResponse</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.serialize" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14616">Source</a>
+<h4 className="code-header">
+fn <a href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html#tymethod.serialize" className="fn">serialize</a>&lt;\_\_S&gt;(&amp;self, \_\_serializer: \_\_S) -&gt;<a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;\_\_S::<a className="associatedtype" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serializer.html#associatedtype.Ok" title="type serde_core::ser::Serializer::Ok">Ok</a>, \_\_S::<a className="associatedtype" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serializer.html#associatedtype.Error" title="type serde_core::ser::Serializer::Error">Error</a>&gt;
+<div className="where">where \_\_S: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serializer.html" title="trait serde_core::ser::Serializer">Serializer</a>,</div>
+</h4>
+</div>
+</div>
+<div className="docblock">Serialize this value into the given Serde serializer. <a href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html#tymethod.serialize">Read more</a></div>
+</div>
+</div>
+</div>
+</div>
+</div>

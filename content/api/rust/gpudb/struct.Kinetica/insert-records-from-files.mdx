@@ -1,0 +1,96 @@
+---
+title: "insert_records_from_files"
+---
+
+<div className="kinetica-rustdoc">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.insert_records_from_files" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/insert_records_from_files.rs#L73-L91">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/insert-records-from-files#method.insert_records_from_files" className="fn">insert\_records\_from\_files</a>( &amp;self, table\_name: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, filepaths: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, modify\_columns: <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;&gt;, create\_table\_options: <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.InsertRecordsFromFilesResponse" title="struct gpudb_api::generated::api::InsertRecordsFromFilesResponse">InsertRecordsFromFilesResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Insert records from one or more files into the specified target table</p>
+<p>Reads from one or more files and inserts the data into a new or existing table. The source data can be located either in KiFS; on the cluster, accessible to the database; or remotely, accessible via a pre-defined external data source.</p>
+<p>For delimited text files, there are two loading schemes: positional and name-based. The name-based loading scheme is enabled when the file has a header present and text\_has\_header is set to true. In this scheme, the source file(s) field names must match the target table’s column names exactly; however, the source file can have more fields than the target table has columns. If error\_handling is set to permissive, the source file can have fewer fields than the target table has columns. If the name-based loading scheme is being used, names matching the file header’s names may be provided to columns\_to\_load instead of numbers, but ranges are not supported.</p>
+<p>Note: Due to data being loaded in parallel, there is no insertion order guaranteed. For tables with primary keys, in the case of a primary key collision, this means it is indeterminate which record will be inserted first and remain, while the rest of the colliding key records are discarded.</p>
+<p>Returns once all files are processed.</p>
+<h5 id="arguments-298">Arguments</h5>
+<ul>
+<li>
+<p><code>table\_name</code> - Name of the table into which the data will be inserted, in \[schema\_name.\]table\_name format, using standard name resolution rules. If the table does not exist, the table will be created using either an existing type\_id or the type inferred from the file, and the new table name will have to meet standard table naming criteria.</p>
+</li>
+<li>
+<p><code>filepaths</code> - A list of file paths from which data will be sourced;</p>
+<p>For paths in KiFS, use the URI prefix of kifs:// followed by the path to a file or directory. File matching by prefix is supported, e.g. kifs://dir/file would match dir/file\_1 and dir/file\_2. When prefix matching is used, the path must start with a full, valid KiFS directory name.</p>
+<p>If an external data source is specified in datasource\_name, these file paths must resolve to accessible files at that data source location. Prefix matching is supported. If the data source is hdfs, prefixes must be aligned with directories, i.e. partial file names will not match.</p>
+<p>If no data source is specified, the files are assumed to be local to the database and must all be accessible to the gpudb user, residing on the path (or relative to the path) specified by the external files directory in the Kinetica configuration file. Wildcards (\*) can be used to specify a group of files. Prefix matching is supported, the prefixes must be aligned with directories.</p>
+<p>If the first path ends in .tsv, the text delimiter will be defaulted to a tab character. If the first path ends in .psv, the text delimiter will be defaulted to a pipe character (|).</p>
+</li>
+<li>
+<p><code>modify\_columns</code> - Not implemented yet.</p>
+</li>
+<li>
+<p><code>create\_table\_options</code> - Options from <code>/create/table</code>, allowing the structure of the table to be defined independently of the data source, when creating the target table</p>
+</li>
+</ul>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.insert_records_from_files_with_opts" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/insert_records_from_files.rs#L156-L181">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/insert-records-from-files#method.insert_records_from_files_with_opts" className="fn">insert\_records\_from\_files\_with\_opts</a>( &amp;self, table\_name: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, filepaths: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, modify\_columns: <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;&gt;, create\_table\_options: <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, options: <a className="struct" href="/content/api/rust/generated/api/struct.InsertRecordsFromFilesRequestOptions" title="struct gpudb_api::generated::api::InsertRecordsFromFilesRequestOptions">InsertRecordsFromFilesRequestOptions</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.InsertRecordsFromFilesResponse" title="struct gpudb_api::generated::api::InsertRecordsFromFilesResponse">InsertRecordsFromFilesResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Insert records from one or more files into the specified target table</p>
+<p>Reads from one or more files and inserts the data into a new or existing table. The source data can be located either in KiFS; on the cluster, accessible to the database; or remotely, accessible via a pre-defined external data source.</p>
+<p>For delimited text files, there are two loading schemes: positional and name-based. The name-based loading scheme is enabled when the file has a header present and text\_has\_header is set to true. In this scheme, the source file(s) field names must match the target table’s column names exactly; however, the source file can have more fields than the target table has columns. If error\_handling is set to permissive, the source file can have fewer fields than the target table has columns. If the name-based loading scheme is being used, names matching the file header’s names may be provided to columns\_to\_load instead of numbers, but ranges are not supported.</p>
+<p>Note: Due to data being loaded in parallel, there is no insertion order guaranteed. For tables with primary keys, in the case of a primary key collision, this means it is indeterminate which record will be inserted first and remain, while the rest of the colliding key records are discarded.</p>
+<p>Returns once all files are processed.</p>
+<h5 id="arguments-299">Arguments</h5>
+<ul>
+<li>
+<p><code>table\_name</code> - Name of the table into which the data will be inserted, in \[schema\_name.\]table\_name format, using standard name resolution rules. If the table does not exist, the table will be created using either an existing type\_id or the type inferred from the file, and the new table name will have to meet standard table naming criteria.</p>
+</li>
+<li>
+<p><code>filepaths</code> - A list of file paths from which data will be sourced;</p>
+<p>For paths in KiFS, use the URI prefix of kifs:// followed by the path to a file or directory. File matching by prefix is supported, e.g. kifs://dir/file would match dir/file\_1 and dir/file\_2. When prefix matching is used, the path must start with a full, valid KiFS directory name.</p>
+<p>If an external data source is specified in datasource\_name, these file paths must resolve to accessible files at that data source location. Prefix matching is supported. If the data source is hdfs, prefixes must be aligned with directories, i.e. partial file names will not match.</p>
+<p>If no data source is specified, the files are assumed to be local to the database and must all be accessible to the gpudb user, residing on the path (or relative to the path) specified by the external files directory in the Kinetica configuration file. Wildcards (\*) can be used to specify a group of files. Prefix matching is supported, the prefixes must be aligned with directories.</p>
+<p>If the first path ends in .tsv, the text delimiter will be defaulted to a tab character. If the first path ends in .psv, the text delimiter will be defaulted to a pipe character (|).</p>
+</li>
+<li>
+<p><code>modify\_columns</code> - Not implemented yet.</p>
+</li>
+<li>
+<p><code>create\_table\_options</code> - Options from <code>/create/table</code>, allowing the structure of the table to be defined independently of the data source, when creating the target table</p>
+</li>
+<li>
+<p><code>options</code> - The optional parameters; any left unset take the server’s defaults.</p>
+</li>
+</ul>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.insert_records_from_files_raw" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/insert_records_from_files.rs#L184-L195">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/insert-records-from-files#method.insert_records_from_files_raw" className="fn">insert\_records\_from\_files\_raw</a>( &amp;self, request: &amp;<a className="struct" href="/content/api/rust/generated/api/struct.InsertRecordsFromFilesRequest" title="struct gpudb_api::generated::api::InsertRecordsFromFilesRequest">InsertRecordsFromFilesRequest</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.InsertRecordsFromFilesResponse" title="struct gpudb_api::generated::api::InsertRecordsFromFilesResponse">InsertRecordsFromFilesResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sends a pre-built <a href="/content/api/rust/generated/api/struct.InsertRecordsFromFilesRequest" title="struct gpudb_api::generated::api::InsertRecordsFromFilesRequest"><code>InsertRecordsFromFilesRequest</code></a> to the <code>/insert/records/fromfiles</code> endpoint.</p>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.insert_records_from_files_from_url" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/insert_records_from_files.rs#L199-L211">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/insert-records-from-files#method.insert_records_from_files_from_url" className="fn">insert\_records\_from\_files\_from\_url</a>( &amp;self, url: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, request: &amp;<a className="struct" href="/content/api/rust/generated/api/struct.InsertRecordsFromFilesRequest" title="struct gpudb_api::generated::api::InsertRecordsFromFilesRequest">InsertRecordsFromFilesRequest</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.InsertRecordsFromFilesResponse" title="struct gpudb_api::generated::api::InsertRecordsFromFilesResponse">InsertRecordsFromFilesResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sends a pre-built <a href="/content/api/rust/generated/api/struct.InsertRecordsFromFilesRequest" title="struct gpudb_api::generated::api::InsertRecordsFromFilesRequest"><code>InsertRecordsFromFilesRequest</code></a> to a specific worker URL, bypassing HA head-node selection. Used for multi-head access.</p>
+</div>
+</div>
+</div>

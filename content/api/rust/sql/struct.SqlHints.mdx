@@ -1,0 +1,529 @@
+---
+title: "SqlHints"
+description: "SqlHints — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/sql/index">sql</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L177-L216">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub struct SqlHints {"{"} <span className="comment">/\* private fields \*/</span> {"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>SQL hints that can be embedded in statements or passed as execute\_sql options.</p>
+<p>Kinetica supports SQL hints (KI\_HINT) that can be added as comments within queries to control query execution behavior. This struct provides a builder interface for configuring hints programmatically.</p>
+<h2 id="hint-types">Hint Types</h2>
+<p>There are two ways to apply hints:</p>
+<ol>
+<li><strong>Inline hints</strong>: Embedded in the SQL statement as comments (<code>/\* KI\_HINT\_... \*/</code>)</li>
+<li><strong>Options hints</strong>: Passed in the <code>options</code> map of the execute\_sql API</li>
+</ol>
+<p>This struct supports both approaches.</p>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use gpudb_api::SqlHints;
+
+// Create hints for upsert operation
+let hints = SqlHints::new()
+    .update_on_existing_pk(true)
+    .distributed_operations(true);
+
+// Convert to inline SQL comment
+let sql_with_hints = format!(
+    "INSERT INTO my_table {} (id, name) VALUES (1, 'test')",
+    hints.to_inline_hint()
+);
+// Result: "INSERT INTO my_table /* KI_HINT_UPDATE_ON_EXISTING_PK */ (id, name) VALUES (1, 'test')"
+
+// Or convert to options map for execute_sql API
+let options = hints.to_options_map();
+```
+
+</div>
+</div>
+</div>
+<h2 id="implementations" className="section-header">Implementations</h2>
+<div id="implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-SqlHints" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L218-L640">Source</a>
+<h3 className="code-header">impl <a className="struct" href="/content/api/rust/sql/struct.SqlHints" title="struct gpudb_api::sql::SqlHints">SqlHints</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.new" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L220-L222">Source</a>
+<h4 className="code-header">pub fn <a href="#method.new" className="fn">new</a>() -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Create a new empty SqlHints builder.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.update_on_existing_pk" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L239-L242">Source</a>
+<h4 className="code-header">pub fn <a href="#method.update_on_existing_pk" className="fn">update\_on\_existing\_pk</a>(self, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the <code>update\_on\_existing\_pk</code> hint (KI\_HINT\_UPDATE\_ON\_EXISTING\_PK).</p>
+<p>When <code>true</code>, enables upsert functionality - inserts new records and updates existing ones matched by primary key. If the target table has no primary key, this hint will be ignored.</p>
+<h5 id="example-1">Example</h5>
+<div>
+
+```sql
+INSERT INTO table /* KI_HINT_UPDATE_ON_EXISTING_PK */ (id, value) VALUES (1, 'test')
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.ignore_existing_pk" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L254-L257">Source</a>
+<h4 className="code-header">pub fn <a href="#method.ignore_existing_pk" className="fn">ignore\_existing\_pk</a>(self, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the <code>ignore\_existing\_pk</code> hint (KI\_HINT\_IGNORE\_EXISTING\_PK).</p>
+<p>When <code>true</code>, discards duplicate records (by primary key) during insertion without throwing errors. Only effective when <code>update\_on\_existing\_pk</code> is <code>false</code>.</p>
+<h5 id="example-2">Example</h5>
+<div>
+
+```sql
+INSERT INTO table /* KI_HINT_IGNORE_EXISTING_PK */ (id, value) VALUES (1, 'test')
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.batch_size" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L269-L272">Source</a>
+<h4 className="code-header">pub fn <a href="#method.batch_size" className="fn">batch\_size</a>(self, size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the batch size hint (KI\_HINT\_BATCH\_SIZE).</p>
+<p>Specifies the batch size for bulk INSERT operations. This controls how many records are sent to the server in each batch during ingestion.</p>
+<h5 id="example-3">Example</h5>
+<div>
+
+```sql
+INSERT INTO table /* KI_HINT_BATCH_SIZE(10000) */ (id, value) VALUES (1, 'test')
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_batch_size" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L275-L277">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_batch_size" className="fn">get\_batch\_size</a>(&amp;self) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get the batch size hint.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.distributed_operations" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L286-L289">Source</a>
+<h4 className="code-header">pub fn <a href="#method.distributed_operations" className="fn">distributed\_operations</a>(self, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the <code>distributed\_operations</code> hint.</p>
+<p>When <code>true</code>, enables the use of distributed operations in servicing the given query.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.distributed_joins" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L294-L297">Source</a>
+<h4 className="code-header">pub fn <a href="#method.distributed_joins" className="fn">distributed\_joins</a>(self, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the <code>distributed\_joins</code> hint.</p>
+<p>When <code>true</code>, enables the use of distributed joins in servicing the given query.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.cost_based_optimization" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L302-L305">Source</a>
+<h4 className="code-header">pub fn <a href="#method.cost_based_optimization" className="fn">cost\_based\_optimization</a>(self, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the <code>cost\_based\_optimization</code> hint.</p>
+<p>When <code>false</code>, disables the cost-based optimization of the given query.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.rule_based_optimization" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L310-L313">Source</a>
+<h4 className="code-header">pub fn <a href="#method.rule_based_optimization" className="fn">rule\_based\_optimization</a>(self, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the <code>rule\_based\_optimization</code> hint.</p>
+<p>When <code>false</code>, disables rule-based rewrite optimizations.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.parallel_execution" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L318-L321">Source</a>
+<h4 className="code-header">pub fn <a href="#method.parallel_execution" className="fn">parallel\_execution</a>(self, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the <code>parallel\_execution</code> hint.</p>
+<p>When <code>false</code>, disables the parallel step execution of the given query.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.plan_cache" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L326-L329">Source</a>
+<h4 className="code-header">pub fn <a href="#method.plan_cache" className="fn">plan\_cache</a>(self, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the <code>plan\_cache</code> hint.</p>
+<p>When <code>false</code>, disables plan caching for the given query.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.results_caching" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L334-L337">Source</a>
+<h4 className="code-header">pub fn <a href="#method.results_caching" className="fn">results\_caching</a>(self, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the <code>results\_caching</code> hint.</p>
+<p>When <code>false</code>, disables caching of the results of the given query.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.late_materialization" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L342-L345">Source</a>
+<h4 className="code-header">pub fn <a href="#method.late_materialization" className="fn">late\_materialization</a>(self, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the <code>late\_materialization</code> hint.</p>
+<p>When <code>true</code>, Joins/Filters results will always be late materialized.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.ssq_optimization" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L350-L353">Source</a>
+<h4 className="code-header">pub fn <a href="#method.ssq_optimization" className="fn">ssq\_optimization</a>(self, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the <code>ssq\_optimization</code> hint.</p>
+<p>When <code>false</code>, scalar subqueries will be translated into joins.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.preserve_dict_encoding" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L359-L362">Source</a>
+<h4 className="code-header">pub fn <a href="#method.preserve_dict_encoding" className="fn">preserve\_dict\_encoding</a>(self, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the <code>preserve\_dict\_encoding</code> hint.</p>
+<p>When <code>true</code>, columns that were dict encoded in the source table will be dict encoded in the result table.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.ttl" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L371-L374">Source</a>
+<h4 className="code-header">pub fn <a href="#method.ttl" className="fn">ttl</a>(self, minutes: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i32.html">i32</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the TTL (time-to-live) in minutes for intermediate result tables.</p>
+<p>-1 indicates no timeout.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.paging_table" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L380-L383">Source</a>
+<h4 className="code-header">pub fn <a href="#method.paging_table" className="fn">paging\_table</a>(self, table\_name: impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the paging table name for paginated queries.</p>
+<p>When specified, the system will create a paging table to hold query results between pagination calls.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.paging_table_ttl" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L388-L391">Source</a>
+<h4 className="code-header">pub fn <a href="#method.paging_table_ttl" className="fn">paging\_table\_ttl</a>(self, minutes: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i32.html">i32</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the TTL for the paging table in minutes.</p>
+<p>-1 indicates no timeout. Setting this option also creates a paging table.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.prepare_mode" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L400-L403">Source</a>
+<h4 className="code-header">pub fn <a href="#method.prepare_mode" className="fn">prepare\_mode</a>(self, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the <code>prepare\_mode</code> hint.</p>
+<p>When <code>true</code>, compiles a query into an execution plan and saves it for later execution.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.query_parameters" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L412-L415">Source</a>
+<h4 className="code-header">pub fn <a href="#method.query_parameters" className="fn">query\_parameters</a>(self, json: impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set query parameters in JSON array format.</p>
+<p>This can be used instead of binary-encoded data for parameterized queries.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.validate_change_column" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L424-L427">Source</a>
+<h4 className="code-header">pub fn <a href="#method.validate_change_column" className="fn">validate\_change\_column</a>(self, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the <code>validate\_change\_column</code> hint.</p>
+<p>When changing a column using ALTER TABLE, validate the change before applying it.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.use_approx_count_distinct" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L437-L440">Source</a>
+<h4 className="code-header">pub fn <a href="#method.use_approx_count_distinct" className="fn">use\_approx\_count\_distinct</a>(self, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set the <code>use\_approx\_count\_distinct</code> hint.</p>
+<p>When <code>true</code>, for all COUNT\_DISTINCT aggregate functions, use the faster but less accurate APPROXIMATE\_COUNT\_DISTINCT aggregate function.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.add_custom_hint" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L463-L466">Source</a>
+<h4 className="code-header">pub fn <a href="#method.add_custom_hint" className="fn">add\_custom\_hint</a>(self, hint: impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Add a custom inline hint that will be included in the SQL comment.</p>
+<p>Use this for hints not covered by the typed methods, like:</p>
+<ul>
+<li><code>KI\_HINT\_GROUP\_BY\_PK</code></li>
+<li><code>KI\_HINT\_INDEX(column)</code></li>
+<li><code>KI\_HINT\_PROJECT\_MATERIALIZED\_VIEW</code></li>
+<li><code>KI\_HINT\_JOBID\_PREFIX(prefix)</code></li>
+</ul>
+<h5 id="example-4">Example</h5>
+<div>
+
+```rust
+use gpudb_api::SqlHints;
+
+let hints = SqlHints::new()
+    .add_custom_hint("KI_HINT_GROUP_BY_PK")
+    .add_custom_hint("KI_HINT_INDEX(my_column)");
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.to_inline_hint" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L488-L511">Source</a>
+<h4 className="code-header">pub fn <a href="#method.to_inline_hint" className="fn">to\_inline\_hint</a>(&amp;self) -&gt; <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Convert the hints to an inline SQL comment string.</p>
+<p>Returns an empty string if no inline hints are set. Only includes hints that can be expressed as inline comments (KI\_HINT\_\*).</p>
+<h5 id="example-5">Example</h5>
+<div>
+
+```rust
+use gpudb_api::SqlHints;
+
+let hints = SqlHints::new()
+    .update_on_existing_pk(true)
+    .ignore_existing_pk(false);
+
+assert_eq!(hints.to_inline_hint(), "/* KI_HINT_UPDATE_ON_EXISTING_PK */");
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.to_options_map" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L517-L595">Source</a>
+<h4 className="code-header">pub fn <a href="#method.to_options_map" className="fn">to\_options\_map</a>(&amp;self) -&gt; <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Convert the hints to an options map for the execute\_sql API.</p>
+<p>Returns a HashMap containing all set hints as key-value pairs suitable for passing to the execute\_sql <code>options</code> parameter.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.merge_into" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L600-L604">Source</a>
+<h4 className="code-header">pub fn <a href="#method.merge_into" className="fn">merge\_into</a>(&amp;self, options: &amp;mut <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;)</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Merge these hints into an existing options map.</p>
+<p>Hints from this struct will overwrite existing values in the map.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.is_empty" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L607-L629">Source</a>
+<h4 className="code-header">pub fn <a href="#method.is_empty" className="fn">is\_empty</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Check if any hints are set.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_update_on_existing_pk" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L632-L634">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_update_on_existing_pk" className="fn">get\_update\_on\_existing\_pk</a>(&amp;self) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get the update\_on\_existing\_pk setting.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_ignore_existing_pk" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L637-L639">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_ignore_existing_pk" className="fn">get\_ignore\_existing\_pk</a>(&amp;self) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get the ignore\_existing\_pk setting.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<h2 id="trait-implementations" className="section-header">Trait Implementations</h2>
+<div id="trait-implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Clone-for-SqlHints" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L176">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> for <a className="struct" href="/content/api/rust/sql/struct.SqlHints" title="struct gpudb_api::sql::SqlHints">SqlHints</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L176">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone" className="fn">clone</a>(&amp;self) -&gt; <a className="struct" href="/content/api/rust/sql/struct.SqlHints" title="struct gpudb_api::sql::SqlHints">SqlHints</a></h4>
+</div>
+</div>
+<div className="docblock">Returns a duplicate of the value. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone">Read more</a></div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone_from" className="section method trait-impl">
+<span className="rightside"><span className="since" title="Stable since Rust version 1.0.0, const unstable">1.0.0 (const: <a href="https://github.com/rust-lang/rust/issues/142757" title="Tracking issue for const_clone">unstable</a>)</span> · <a className="src" href="https://doc.rust-lang.org/1.98.1/src/core/clone.rs.html#245-247">Source</a></span>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from" className="fn">clone\_from</a>(&amp;mut self, source: &amp;Self)</h4>
+</div>
+</div>
+<div className="docblock">Performs copy-assignment from <code>source</code>. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Debug-for-SqlHints" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L176">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> for <a className="struct" href="/content/api/rust/sql/struct.SqlHints" title="struct gpudb_api::sql::SqlHints">SqlHints</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.fmt" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L176">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt" className="fn">fmt</a>(&amp;self, f: &amp;mut <a className="struct" href="https://doc.rust-lang.org/1.98.1/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>&lt;'\_&gt;) -&gt; <a className="type" href="https://doc.rust-lang.org/1.98.1/core/fmt/type.Result.html" title="type core::fmt::Result">Result</a></h4>
+</div>
+</div>
+<div className="docblock">Formats the value using the given formatter. <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Default-for-SqlHints" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L176">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html" title="trait core::default::Default">Default</a> for <a className="struct" href="/content/api/rust/sql/struct.SqlHints" title="struct gpudb_api::sql::SqlHints">SqlHints</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.default" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L176">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html#tymethod.default" className="fn">default</a>() -&gt; <a className="struct" href="/content/api/rust/sql/struct.SqlHints" title="struct gpudb_api::sql::SqlHints">SqlHints</a></h4>
+</div>
+</div>
+<div className="docblock">Returns the “default value” for a type. <a href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html#tymethod.default">Read more</a></div>
+</div>
+</div>
+</div>
+</div>
+</div>

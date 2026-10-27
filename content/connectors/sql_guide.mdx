@@ -1,17 +1,18 @@
 ---
-title: ODBC/JDBC Connector Guide
-sidebarTitle: ODBC/JDBC Connector
+title: JDBC Connector Guide
+sidebarTitle: JDBC Connector
 ---
 
-<a id="odbc-label"></a>
+<a id="jdbc-label"></a>
 
 
-*Kinetica* provides a SQL interface through its ODBC & JDBC drivers, which run
-on *Linux*, *Mac*, & *Windows*.  For details on the extent of SQL compliance,
-see the [SQL](/content/sql) section.
+*Kinetica* provides a SQL interface through its JDBC driver, which runs on
+*Linux*, *Mac*, & *Windows*.  Clients that can't use JDBC can connect using the
+[PostgreSQL Wire Protocol](/content/connectors/psql_wire_protocol).  For
+details on the extent of SQL compliance, see the [SQL](/content/sql) section.
 
 
-<a id="odbc-connecting"></a>
+<a id="jdbc-connecting"></a>
 
 
 ## Connecting
@@ -23,8 +24,6 @@ see the [SQL](/content/sql) section.
 *KiSQL* is a *Kinetica* JDBC-based SQL CLI client that is available on *GitHub*.
 Details can be found on the [Kinetica SQL (KiSQL)](/content/tools/kisql) page.
 
-
-<a id="odbc-jdbc"></a>
 
 <a id="jdbc"></a>
 
@@ -219,7 +218,7 @@ jdbc:kinetica:URL=http://kineticahost:9191;CombinePrepareAndExecute=1;RowsPerFet
 
 * *Class Name*: `com.kinetica.jdbc.Driver`
 
-See [ODBC/JDBC Configuration](/content/connectors/sql_guide#jdbc-config) for additional configuration parameters.
+See [JDBC Configuration](/content/connectors/sql_guide#jdbc-config) for additional configuration parameters.
 
 
 <a id="jdbc-connecting-secure"></a>
@@ -290,199 +289,10 @@ jdbc:kinetica:URL=http://kineticaA:9191,http://kineticaB:9191,http://kineticaC:9
 </CodeGroup>
 
 
-<a id="odbc"></a>
-
-<a id="odbc-install"></a>
-
-<a id="odbc-install-windows"></a>
-
-
-<a id="odbc-1"></a>
-### ODBC
-
-
-The *ODBC Client* must be installed for the environment in which it will be
-used.  The following sections will detail how to install & configure the client
-in *Windows*.
-
-*Kinetica* provides both a 32-bit & 64-bit *Windows ODBC Client* driver.  The
-32-bit version of *Windows* requires the 32-bit driver.  The 64-bit version of
-*Windows* can use either the 32-bit or 64-bit driver, or both, as needs warrant.
-For instance, a user running 64-bit *Windows* and wanting to make *ODBC*
-connections to *Kinetica* from a 32-bit version of *Excel* will need the 32-bit
-driver.  A user with the same OS using the 64-bit *Tableau* will need the 64-bit
-driver.  A user wanting to use both will need both drivers.
-
-1. Download & install the
-   [ODBC Client for Windows](https://github.com/kineticadb/kinetica-client-win-odbc/tree/release/v7.2)
-   following the instructions provided there
-2. Launch **ODBC Data Source Administrator** *(64-bit or 32-bit, as needed)*
-3. Click the **System DSN** tab
-4. Click the **Add** button to add a DSN
-5. Choose **Kinetica ODBC Client**, and click **Finish**
-6. Fill in the **DSN Setup** parameters
-   *(the following settings are examples - you may have to change some for your environment):*
-
-   * **Description**:  `Kinetica`
-   * **URL**:
-   <CodeGroup>
-
-   {/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 4) */}
-   ```text Syntax
-   http://<db.host>:9191;CombinePrepareAndExecute=1[[;<parameter>=<value>]*]
-   ```
-
-   {/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 5) */}
-   ```text Example
-   http://localhost:9191;CombinePrepareAndExecute=1;RowsPerFetch=20000
-   ```
-
-   </CodeGroup>
-
-   * Leave **User** and **Password** blank
-
-7. Click **OK**
-
-See [ODBC/JDBC Configuration](/content/connectors/sql_guide#odbc-config) for additional configuration parameters.
-
-
-<a id="odbc-connecting-secure"></a>
-
-
-<a id="secure-connections-1"></a>
-#### Secure Connections
-
-
-When connecting to a *Kinetica* instance over HTTPS, the connection string
-should reference the database's secure address.
-
-
-<Tip>
-See [SSL Parameters](/content/connectors/sql_guide#odbc-config-ssl) for additional parameters that may be
-necessary to use when connecting over SSL.
-</Tip>
-
-Set the **URL** parameter to use the HTTPS-enabled database
-endpoint.
-
-<CodeGroup>
-
-{/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 11) */}
-```text HTTPS w/o Cert Check
-https://<db.host>:8082/gpudb-0
-```
-
-{/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 12) */}
-```text HTTPS w/ Default Trust Cert Check
-https://<db.host>:8082/gpudb-0;BypassSslCertCheck=0
-```
-
-{/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 13) */}
-```text HTTPS w/ Custom Trust Cert Check
-https://<db.host>:8082/gpudb-0;BypassSslCertCheck=0;SslCACertPath=<certPath>;SslCACertPassword=<certPass>
-```
-
-</CodeGroup>
-
-
-<a id="odbc-connecting-failover"></a>
-
-
-<a id="failover-connections-1"></a>
-#### Failover Connections
-
-
-When connecting to a *Kinetica* instance with one or more failover clusters, the
-connection string should be updated to contain a comma-delimited list of
-*head node* addresses for all clusters.  The URL of the primary cluster can also
-be specified.
-
-Modify the **URL** parameter to contain all cluster *head node*
-addresses and add a **PrimaryURL** parameter designating the cluster
-that should be tried first.
-
-**URL**:
-
-<CodeGroup>
-
-{/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 16) */}
-```text Syntax
-http://<database1.host>:<database1.port>,...,http://<databaseN.host>:<databaseN.port>
-```
-
-{/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 17) */}
-```text Example
-http://kineticaA:9191,http://kineticaB:9191,http://kineticaC:9191
-```
-
-</CodeGroup>
-
-
-**PrimaryURL**:
-
-<CodeGroup>
-
-{/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 20) */}
-```text Syntax
-http://<databaseX.host>:<databaseX:port>
-```
-
-{/* Source: /connectors/sql_guide_src/odbc_cs.txt (lines 21) */}
-```text Example
-http://kineticaB:9191
-```
-
-</CodeGroup>
-
-
 ### Tableau
 
 
-1. Install the *ODBC Client* - see [ODBC Installation](/content/connectors/sql_guide#odbc-install) above
-2. In *Tableau*, connect to **Other Databases (ODBC)**
-
-   * **DSN**: `Kinetica`
-   * Click **Connect**
-   * Click **Sign In**
-   * **Database**: `KINETICA`
-   * **Schema**: *&lt;choose one&gt;*
-
-     * To use the user's default schema, don't choose a schema
-       (leave as **Select Schema**)
-
-   * Pick your table
-
-
-<Info>
-*Tableau* may give a warning about not all features being supported
-by the ODBC driver; this should be able to be safely ignored for most
-applications.
-</Info>
-
-
-### Excel
-
-
-1. Install the *ODBC Client* - see [ODBC Installation](/content/connectors/sql_guide#odbc-install) above
-2. In *Excel*, click the **Data** tab at the top
-3. Click the **Get External Data &gt; From Other Sources** button, then
-   click **From Data Connection Wizard**
-4. In the **Connection Wizard**, choose **ODBC DSN** and click
-   **Next &gt;**
-5. Select one of the *ODBC* data sources (i.e., DSNs) you created above (e.g.,
-   **Kinetica**), and click **Next &gt;**
-6. Continue with the wizard to create a link to all the tables or a specific
-   table, and save an *ODC* file, etc.
-7. Click the **Finish** button
-
-To read in data using the *ODC* file created above:
-
-1. In *Excel*, click the **Data** tab at the top
-2. Click **Get External Data &gt; Existing Connections**
-3. Choose the *ODC* file you created above, and click **Open**
-4. Select a **Table** to import
-5. Select where you want the data to appear, and click the **OK**
-   button
+See [Using Tableau with Kinetica](/content/bi/tableau) for connecting *Tableau* to *Kinetica*.
 
 
 ### DBeaver
@@ -571,22 +381,14 @@ There are many *Java SQL* clients available; a list can be found
 [here](http://java-source.net/open-source/sql-clients).
 </Tip>
 
-<a id="odbc-config"></a>
-
 <a id="jdbc-config"></a>
 
 
-<a id="odbc-jdbc-configuration"></a>
-## ODBC/JDBC Configuration
+## JDBC Configuration
 
 
-Unless noted, the configuration parameters are the same for *ODBC* & *JDBC*, though the
-locations of the configurations are not.
-
-* *Windows* ODBC - Settings are stored in the registry in
-  <Badge color="gray">HKEY_LOCAL_MACHINE\\SOFTWARE\\ODBC\\ODBC.INI\\\&lt;DSN NAME\&gt;</Badge>
-* JDBC - Settings are passed on the connection string, separated by semicolons;
-  e.g.:
+Configuration parameters are passed on the JDBC connection string, separated by
+semicolons; e.g.:
 
 <CodeGroup>
 
@@ -605,8 +407,6 @@ jdbc:kinetica:URL=http://kineticahost:9191;CombinePrepareAndExecute=1;RowsPerFet
 Some settings of note follow.
 
 
-<a id="odbc-config-standard"></a>
-
 <a id="jdbc-config-standard"></a>
 
 
@@ -616,18 +416,17 @@ Some settings of note follow.
 | Config Parameter | Default Value | Description |
 | --- | --- | --- |
 | `URL` | `http://127.0.0.1:9191` | URL of *Kinetica* database server to connect to--this may be a comma-delimited list of multiple clusters in an HA configuration |
-| `CombinePrepareAndExecute` | `0` | Whether or not to combine the JDBC/ODBC prepare and execute phases, when appropriate.  This can improve the performance of static queries (those that lack parameterized values). <br/> <br/> * `0` = Don't combine prepare and execute phases <br/> * `1` = Combine prepare and execute phases <br/> <Tip> This parameter should be set to `1` whenever possible. Some JDBC clients may return odd errors when this is active, however; and may need to be set to `0` to function properly. This parameter is not needed when using [KiSQL](/content/tools/kisql) . </Tip> |
+| `CombinePrepareAndExecute` | `0` | Whether or not to combine the JDBC prepare and execute phases, when appropriate.  This can improve the performance of static queries (those that lack parameterized values). <br/> <br/> * `0` = Don't combine prepare and execute phases <br/> * `1` = Combine prepare and execute phases <br/> <Tip> This parameter should be set to `1` whenever possible. Some JDBC clients may return odd errors when this is active, however; and may need to be set to `0` to function properly. This parameter is not needed when using [KiSQL](/content/tools/kisql) . </Tip> |
 | `UID` |  | User ID for database connection |
 | `PWD` |  | Password for database connection <br/> <Info> If the password contains special characters, they must be encoded using URL-style encoding; e.g., encode a semicolon as `%3B` </Info> |
 | `OAuthToken` |  | OAuth token used in OIDC-enabled environments; when using, leave `UID` & `PWD` blank |
 | `Timeout` | `0` | Minutes to wait for a response from the database; `0` for no timeout |
 | `Schema` | *&lt;user default&gt;* | Default schema to use within the session |
 | `ImpersonateUser` |  | Impersonate another user for this session. Only available when connected as an admin. |
+| `SessionId` | *&lt;new for each* *connection&gt;* | *JDBC only*.  ID of an existing session to join, so this connection shares its [session temp tables](/content/sql/ddl/session-temp-tables#sql-session-temp-tables). Letters, digits and `-` only, as in a UUID. |
 | `PrimaryURL` |  | URL of a cluster to always attempt to go to first (if URL is a list) |
 | `TokenNameClaim` |  | Name of the claim token identifying the username; `sub` is the default claim token name used. |
 
-
-<a id="odbc-config-override"></a>
 
 <a id="jdbc-config-override"></a>
 
@@ -660,15 +459,13 @@ The default value for each of these options is `0`.
 | `ValidateChange` | When issuing an `ALTER TABLE` that changes column types/sizes, verify that the column data can be contained losslessly in the target column type/size.  If `1`, fail the request if the data will not fit; if `0`, truncate the data to fit. <br/> <br/> * `0` = Truncate any column data that won't fit into the new type size on a column change request <br/> * `1` = Validate any column change and fail the request if column data is too large/long for the new type/size |
 
 
-<a id="odbc-config-client"></a>
-
 <a id="jdbc-config-client"></a>
 
 
 ### Client Parameters
 
 
-The following optional parameters may be used to change the ODBC/JDBC Client behavior.
+The following optional parameters may be used to change the JDBC client behavior.
 
 | Config Parameter | Default Value | Description |
 | --- | --- | --- |
@@ -693,7 +490,7 @@ The following optional parameters may be used to change the ODBC/JDBC Client beh
 | `InitialConnectionTimeoutSeconds` | `-1` | Seconds the driver will spend retrying the initial connection to the database before giving up.  `0` disables retrying, in which case the URLs supplied are used as given, without auto-discovery.  A non-zero value retries with a backoff that starts at one minute and doubles with each attempt.  The default of `-1` defers to the API default of `0`. *(JDBC only)* |
 | `Limit` | `-1` | Limit number of records returned for each query issued; `-1` for no limit, i.e., all records will be returned for each query. |
 | `LogLevel` | `0` | Controls the amount of debug logging done by driver. <br/> <br/> * `0` = Off <br/> * `1` = Fatal <br/> * `2` = Error <br/> * `3` = Warning <br/> * `4` = Info <br/> * `5` = Debug <br/> * `6` = Trace |
-| `ReadOnly` | `0` | Whether the driver will report itself as being in a read-only mode, **even though it is in full-access mode**; useful for 3rd party tools that expect and enforce a read-only connection. <br/> <br/> * `0` = Driver will not report itself as being in a read-only mode when queried via the JDBC/ODBC API <br/> * `1` = Driver will report itself as being in a read-only mode, **even though this is not enforced** |
+| `ReadOnly` | `0` | Whether the driver will report itself as being in a read-only mode, **even though it is in full-access mode**; useful for 3rd party tools that expect and enforce a read-only connection. <br/> <br/> * `0` = Driver will not report itself as being in a read-only mode when queried via the JDBC API <br/> * `1` = Driver will report itself as being in a read-only mode, **even though this is not enforced** |
 | `Replication` |  | Controls the HA replication mode for all requests made through this connection. <br/> <br/> * `NONE` = Do not replicate requests. <br/> * `SYNC` = Executes the query locally, sends an http request directly to each cluster, sequentially, and returns the response. <br/> * `ASYNC` = Executes the query locally, queues a request to RMQ for each cluster, and returns to the user. <br/> * `SYNC_PARALLEL` = Sends a http request directly to each cluster, executes the query locally, and waits for the response from each cluster. <br/> * `ASYNC_PARALLEL` = Queues a request to RMQ for each cluster, executes the query locally, and returns to the user. |
 | `RowsPerFetch` | `10000` | Number of records to request from the server at a time. |
 | `RowsPerInsertion` | `10000` | Number of records to send to the server in a batch. |
@@ -702,8 +499,6 @@ The following optional parameters may be used to change the ODBC/JDBC Client beh
 | `TruncateStrings` | `0` | Whether to truncate strings when processing an `INSERT`. <br/> <br/> * `0` = Do not truncate strings -- if a string is too long, it will not be inserted <br/> * `1` = Truncate strings when needed so they will fit in a restricted target string column |
 | `UseKeyLookup` | `0` | Whether to process supported `SELECT` statements using high-performance [distributed key lookup](/content/tuning/multihead/multihead_egress#multi-head-egress-sql); using this may cause some additional overhead to determine if the table will support key lookups. <br/> <br/> * `0` = By default, use standard processing for all `SELECT` statements; this can be overridden with `KI_HINT_KEY_LOOKUP` on individual statements <br/> * `1` = Use high-performance distributed key lookup for supported `SELECT` statements, when possible |
 
-
-<a id="odbc-config-ssl"></a>
 
 <a id="jdbc-config-ssl"></a>
 

@@ -1,0 +1,121 @@
+---
+title: "sql"
+description: "sql — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1-L2335">Source</a> </span>
+</div>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>SQL client and result parser for Kinetica’s HTTP API</p>
+<p>Statements are sent to <code>/execute/sql</code> over the same <a href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica"><code>Kinetica</code></a> connection used by the rest of the API, so they share its authentication, TLS and HA failover. For the PostgreSQL wire protocol, see the <code>sqlx\_support</code> module (feature <code>sqlx</code>).</p>
+<h2 id="overview">Overview</h2>
+<ul>
+<li><strong><a href="/content/api/rust/sql/struct.SqlClient" title="struct gpudb_api::sql::SqlClient"><code>SqlClient</code></a></strong> - Executes SQL, with paging support for large result sets</li>
+<li><strong><a href="/content/api/rust/sql/struct.SqlResult" title="struct gpudb_api::sql::SqlResult"><code>SqlResult</code></a></strong> / <strong><a href="/content/api/rust/sql/struct.Row" title="struct gpudb_api::sql::Row"><code>Row</code></a></strong> - Wrap <code>RawExecuteSqlResponse</code> with convenient parsing methods</li>
+<li><strong><a href="/content/api/rust/sql/struct.SqlHints" title="struct gpudb_api::sql::SqlHints"><code>SqlHints</code></a></strong> - Kinetica-specific execution options and inline hints</li>
+<li><strong><a href="/content/api/rust/sql/struct.BatchingSqlClient" title="struct gpudb_api::sql::BatchingSqlClient"><code>BatchingSqlClient</code></a></strong> - Routes <code>INSERT</code> statements through <code>BulkInserter</code></li>
+</ul>
+<h2 id="quick-start">Quick Start</h2>
+<div>
+
+```rust
+use gpudb_api::{Kinetica, KineticaOptions, SqlClient};
+use std::sync::Arc;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let options = KineticaOptions::new();
+    let kinetica = Arc::new(
+        Kinetica::new(vec!["http://localhost:9191".to_string()], options).await?
+    );
+
+    let client = SqlClient::new(kinetica);
+    let mut result = client
+        .execute("SELECT id, name FROM my_table WHERE value > 100 ORDER BY id LIMIT 10")
+        .await?;
+
+    for row in result.rows()? {
+        let id: i64 = row.get("id")?;
+        let name: String = row.get("name")?;
+        println!("id={}, name={}", id, name);
+    }
+
+    Ok(())
+}
+```
+
+</div>
+<h2 id="result-parsing">Result Parsing</h2>
+<div>
+
+```rust
+use gpudb_api::SqlResult;
+
+// Get total count
+let total = result.total_records();
+
+// Check if there are more records
+if result.has_more() {
+    println!("More records available");
+}
+
+// Get a single scalar value
+let count: i64 = result.scalar()?;
+
+// Get a column as a vector
+let names: Vec<String> = result.column("name")?;
+
+// Iterate over rows
+for row in result.rows()? {
+    let id: i64 = row.get("id")?;
+    let name: String = row.get("name")?;
+    // Process row...
+}
+
+// Deserialize into structs
+#[derive(serde::Deserialize)]
+struct User { id: i64, name: String }
+let users: Vec<User> = result.deserialize()?;
+```
+
+</div>
+</div>
+</div>
+<h2 id="reexports" className="section-header">Re-exports</h2>
+<div className="dl item-table reexports">
+<div id="reexport.parse_insert_statement" className="dt"><code>pub use crate::sql\_insert\_parser::<a className="fn" href="/content/api/rust/sql_insert_parser/fn.parse_insert_statement" title="fn gpudb_api::sql_insert_parser::parse_insert_statement">parse\_insert\_statement</a>;</code></div>
+<div id="reexport.parse_sql_value_to_record_value" className="dt"><code>pub use crate::sql\_insert\_parser::<a className="fn" href="/content/api/rust/sql_insert_parser/fn.parse_sql_value_to_record_value" title="fn gpudb_api::sql_insert_parser::parse_sql_value_to_record_value">parse\_sql\_value\_to\_record\_value</a>;</code></div>
+<div id="reexport.ParsedInsert" className="dt"><code>pub use crate::sql\_insert\_parser::<a className="struct" href="/content/api/rust/sql_insert_parser/struct.ParsedInsert" title="struct gpudb_api::sql_insert_parser::ParsedInsert">ParsedInsert</a>;</code></div>
+</div>
+<h2 id="structs" className="section-header">Structs</h2>
+<div className="dl item-table">
+<div className="dt"><a className="struct" href="/content/api/rust/sql/struct.BatchingSqlClient" title="struct gpudb_api::sql::BatchingSqlClient">Batching<wbr />SqlClient</a></div>
+<div className="dd">A SQL client that automatically batches INSERT statements for high-performance bulk loading.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sql/struct.BatchingStats" title="struct gpudb_api::sql::BatchingStats">Batching<wbr />Stats</a></div>
+<div className="dd">Statistics from batched SQL execution</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sql/struct.PaginationStats" title="struct gpudb_api::sql::PaginationStats">Pagination<wbr />Stats</a></div>
+<div className="dd">Statistics from a paginated query execution</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sql/struct.Row" title="struct gpudb_api::sql::Row">Row</a></div>
+<div className="dd">A single row from a SQL result set.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sql/struct.SqlClient" title="struct gpudb_api::sql::SqlClient">SqlClient</a></div>
+<div className="dd">High-level SQL client that wraps Kinetica with result parsing.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sql/struct.SqlHints" title="struct gpudb_api::sql::SqlHints">SqlHints</a></div>
+<div className="dd">SQL hints that can be embedded in statements or passed as execute\_sql options.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sql/struct.SqlResult" title="struct gpudb_api::sql::SqlResult">SqlResult</a></div>
+<div className="dd">Wrapper around <code>RawExecuteSqlResponse</code> with convenient parsing methods.</div>
+</div>
+<h2 id="enums" className="section-header">Enums</h2>
+<div className="dl item-table">
+<div className="dt"><a className="enum" href="/content/api/rust/sql/enum.SqlError" title="enum gpudb_api::sql::SqlError">SqlError</a></div>
+<div className="dd">Error type for SQL operations</div>
+</div>
+<h2 id="types" className="section-header">Type Aliases</h2>
+<div className="dl item-table">
+<div className="dt"><a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOp<wbr />Result</a></div>
+<div className="dd">Type alias for SQL operation results</div>
+</div>
+</div>

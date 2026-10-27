@@ -1,0 +1,298 @@
+---
+title: "Overview"
+description: "Overview — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading"><span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/lib.rs#L1-L328">Source</a> </span></div>
+<div className="details toggle top-doc">
+<div className="docblock">
+<h2 id="gpudb-api-rust-client">GPUdb API Rust Client</h2>
+<p>A high-performance, async Rust client for Kinetica (GPUdb) - a distributed GPU-accelerated database.</p>
+<h3 id="features">Features</h3>
+<ul>
+<li><strong>Async/await</strong> - Built on Tokio for non-blocking I/O</li>
+<li><strong>High Performance</strong> - Achieves 600K+ records/sec with optimized bulk insert</li>
+<li><strong>Type Safe</strong> - Auto-generated API from Avro schemas</li>
+<li><strong>Fast Avro Encoding</strong> - Uses <code>serde\_avro\_fast</code> for 6-7x faster serialization</li>
+<li><strong>Parallel Processing</strong> - Multi-worker architecture with rayon for encoding</li>
+<li><strong>Worker Distribution</strong> - Direct routing to worker nodes for maximum throughput</li>
+<li><strong>Logging</strong> - Built-in logging via the <code>log</code> crate (default level: WARN)</li>
+</ul>
+<h3 id="logging">Logging</h3>
+<p>This library uses the <a href="https://docs.rs/log"><code>log</code></a> crate for logging. To enable logging output, add a logging implementation like <code>env\_logger</code> to your application:</p>
+<div>
+
+```toml
+[dependencies]
+env_logger = "0.11"
+```
+
+</div>
+<p>Then initialize it in your main function:</p>
+<div>
+
+```rust
+// Enable logging with default WARN level
+env_logger::init();
+// Or with a specific level: RUST_LOG=gpudb_api=debug cargo run
+```
+
+</div>
+<h4 id="log-levels">Log Levels</h4>
+<p>Messages are logged at these levels:</p>
+<ul>
+<li><strong>ERROR</strong>: A request that could not be sent (“Giving up with an exit error after &lt;n&gt;ms …”), and failures the call goes on past, such as a KiFS file that could not be transferred. Errors are also returned via <code>Result</code>.</li>
+<li><strong>WARN</strong>: Failing over to another cluster, and settings that are ignored</li>
+<li><strong>INFO</strong>: Failing back to the primary cluster, and KiFS files transferred</li>
+<li><strong>DEBUG</strong>: Connecting, configuration details, worker setup, routing info</li>
+<li><strong>TRACE</strong>: Per-batch details, HTTP request/response info (very verbose)</li>
+</ul>
+<p>The level is the application’s logger’s to set, for the <code>gpudb\_api</code> target (as with <code>RUST\_LOG=gpudb\_api=debug</code> above), or for all with <a href="https://docs.rs/log/0.4.29/log/fn.set_max_level.html" title="fn log::set_max_level"><code>log::set\_max\_level</code></a>.</p>
+<h3 id="quick-start">Quick Start</h3>
+<div>
+
+```rust
+use gpudb_api::{
+    Kinetica, KineticaOptions, BulkInserter, BulkInserterOptions,
+    KineticaRecord, ShardKeyExtractor, ShardKeyValue, ShardKeyValues,
+    avro_schema, AvroSchemaBuilder, TypePropertiesBuilder,
+};
+use smallvec::smallvec;
+use std::sync::Arc;
+use std::collections::HashMap;
+use serde::Serialize;
+
+// Define your record type
+#[derive(Serialize, Clone, Default)]
+struct MyRecord {
+    id: i32,
+    name: String,
+}
+
+impl ShardKeyExtractor for MyRecord {
+    fn shard_key_values(&self) -> ShardKeyValues<'_> {
+        smallvec![("id", ShardKeyValue::Int(self.id))]
+    }
+}
+
+impl KineticaRecord for MyRecord {
+    fn avro_schema(&self) -> &'static str {
+        avro_schema!(
+            AvroSchemaBuilder::new("MyRecord")
+                .int_field("id")
+                .string_field("name")
+        )
+    }
+
+    fn type_properties() -> HashMap<String, Vec<String>> {
+        TypePropertiesBuilder::new().build()
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create client with authentication
+    let mut options = KineticaOptions::new();
+    options.set_username("admin")
+           .set_password("password")
+           .set_use_snappy(false);
+
+    let kinetica = Arc::new(
+        Kinetica::new(vec!["http://localhost:9191".to_string()], options).await?
+    );
+
+    // Simple usage: Create bulk inserter with default options
+    let inserter = BulkInserter::<MyRecord>::new(
+        kinetica.clone(),
+        "my_table".into(),
+        50000,  // batch size
+        8       // num workers
+    ).await?;
+
+    // Or with options:
+    let mut bulk_options = BulkInserterOptions::new();
+    bulk_options.set_update_on_existing_pk(true);  // Enable upsert mode
+
+    let inserter_with_options = BulkInserter::<MyRecord>::with_options(
+        kinetica,
+        "my_table".into(),
+        50000,
+        8,
+        Some(bulk_options),
+    ).await?;
+
+    // Insert records...
+
+    Ok(())
+}
+```
+
+</div>
+</div>
+</div>
+<h2 id="reexports" className="section-header">Re-exports</h2>
+<div className="dl item-table reexports">
+<div id="reexport.Kinetica" className="dt"><code>pub use crate::gpudb::<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>;</code></div>
+<div id="reexport.KineticaOptions" className="dt"><code>pub use crate::gpudb::<a className="struct" href="/content/api/rust/gpudb/struct.KineticaOptions" title="struct gpudb_api::gpudb::KineticaOptions">KineticaOptions</a>;</code></div>
+<div id="reexport.KineticaVersion" className="dt"><code>pub use crate::gpudb::<a className="struct" href="/content/api/rust/gpudb/struct.KineticaVersion" title="struct gpudb_api::gpudb::KineticaVersion">KineticaVersion</a>;</code></div>
+<div id="reexport.HaFailoverOrder" className="dt"><code>pub use crate::gpudb::<a className="enum" href="/content/api/rust/gpudb/enum.HaFailoverOrder" title="enum gpudb_api::gpudb::HaFailoverOrder">HaFailoverOrder</a>;</code></div>
+<div id="reexport.HaSynchronicityMode" className="dt"><code>pub use crate::gpudb::<a className="enum" href="/content/api/rust/gpudb/enum.HaSynchronicityMode" title="enum gpudb_api::gpudb::HaSynchronicityMode">HaSynchronicityMode</a>;</code></div>
+<div id="reexport.ClusterAddressInfo" className="dt"><code>pub use crate::gpudb::<a className="struct" href="/content/api/rust/gpudb/struct.ClusterAddressInfo" title="struct gpudb_api::gpudb::ClusterAddressInfo">ClusterAddressInfo</a>;</code></div>
+<div id="reexport.DEFAULT_HOST_MANAGER_PORT" className="dt"><code>pub use crate::gpudb::<a className="constant" href="/content/api/rust/gpudb/index#constant.DEFAULT_HOST_MANAGER_PORT" title="constant gpudb_api::gpudb::DEFAULT_HOST_MANAGER_PORT">DEFAULT\_HOST\_MANAGER\_PORT</a>;</code></div>
+<div id="reexport.USER_AGENT_PROGRAM_NAME" className="dt"><code>pub use crate::gpudb::<a className="constant" href="/content/api/rust/gpudb/index#constant.USER_AGENT_PROGRAM_NAME" title="constant gpudb_api::gpudb::USER_AGENT_PROGRAM_NAME">USER\_AGENT\_PROGRAM\_NAME</a>;</code></div>
+<div id="reexport.KineticaError" className="dt"><code>pub use crate::errors::<a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>;</code></div>
+<div id="reexport.BulkInserter" className="dt"><code>pub use crate::bulk\_inserter::<a className="struct" href="/content/api/rust/bulk_inserter/struct.BulkInserter" title="struct gpudb_api::bulk_inserter::BulkInserter">BulkInserter</a>;</code></div>
+<div id="reexport.BulkInserterOptions" className="dt"><code>pub use crate::bulk\_inserter::<a className="struct" href="/content/api/rust/bulk_inserter/struct.BulkInserterOptions" title="struct gpudb_api::bulk_inserter::BulkInserterOptions">BulkInserterOptions</a>;</code></div>
+<div id="reexport.FlushOptions" className="dt"><code>pub use crate::bulk\_inserter::<a className="struct" href="/content/api/rust/bulk_inserter/struct.FlushOptions" title="struct gpudb_api::bulk_inserter::FlushOptions">FlushOptions</a>;</code></div>
+<div id="reexport.ShardKeyExtractor" className="dt"><code>pub use crate::bulk\_inserter::<a className="trait" href="/content/api/rust/bulk_inserter_common/trait.ShardKeyExtractor" title="trait gpudb_api::bulk_inserter_common::ShardKeyExtractor">ShardKeyExtractor</a>;</code></div>
+<div id="reexport.ShardKeyValue" className="dt"><code>pub use crate::bulk\_inserter::<a className="enum" href="/content/api/rust/bulk_inserter_common/enum.ShardKeyValue" title="enum gpudb_api::bulk_inserter_common::ShardKeyValue">ShardKeyValue</a>;</code></div>
+<div id="reexport.ShardKeyValues" className="dt"><code>pub use crate::bulk\_inserter::<a className="type" href="/content/api/rust/bulk_inserter_common/type.ShardKeyValues" title="type gpudb_api::bulk_inserter_common::ShardKeyValues">ShardKeyValues</a>;</code></div>
+<div id="reexport.insert_records_options" className="dt"><code>pub use crate::bulk\_inserter::<a className="mod" href="/content/api/rust/bulk_inserter/insert_records_options/index" title="mod gpudb_api::bulk_inserter::insert_records_options">insert\_records\_options</a>;</code></div>
+<div id="reexport.BatchInsertionResult" className="dt"><code>pub use crate::bulk\_inserter::<a className="struct" href="/content/api/rust/bulk_inserter/struct.BatchInsertionResult" title="struct gpudb_api::bulk_inserter::BatchInsertionResult">BatchInsertionResult</a>;</code></div>
+<div id="reexport.BatchInsertionListener" className="dt"><code>pub use crate::bulk\_inserter::<a className="trait" href="/content/api/rust/bulk_inserter/trait.BatchInsertionListener" title="trait gpudb_api::bulk_inserter::BatchInsertionListener">BatchInsertionListener</a>;</code></div>
+<div id="reexport.FnBatchListener" className="dt"><code>pub use crate::bulk\_inserter::<a className="struct" href="/content/api/rust/bulk_inserter/struct.FnBatchListener" title="struct gpudb_api::bulk_inserter::FnBatchListener">FnBatchListener</a>;</code></div>
+<div id="reexport.InsertError" className="dt"><code>pub use crate::bulk\_inserter::<a className="struct" href="/content/api/rust/bulk_inserter/struct.InsertError" title="struct gpudb_api::bulk_inserter::InsertError">InsertError</a>;</code></div>
+<div id="reexport.QueueError" className="dt"><code>pub use crate::bulk\_inserter::<a className="struct" href="/content/api/rust/bulk_inserter/struct.QueueError" title="struct gpudb_api::bulk_inserter::QueueError">QueueError</a>;</code></div>
+<div id="reexport.BackpressureMetrics" className="dt"><code>pub use crate::bulk\_inserter::<a className="struct" href="/content/api/rust/bulk_inserter/struct.BackpressureMetrics" title="struct gpudb_api::bulk_inserter::BackpressureMetrics">BackpressureMetrics</a>;</code></div>
+<div id="reexport.WorkerList" className="dt"><code>pub use crate::worker\_list::<a className="struct" href="/content/api/rust/worker_list/struct.WorkerList" title="struct gpudb_api::worker_list::WorkerList">WorkerList</a>;</code></div>
+<div id="reexport.AvroSchemaBuilder" className="dt"><code>pub use crate::avro\_schema\_builder::<a className="struct" href="/content/api/rust/avro_schema_builder/struct.AvroSchemaBuilder" title="struct gpudb_api::avro_schema_builder::AvroSchemaBuilder">AvroSchemaBuilder</a>;</code></div>
+<div id="reexport.AvroType" className="dt"><code>pub use crate::avro\_schema\_builder::<a className="enum" href="/content/api/rust/avro_schema_builder/enum.AvroType" title="enum gpudb_api::avro_schema_builder::AvroType">AvroType</a>;</code></div>
+<div id="reexport.TypePropertiesBuilder" className="dt"><code>pub use crate::avro\_schema\_builder::<a className="struct" href="/content/api/rust/avro_schema_builder/struct.TypePropertiesBuilder" title="struct gpudb_api::avro_schema_builder::TypePropertiesBuilder">TypePropertiesBuilder</a>;</code></div>
+<div id="reexport.KineticaColumnProperties" className="dt"><code>pub use crate::avro\_schema\_builder::<a className="struct" href="/content/api/rust/avro_schema_builder/struct.KineticaColumnProperties" title="struct gpudb_api::avro_schema_builder::KineticaColumnProperties">KineticaColumnProperties</a>;</code></div>
+<div id="reexport.RecordRetriever" className="dt"><code>pub use crate::record\_retriever::<a className="struct" href="/content/api/rust/record_retriever/struct.RecordRetriever" title="struct gpudb_api::record_retriever::RecordRetriever">RecordRetriever</a>;</code></div>
+<div id="reexport.RecordRetrieverOptions" className="dt"><code>pub use crate::record\_retriever::<a className="struct" href="/content/api/rust/record_retriever/struct.RecordRetrieverOptions" title="struct gpudb_api::record_retriever::RecordRetrieverOptions">RecordRetrieverOptions</a>;</code></div>
+<div id="reexport.RetrievedRecord" className="dt"><code>pub use crate::record\_retriever::<a className="trait" href="/content/api/rust/record_retriever/trait.RetrievedRecord" title="trait gpudb_api::record_retriever::RetrievedRecord">RetrievedRecord</a>;</code></div>
+<div id="reexport.END_OF_SET" className="dt"><code>pub use crate::record\_retriever::<a className="constant" href="/content/api/rust/record_retriever/index#constant.END_OF_SET" title="constant gpudb_api::record_retriever::END_OF_SET">END\_OF\_SET</a>;</code></div>
+<div id="reexport.encode_records" className="dt"><code>pub use crate::avro::<a className="fn" href="/content/api/rust/avro/fn.encode_records" title="fn gpudb_api::avro::encode_records">encode\_records</a>;</code></div>
+<div id="reexport.encode_records_parallel" className="dt"><code>pub use crate::avro::<a className="fn" href="/content/api/rust/avro/fn.encode_records_parallel" title="fn gpudb_api::avro::encode_records_parallel">encode\_records\_parallel</a>;</code></div>
+<div id="reexport.encode_records_sequential" className="dt"><code>pub use crate::avro::<a className="fn" href="/content/api/rust/avro/fn.encode_records_sequential" title="fn gpudb_api::avro::encode_records_sequential">encode\_records\_sequential</a>;</code></div>
+<div id="reexport.encode_arc_records_parallel" className="dt"><code>pub use crate::avro::<a className="fn" href="/content/api/rust/avro/fn.encode_arc_records_parallel" title="fn gpudb_api::avro::encode_arc_records_parallel">encode\_arc\_records\_parallel</a>;</code></div>
+<div id="reexport.encode_arc_records_partitioned" className="dt"><code>pub use crate::avro::<a className="fn" href="/content/api/rust/avro/fn.encode_arc_records_partitioned" title="fn gpudb_api::avro::encode_arc_records_partitioned">encode\_arc\_records\_partitioned</a>;</code></div>
+<div id="reexport.encode_records_partitioned" className="dt"><code>pub use crate::avro::<a className="fn" href="/content/api/rust/avro/fn.encode_records_partitioned" title="fn gpudb_api::avro::encode_records_partitioned">encode\_records\_partitioned</a>;</code></div>
+<div id="reexport.encode_single" className="dt"><code>pub use crate::avro::<a className="fn" href="/content/api/rust/avro/fn.encode_single" title="fn gpudb_api::avro::encode_single">encode\_single</a>;</code></div>
+<div id="reexport.decode_records" className="dt"><code>pub use crate::avro::<a className="fn" href="/content/api/rust/avro/fn.decode_records" title="fn gpudb_api::avro::decode_records">decode\_records</a>;</code></div>
+<div id="reexport.decode_records_parallel" className="dt"><code>pub use crate::avro::<a className="fn" href="/content/api/rust/avro/fn.decode_records_parallel" title="fn gpudb_api::avro::decode_records_parallel">decode\_records\_parallel</a>;</code></div>
+<div id="reexport.decode_records_sequential" className="dt"><code>pub use crate::avro::<a className="fn" href="/content/api/rust/avro/fn.decode_records_sequential" title="fn gpudb_api::avro::decode_records_sequential">decode\_records\_sequential</a>;</code></div>
+<div id="reexport.decode_with_fast_schema" className="dt"><code>pub use crate::avro::<a className="fn" href="/content/api/rust/avro/fn.decode_with_fast_schema" title="fn gpudb_api::avro::decode_with_fast_schema">decode\_with\_fast\_schema</a>;</code></div>
+<div id="reexport.decode_single" className="dt"><code>pub use crate::avro::<a className="fn" href="/content/api/rust/avro/fn.decode_single" title="fn gpudb_api::avro::decode_single">decode\_single</a>;</code></div>
+<div id="reexport.parse_schema" className="dt"><code>pub use crate::avro::<a className="fn" href="/content/api/rust/avro/fn.parse_schema" title="fn gpudb_api::avro::parse_schema">parse\_schema</a>;</code></div>
+<div id="reexport.parse_fast_schema" className="dt"><code>pub use crate::avro::<a className="fn" href="/content/api/rust/avro/fn.parse_fast_schema" title="fn gpudb_api::avro::parse_fast_schema">parse\_fast\_schema</a>;</code></div>
+<div id="reexport.PARALLEL_THRESHOLD" className="dt"><code>pub use crate::avro::<a className="constant" href="/content/api/rust/avro/index#constant.PARALLEL_THRESHOLD" title="constant gpudb_api::avro::PARALLEL_THRESHOLD">PARALLEL\_THRESHOLD</a>;</code></div>
+<div id="reexport.SqlIterator" className="dt"><code>pub use crate::sql\_iterator::<a className="struct" href="/content/api/rust/sql_iterator/struct.SqlIterator" title="struct gpudb_api::sql_iterator::SqlIterator">SqlIterator</a>;</code></div>
+<div id="reexport.SqlParameters" className="dt"><code>pub use crate::sql\_iterator::<a className="enum" href="/content/api/rust/sql_iterator/enum.SqlParameters" title="enum gpudb_api::sql_iterator::SqlParameters">SqlParameters</a>;</code></div>
+<div id="reexport.GetRecordsJsonResponse" className="dt"><code>pub use crate::json\_records::<a className="struct" href="/content/api/rust/json_records/struct.GetRecordsJsonResponse" title="struct gpudb_api::json_records::GetRecordsJsonResponse">GetRecordsJsonResponse</a>;</code></div>
+<div id="reexport.InsertRecordsJsonRequest" className="dt"><code>pub use crate::json\_records::<a className="struct" href="/content/api/rust/json_records/struct.InsertRecordsJsonRequest" title="struct gpudb_api::json_records::InsertRecordsJsonRequest">InsertRecordsJsonRequest</a>;</code></div>
+<div id="reexport.JsonOptions" className="dt"><code>pub use crate::json\_records::<a className="struct" href="/content/api/rust/json_records/struct.JsonOptions" title="struct gpudb_api::json_records::JsonOptions">JsonOptions</a>;</code></div>
+<div id="reexport.SqlClient" className="dt"><code>pub use crate::sql::<a className="struct" href="/content/api/rust/sql/struct.SqlClient" title="struct gpudb_api::sql::SqlClient">SqlClient</a>;</code></div>
+<div id="reexport.SqlResult" className="dt"><code>pub use crate::sql::<a className="struct" href="/content/api/rust/sql/struct.SqlResult" title="struct gpudb_api::sql::SqlResult">SqlResult</a>;</code></div>
+<div id="reexport.Row" className="dt"><code>pub use crate::sql::<a className="struct" href="/content/api/rust/sql/struct.Row" title="struct gpudb_api::sql::Row">Row</a>;</code></div>
+<div id="reexport.SqlError" className="dt"><code>pub use crate::sql::<a className="enum" href="/content/api/rust/sql/enum.SqlError" title="enum gpudb_api::sql::SqlError">SqlError</a>;</code></div>
+<div id="reexport.SqlOpResult" className="dt"><code>pub use crate::sql::<a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOpResult</a>;</code></div>
+<div id="reexport.PaginationStats" className="dt"><code>pub use crate::sql::<a className="struct" href="/content/api/rust/sql/struct.PaginationStats" title="struct gpudb_api::sql::PaginationStats">PaginationStats</a>;</code></div>
+<div id="reexport.BatchingSqlClient" className="dt"><code>pub use crate::sql::<a className="struct" href="/content/api/rust/sql/struct.BatchingSqlClient" title="struct gpudb_api::sql::BatchingSqlClient">BatchingSqlClient</a>;</code></div>
+<div id="reexport.BatchingStats" className="dt"><code>pub use crate::sql::<a className="struct" href="/content/api/rust/sql/struct.BatchingStats" title="struct gpudb_api::sql::BatchingStats">BatchingStats</a>;</code></div>
+<div id="reexport.SqlHints" className="dt"><code>pub use crate::sql::<a className="struct" href="/content/api/rust/sql/struct.SqlHints" title="struct gpudb_api::sql::SqlHints">SqlHints</a>;</code></div>
+<div id="reexport.ParsedInsert" className="dt"><code>pub use crate::sql\_insert\_parser::<a className="struct" href="/content/api/rust/sql_insert_parser/struct.ParsedInsert" title="struct gpudb_api::sql_insert_parser::ParsedInsert">ParsedInsert</a>;</code></div>
+<div id="reexport.parse_insert_statement" className="dt"><code>pub use crate::sql\_insert\_parser::<a className="fn" href="/content/api/rust/sql_insert_parser/fn.parse_insert_statement" title="fn gpudb_api::sql_insert_parser::parse_insert_statement">parse\_insert\_statement</a>;</code></div>
+<div id="reexport.parse_sql_value_to_record_value" className="dt"><code>pub use crate::sql\_insert\_parser::<a className="fn" href="/content/api/rust/sql_insert_parser/fn.parse_sql_value_to_record_value" title="fn gpudb_api::sql_insert_parser::parse_sql_value_to_record_value">parse\_sql\_value\_to\_record\_value</a>;</code></div>
+<div id="reexport.Type" className="dt"><code>pub use crate::generic\_record::<a className="struct" href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type">Type</a>;</code></div>
+<div id="reexport.TypeBuilder" className="dt"><code>pub use crate::generic\_record::<a className="struct" href="/content/api/rust/generic_record/struct.TypeBuilder" title="struct gpudb_api::generic_record::TypeBuilder">TypeBuilder</a>;</code></div>
+<div id="reexport.Column" className="dt"><code>pub use crate::generic\_record::<a className="struct" href="/content/api/rust/generic_record/struct.Column" title="struct gpudb_api::generic_record::Column">Column</a>;</code></div>
+<div id="reexport.ColumnType" className="dt"><code>pub use crate::generic\_record::<a className="enum" href="/content/api/rust/generic_record/enum.ColumnType" title="enum gpudb_api::generic_record::ColumnType">ColumnType</a>;</code></div>
+<div id="reexport.ColumnBaseType" className="dt"><code>pub use crate::generic\_record::<a className="enum" href="/content/api/rust/generic_record/enum.ColumnBaseType" title="enum gpudb_api::generic_record::ColumnBaseType">ColumnBaseType</a>;</code></div>
+<div id="reexport.GenericRecord" className="dt"><code>pub use crate::generic\_record::<a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a>;</code></div>
+<div id="reexport.RecordValue" className="dt"><code>pub use crate::generic\_record::<a className="enum" href="/content/api/rust/generic_record/enum.RecordValue" title="enum gpudb_api::generic_record::RecordValue">RecordValue</a>;</code></div>
+<div id="reexport.ArrayValue" className="dt"><code>pub use crate::generic\_record::<a className="enum" href="/content/api/rust/generic_record/enum.ArrayValue" title="enum gpudb_api::generic_record::ArrayValue">ArrayValue</a>;</code></div>
+<div id="reexport.BulkInsertStats" className="dt"><code>pub use crate::generic\_record::<a className="struct" href="/content/api/rust/generic_record/struct.BulkInsertStats" title="struct gpudb_api::generic_record::BulkInsertStats">BulkInsertStats</a>;</code></div>
+<div id="reexport.KineticaPool" className="dt"><code>pub use crate::sqlx\_support::<a className="type" href="/content/api/rust/sqlx_support/type.KineticaPool" title="type gpudb_api::sqlx_support::KineticaPool">KineticaPool</a>;</code></div>
+<div id="reexport.KineticaConnection" className="dt"><code>pub use crate::sqlx\_support::<a className="type" href="/content/api/rust/sqlx_support/type.KineticaConnection" title="type gpudb_api::sqlx_support::KineticaConnection">KineticaConnection</a>;</code></div>
+<div id="reexport.KineticaTransaction" className="dt"><code>pub use crate::sqlx\_support::<a className="type" href="/content/api/rust/sqlx_support/type.KineticaTransaction" title="type gpudb_api::sqlx_support::KineticaTransaction">KineticaTransaction</a>;</code></div>
+<div id="reexport.KineticaPoolOptions" className="dt"><code>pub use crate::sqlx\_support::<a className="struct" href="/content/api/rust/sqlx_support/struct.KineticaPoolOptions" title="struct gpudb_api::sqlx_support::KineticaPoolOptions">KineticaPoolOptions</a>;</code></div>
+<div id="reexport.KineticaPoolExt" className="dt"><code>pub use crate::sqlx\_support::<a className="trait" href="/content/api/rust/sqlx_support/trait.KineticaPoolExt" title="trait gpudb_api::sqlx_support::KineticaPoolExt">KineticaPoolExt</a>;</code></div>
+<div id="reexport.SslMode" className="dt"><code>pub use crate::sqlx\_support::<a className="enum" href="/content/api/rust/sqlx_support/enum.SslMode" title="enum gpudb_api::sqlx_support::SslMode">SslMode</a>;</code></div>
+<div id="reexport.SqlxPaginationStats" className="dt"><code>pub use crate::sqlx\_support::<a className="struct" href="/content/api/rust/sqlx_support/struct.SqlxPaginationStats" title="struct gpudb_api::sqlx_support::SqlxPaginationStats">SqlxPaginationStats</a>;</code></div>
+<div id="reexport.SqlxBulkInserter" className="dt"><code>pub use crate::sqlx\_support::<a className="struct" href="/content/api/rust/sqlx_support/struct.SqlxBulkInserter" title="struct gpudb_api::sqlx_support::SqlxBulkInserter">SqlxBulkInserter</a>;</code></div>
+<div id="reexport.BatchingSqlxClient" className="dt"><code>pub use crate::sqlx\_support::<a className="struct" href="/content/api/rust/sqlx_support/struct.BatchingSqlxClient" title="struct gpudb_api::sqlx_support::BatchingSqlxClient">BatchingSqlxClient</a>;</code></div>
+<div id="reexport.BatchingSqlxStats" className="dt"><code>pub use crate::sqlx\_support::<a className="struct" href="/content/api/rust/sqlx_support/struct.BatchingSqlxStats" title="struct gpudb_api::sqlx_support::BatchingSqlxStats">BatchingSqlxStats</a>;</code></div>
+<div id="reexport.BatchingSqlxError" className="dt"><code>pub use crate::sqlx\_support::<a className="enum" href="/content/api/rust/sqlx_support/enum.BatchingSqlxError" title="enum gpudb_api::sqlx_support::BatchingSqlxError">BatchingSqlxError</a>;</code></div>
+<div id="reexport.connect" className="dt"><code>pub use crate::sqlx\_support::<a className="fn" href="/content/api/rust/sqlx_support/fn.connect" title="fn gpudb_api::sqlx_support::connect">connect</a>;</code></div>
+<div id="reexport.connect_with_url" className="dt"><code>pub use crate::sqlx\_support::<a className="fn" href="/content/api/rust/sqlx_support/fn.connect_with_url" title="fn gpudb_api::sqlx_support::connect_with_url">connect\_with\_url</a>;</code></div>
+<div id="reexport.connect_with_options" className="dt"><code>pub use crate::sqlx\_support::<a className="fn" href="/content/api/rust/sqlx_support/fn.connect_with_options" title="fn gpudb_api::sqlx_support::connect_with_options">connect\_with\_options</a>;</code></div>
+<div id="reexport.connect_from_env" className="dt"><code>pub use crate::sqlx\_support::<a className="fn" href="/content/api/rust/sqlx_support/fn.connect_from_env" title="fn gpudb_api::sqlx_support::connect_from_env">connect\_from\_env</a>;</code></div>
+<div id="reexport.build_connection_url" className="dt"><code>pub use crate::sqlx\_support::<a className="fn" href="/content/api/rust/sqlx_support/fn.build_connection_url" title="fn gpudb_api::sqlx_support::build_connection_url">build\_connection\_url</a>;</code></div>
+<div id="reexport.connection_url_from_env" className="dt"><code>pub use crate::sqlx\_support::<a className="fn" href="/content/api/rust/sqlx_support/fn.connection_url_from_env" title="fn gpudb_api::sqlx_support::connection_url_from_env">connection\_url\_from\_env</a>;</code></div>
+<div id="reexport.DEFAULT_PORT" className="dt"><code>pub use crate::sqlx\_support::<a className="constant" href="/content/api/rust/sqlx_support/index#constant.DEFAULT_PORT" title="constant gpudb_api::sqlx_support::DEFAULT_PORT">DEFAULT\_PORT</a>;</code></div>
+<div id="reexport.DEFAULT_DATABASE" className="dt"><code>pub use crate::sqlx\_support::<a className="constant" href="/content/api/rust/sqlx_support/index#constant.DEFAULT_DATABASE" title="constant gpudb_api::sqlx_support::DEFAULT_DATABASE">DEFAULT\_DATABASE</a>;</code></div>
+<div id="reexport.KineticaText" className="dt"><code>pub use crate::sqlx\_support::<a className="struct" href="/content/api/rust/sqlx_support/struct.KineticaText" title="struct gpudb_api::sqlx_support::KineticaText">KineticaText</a>;</code></div>
+<div id="reexport.ToKineticaText" className="dt"><code>pub use crate::sqlx\_support::<a className="trait" href="/content/api/rust/sqlx_support/trait.ToKineticaText" title="trait gpudb_api::sqlx_support::ToKineticaText">ToKineticaText</a>;</code></div>
+<div id="reexport.FromKineticaText" className="dt"><code>pub use crate::sqlx\_support::<a className="trait" href="/content/api/rust/sqlx_support/trait.FromKineticaText" title="trait gpudb_api::sqlx_support::FromKineticaText">FromKineticaText</a>;</code></div>
+<div id="reexport.KineticaTimestamp" className="dt"><code>pub use crate::sqlx\_support::<a className="struct" href="/content/api/rust/sqlx_support/struct.KineticaTimestamp" title="struct gpudb_api::sqlx_support::KineticaTimestamp">KineticaTimestamp</a>;</code></div>
+<div id="reexport.KineticaBytes" className="dt"><code>pub use crate::sqlx\_support::<a className="struct" href="/content/api/rust/sqlx_support/struct.KineticaBytes" title="struct gpudb_api::sqlx_support::KineticaBytes">KineticaBytes</a>;</code></div>
+<div id="reexport.KineticaVector" className="dt"><code>pub use crate::sqlx\_support::<a className="struct" href="/content/api/rust/sqlx_support/struct.KineticaVector" title="struct gpudb_api::sqlx_support::KineticaVector">KineticaVector</a>;</code></div>
+<div id="reexport.KineticaArray" className="dt"><code>pub use crate::sqlx\_support::<a className="struct" href="/content/api/rust/sqlx_support/struct.KineticaArray" title="struct gpudb_api::sqlx_support::KineticaArray">KineticaArray</a>;</code></div>
+<div id="reexport.KineticaArrayElement" className="dt"><code>pub use crate::sqlx\_support::<a className="trait" href="/content/api/rust/sqlx_support/trait.KineticaArrayElement" title="trait gpudb_api::sqlx_support::KineticaArrayElement">KineticaArrayElement</a>;</code></div>
+<div id="reexport.KineticaJson" className="dt"><code>pub use crate::sqlx\_support::<a className="struct" href="/content/api/rust/sqlx_support/struct.KineticaJson" title="struct gpudb_api::sqlx_support::KineticaJson">KineticaJson</a>;</code></div>
+<div className="dt"><code>pub use crate::<a className="mod" href="/content/api/rust/generated/index" title="mod gpudb_api::generated">generated</a>::\*;</code></div>
+</div>
+<h2 id="modules" className="section-header">Modules</h2>
+<div className="dl item-table">
+<div className="dt"><a className="mod" href="/content/api/rust/avro/index" title="mod gpudb_api::avro">avro</a></div>
+<div className="dd">High-performance Avro encoding and decoding utilities.</div>
+<div className="dt"><a className="mod" href="/content/api/rust/avro_schema_builder/index" title="mod gpudb_api::avro_schema_builder">avro\_<wbr />schema\_<wbr />builder</a></div>
+<div className="dd">Avro Schema Builder for Kinetica Records</div>
+<div className="dt"><a className="mod" href="/content/api/rust/bulk_inserter/index" title="mod gpudb_api::bulk_inserter">bulk\_<wbr />inserter</a></div>
+<div className="dd">Shard-aware high-performance bulk insert using serde\_avro\_fast for encoding.</div>
+<div className="dt"><a className="mod" href="/content/api/rust/bulk_inserter_common/index" title="mod gpudb_api::bulk_inserter_common">bulk\_<wbr />inserter\_<wbr />common</a></div>
+<div className="dd">Common types and utilities shared between bulk inserter implementations.</div>
+<div className="dt"><a className="mod" href="/content/api/rust/column_property/index" title="mod gpudb_api::column_property">column\_<wbr />property</a></div>
+<div className="dd">The column properties a Kinetica type can give its columns, as text. A <a href="/content/api/rust/generic_record/struct.Column" title="struct gpudb_api::generic_record::Column"><code>Column</code></a> takes them in its properties, and <a href="/content/api/rust/avro_schema_builder/struct.KineticaColumnProperties" title="struct gpudb_api::avro_schema_builder::KineticaColumnProperties"><code>KineticaColumnProperties</code></a> builds them.</div>
+<div className="dt"><a className="mod" href="/content/api/rust/errors/index" title="mod gpudb_api::errors">errors</a></div>
+<div className="dd">Error types for the Kinetica client.</div>
+<div className="dt"><a className="mod" href="/content/api/rust/filesystem/index" title="mod gpudb_api::filesystem">filesystem</a></div>
+<div className="dd">KiFS (Kinetica File System) API module.</div>
+<div className="dt"><a className="mod" href="/content/api/rust/generated/index" title="mod gpudb_api::generated">generated</a></div>
+<div className="dd">Endpoint layer generated by <code>gpudb\_gen\_api\_rust.py</code> in gpudb-generators from the gpudb-schemas endpoint schemas. Regenerate with <code>../gpudb-generators/process\_schema\_changes.py gen-files --rust</code>; do not edit by hand. Generated endpoint layer. Every endpoint is an inherent method on <a href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica"><code>Kinetica</code></a>; the transport it calls lives in the hand-written runtime, not here.</div>
+<div className="dt"><a className="mod" href="/content/api/rust/generic_record/index" title="mod gpudb_api::generic_record">generic\_<wbr />record</a></div>
+<div className="dd">Generic Record Support for Dynamic Type Handling</div>
+<div className="dt"><a className="mod" href="/content/api/rust/gpudb/index" title="mod gpudb_api::gpudb">gpudb</a></div>
+<div className="dd">Core Kinetica client implementation.</div>
+<div className="dt"><a className="mod" href="/content/api/rust/hyper_client/index" title="mod gpudb_api::hyper_client">hyper\_<wbr />client</a></div>
+<div className="dd">High-performance HTTP client using hyper directly.</div>
+<div className="dt"><a className="mod" href="/content/api/rust/json_records/index" title="mod gpudb_api::json_records">json\_<wbr />records</a></div>
+<div className="dd">Inserting and reading records as JSON.</div>
+<div className="dt"><a className="mod" href="/content/api/rust/json_utils/index" title="mod gpudb_api::json_utils">json\_<wbr />utils</a></div>
+<div className="dd">Whether a text is a JSON object or array, and how a list of JSON records is sent as one array.</div>
+<div className="dt"><a className="mod" href="/content/api/rust/record_key/index" title="mod gpudb_api::record_key">record\_<wbr />key</a></div>
+<div className="dt"><a className="mod" href="/content/api/rust/record_key_builder/index" title="mod gpudb_api::record_key_builder">record\_<wbr />key\_<wbr />builder</a></div>
+<div className="dt"><a className="mod" href="/content/api/rust/record_retriever/index" title="mod gpudb_api::record_retriever">record\_<wbr />retriever</a></div>
+<div className="dd">Record retriever for efficient record retrieval from Kinetica with multi-head support.</div>
+<div className="dt"><a className="mod" href="/content/api/rust/sql/index" title="mod gpudb_api::sql">sql</a></div>
+<div className="dd">SQL client and result parser for Kinetica’s HTTP API</div>
+<div className="dt"><a className="mod" href="/content/api/rust/sql_insert_parser/index" title="mod gpudb_api::sql_insert_parser">sql\_<wbr />insert\_<wbr />parser</a></div>
+<div className="dd">Parsing of <code>INSERT INTO ... VALUES ...</code> statements.</div>
+<div className="dt"><a className="mod" href="/content/api/rust/sql_iterator/index" title="mod gpudb_api::sql_iterator">sql\_<wbr />iterator</a></div>
+<div className="dd">Iterating over the records an SQL query returns, a batch at a time.</div>
+<div className="dt"><a className="mod" href="/content/api/rust/sqlx_support/index" title="mod gpudb_api::sqlx_support">sqlx\_<wbr />support</a></div>
+<div className="dd">SQLx Support for Kinetica via PostgreSQL Wire Protocol</div>
+<div className="dt"><a className="mod" href="/content/api/rust/worker_list/index" title="mod gpudb_api::worker_list">worker\_<wbr />list</a></div>
+<div className="dd">Worker list for multi-head ingest and retrieval.</div>
+</div>
+<h2 id="macros" className="section-header">Macros</h2>
+<div className="dl item-table">
+<div className="dt"><a className="macro" href="/content/api/rust/macro.avro_schema" title="macro gpudb_api::avro_schema">avro\_<wbr />schema</a></div>
+<div className="dd">Helper macro to define a static Avro schema using the builder pattern.</div>
+</div>
+<h2 id="structs" className="section-header">Structs</h2>
+<div className="dl item-table">
+<div className="dt"><a className="struct" href="/content/api/rust/struct.ByteBuf" title="struct gpudb_api::ByteBuf">ByteBuf</a></div>
+<div className="dd">Re-exported because generated request/response types expose Avro <code>bytes</code> fields as <a href="/content/api/rust/struct.ByteBuf" title="struct gpudb_api::ByteBuf"><code>ByteBuf</code></a>; callers would otherwise need their own <code>serde\_bytes</code> dependency pinned to a matching version. Wrapper around <code>Vec&lt;u8&gt;</code> to serialize and deserialize efficiently.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/struct.TrustStore" title="struct gpudb_api::TrustStore">Trust<wbr />Store</a></div>
+<div className="dd">The certificates of a trust store.</div>
+</div>
+<h2 id="traits" className="section-header">Traits</h2>
+<div className="dl item-table">
+<div className="dt"><a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">Kinetica<wbr />Record</a></div>
+<div className="dd">Trait that must be implemented by all types that can be inserted into Kinetica.</div>
+</div>
+</div>

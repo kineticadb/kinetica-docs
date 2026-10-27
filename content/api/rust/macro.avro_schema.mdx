@@ -1,0 +1,55 @@
+---
+title: "avro_schema"
+description: "avro_schema — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/avro_schema_builder.rs#L385-L414">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>macro\_rules! avro\_schema {"{"}<br />&nbsp;&nbsp;&nbsp;&nbsp;(for $key:ty =&gt; $builder:expr) =&gt; {"{"} ... {"}"};<br />&nbsp;&nbsp;&nbsp;&nbsp;($builder:expr) =&gt; {"{"} ... {"}"};<br />{"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Helper macro to define a static Avro schema using the builder pattern.</p>
+<p>This creates a <code>OnceLock</code> that initializes the schema exactly once and returns a <code>&amp;'static str</code> reference.</p>
+<h2 id="limitation-one-schema-per-macro-call-site-not-per-type">Limitation: one schema per macro call site, not per type</h2>
+<p>The plain form <code>avro\_schema!(builder)</code> expands to a single <code>static</code> at the call site. Rust has no generic statics, so <strong>inside a generic function or a generic <code>impl</code> every instantiation shares that one static</strong>: the first instantiation to run builds the schema and every other type parameter gets the same string back, even when its builder expression would produce a different schema. Use the plain form only where the schema does not depend on a type parameter.</p>
+<p>Where it does, use the keyed form <code>avro\_schema!(for T =&gt; builder)</code>, which caches one schema per <code>T</code> (keyed by <a href="https://doc.rust-lang.org/1.98.1/core/any/struct.TypeId.html" title="struct core::any::TypeId"><code>TypeId</code></a>, so <code>T: 'static</code>). Each distinct schema is built once and its string lives for the rest of the program, the same as with the plain form.</p>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use gpudb_api::{avro_schema, avro_schema_builder::{AvroSchemaBuilder, AvroType}};
+
+fn my_schema() -> &'static str {
+    avro_schema!(
+        AvroSchemaBuilder::new("MyRecord")
+            .int_field("id")
+            .string_field("name")
+            .bytes_field("payload")
+    )
+}
+```
+
+</div>
+<p>A schema that varies with a type parameter:</p>
+<div>
+
+```rust
+use gpudb_api::{avro_schema, avro_schema_builder::AvroSchemaBuilder};
+
+fn schema_for<T: 'static>() -> &'static str {
+    avro_schema!(for T =>
+        AvroSchemaBuilder::new(std::any::type_name::<T>().replace("::", "_"))
+            .int_field("id")
+    )
+}
+
+assert_ne!(schema_for::<u8>(), schema_for::<u16>());
+```
+
+</div>
+</div>
+</div>
+</div>

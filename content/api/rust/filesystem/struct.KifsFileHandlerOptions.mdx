@@ -1,0 +1,252 @@
+---
+title: "KifsFileHandlerOptions"
+description: "KifsFileHandlerOptions — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/filesystem/index">filesystem</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L172-L191">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub struct KifsFileHandlerOptions {"{"} <span className="comment">/\* private fields \*/</span> {"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Options for the KiFS file handler.</p>
+<p>These options control the behavior of file uploads and downloads, including batch sizes and upload concurrency.</p>
+<p>The fields are private and are set only through the validating <code>with\_\*</code> methods. A public <code>file\_size\_to\_split</code> could be set to 0 or a negative number, which the multi-part part-count arithmetic divides by.</p>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use gpudb_api::filesystem::KifsFileHandlerOptions;
+
+// Create default options
+let options = KifsFileHandlerOptions::default();
+
+// Create custom options
+let options = KifsFileHandlerOptions::new()
+    .with_file_size_to_split(50 * 1024 * 1024)? // 50 MB
+    .with_thread_pool_size(1)?;
+```
+
+</div>
+</div>
+</div>
+<h2 id="implementations" className="section-header">Implementations</h2>
+<div id="implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-KifsFileHandlerOptions" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L204-L316">Source</a>
+<h3 className="code-header">impl <a className="struct" href="/content/api/rust/filesystem/struct.KifsFileHandlerOptions" title="struct gpudb_api::filesystem::KifsFileHandlerOptions">KifsFileHandlerOptions</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.new" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L206-L208">Source</a>
+<h4 className="code-header">pub fn <a href="#method.new" className="fn">new</a>() -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Creates a new <code>KifsFileHandlerOptions</code> with default values.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.with_file_size_to_split" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L219-L227">Source</a>
+<h4 className="code-header">pub fn <a href="#method.with_file_size_to_split" className="fn">with\_file\_size\_to\_split</a>(self, size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sets the file size threshold for multi-part transfers.</p>
+<h5 id="arguments">Arguments</h5>
+<ul>
+<li><code>size</code> - Size in bytes. Must be a positive value &lt;= 60 MB.</li>
+</ul>
+<h5 id="errors">Errors</h5>
+<p>Fails if the size is &lt;= 0 or &gt; 60 MB.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.with_thread_pool_size" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L242-L251">Source</a>
+<h4 className="code-header">pub fn <a href="#method.with_thread_pool_size" className="fn">with\_thread\_pool\_size</a>(self, size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sets how many full-file upload batches are sent concurrently.</p>
+<p>Uploads proceed in waves: up to this many batches are sent at once, and the next wave starts when every batch of the current one has finished.</p>
+<h5 id="arguments-1">Arguments</h5>
+<ul>
+<li><code>size</code> - Number of concurrent batches. Must be between 1 and the number of available CPUs.</li>
+</ul>
+<h5 id="errors-1">Errors</h5>
+<p>Fails if the size is 0 or greater than the number of available CPUs.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.with_max_upload_bytes_in_flight" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L267-L275">Source</a>
+<h4 className="code-header">pub fn <a href="#method.with_max_upload_bytes_in_flight" className="fn">with\_max\_upload\_bytes\_in\_flight</a>( self, bytes: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sets the ceiling on full-file upload payload bytes held in memory at once.</p>
+<p>Lower it where memory is tight: an upload then waits for outstanding batches to finish more often, trading throughput for a smaller peak. Raise it for more throughput where memory is plentiful.</p>
+<h5 id="arguments-2">Arguments</h5>
+<ul>
+<li><code>bytes</code> - The ceiling in bytes. Must be positive.</li>
+</ul>
+<h5 id="errors-2">Errors</h5>
+<p>Fails if <code>bytes</code> is &lt;= 0.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.with_termination_timeout" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L286-L289">Source</a>
+<h4 className="code-header">pub fn <a href="#method.with_termination_timeout" className="fn">with\_termination\_timeout</a>(self, timeout: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.u64.html">u64</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sets the timeout for thread pool termination.</p>
+<p>This has no effect. There are no thread pools to shut down: the upload tasks are awaited to completion, and aborted as soon as the operation’s future is dropped.</p>
+<h5 id="arguments-3">Arguments</h5>
+<ul>
+<li><code>timeout</code> - Timeout in seconds.</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.file_size_to_split" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L292-L294">Source</a>
+<h4 className="code-header">pub fn <a href="#method.file_size_to_split" className="fn">file\_size\_to\_split</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the file size threshold for multi-part transfers.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.thread_pool_size" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L297-L299">Source</a>
+<h4 className="code-header">pub fn <a href="#method.thread_pool_size" className="fn">thread\_pool\_size</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the number of full-file upload batches sent concurrently.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.full_file_dispatcher_threadpool_size" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L302-L304">Source</a>
+<h4 className="code-header">pub fn <a href="#method.full_file_dispatcher_threadpool_size" className="fn">full\_file\_dispatcher\_threadpool\_size</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i32.html">i32</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the number of full-file upload batches sent concurrently.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.max_upload_bytes_in_flight" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L308-L310">Source</a>
+<h4 className="code-header">pub fn <a href="#method.max_upload_bytes_in_flight" className="fn">max\_upload\_bytes\_in\_flight</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the ceiling on full-file upload payload bytes held in memory at once.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.termination_timeout" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L313-L315">Source</a>
+<h4 className="code-header">pub fn <a href="#method.termination_timeout" className="fn">termination\_timeout</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.u64.html">u64</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the termination timeout.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<h2 id="trait-implementations" className="section-header">Trait Implementations</h2>
+<div id="trait-implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Clone-for-KifsFileHandlerOptions" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L171">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> for <a className="struct" href="/content/api/rust/filesystem/struct.KifsFileHandlerOptions" title="struct gpudb_api::filesystem::KifsFileHandlerOptions">KifsFileHandlerOptions</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L171">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone" className="fn">clone</a>(&amp;self) -&gt; <a className="struct" href="/content/api/rust/filesystem/struct.KifsFileHandlerOptions" title="struct gpudb_api::filesystem::KifsFileHandlerOptions">KifsFileHandlerOptions</a></h4>
+</div>
+</div>
+<div className="docblock">Returns a duplicate of the value. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone">Read more</a></div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone_from" className="section method trait-impl">
+<span className="rightside"><span className="since" title="Stable since Rust version 1.0.0, const unstable">1.0.0 (const: <a href="https://github.com/rust-lang/rust/issues/142757" title="Tracking issue for const_clone">unstable</a>)</span> · <a className="src" href="https://doc.rust-lang.org/1.98.1/src/core/clone.rs.html#245-247">Source</a></span>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from" className="fn">clone\_from</a>(&amp;mut self, source: &amp;Self)</h4>
+</div>
+</div>
+<div className="docblock">Performs copy-assignment from <code>source</code>. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Debug-for-KifsFileHandlerOptions" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L171">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> for <a className="struct" href="/content/api/rust/filesystem/struct.KifsFileHandlerOptions" title="struct gpudb_api::filesystem::KifsFileHandlerOptions">KifsFileHandlerOptions</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.fmt" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L171">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt" className="fn">fmt</a>(&amp;self, f: &amp;mut <a className="struct" href="https://doc.rust-lang.org/1.98.1/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>&lt;'\_&gt;) -&gt; <a className="type" href="https://doc.rust-lang.org/1.98.1/core/fmt/type.Result.html" title="type core::fmt::Result">Result</a></h4>
+</div>
+</div>
+<div className="docblock">Formats the value using the given formatter. <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Default-for-KifsFileHandlerOptions" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L193-L202">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html" title="trait core::default::Default">Default</a> for <a className="struct" href="/content/api/rust/filesystem/struct.KifsFileHandlerOptions" title="struct gpudb_api::filesystem::KifsFileHandlerOptions">KifsFileHandlerOptions</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.default" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/options.rs#L194-L201">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html#tymethod.default" className="fn">default</a>() -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">Returns the “default value” for a type. <a href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html#tymethod.default">Read more</a></div>
+</div>
+</div>
+</div>
+</div>
+</div>

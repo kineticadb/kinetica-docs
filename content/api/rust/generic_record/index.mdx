@@ -1,0 +1,98 @@
+---
+title: "generic_record"
+description: "generic_record — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1-L3422">Source</a> </span>
+</div>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Generic Record Support for Dynamic Type Handling</p>
+<p>This module provides <code>Type</code> and <code>GenericRecord</code> types for handling records without compile-time type information.</p>
+<h2 id="overview">Overview</h2>
+<p><code>GenericRecord</code> is for cases where you need to work with records dynamically at runtime, without defining a specific struct:</p>
+<ul>
+<li><strong><a href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type"><code>Type</code></a></strong> - Immutable collection of metadata about a Kinetica type (schema, columns)</li>
+<li><strong><a href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord"><code>GenericRecord</code></a></strong> - A record instance that stores values by column index</li>
+</ul>
+<h2 id="when-to-use-genericrecord">When to Use GenericRecord</h2>
+<p>Use <code>GenericRecord</code> when:</p>
+<ul>
+<li>Table schema is not known at compile time</li>
+<li>You’re building generic data pipelines</li>
+<li>You need to copy data between tables with different schemas</li>
+<li>You’re reading data from CSV/JSON and inserting dynamically</li>
+</ul>
+<p>Use statically-typed records (implementing <code>KineticaRecord</code>) when:</p>
+<ul>
+<li>Schema is known at compile time</li>
+<li>You want maximum type safety and performance</li>
+<li>You’re building application-specific data models</li>
+</ul>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use gpudb_api::{BulkInserter, GenericRecord, Kinetica, Type};
+use std::sync::Arc;
+
+// Fetch type from existing table
+let record_type = Arc::new(Type::from_table(&kinetica, "my_table").await?);
+
+// Or create type programmatically
+let record_type = Type::builder("my_record")
+    .add_int_column("id").primary_key()
+    .add_string_column("name")
+    .add_double_column("score")
+    .build_arc()?;
+
+// Create records, which share their type through the Arc
+let mut record = record_type.new_record();
+record.set(0, 42)?;                   // by index
+record.set_by_name("name", "Alice")?; // by name
+record.set_by_name("score", 95.5)?;
+
+// Use with BulkInserter (requires schema string since GenericRecord can't implement Default)
+let inserter = BulkInserter::<GenericRecord>::with_schema(
+    kinetica,
+    "my_table".to_string(),
+    10000,  // batch_size
+    8,      // num_workers
+    None,   // options
+    record_type.schema_string(),
+).await?;
+inserter.insert(Arc::new(record))?;
+inserter.flush().await?;
+```
+
+</div>
+</div>
+</div>
+<h2 id="structs" className="section-header">Structs</h2>
+<div className="dl item-table">
+<div className="dt"><a className="struct" href="/content/api/rust/generic_record/struct.BulkInsertStats" title="struct gpudb_api::generic_record::BulkInsertStats">Bulk<wbr />Insert<wbr />Stats</a></div>
+<div className="dd">Statistics from a bulk insert operation.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/generic_record/struct.Column" title="struct gpudb_api::generic_record::Column">Column</a></div>
+<div className="dd">Immutable metadata about a column in a Kinetica type.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">Generic<wbr />Record</a></div>
+<div className="dd">A generic record that can hold values for any Kinetica type.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type">Type</a></div>
+<div className="dd">Immutable collection of metadata about a Kinetica type.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/generic_record/struct.TypeBuilder" title="struct gpudb_api::generic_record::TypeBuilder">Type<wbr />Builder</a></div>
+<div className="dd">Builder for constructing a Type with a fluent API.</div>
+</div>
+<h2 id="enums" className="section-header">Enums</h2>
+<div className="dl item-table">
+<div className="dt"><a className="enum" href="/content/api/rust/generic_record/enum.ArrayValue" title="enum gpudb_api::generic_record::ArrayValue">Array<wbr />Value</a></div>
+<div className="dd">The elements of an array or vector column, as <a href="/content/api/rust/generic_record/struct.GenericRecord#method.get_array" title="method gpudb_api::generic_record::GenericRecord::get_array"><code>GenericRecord::get\_array</code></a> gives them: an array of the element type, each element <code>None</code> where it is null, or a vector’s floats.</div>
+<div className="dt"><a className="enum" href="/content/api/rust/generic_record/enum.ColumnBaseType" title="enum gpudb_api::generic_record::ColumnBaseType">Column<wbr />Base<wbr />Type</a></div>
+<div className="dd">Base column types (maps to Avro primitive types)</div>
+<div className="dt"><a className="enum" href="/content/api/rust/generic_record/enum.ColumnType" title="enum gpudb_api::generic_record::ColumnType">Column<wbr />Type</a></div>
+<div className="dd">Column types including subtypes determined by properties</div>
+<div className="dt"><a className="enum" href="/content/api/rust/generic_record/enum.RecordValue" title="enum gpudb_api::generic_record::RecordValue">Record<wbr />Value</a></div>
+<div className="dd">A typed value that can be stored in a GenericRecord.</div>
+</div>
+</div>

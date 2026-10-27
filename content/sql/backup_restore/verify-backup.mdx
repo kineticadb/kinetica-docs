@@ -1,0 +1,112 @@
+---
+title: VERIFY BACKUP
+---
+
+<a id="sql-backup-verify"></a>
+
+
+Verifies one or more [backups](/content/sql/backup_restore/create-backup#sql-backup-create) accessible via
+the given [data source](/content/sql/ddl/create-data-source#sql-create-data-source), checking that
+each *backup's* metadata can be read and that the files its *snapshots* depend on
+are present in the remote file store.  By default, only the most recent
+*snapshot* of each *backup* is verified.
+
+```sql title="VERIFY BACKUP Syntax"
+VERIFY BACKUP < <backup name> | "<backup name>*" | * >
+DATA SOURCE <data source name>
+[WITH OPTIONS ('backup_id' = '<snapshot id>')]
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;backup name&gt;" id="<backup-name>" defaultOpen>
+
+Name of the *backup(s)* to verify that are accessible via the *data source* given by
+`<data source name>`.
+
+Use `"<backup name>*"` (double-quoted) to verify all *backups* that start with ``backup
+name``.
+
+Use `*` instead of `<backup name>` to verify all *backups*.
+
+</Accordion>
+
+<Accordion title="&lt;data source name&gt;" id="<data-source-name>" defaultOpen>
+
+Name of the [data source](/content/sql/ddl/create-data-source#sql-create-data-source) to use to access the database
+*backup* files in the remote file store.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Options
+
+
+<AccordionGroup>
+
+<Accordion title="backup_id" id="backup_id" defaultOpen>
+
+ID of the *snapshot* to verify; the IDs of a *backup's snapshots* are listed by
+[DESCRIBE BACKUP](/content/sql/backup_restore/describe-backup#sql-backup-desc).
+
+Use `-1` to verify all of the *backup's snapshots*.
+
+If not specified, only the most recent *snapshot* of each *backup* is verified.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Response
+
+
+The response to `VERIFY BACKUP` is a 4-column result set, with one row per
+*backup* verified:
+
+| Output Column | Description |
+| --- | --- |
+| `BACKUP_NAME` | Name of the *backup* verified |
+| `VERIFIED_OK` | Whether the verification found no problems with the *backup* |
+| `BACKUP_IDS` | Comma-separated list of the IDs of the *snapshots* verified |
+| `ERROR_LIST` | List of the problems found, separated by semicolons; each is prefixed with the ID of the *snapshot* it was found in |
+
+<a id="sql-backup-verify-ex"></a>
+
+
+## Examples
+
+
+To verify the most recent *snapshot* of the `schema_backup` *backup* accessible
+via the `restore_ds` *data source*:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 486-487) */}
+```sql VERIFY BACKUP Example
+VERIFY BACKUP schema_backup
+DATA SOURCE = restore_ds
+```
+
+To verify every *snapshot* of all *backups* whose name starts with `conf` that
+are accessible via the `restore_ds` *data source*:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 492-494) */}
+```sql VERIFY BACKUP (All Snapshots of Backups with Prefix) Example
+VERIFY BACKUP "conf*"
+DATA SOURCE = restore_ds
+WITH OPTIONS ('backup_id' = '-1')
+```
+
+To verify the most recent *snapshot* of all *backups* that are accessible via the
+`restore_ds` *data source*:
+
+{/* Source: /examples/sql/backup/backup.kisql (lines 499-500) */}
+```sql VERIFY BACKUP (All Backups at Data Source) Example
+VERIFY BACKUP *
+DATA SOURCE = restore_ds
+```

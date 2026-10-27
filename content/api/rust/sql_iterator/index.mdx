@@ -1,0 +1,42 @@
+---
+title: "sql_iterator"
+description: "sql_iterator — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql_iterator.rs#L1-L498">Source</a> </span>
+</div>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Iterating over the records an SQL query returns, a batch at a time.</p>
+<p>The query runs against a paging table of the iterator’s own, named by a random UUID, so batches come from one result set in one order, and the server-side tables the iteration creates are dropped by <a href="/content/api/rust/sql_iterator/struct.SqlIterator#method.close" title="method gpudb_api::sql_iterator::SqlIterator::close"><code>SqlIterator::close</code></a>.</p>
+<div>
+
+```rust
+use gpudb_api::{Kinetica, KineticaOptions, SqlIterator};
+use std::sync::Arc;
+
+let kinetica = Arc::new(Kinetica::new(vec!["http://localhost:9191".to_string()], KineticaOptions::new()).await?);
+let mut records = SqlIterator::new(kinetica, "SELECT * FROM my_table").await?;
+while records.has_next() {
+    println!("{:?}", records.next().await?);
+}
+records.close().await;
+```
+
+</div>
+</div>
+</div>
+<h2 id="structs" className="section-header">Structs</h2>
+<div className="dl item-table">
+<div className="dt"><a className="struct" href="/content/api/rust/sql_iterator/struct.SqlIterator" title="struct gpudb_api::sql_iterator::SqlIterator">SqlIterator</a></div>
+<div className="dd">Iterates over the records an SQL query returns.</div>
+</div>
+<h2 id="enums" className="section-header">Enums</h2>
+<div className="dl item-table">
+<div className="dt"><a className="enum" href="/content/api/rust/sql_iterator/enum.SqlParameters" title="enum gpudb_api::sql_iterator::SqlParameters">SqlParameters</a></div>
+<div className="dd">The query parameters of <a href="/content/api/rust/gpudb/struct.Kinetica/execute-with-parameters#method.execute_with_parameters" title="method gpudb_api::gpudb::Kinetica::execute_with_parameters"><code>Kinetica::execute\_with\_parameters</code></a> and <a href="/content/api/rust/gpudb/struct.Kinetica/query-with-parameters#method.query_with_parameters" title="method gpudb_api::gpudb::Kinetica::query_with_parameters"><code>Kinetica::query\_with\_parameters</code></a>, sent as the <code>query\_parameters</code> SQL option.</div>
+</div>
+</div>

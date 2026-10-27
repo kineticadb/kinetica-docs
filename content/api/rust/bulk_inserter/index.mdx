@@ -1,0 +1,217 @@
+---
+title: "bulk_inserter"
+description: "bulk_inserter — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L1-L5143">Source</a> </span>
+</div>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Shard-aware high-performance bulk insert using serde\_avro\_fast for encoding.</p>
+<p><code>BulkInserter</code> routes records to the correct worker based on shard key computation, enabling true multi-head ingest where each record is sent directly to the worker that owns its shard.</p>
+<h2 id="how-shard-aware-routing-works">How Shard-Aware Routing Works</h2>
+<ol>
+<li>On initialization, fetch the routing table via <code>admin\_show\_shards</code></li>
+<li>Fetch the table schema via <code>show\_table</code> to identify shard key columns</li>
+<li>Build a <code>RecordKeyBuilder</code> to compute routing keys</li>
+<li>For each record, compute its shard key hash using all shard key columns</li>
+<li>Use the routing table to determine which worker owns that shard</li>
+<li>Route the record directly to that worker</li>
+</ol>
+<h2 id="performance">Performance</h2>
+<ul>
+<li>Shard-aware routing eliminates server-side record redistribution</li>
+<li>Each worker receives only records that belong to its shards</li>
+<li>Faster Avro encoding with <code>serde\_avro\_fast</code> (\~6-7x faster than apache-avro)</li>
+<li>Parallel encoding with rayon for maximum throughput</li>
+</ul>
+<h2 id="insert-methods">Insert Methods</h2>
+<p>The <code>BulkInserter</code> provides four insertion methods:</p>
+<div>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Use Case</th>
+<th>Queue Throughput</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="/content/api/rust/bulk_inserter/struct.BulkInserter#method.insert" title="method gpudb_api::bulk_inserter::BulkInserter::insert"><code>insert</code></a></td>
+<td>Single record streaming</td>
+<td>\~3-7M rec/s</td>
+</tr>
+<tr>
+<td><a href="/content/api/rust/bulk_inserter/struct.BulkInserter#method.insert_with_backpressure" title="method gpudb_api::bulk_inserter::BulkInserter::insert_with_backpressure"><code>insert\_with\_backpressure</code></a></td>
+<td>Memory-bounded streaming</td>
+<td>\~3-7M rec/s</td>
+</tr>
+<tr>
+<td><a href="/content/api/rust/bulk_inserter/struct.BulkInserter#method.insert_batch" title="method gpudb_api::bulk_inserter::BulkInserter::insert_batch"><code>insert\_batch</code></a></td>
+<td>Bulk loading</td>
+<td>\~20-30M rec/s</td>
+</tr>
+<tr>
+<td><a href="/content/api/rust/bulk_inserter/struct.BulkInserter#method.insert_batch_arc" title="method gpudb_api::bulk_inserter::BulkInserter::insert_batch_arc"><code>insert\_batch\_arc</code></a></td>
+<td>Pre-wrapped records</td>
+<td>\~30-35M rec/s</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The batch methods use parallel shard key computation and reduce lock contention by grouping records before acquiring locks. This provides up to 8x faster client-side queue throughput for large batches.</p>
+<h2 id="json-records">JSON Records</h2>
+<p><a href="/content/api/rust/bulk_inserter/struct.BulkInserter#method.new_json" title="associated function gpudb_api::bulk_inserter::BulkInserter::new_json"><code>BulkInserter::new\_json</code></a> and <a href="/content/api/rust/bulk_inserter/struct.BulkInserter#method.with_json_options" title="associated function gpudb_api::bulk_inserter::BulkInserter::with_json_options"><code>BulkInserter::with\_json\_options</code></a> make a <code>BulkInserter&lt;String&gt;</code> taking JSON objects as text: each record goes to the rank of a random shard, and each batch is sent as one JSON array to <code>/insert/records/json</code>.</p>
+<h2 id="further-features">Further Features</h2>
+<h3 id="backpressure-control">Backpressure Control</h3>
+<p>Use <code>insert\_with\_backpressure()</code> for memory-bounded operation:</p>
+<div>
+
+```rust
+let mut options = BulkInserterOptions::new();
+options.set_max_in_flight_batches(50);  // Limit concurrent batches
+
+let inserter = BulkInserter::with_options(kinetica, "my_table".into(), 50000, 8, Some(options)).await?;
+
+for record in records {
+    inserter.insert_with_backpressure(Arc::new(record)).await?;
+}
+```
+
+</div>
+<h3 id="timed-flush">Timed Flush</h3>
+<p>Configure automatic periodic flush:</p>
+<div>
+
+```rust
+let mut options = BulkInserterOptions::new();
+options.set_flush_options(FlushOptions::new(false, 30));  // Flush every 30 seconds
+
+let inserter = BulkInserter::with_options(kinetica, "my_table".into(), 50000, 8, Some(options)).await?;
+// Timed flush runs automatically in background
+```
+
+</div>
+<h3 id="error-queue">Error Queue</h3>
+<p>Non-blocking async error collection:</p>
+<div>
+
+```rust
+// After insertion, check for errors
+let errors = inserter.drain_errors();
+for err in errors {
+    eprintln!("Error: {} at {}", err.message, err.worker_url);
+}
+```
+
+</div>
+<h3 id="batch-callbacks">Batch Callbacks</h3>
+<p>Real-time monitoring via <code>BatchInsertionListener</code>:</p>
+<div>
+
+```rust
+use gpudb_api::{BatchInsertionListener, BatchInsertionResult};
+
+struct MyListener;
+impl BatchInsertionListener for MyListener {
+    fn on_batch_inserted(&self, result: &BatchInsertionResult) {
+        println!("Batch: {} records, success={}", result.batch_size, result.success);
+    }
+}
+```
+
+</div>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use gpudb_api::{Kinetica, BulkInserter, BulkInserterOptions, KineticaRecord, ShardKeyExtractor, ShardKeyValue, ShardKeyValues};
+use smallvec::smallvec;
+use std::sync::Arc;
+
+#[derive(serde::Serialize, Default)]
+struct MyRecord { id: i32, name: String }
+
+impl ShardKeyExtractor for MyRecord {
+    fn shard_key_values(&self) -> ShardKeyValues<'_> {
+        smallvec![("id", ShardKeyValue::Int(self.id))]
+    }
+}
+
+// Simple usage with defaults
+let inserter = BulkInserter::new(
+    kinetica.clone(),
+    "my_schema.my_table".into(),
+    50000,  // batch size
+    16      // num workers
+).await?;
+
+// Or with options
+let mut options = BulkInserterOptions::default();
+options.set_update_on_existing_pk(true);
+let inserter_with_options = BulkInserter::<MyRecord>::with_options(
+    kinetica,
+    "my_schema.my_table".into(),
+    50000,
+    16,
+    Some(options),
+).await?;
+
+// Single record insertion (good for streaming)
+for i in 0..1_000_000 {
+    let record = Arc::new(MyRecord { id: i, name: format!("name_{}", i) });
+    inserter.insert(record)?;
+}
+
+// Or batch insertion (faster for bulk loading)
+let records: Vec<MyRecord> = (0..100_000)
+    .map(|i| MyRecord { id: i, name: format!("name_{}", i) })
+    .collect();
+inserter.insert_batch(records)?;
+
+inserter.flush().await?;
+```
+
+</div>
+</div>
+</div>
+<h2 id="reexports" className="section-header">Re-exports</h2>
+<div className="dl item-table reexports">
+<div id="reexport.ShardKeyExtractor" className="dt"><code>pub use crate::bulk\_inserter\_common::<a className="trait" href="/content/api/rust/bulk_inserter_common/trait.ShardKeyExtractor" title="trait gpudb_api::bulk_inserter_common::ShardKeyExtractor">ShardKeyExtractor</a>;</code></div>
+<div id="reexport.ShardKeyValue" className="dt"><code>pub use crate::bulk\_inserter\_common::<a className="enum" href="/content/api/rust/bulk_inserter_common/enum.ShardKeyValue" title="enum gpudb_api::bulk_inserter_common::ShardKeyValue">ShardKeyValue</a>;</code></div>
+<div id="reexport.ShardKeyValues" className="dt"><code>pub use crate::bulk\_inserter\_common::<a className="type" href="/content/api/rust/bulk_inserter_common/type.ShardKeyValues" title="type gpudb_api::bulk_inserter_common::ShardKeyValues">ShardKeyValues</a>;</code></div>
+</div>
+<h2 id="modules" className="section-header">Modules</h2>
+<div className="dl item-table">
+<div className="dt"><a className="mod" href="/content/api/rust/bulk_inserter/insert_records_options/index" title="mod gpudb_api::bulk_inserter::insert_records_options">insert\_<wbr />records\_<wbr />options</a></div>
+<div className="dd">Constants for InsertRecordsRequest options.</div>
+</div>
+<h2 id="structs" className="section-header">Structs</h2>
+<div className="dl item-table">
+<div className="dt"><a className="struct" href="/content/api/rust/bulk_inserter/struct.BackpressureMetrics" title="struct gpudb_api::bulk_inserter::BackpressureMetrics">Backpressure<wbr />Metrics</a></div>
+<div className="dd">Metrics for monitoring backpressure behavior.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/bulk_inserter/struct.BatchInsertionResult" title="struct gpudb_api::bulk_inserter::BatchInsertionResult">Batch<wbr />Insertion<wbr />Result</a></div>
+<div className="dd">Result of a batch insertion attempt. This is passed to the batch listener callback after each batch completes.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/bulk_inserter/struct.BulkInserter" title="struct gpudb_api::bulk_inserter::BulkInserter">Bulk<wbr />Inserter</a></div>
+<div className="dd">Shard-aware high-performance bulk inserter.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/bulk_inserter/struct.BulkInserterOptions" title="struct gpudb_api::bulk_inserter::BulkInserterOptions">Bulk<wbr />Inserter<wbr />Options</a></div>
+<div className="dd">Options for configuring the BulkInserter.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/bulk_inserter/struct.FlushOptions" title="struct gpudb_api::bulk_inserter::FlushOptions">Flush<wbr />Options</a></div>
+<div className="dd">Options for controlling automatic flush behavior.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/bulk_inserter/struct.FnBatchListener" title="struct gpudb_api::bulk_inserter::FnBatchListener">FnBatch<wbr />Listener</a></div>
+<div className="dd">Simple function-based listener wrapper</div>
+<div className="dt"><a className="struct" href="/content/api/rust/bulk_inserter/struct.InsertError" title="struct gpudb_api::bulk_inserter::InsertError">Insert<wbr />Error</a></div>
+<div className="dd">An error that occurred during batch insertion. These are collected in the error queue for async error handling.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/bulk_inserter/struct.QueueError" title="struct gpudb_api::bulk_inserter::QueueError">Queue<wbr />Error</a></div>
+<div className="dd">Records the inserter did not queue, and why, for the caller to retry or report.</div>
+</div>
+<h2 id="traits" className="section-header">Traits</h2>
+<div className="dl item-table">
+<div className="dt"><a className="trait" href="/content/api/rust/bulk_inserter/trait.BatchInsertionListener" title="trait gpudb_api::bulk_inserter::BatchInsertionListener">Batch<wbr />Insertion<wbr />Listener</a></div>
+<div className="dd">Callback trait for batch insertion events. Implement this trait to receive notifications when batches complete.</div>
+</div>
+</div>

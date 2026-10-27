@@ -1,0 +1,1002 @@
+---
+title: "KineticaRecord"
+description: "KineticaRecord — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/lib.rs#L310-L328">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub trait KineticaRecord: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html" title="trait serde_core::ser::Serialize">Serialize</a> {"{"}<br />&nbsp;&nbsp;&nbsp;&nbsp;// Required methods<br />&nbsp;&nbsp;&nbsp;&nbsp;fn <a href="#tymethod.avro_schema" className="fn">avro\_schema</a>(&amp;self) -&gt; &amp;'static <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>;<br /><span className="item-spacer"></span>    fn <a href="#tymethod.type_properties" className="fn">type\_properties</a>() -&gt; <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;&gt;;<br /><br />&nbsp;&nbsp;&nbsp;&nbsp;// Provided method<br />&nbsp;&nbsp;&nbsp;&nbsp;fn <a href="#method.use_compression" className="fn">use\_compression</a>() -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a> {"{"} ... {"}"}<br />{"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Trait that must be implemented by all types that can be inserted into Kinetica.</p>
+<p>This trait is automatically implemented for all generated request types. Custom record types must implement this to work with <code>BulkInserter</code>.</p>
+<p><strong>Note</strong>: Types implementing this trait must also implement <code>serde::Serialize</code> for Avro encoding to work.</p>
+<h2 id="example-using-builder-api---recommended">Example (Using Builder API - Recommended)</h2>
+<div>
+
+```rust
+use gpudb_api::{KineticaRecord, AvroSchemaBuilder, AvroType, TypePropertiesBuilder, avro_schema};
+use std::collections::HashMap;
+
+#[derive(serde::Serialize, Clone, Default)]
+struct MyRecord {
+    id: i32,
+    name: String,
+}
+
+impl KineticaRecord for MyRecord {
+    fn avro_schema(&self) -> &'static str {
+        avro_schema!(
+            AvroSchemaBuilder::new("MyRecord")
+                .int_field("id")
+                .string_field("name")
+        )
+    }
+
+    fn type_properties() -> HashMap<String, Vec<String>> {
+        TypePropertiesBuilder::new()
+            .primary_key("id")
+            .data("name")
+            .build()
+    }
+}
+```
+
+</div>
+<h2 id="example-manual-json---legacy">Example (Manual JSON - Legacy)</h2>
+<div>
+
+```rust
+use gpudb_api::KineticaRecord;
+use std::collections::HashMap;
+
+#[derive(serde::Serialize, Clone, Default)]
+struct MyRecord {
+    id: i32,
+    name: String,
+}
+
+impl KineticaRecord for MyRecord {
+    fn avro_schema(&self) -> &'static str {
+        r#"{"type":"record","name":"MyRecord","fields":[
+            {"name":"id","type":"int"},
+            {"name":"name","type":"string"}
+        ]}"#
+    }
+
+    fn type_properties() -> HashMap<String, Vec<String>> {
+        let mut m = HashMap::new();
+        m.insert("id".into(), vec!["int".into(), "primary_key".into()]);
+        m
+    }
+}
+```
+
+</div>
+</div>
+</div>
+<h2 id="required-methods" className="section-header">Required Methods</h2>
+<div className="methods">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="tymethod.avro_schema" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/lib.rs#L312">Source</a>
+<h4 className="code-header">fn <a href="#tymethod.avro_schema" className="fn">avro\_schema</a>(&amp;self) -&gt; &amp;'static <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the Avro schema as a JSON string for this record type.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="tymethod.type_properties" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/lib.rs#L315">Source</a>
+<h4 className="code-header">fn <a href="#tymethod.type_properties" className="fn">type\_properties</a>() -&gt; <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns type properties including field types and attributes (e.g., primary\_key).</p>
+</div>
+</div>
+</div>
+<h2 id="provided-methods" className="section-header">Provided Methods</h2>
+<div className="methods">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.use_compression" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/lib.rs#L325-L327">Source</a>
+<h4 className="code-header">fn <a href="#method.use_compression" className="fn">use\_compression</a>() -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Whether requests of this type are Snappy-compressed when the client has <a href="/content/api/rust/gpudb/struct.KineticaOptions#structfield.use_snappy" title="field gpudb_api::gpudb::KineticaOptions::use_snappy"><code>KineticaOptions::use\_snappy</code></a> enabled.</p>
+<p>Compression is opt-in per endpoint, not global: only the endpoints that carry bulk record payloads pay the CPU cost of compressing, and the rest go out as <code>application/octet-stream</code>. The generator overrides this for <code>/insert/records</code> and <code>/update/records</code>; every other request type keeps the default.</p>
+</div>
+</div>
+</div>
+<h2 id="dyn-compatibility" className="section-header">Dyn Compatibility</h2>
+<div className="dyn-compatibility-info">
+<p>This trait is <span className="b">not</span> <a href="https://doc.rust-lang.org/1.98.1/reference/items/traits.html#dyn-compatibility">dyn compatible</a>.</p>
+<p><span className="i">In older versions of Rust, dyn compatibility was called "object safety".</span></p>
+</div>
+<h2 id="implementors" className="section-header">Implementors</h2>
+<div id="implementors-list">
+<div className="negative-marker"></div>
+<div id="impl-KineticaRecord-for-AdminAddHostRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L1763-L1774">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminAddHostRequest" title="struct gpudb_api::generated::api::AdminAddHostRequest">AdminAddHostRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminAddRanksRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L1891-L1903">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminAddRanksRequest" title="struct gpudb_api::generated::api::AdminAddRanksRequest">AdminAddRanksRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminAlterHostRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L1950-L1961">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminAlterHostRequest" title="struct gpudb_api::generated::api::AdminAlterHostRequest">AdminAlterHostRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminAlterJobsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2009-L2021">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminAlterJobsRequest" title="struct gpudb_api::generated::api::AdminAlterJobsRequest">AdminAlterJobsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminBackupBeginRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2066-L2074">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminBackupBeginRequest" title="struct gpudb_api::generated::api::AdminBackupBeginRequest">AdminBackupBeginRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminBackupEndRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2106-L2114">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminBackupEndRequest" title="struct gpudb_api::generated::api::AdminBackupEndRequest">AdminBackupEndRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminHaOfflineRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2148-L2159">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminHaOfflineRequest" title="struct gpudb_api::generated::api::AdminHaOfflineRequest">AdminHaOfflineRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminHaRefreshRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2191-L2199">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminHaRefreshRequest" title="struct gpudb_api::generated::api::AdminHaRefreshRequest">AdminHaRefreshRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminOfflineRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2233-L2244">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminOfflineRequest" title="struct gpudb_api::generated::api::AdminOfflineRequest">AdminOfflineRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminRebalanceRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2285-L2293">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminRebalanceRequest" title="struct gpudb_api::generated::api::AdminRebalanceRequest">AdminRebalanceRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminRemoveHostRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2416-L2427">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminRemoveHostRequest" title="struct gpudb_api::generated::api::AdminRemoveHostRequest">AdminRemoveHostRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminRemoveRanksRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2476-L2487">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminRemoveRanksRequest" title="struct gpudb_api::generated::api::AdminRemoveRanksRequest">AdminRemoveRanksRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminRepairTableRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2562-L2574">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminRepairTableRequest" title="struct gpudb_api::generated::api::AdminRepairTableRequest">AdminRepairTableRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminSendAlertRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2633-L2646">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminSendAlertRequest" title="struct gpudb_api::generated::api::AdminSendAlertRequest">AdminSendAlertRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminShowAlertsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2682-L2693">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminShowAlertsRequest" title="struct gpudb_api::generated::api::AdminShowAlertsRequest">AdminShowAlertsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminShowClusterOperationsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2742-L2753">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminShowClusterOperationsRequest" title="struct gpudb_api::generated::api::AdminShowClusterOperationsRequest">AdminShowClusterOperationsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminShowJobsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2863-L2871">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminShowJobsRequest" title="struct gpudb_api::generated::api::AdminShowJobsRequest">AdminShowJobsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminShowShardsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2940-L2948">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminShowShardsRequest" title="struct gpudb_api::generated::api::AdminShowShardsRequest">AdminShowShardsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminShutdownRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L2990-L3002">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminShutdownRequest" title="struct gpudb_api::generated::api::AdminShutdownRequest">AdminShutdownRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminSwitchoverRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L3051-L3063">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminSwitchoverRequest" title="struct gpudb_api::generated::api::AdminSwitchoverRequest">AdminSwitchoverRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AdminVerifyDbRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L3104-L3112">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AdminVerifyDbRequest" title="struct gpudb_api::generated::api::AdminVerifyDbRequest">AdminVerifyDbRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AggregateConvexHullRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L3236-L3249">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AggregateConvexHullRequest" title="struct gpudb_api::generated::api::AggregateConvexHullRequest">AggregateConvexHullRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AggregateGroupByRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L3325-L3340">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AggregateGroupByRequest" title="struct gpudb_api::generated::api::AggregateGroupByRequest">AggregateGroupByRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AggregateHistogramRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L3662-L3677">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AggregateHistogramRequest" title="struct gpudb_api::generated::api::AggregateHistogramRequest">AggregateHistogramRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AggregateKMeansRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L3753-L3767">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AggregateKMeansRequest" title="struct gpudb_api::generated::api::AggregateKMeansRequest">AggregateKMeansRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AggregateMinMaxGeometryRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L3939-L3951">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AggregateMinMaxGeometryRequest" title="struct gpudb_api::generated::api::AggregateMinMaxGeometryRequest">AggregateMinMaxGeometryRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AggregateMinMaxRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L3883-L3895">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AggregateMinMaxRequest" title="struct gpudb_api::generated::api::AggregateMinMaxRequest">AggregateMinMaxRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AggregateStatisticsByRangeRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L4092-L4110">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AggregateStatisticsByRangeRequest" title="struct gpudb_api::generated::api::AggregateStatisticsByRangeRequest">AggregateStatisticsByRangeRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AggregateStatisticsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L4000-L4013">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AggregateStatisticsRequest" title="struct gpudb_api::generated::api::AggregateStatisticsRequest">AggregateStatisticsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AggregateUniqueRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L4216-L4231">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AggregateUniqueRequest" title="struct gpudb_api::generated::api::AggregateUniqueRequest">AggregateUniqueRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AggregateUnpivotRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L4446-L4465">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AggregateUnpivotRequest" title="struct gpudb_api::generated::api::AggregateUnpivotRequest">AggregateUnpivotRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterBackupRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L4661-L4675">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterBackupRequest" title="struct gpudb_api::generated::api::AlterBackupRequest">AlterBackupRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterCredentialRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L4735-L4750">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterCredentialRequest" title="struct gpudb_api::generated::api::AlterCredentialRequest">AlterCredentialRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterDatasinkRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L4789-L4804">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterDatasinkRequest" title="struct gpudb_api::generated::api::AlterDatasinkRequest">AlterDatasinkRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterDatasourceRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L4843-L4858">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterDatasourceRequest" title="struct gpudb_api::generated::api::AlterDatasourceRequest">AlterDatasourceRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterDirectoryRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L4897-L4912">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterDirectoryRequest" title="struct gpudb_api::generated::api::AlterDirectoryRequest">AlterDirectoryRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterEnvironmentRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L4961-L4974">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterEnvironmentRequest" title="struct gpudb_api::generated::api::AlterEnvironmentRequest">AlterEnvironmentRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterGraphRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L5027-L5040">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterGraphRequest" title="struct gpudb_api::generated::api::AlterGraphRequest">AlterGraphRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterModelRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L5092-L5105">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterModelRequest" title="struct gpudb_api::generated::api::AlterModelRequest">AlterModelRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterResourceGroupRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L5163-L5180">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterResourceGroupRequest" title="struct gpudb_api::generated::api::AlterResourceGroupRequest">AlterResourceGroupRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterRoleRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L5274-L5287">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterRoleRequest" title="struct gpudb_api::generated::api::AlterRoleRequest">AlterRoleRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterSchemaRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L5329-L5342">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterSchemaRequest" title="struct gpudb_api::generated::api::AlterSchemaRequest">AlterSchemaRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterSystemPropertiesRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L5379-L5393">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterSystemPropertiesRequest" title="struct gpudb_api::generated::api::AlterSystemPropertiesRequest">AlterSystemPropertiesRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterTableColumnsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L5651-L5663">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterTableColumnsRequest" title="struct gpudb_api::generated::api::AlterTableColumnsRequest">AlterTableColumnsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterTableMetadataRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L5725-L5737">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterTableMetadataRequest" title="struct gpudb_api::generated::api::AlterTableMetadataRequest">AlterTableMetadataRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterTableMonitorRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L5778-L5793">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterTableMonitorRequest" title="struct gpudb_api::generated::api::AlterTableMonitorRequest">AlterTableMonitorRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterTableRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L5457-L5470">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterTableRequest" title="struct gpudb_api::generated::api::AlterTableRequest">AlterTableRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterTierRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L5830-L5841">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterTierRequest" title="struct gpudb_api::generated::api::AlterTierRequest">AlterTierRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterUserRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L5919-L5932">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterUserRequest" title="struct gpudb_api::generated::api::AlterUserRequest">AlterUserRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterVideoRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L5968-L5979">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterVideoRequest" title="struct gpudb_api::generated::api::AlterVideoRequest">AlterVideoRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AlterWalRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L6022-L6033">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AlterWalRequest" title="struct gpudb_api::generated::api::AlterWalRequest">AlterWalRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-AppendRecordsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L6145-L6158">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.AppendRecordsRequest" title="struct gpudb_api::generated::api::AppendRecordsRequest">AppendRecordsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CheckTableRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L6315-L6326">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CheckTableRequest" title="struct gpudb_api::generated::api::CheckTableRequest">CheckTableRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ClearStatisticsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L6393-L6405">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ClearStatisticsRequest" title="struct gpudb_api::generated::api::ClearStatisticsRequest">ClearStatisticsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ClearTableMonitorRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L6510-L6521">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ClearTableMonitorRequest" title="struct gpudb_api::generated::api::ClearTableMonitorRequest">ClearTableMonitorRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ClearTableRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L6448-L6460">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ClearTableRequest" title="struct gpudb_api::generated::api::ClearTableRequest">ClearTableRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ClearTablesRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L6583-L6594">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ClearTablesRequest" title="struct gpudb_api::generated::api::ClearTablesRequest">ClearTablesRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ClearTriggerRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L6644-L6655">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ClearTriggerRequest" title="struct gpudb_api::generated::api::ClearTriggerRequest">ClearTriggerRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CollectStatisticsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L6700-L6712">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CollectStatisticsRequest" title="struct gpudb_api::generated::api::CollectStatisticsRequest">CollectStatisticsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateBackupRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L6759-L6773">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateBackupRequest" title="struct gpudb_api::generated::api::CreateBackupRequest">CreateBackupRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateCatalogRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L6891-L6907">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateCatalogRequest" title="struct gpudb_api::generated::api::CreateCatalogRequest">CreateCatalogRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateContainerRegistryRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L6964-L6977">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateContainerRegistryRequest" title="struct gpudb_api::generated::api::CreateContainerRegistryRequest">CreateContainerRegistryRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateCredentialRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L7042-L7056">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateCredentialRequest" title="struct gpudb_api::generated::api::CreateCredentialRequest">CreateCredentialRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateDatasinkRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L7098-L7110">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateDatasinkRequest" title="struct gpudb_api::generated::api::CreateDatasinkRequest">CreateDatasinkRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateDatasourceRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L7396-L7410">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateDatasourceRequest" title="struct gpudb_api::generated::api::CreateDatasourceRequest">CreateDatasourceRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateDeltaTableRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L7710-L7722">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateDeltaTableRequest" title="struct gpudb_api::generated::api::CreateDeltaTableRequest">CreateDeltaTableRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateDirectoryRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L7758-L7769">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateDirectoryRequest" title="struct gpudb_api::generated::api::CreateDirectoryRequest">CreateDirectoryRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateEnvironmentRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L7833-L7844">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateEnvironmentRequest" title="struct gpudb_api::generated::api::CreateEnvironmentRequest">CreateEnvironmentRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateGraphRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L7920-L7936">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateGraphRequest" title="struct gpudb_api::generated::api::CreateGraphRequest">CreateGraphRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateJobRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L8093-L8107">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateJobRequest" title="struct gpudb_api::generated::api::CreateJobRequest">CreateJobRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateJoinTableRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L8171-L8185">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateJoinTableRequest" title="struct gpudb_api::generated::api::CreateJoinTableRequest">CreateJoinTableRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateMaterializedViewRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L8354-L8365">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateMaterializedViewRequest" title="struct gpudb_api::generated::api::CreateMaterializedViewRequest">CreateMaterializedViewRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateProcRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L8518-L8533">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateProcRequest" title="struct gpudb_api::generated::api::CreateProcRequest">CreateProcRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateProjectionRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L8599-L8612">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateProjectionRequest" title="struct gpudb_api::generated::api::CreateProjectionRequest">CreateProjectionRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateResourceGroupRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L8882-L8899">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateResourceGroupRequest" title="struct gpudb_api::generated::api::CreateResourceGroupRequest">CreateResourceGroupRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateRoleRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L8971-L8982">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateRoleRequest" title="struct gpudb_api::generated::api::CreateRoleRequest">CreateRoleRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateSchemaRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L9026-L9037">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateSchemaRequest" title="struct gpudb_api::generated::api::CreateSchemaRequest">CreateSchemaRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateStateTableRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L9089-L9102">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateStateTableRequest" title="struct gpudb_api::generated::api::CreateStateTableRequest">CreateStateTableRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateTableExternalRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L9402-L9419">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateTableExternalRequest" title="struct gpudb_api::generated::api::CreateTableExternalRequest">CreateTableExternalRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateTableMonitorRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L10228-L10239">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateTableMonitorRequest" title="struct gpudb_api::generated::api::CreateTableMonitorRequest">CreateTableMonitorRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateTableRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L9145-L9157">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateTableRequest" title="struct gpudb_api::generated::api::CreateTableRequest">CreateTableRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateTriggerByAreaRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L10428-L10444">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateTriggerByAreaRequest" title="struct gpudb_api::generated::api::CreateTriggerByAreaRequest">CreateTriggerByAreaRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateTriggerByRangeRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L10490-L10505">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateTriggerByRangeRequest" title="struct gpudb_api::generated::api::CreateTriggerByRangeRequest">CreateTriggerByRangeRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateTypeRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L10552-L10565">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateTypeRequest" title="struct gpudb_api::generated::api::CreateTypeRequest">CreateTypeRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateUnionRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L10627-L10644">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateUnionRequest" title="struct gpudb_api::generated::api::CreateUnionRequest">CreateUnionRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateUserExternalRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L10828-L10839">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateUserExternalRequest" title="struct gpudb_api::generated::api::CreateUserExternalRequest">CreateUserExternalRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateUserInternalRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L10917-L10929">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateUserInternalRequest" title="struct gpudb_api::generated::api::CreateUserInternalRequest">CreateUserInternalRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-CreateVideoRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11023-L11041">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.CreateVideoRequest" title="struct gpudb_api::generated::api::CreateVideoRequest">CreateVideoRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DeleteDirectoryRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11119-L11130">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DeleteDirectoryRequest" title="struct gpudb_api::generated::api::DeleteDirectoryRequest">DeleteDirectoryRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DeleteFilesRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11189-L11200">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DeleteFilesRequest" title="struct gpudb_api::generated::api::DeleteFilesRequest">DeleteFilesRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DeleteGraphRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11247-L11258">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DeleteGraphRequest" title="struct gpudb_api::generated::api::DeleteGraphRequest">DeleteGraphRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DeleteProcRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11312-L11323">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DeleteProcRequest" title="struct gpudb_api::generated::api::DeleteProcRequest">DeleteProcRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DeleteRecordsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11366-L11378">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DeleteRecordsRequest" title="struct gpudb_api::generated::api::DeleteRecordsRequest">DeleteRecordsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DeleteResourceGroupRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11445-L11456">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DeleteResourceGroupRequest" title="struct gpudb_api::generated::api::DeleteResourceGroupRequest">DeleteResourceGroupRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DeleteRoleRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11501-L11512">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DeleteRoleRequest" title="struct gpudb_api::generated::api::DeleteRoleRequest">DeleteRoleRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DeleteUserRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11548-L11559">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DeleteUserRequest" title="struct gpudb_api::generated::api::DeleteUserRequest">DeleteUserRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DownloadFilesRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11610-L11623">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DownloadFilesRequest" title="struct gpudb_api::generated::api::DownloadFilesRequest">DownloadFilesRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DropBackupRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11675-L11687">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DropBackupRequest" title="struct gpudb_api::generated::api::DropBackupRequest">DropBackupRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DropCatalogRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11753-L11764">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DropCatalogRequest" title="struct gpudb_api::generated::api::DropCatalogRequest">DropCatalogRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DropContainerRegistryRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11800-L11811">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DropContainerRegistryRequest" title="struct gpudb_api::generated::api::DropContainerRegistryRequest">DropContainerRegistryRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DropCredentialRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11849-L11860">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DropCredentialRequest" title="struct gpudb_api::generated::api::DropCredentialRequest">DropCredentialRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DropDatasinkRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11896-L11907">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DropDatasinkRequest" title="struct gpudb_api::generated::api::DropDatasinkRequest">DropDatasinkRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DropDatasourceRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L11954-L11965">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DropDatasourceRequest" title="struct gpudb_api::generated::api::DropDatasourceRequest">DropDatasourceRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DropEnvironmentRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L12001-L12012">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DropEnvironmentRequest" title="struct gpudb_api::generated::api::DropEnvironmentRequest">DropEnvironmentRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DropModelRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L12061-L12072">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DropModelRequest" title="struct gpudb_api::generated::api::DropModelRequest">DropModelRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DropSchemaRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L12110-L12121">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DropSchemaRequest" title="struct gpudb_api::generated::api::DropSchemaRequest">DropSchemaRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-DropSessionRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L12175-L12183">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.DropSessionRequest" title="struct gpudb_api::generated::api::DropSessionRequest">DropSessionRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-EvaluateModelRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L12227-L12242">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.EvaluateModelRequest" title="struct gpudb_api::generated::api::EvaluateModelRequest">EvaluateModelRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ExecuteProcRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L12313-L12329">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ExecuteProcRequest" title="struct gpudb_api::generated::api::ExecuteProcRequest">ExecuteProcRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ExecuteSqlRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L12454-L12470">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ExecuteSqlRequest" title="struct gpudb_api::generated::api::ExecuteSqlRequest">ExecuteSqlRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ExportQueryMetricsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L12732-L12740">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ExportQueryMetricsRequest" title="struct gpudb_api::generated::api::ExportQueryMetricsRequest">ExportQueryMetricsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ExportRecordsToFilesRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L12813-L12825">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ExportRecordsToFilesRequest" title="struct gpudb_api::generated::api::ExportRecordsToFilesRequest">ExportRecordsToFilesRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ExportRecordsToTableRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L13054-L13066">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ExportRecordsToTableRequest" title="struct gpudb_api::generated::api::ExportRecordsToTableRequest">ExportRecordsToTableRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-FilterByAreaGeometryRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L13362-L13377">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.FilterByAreaGeometryRequest" title="struct gpudb_api::generated::api::FilterByAreaGeometryRequest">FilterByAreaGeometryRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-FilterByAreaRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L13273-L13289">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.FilterByAreaRequest" title="struct gpudb_api::generated::api::FilterByAreaRequest">FilterByAreaRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-FilterByBoxGeometryRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L13557-L13574">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.FilterByBoxGeometryRequest" title="struct gpudb_api::generated::api::FilterByBoxGeometryRequest">FilterByBoxGeometryRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-FilterByBoxRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L13459-L13477">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.FilterByBoxRequest" title="struct gpudb_api::generated::api::FilterByBoxRequest">FilterByBoxRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-FilterByGeometryRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L13648-L13663">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.FilterByGeometryRequest" title="struct gpudb_api::generated::api::FilterByGeometryRequest">FilterByGeometryRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-FilterByListRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L13730-L13743">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.FilterByListRequest" title="struct gpudb_api::generated::api::FilterByListRequest">FilterByListRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-FilterByRadiusGeometryRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L13921-L13937">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.FilterByRadiusGeometryRequest" title="struct gpudb_api::generated::api::FilterByRadiusGeometryRequest">FilterByRadiusGeometryRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-FilterByRadiusRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L13828-L13845">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.FilterByRadiusRequest" title="struct gpudb_api::generated::api::FilterByRadiusRequest">FilterByRadiusRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-FilterByRangeRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14008-L14023">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.FilterByRangeRequest" title="struct gpudb_api::generated::api::FilterByRangeRequest">FilterByRangeRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-FilterBySeriesRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14095-L14109">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.FilterBySeriesRequest" title="struct gpudb_api::generated::api::FilterBySeriesRequest">FilterBySeriesRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-FilterByStringRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14205-L14220">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.FilterByStringRequest" title="struct gpudb_api::generated::api::FilterByStringRequest">FilterByStringRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-FilterByTableRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14313-L14331">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.FilterByTableRequest" title="struct gpudb_api::generated::api::FilterByTableRequest">FilterByTableRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-FilterByValueRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14461-L14477">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.FilterByValueRequest" title="struct gpudb_api::generated::api::FilterByValueRequest">FilterByValueRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-FilterRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L13175-L13188">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.FilterRequest" title="struct gpudb_api::generated::api::FilterRequest">FilterRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GenericRecord" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2324-L2336">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GetGraphEntitiesRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14542-L14555">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GetGraphEntitiesRequest" title="struct gpudb_api::generated::api::GetGraphEntitiesRequest">GetGraphEntitiesRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GetJobRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14699-L14710">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GetJobRequest" title="struct gpudb_api::generated::api::GetJobRequest">GetJobRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GetRecordsByColumnRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14954-L14969">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GetRecordsByColumnRequest" title="struct gpudb_api::generated::api::GetRecordsByColumnRequest">GetRecordsByColumnRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GetRecordsBySeriesRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L15106-L15121">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GetRecordsBySeriesRequest" title="struct gpudb_api::generated::api::GetRecordsBySeriesRequest">GetRecordsBySeriesRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GetRecordsFromCollectionRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L15212-L15226">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GetRecordsFromCollectionRequest" title="struct gpudb_api::generated::api::GetRecordsFromCollectionRequest">GetRecordsFromCollectionRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GetRecordsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L14801-L14815">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GetRecordsRequest" title="struct gpudb_api::generated::api::GetRecordsRequest">GetRecordsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GetVectortileRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L15328-L15344">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GetVectortileRequest" title="struct gpudb_api::generated::api::GetVectortileRequest">GetVectortileRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GrantPermissionCredentialRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L15476-L15489">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GrantPermissionCredentialRequest" title="struct gpudb_api::generated::api::GrantPermissionCredentialRequest">GrantPermissionCredentialRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GrantPermissionDatasourceRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L15536-L15549">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GrantPermissionDatasourceRequest" title="struct gpudb_api::generated::api::GrantPermissionDatasourceRequest">GrantPermissionDatasourceRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GrantPermissionDirectoryRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L15595-L15608">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GrantPermissionDirectoryRequest" title="struct gpudb_api::generated::api::GrantPermissionDirectoryRequest">GrantPermissionDirectoryRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GrantPermissionProcRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L15654-L15667">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GrantPermissionProcRequest" title="struct gpudb_api::generated::api::GrantPermissionProcRequest">GrantPermissionProcRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GrantPermissionRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L15388-L15402">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GrantPermissionRequest" title="struct gpudb_api::generated::api::GrantPermissionRequest">GrantPermissionRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GrantPermissionSystemRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L15710-L15722">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GrantPermissionSystemRequest" title="struct gpudb_api::generated::api::GrantPermissionSystemRequest">GrantPermissionSystemRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GrantPermissionTableRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L15771-L15785">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GrantPermissionTableRequest" title="struct gpudb_api::generated::api::GrantPermissionTableRequest">GrantPermissionTableRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-GrantRoleRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L15838-L15850">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.GrantRoleRequest" title="struct gpudb_api::generated::api::GrantRoleRequest">GrantRoleRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-HasPermissionRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L15896-L15910">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.HasPermissionRequest" title="struct gpudb_api::generated::api::HasPermissionRequest">HasPermissionRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-HasProcRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L15969-L15980">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.HasProcRequest" title="struct gpudb_api::generated::api::HasProcRequest">HasProcRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-HasRoleRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L16021-L16033">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.HasRoleRequest" title="struct gpudb_api::generated::api::HasRoleRequest">HasRoleRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-HasSchemaRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L16094-L16105">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.HasSchemaRequest" title="struct gpudb_api::generated::api::HasSchemaRequest">HasSchemaRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-HasTableRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L16144-L16155">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.HasTableRequest" title="struct gpudb_api::generated::api::HasTableRequest">HasTableRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-HasTypeRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L16193-L16204">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.HasTypeRequest" title="struct gpudb_api::generated::api::HasTypeRequest">HasTypeRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ImportModelRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L16250-L16265">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ImportModelRequest" title="struct gpudb_api::generated::api::ImportModelRequest">ImportModelRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-InsertRecordsFromFilesRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L16656-L16673">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.InsertRecordsFromFilesRequest" title="struct gpudb_api::generated::api::InsertRecordsFromFilesRequest">InsertRecordsFromFilesRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-InsertRecordsFromPayloadRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L17434-L17452">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.InsertRecordsFromPayloadRequest" title="struct gpudb_api::generated::api::InsertRecordsFromPayloadRequest">InsertRecordsFromPayloadRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-InsertRecordsFromQueryRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L18141-L18158">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.InsertRecordsFromQueryRequest" title="struct gpudb_api::generated::api::InsertRecordsFromQueryRequest">InsertRecordsFromQueryRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-InsertRecordsRandomRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L18445-L18457">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.InsertRecordsRandomRequest" title="struct gpudb_api::generated::api::InsertRecordsRandomRequest">InsertRecordsRandomRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-InsertSymbolRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L18503-L18516">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.InsertSymbolRequest" title="struct gpudb_api::generated::api::InsertSymbolRequest">InsertSymbolRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-KillProcRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L18565-L18576">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.KillProcRequest" title="struct gpudb_api::generated::api::KillProcRequest">KillProcRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ListGraphRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L18635-L18646">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ListGraphRequest" title="struct gpudb_api::generated::api::ListGraphRequest">ListGraphRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-LockTableRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L18693-L18705">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.LockTableRequest" title="struct gpudb_api::generated::api::LockTableRequest">LockTableRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-MatchGraphRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L18760-L18774">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.MatchGraphRequest" title="struct gpudb_api::generated::api::MatchGraphRequest">MatchGraphRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ModifyGraphRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L19426-L19441">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ModifyGraphRequest" title="struct gpudb_api::generated::api::ModifyGraphRequest">ModifyGraphRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-QueryGraphRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L19646-L19661">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.QueryGraphRequest" title="struct gpudb_api::generated::api::QueryGraphRequest">QueryGraphRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-RawInsertRecordsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L16385-L16405">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.RawInsertRecordsRequest" title="struct gpudb_api::generated::api::RawInsertRecordsRequest">RawInsertRecordsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-RawUpdateRecordsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23185-L23210">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.RawUpdateRecordsRequest" title="struct gpudb_api::generated::api::RawUpdateRecordsRequest">RawUpdateRecordsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-RepartitionGraphRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L19777-L19788">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.RepartitionGraphRequest" title="struct gpudb_api::generated::api::RepartitionGraphRequest">RepartitionGraphRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ReserveResourceRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L19854-L19869">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ReserveResourceRequest" title="struct gpudb_api::generated::api::ReserveResourceRequest">ReserveResourceRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-RestoreBackupRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L19916-L19932">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.RestoreBackupRequest" title="struct gpudb_api::generated::api::RestoreBackupRequest">RestoreBackupRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-RevokePermissionCredentialRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L20169-L20182">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.RevokePermissionCredentialRequest" title="struct gpudb_api::generated::api::RevokePermissionCredentialRequest">RevokePermissionCredentialRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-RevokePermissionDatasourceRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L20229-L20242">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.RevokePermissionDatasourceRequest" title="struct gpudb_api::generated::api::RevokePermissionDatasourceRequest">RevokePermissionDatasourceRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-RevokePermissionDirectoryRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L20287-L20300">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.RevokePermissionDirectoryRequest" title="struct gpudb_api::generated::api::RevokePermissionDirectoryRequest">RevokePermissionDirectoryRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-RevokePermissionProcRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L20347-L20360">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.RevokePermissionProcRequest" title="struct gpudb_api::generated::api::RevokePermissionProcRequest">RevokePermissionProcRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-RevokePermissionRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L20099-L20113">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.RevokePermissionRequest" title="struct gpudb_api::generated::api::RevokePermissionRequest">RevokePermissionRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-RevokePermissionSystemRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L20403-L20415">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.RevokePermissionSystemRequest" title="struct gpudb_api::generated::api::RevokePermissionSystemRequest">RevokePermissionSystemRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-RevokePermissionTableRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L20460-L20473">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.RevokePermissionTableRequest" title="struct gpudb_api::generated::api::RevokePermissionTableRequest">RevokePermissionTableRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-RevokeRoleRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L20524-L20536">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.RevokeRoleRequest" title="struct gpudb_api::generated::api::RevokeRoleRequest">RevokeRoleRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowBackupRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L20578-L20590">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowBackupRequest" title="struct gpudb_api::generated::api::ShowBackupRequest">ShowBackupRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowContainerRegistryRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L20668-L20679">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowContainerRegistryRequest" title="struct gpudb_api::generated::api::ShowContainerRegistryRequest">ShowContainerRegistryRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowCredentialRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L20728-L20739">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowCredentialRequest" title="struct gpudb_api::generated::api::ShowCredentialRequest">ShowCredentialRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowDatasinkRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L20787-L20798">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowDatasinkRequest" title="struct gpudb_api::generated::api::ShowDatasinkRequest">ShowDatasinkRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowDatasourceRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L20841-L20852">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowDatasourceRequest" title="struct gpudb_api::generated::api::ShowDatasourceRequest">ShowDatasourceRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowDirectoriesRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L20894-L20905">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowDirectoriesRequest" title="struct gpudb_api::generated::api::ShowDirectoriesRequest">ShowDirectoriesRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowEnvironmentRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L20960-L20971">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowEnvironmentRequest" title="struct gpudb_api::generated::api::ShowEnvironmentRequest">ShowEnvironmentRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowFilesRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L21038-L21049">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowFilesRequest" title="struct gpudb_api::generated::api::ShowFilesRequest">ShowFilesRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowFunctionsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L21091-L21102">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowFunctionsRequest" title="struct gpudb_api::generated::api::ShowFunctionsRequest">ShowFunctionsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowGraphGrammarRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L21314-L21322">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowGraphGrammarRequest" title="struct gpudb_api::generated::api::ShowGraphGrammarRequest">ShowGraphGrammarRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowGraphRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L21201-L21212">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowGraphRequest" title="struct gpudb_api::generated::api::ShowGraphRequest">ShowGraphRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowModelRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L21364-L21375">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowModelRequest" title="struct gpudb_api::generated::api::ShowModelRequest">ShowModelRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowProcRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L21432-L21443">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowProcRequest" title="struct gpudb_api::generated::api::ShowProcRequest">ShowProcRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowProcStatusRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L21503-L21514">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowProcStatusRequest" title="struct gpudb_api::generated::api::ShowProcStatusRequest">ShowProcStatusRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowResourceGroupsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L21618-L21629">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowResourceGroupsRequest" title="struct gpudb_api::generated::api::ShowResourceGroupsRequest">ShowResourceGroupsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowResourceObjectsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L21699-L21707">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowResourceObjectsRequest" title="struct gpudb_api::generated::api::ShowResourceObjectsRequest">ShowResourceObjectsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowResourceStatisticsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L21782-L21790">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowResourceStatisticsRequest" title="struct gpudb_api::generated::api::ShowResourceStatisticsRequest">ShowResourceStatisticsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowSchemaRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L21829-L21840">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowSchemaRequest" title="struct gpudb_api::generated::api::ShowSchemaRequest">ShowSchemaRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowSecurityRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L21898-L21909">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowSecurityRequest" title="struct gpudb_api::generated::api::ShowSecurityRequest">ShowSecurityRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowSqlProcRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L21966-L21977">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowSqlProcRequest" title="struct gpudb_api::generated::api::ShowSqlProcRequest">ShowSqlProcRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowStatisticsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L22036-L22047">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowStatisticsRequest" title="struct gpudb_api::generated::api::ShowStatisticsRequest">ShowStatisticsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowSystemPropertiesRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L22097-L22105">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowSystemPropertiesRequest" title="struct gpudb_api::generated::api::ShowSystemPropertiesRequest">ShowSystemPropertiesRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowSystemStatusRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L22147-L22155">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowSystemStatusRequest" title="struct gpudb_api::generated::api::ShowSystemStatusRequest">ShowSystemStatusRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowSystemTimingRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L22189-L22197">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowSystemTimingRequest" title="struct gpudb_api::generated::api::ShowSystemTimingRequest">ShowSystemTimingRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowTableMetadataRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L22427-L22438">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowTableMetadataRequest" title="struct gpudb_api::generated::api::ShowTableMetadataRequest">ShowTableMetadataRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowTableMonitorsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L22479-L22490">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowTableMonitorsRequest" title="struct gpudb_api::generated::api::ShowTableMonitorsRequest">ShowTableMonitorsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowTableRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L22240-L22251">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowTableRequest" title="struct gpudb_api::generated::api::ShowTableRequest">ShowTableRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowTablesByTypeRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L22567-L22579">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowTablesByTypeRequest" title="struct gpudb_api::generated::api::ShowTablesByTypeRequest">ShowTablesByTypeRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowTriggersRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L22616-L22627">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowTriggersRequest" title="struct gpudb_api::generated::api::ShowTriggersRequest">ShowTriggersRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowTypesRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L22673-L22685">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowTypesRequest" title="struct gpudb_api::generated::api::ShowTypesRequest">ShowTypesRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowVideoRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L22736-L22747">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowVideoRequest" title="struct gpudb_api::generated::api::ShowVideoRequest">ShowVideoRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-ShowWalRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L22804-L22815">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.ShowWalRequest" title="struct gpudb_api::generated::api::ShowWalRequest">ShowWalRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-SolveGraphRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L22905-L22922">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.SolveGraphRequest" title="struct gpudb_api::generated::api::SolveGraphRequest">SolveGraphRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-UploadFilesFromurlRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23549-L23561">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.UploadFilesFromurlRequest" title="struct gpudb_api::generated::api::UploadFilesFromurlRequest">UploadFilesFromurlRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-UploadFilesRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23448-L23460">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.UploadFilesRequest" title="struct gpudb_api::generated::api::UploadFilesRequest">UploadFilesRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-VerifyBackupRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23603-L23615">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.VerifyBackupRequest" title="struct gpudb_api::generated::api::VerifyBackupRequest">VerifyBackupRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-VisualizeGetFeatureInfoRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23707-L23737">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.VisualizeGetFeatureInfoRequest" title="struct gpudb_api::generated::api::VisualizeGetFeatureInfoRequest">VisualizeGetFeatureInfoRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-VisualizeImageChartRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23999-L24020">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.VisualizeImageChartRequest" title="struct gpudb_api::generated::api::VisualizeImageChartRequest">VisualizeImageChartRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-VisualizeImageClassbreakRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L24145-L24188">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.VisualizeImageClassbreakRequest" title="struct gpudb_api::generated::api::VisualizeImageClassbreakRequest">VisualizeImageClassbreakRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-VisualizeImageContourRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L24305-L24327">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.VisualizeImageContourRequest" title="struct gpudb_api::generated::api::VisualizeImageContourRequest">VisualizeImageContourRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-VisualizeImageHeatmapRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L24624-L24650">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.VisualizeImageHeatmapRequest" title="struct gpudb_api::generated::api::VisualizeImageHeatmapRequest">VisualizeImageHeatmapRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-VisualizeImageLabelsRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L24765-L24806">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.VisualizeImageLabelsRequest" title="struct gpudb_api::generated::api::VisualizeImageLabelsRequest">VisualizeImageLabelsRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-VisualizeImageRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23834-L23863">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.VisualizeImageRequest" title="struct gpudb_api::generated::api::VisualizeImageRequest">VisualizeImageRequest</a></h3>
+</div>
+<div id="impl-KineticaRecord-for-VisualizeIsochroneRequest" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L24889-L24913">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generated/api/struct.VisualizeIsochroneRequest" title="struct gpudb_api::generated::api::VisualizeIsochroneRequest">VisualizeIsochroneRequest</a></h3>
+</div>
+</div>
+</div>

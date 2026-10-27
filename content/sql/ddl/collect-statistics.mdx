@@ -1,0 +1,96 @@
+---
+title: COLLECT STATISTICS
+---
+
+<a id="sql-collect-statistics"></a>
+
+
+Collects statistics on a column of a *table*, for use by the cost-based
+optimizer when planning queries against the *table*.  The statistics collected
+for the column are:
+
+* the number of records in the *table*
+* the estimated number of distinct non-null values
+* the number of null values
+* the minimum and maximum values
+* the most common values, with their frequencies
+
+When planning a query, the cost-based optimizer uses these statistics to
+estimate how many records each step of the query will produce, which it uses to
+choose the order and the strategy for the query's joins.  Statistics affect only
+how a query is run, not its results.  The cost-based optimizer is on by default;
+see the `sql.cost_based_optimization` setting in the
+[system configuration](/content/config#config-main-sql-engine).  To plan an
+individual query without using statistics, use the `KI_HINT_NO_STATS`
+[hint](/content/sql/query/hints#sql-hints-global).
+
+The collected statistics can be viewed in the
+[ki_statistics](/content/catalogs/kinetica#ki-statistics) catalog table.  Statistics are not updated as the
+*table* changes; collect them again after significant changes to the *table's*
+data.  If the column's statistics were collected after the *table* was last
+modified, the existing statistics are kept and no new collection is done.
+Statistics are removed when the *table* is dropped, or with
+[DROP STATISTICS](/content/sql/ddl/drop-statistics).
+
+The database can also collect statistics automatically, in the background, for
+the columns that the cost-based optimizer finds to be missing statistics; see
+the `sql.automatic_stats` settings in the
+[system configuration](/content/config#config-main-sql-engine).
+
+Collecting statistics requires read
+[permission](/content/security/sec_concepts#security-concepts-permissions) on the entire
+*table*; a user whose access to the *table* is limited to certain
+[rows](/content/sql/security/grant-table-permission#sql-security-priv-mgmt-row-grant) or
+[columns](/content/sql/security/grant-table-permission#sql-security-priv-mgmt-col-grant) cannot collect
+statistics on it.
+
+```sql title="COLLECT STATISTICS Syntax"
+COLLECT STATISTICS [ON] [TABLE] [<schema name>.]<table name> COLUMN <column name>
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* containing the *table* on which to collect statistics
+
+</Accordion>
+
+<Accordion title="&lt;table name&gt;" id="<table-name>" defaultOpen>
+
+Name of the *table* on which to collect statistics
+
+</Accordion>
+
+<Accordion title="&lt;column name&gt;" id="<column-name>" defaultOpen>
+
+Name of the column on which to collect statistics; only one column can be given per statement
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Examples
+
+
+To collect statistics on a column of a *table*:
+
+{/* Source: /examples/sql/table/statistics.kisql (lines 32) */}
+```sql COLLECT STATISTICS Example
+COLLECT STATISTICS ON TABLE example.stats_employee COLUMN dept_id
+```
+
+To view the statistics collected on the *table*:
+
+{/* Source: /examples/sql/table/statistics.kisql (lines 41-44) */}
+```sql View Statistics Example
+SELECT column_name, count, unique_vals, num_nulls, min_val, max_val, mode, mode_frequency
+FROM ki_catalog.ki_statistics
+WHERE schema_name = 'example' AND table_name = 'stats_employee'
+ORDER BY column_name
+```

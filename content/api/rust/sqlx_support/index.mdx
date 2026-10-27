@@ -1,0 +1,421 @@
+---
+title: "sqlx_support"
+description: "sqlx_support — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1-L1519">Source</a> </span>
+</div>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>SQLx Support for Kinetica via PostgreSQL Wire Protocol</p>
+<p>This module provides helpers for using <a href="https://github.com/launchbadge/sqlx">SQLx</a> with Kinetica’s PostgreSQL wire protocol support.</p>
+<h2 id="overview">Overview</h2>
+<p>Kinetica supports the PostgreSQL wire protocol on port 5432, which means you can use SQLx’s PostgreSQL driver directly. This module provides:</p>
+<ul>
+<li><a href="/content/api/rust/sqlx_support/type.KineticaPool" title="type gpudb_api::sqlx_support::KineticaPool"><code>KineticaPool</code></a> - A type alias for <code>PgPool</code> with Kinetica-specific configuration</li>
+<li><a href="/content/api/rust/sqlx_support/struct.KineticaPoolOptions" title="struct gpudb_api::sqlx_support::KineticaPoolOptions"><code>KineticaPoolOptions</code></a> - Builder for creating connection pools with sensible defaults</li>
+<li><a href="/content/api/rust/sqlx_support/fn.connect" title="fn gpudb_api::sqlx_support::connect"><code>connect</code></a>, <a href="/content/api/rust/sqlx_support/fn.connect_with_url" title="fn gpudb_api::sqlx_support::connect_with_url"><code>connect\_with\_url</code></a> and <a href="/content/api/rust/sqlx_support/fn.connect_with_options" title="fn gpudb_api::sqlx_support::connect_with_options"><code>connect\_with\_options</code></a> - Convenience functions for establishing connections</li>
+<li><a href="/content/api/rust/sqlx_support/struct.KineticaText" title="struct gpudb_api::sqlx_support::KineticaText"><code>KineticaText</code></a>, <a href="/content/api/rust/sqlx_support/struct.KineticaTimestamp" title="struct gpudb_api::sqlx_support::KineticaTimestamp"><code>KineticaTimestamp</code></a>, <a href="/content/api/rust/sqlx_support/struct.KineticaBytes" title="struct gpudb_api::sqlx_support::KineticaBytes"><code>KineticaBytes</code></a>, <a href="/content/api/rust/sqlx_support/struct.KineticaJson" title="struct gpudb_api::sqlx_support::KineticaJson"><code>KineticaJson</code></a>, <a href="/content/api/rust/sqlx_support/struct.KineticaVector" title="struct gpudb_api::sqlx_support::KineticaVector"><code>KineticaVector</code></a> and <a href="/content/api/rust/sqlx_support/struct.KineticaArray" title="struct gpudb_api::sqlx_support::KineticaArray"><code>KineticaArray</code></a> - for the Kinetica types the protocol does not carry as PostgreSQL does</li>
+</ul>
+<h2 id="quick-start">Quick Start</h2>
+<div>
+
+```rust
+use gpudb_api::sqlx_support::{KineticaPoolOptions, connect};
+use sqlx::Row;
+
+#[tokio::main]
+async fn main() -> Result<(), sqlx::Error> {
+    // Simple connection
+    let pool = connect("localhost", "admin", "password").await?;
+
+    // Or with full options
+    let pool = KineticaPoolOptions::new()
+        .host("localhost")
+        .port(5432)
+        .username("admin")
+        .password("password")
+        .max_connections(10)
+        .connect()
+        .await?;
+
+    // Execute queries using standard SQLx
+    let rows = sqlx::query("SELECT id, name FROM users")
+        .fetch_all(&pool)
+        .await?;
+
+    for row in rows {
+        let id: i64 = row.get("id");
+        let name: String = row.get("name");
+        println!("User: id={}, name={}", id, name);
+    }
+
+    Ok(())
+}
+```
+
+</div>
+<h2 id="type-mappings">Type Mappings</h2>
+<p>Kinetica’s PostgreSQL protocol carries its types as below, as measured against Kinetica 7.2. Where the PostgreSQL type does not carry the value whole, read and write it through the wrappers this module provides (see <a href="/content/api/rust/sqlx_support/struct.KineticaText" title="struct gpudb_api::sqlx_support::KineticaText"><code>KineticaText</code></a> and its siblings).</p>
+<div>
+<table>
+<thead>
+<tr>
+<th>Kinetica type</th>
+<th>Sent as</th>
+<th>Read as</th>
+<th>Bind as</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BOOLEAN</code></td>
+<td><code>BOOL</code></td>
+<td><code>bool</code></td>
+<td><code>KineticaText(bool)</code></td>
+</tr>
+<tr>
+<td><code>TINYINT</code>, <code>SMALLINT</code>, <code>INTEGER</code></td>
+<td><code>INT4</code></td>
+<td><code>i32</code></td>
+<td><code>KineticaText(i32)</code></td>
+</tr>
+<tr>
+<td><code>BIGINT</code></td>
+<td><code>INT8</code></td>
+<td><code>i64</code></td>
+<td><code>KineticaText(i64)</code></td>
+</tr>
+<tr>
+<td><code>UNSIGNED BIGINT</code></td>
+<td><code>TEXT</code></td>
+<td><code>KineticaText&lt;u64&gt;</code></td>
+<td><code>KineticaText(u64)</code></td>
+</tr>
+<tr>
+<td><code>REAL</code></td>
+<td><code>FLOAT4</code></td>
+<td><code>f32</code></td>
+<td><code>KineticaText(f32)</code></td>
+</tr>
+<tr>
+<td><code>DOUBLE</code></td>
+<td><code>FLOAT8</code></td>
+<td><code>f64</code></td>
+<td><code>KineticaText(f64)</code></td>
+</tr>
+<tr>
+<td><code>DECIMAL(p,s)</code></td>
+<td><code>NUMERIC</code></td>
+<td>a decimal type, with SQLx’s <code>bigdecimal</code> or <code>rust\_decimal</code> feature; or <code>CAST(col AS VARCHAR)</code> as <code>KineticaText&lt;String&gt;</code></td>
+<td><code>KineticaText</code> of its text</td>
+</tr>
+<tr>
+<td><code>VARCHAR</code>, <code>VARCHAR(n)</code></td>
+<td><code>TEXT</code></td>
+<td><code>String</code></td>
+<td><code>KineticaText(&amp;str)</code></td>
+</tr>
+<tr>
+<td><code>IPV4</code></td>
+<td><code>TEXT</code></td>
+<td><code>KineticaText&lt;Ipv4Addr&gt;</code></td>
+<td><code>KineticaText(Ipv4Addr)</code></td>
+</tr>
+<tr>
+<td><code>UUID</code></td>
+<td><code>TEXT</code></td>
+<td><code>KineticaText&lt;uuid::Uuid&gt;</code></td>
+<td><code>KineticaText(uuid::Uuid)</code></td>
+</tr>
+<tr>
+<td><code>DATE</code></td>
+<td><code>DATE</code></td>
+<td><code>chrono::NaiveDate</code></td>
+<td><code>KineticaText(NaiveDate)</code></td>
+</tr>
+<tr>
+<td><code>TIME</code></td>
+<td><code>TEXT</code></td>
+<td><code>KineticaText&lt;NaiveTime&gt;</code></td>
+<td><code>KineticaText(NaiveTime)</code></td>
+</tr>
+<tr>
+<td><code>DATETIME</code></td>
+<td><code>TIMESTAMP</code>, <strong>without its milliseconds</strong></td>
+<td><code>CAST(col AS VARCHAR)</code> as <code>KineticaText&lt;NaiveDateTime&gt;</code></td>
+<td><code>KineticaText(NaiveDateTime)</code></td>
+</tr>
+<tr>
+<td><code>TIMESTAMP</code></td>
+<td><code>INT8</code>: milliseconds since the epoch</td>
+<td><code>KineticaTimestamp</code></td>
+<td><code>KineticaTimestamp</code></td>
+</tr>
+<tr>
+<td><code>BLOB</code></td>
+<td><code>BYTEA</code></td>
+<td><code>Vec&lt;u8&gt;</code> or <code>KineticaBytes</code></td>
+<td><code>KineticaBytes</code></td>
+</tr>
+<tr>
+<td><code>GEOMETRY</code>, <code>BLOB(WKT)</code></td>
+<td>none: <strong>the query fails</strong></td>
+<td><code>ST\_ASTEXT(col)</code> as <code>String</code></td>
+<td><code>KineticaText</code> of its WKT</td>
+</tr>
+<tr>
+<td><code>JSON</code></td>
+<td><code>JSON</code></td>
+<td><code>serde\_json::Value</code> or <code>KineticaJson&lt;T&gt;</code></td>
+<td><code>KineticaJson(value)</code></td>
+</tr>
+<tr>
+<td><code>VECTOR(n)</code></td>
+<td><code>TEXT</code>, e.g. <code>\[1,2.5,3\]</code></td>
+<td><code>KineticaVector</code></td>
+<td><code>KineticaVector</code> in a plain <code>INSERT</code>; <code>KineticaText(vector.as\_slice())</code> elsewhere</td>
+</tr>
+<tr>
+<td>arrays, e.g. <code>INTEGER\[3\]</code></td>
+<td>PostgreSQL arrays numbered from 0</td>
+<td><code>KineticaArray&lt;T&gt;</code></td>
+<td><code>KineticaArray&lt;T&gt;</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>This crate enables SQLx’s <code>chrono</code> and <code>json</code> features, so <code>NaiveDate</code> and <code>serde\_json::Value</code> read as they are. Nulls read as <code>Option&lt;\_&gt;</code> of any of these, and bind as <code>None</code>.</p>
+<p>What goes wrong without the wrappers:</p>
+<ul>
+<li>SQLx’s <code>Vec&lt;T&gt;</code> refuses Kinetica’s arrays, which are numbered from 0.</li>
+<li>A <code>DATETIME</code> read as a <code>NaiveDateTime</code>, or bound as one, loses its milliseconds.</li>
+<li>Kinetica refuses <code>uuid::Uuid</code>, <code>NaiveTime</code>, decimal and <code>Vec&lt;u8&gt;</code> (<code>BYTEA</code>) parameters.</li>
+<li>SQLx binds <code>serde\_json::Value</code> and <code>sqlx::types::Json</code> as <code>JSONB</code>, which Kinetica refuses as invalid JSON.</li>
+<li>A plain <code>INSERT</code> refuses a vector as text, and everything else refuses one as raw floats.</li>
+</ul>
+<h2 id="parameters">Parameters</h2>
+<p>Kinetica reads every parameter after a statement’s first as text, whatever type SQLx sends it as. A second integer, float or date parameter therefore fails to convert in an <code>INSERT</code>. In a <code>WHERE</code> clause it matches nothing, so an <code>UPDATE</code> or <code>DELETE</code> reports success and changes no rows. A literal beside such a parameter can be stored as NULL. Text parameters work in every position, and Kinetica converts each to its column’s type, so bind every parameter through a wrapper, which sends text:</p>
+<div>
+
+```rust
+use gpudb_api::sqlx_support::{KineticaPool, KineticaText, KineticaTimestamp};
+
+async fn record_login(pool: &KineticaPool, user_id: i64, active: bool) -> Result<u64, sqlx::Error> {
+    let result = sqlx::query("UPDATE users SET active = $1, last_login = $2 WHERE id = $3")
+        .bind(KineticaText(active))
+        .bind(KineticaTimestamp(chrono::Utc::now()))
+        .bind(KineticaText(user_id))
+        .execute(pool)
+        .await?;
+    Ok(result.rows_affected())
+}
+```
+
+</div>
+<h2 id="json-arrays-and-vectors">JSON, Arrays and Vectors</h2>
+<p>Each is inserted, updated, filtered on and deleted by with ordinary SQL, binding the wrappers above. Measured against Kinetica 7.2:</p>
+<ul>
+<li><strong>JSON.</strong> Bind documents with <a href="/content/api/rust/sqlx_support/struct.KineticaJson" title="struct gpudb_api::sqlx_support::KineticaJson"><code>KineticaJson</code></a>, which takes any <code>Serialize</code> value; read them as <code>KineticaJson&lt;T&gt;</code> for any <code>DeserializeOwned</code> <code>T</code>. <code>JSON\_VALUE(col, $1)</code> (whose path may be a parameter), <code>JSON\_QUERY</code>, <code>JSON\_EXISTS</code>, <code>JSON\_LENGTH</code>, <code>JSON\_TYPE</code>, <code>IS\_JSON</code>, <code>JSON\_OBJECT</code> and <code>JSON\_ARRAY</code> work, with nested paths in <code>GROUP BY</code> and <code>JOIN</code> too. A SQL <code>NULL</code> and the JSON <code>null</code> stay distinct. Declare JSON columns as <code>JSON</code>: <code>VARCHAR(json)</code> and <code>STRING(json)</code> are plain strings on the server.</li>
+<li><strong>Full-text search.</strong> A <code>JSON(text\_search)</code> column, on a server with <code>enable\_text\_search</code>, is searched by key with <code>text\_match(col, $1)</code> (<code>bool</code>) and ranked with <code>text\_match\_bm25</code> or <code>text\_match\_bm25\_global</code> (<code>f64</code>), the query bound as <code>KineticaText("customer.tier:Enterprise")</code>. Do not UPDATE such a column: on Kinetica 7.2.3.21 that crashes a worker rank. Delete the row and insert it again.</li>
+<li><strong>Arrays.</strong> Bind with <a href="/content/api/rust/sqlx_support/struct.KineticaArray" title="struct gpudb_api::sqlx_support::KineticaArray"><code>KineticaArray</code></a>, and use <code>KineticaArray&lt;Option&lt;T&gt;&gt;</code> for arrays holding nulls. <code>ARRAY\_CONTAINS</code>, <code>ARRAY\_CONTAINS\_ANY</code>, <code>ARRAY\_CONTAINS\_ALL</code>, <code>ARRAY\_LENGTH</code>, <code>col\[i\]</code> (numbered from 1), <code>ARRAY\_APPEND</code>, <code>ARRAY\_CONCAT</code>, <code>ARRAY\_SLICE</code> and <code>ARRAY\_TO\_STRING</code> work; arrays they compute arrive as JSON text, which <code>KineticaArray</code> reads too. A numeric <code>ARRAY\_CONTAINS(col, $1)</code> finds nothing whatever is bound: write <code>ARRAY\_CONTAINS\_ANY(col, $1)</code> with a one-element <code>KineticaArray</code>. A fixed size, as in <code>INTEGER\[3\]</code>, is not enforced, and an infinite float is refused.</li>
+<li><strong>Vectors.</strong> A plain <code>INSERT ... VALUES ($n)</code> takes <a href="/content/api/rust/sqlx_support/struct.KineticaVector" title="struct gpudb_api::sqlx_support::KineticaVector"><code>KineticaVector</code></a>; <code>UPDATE ... SET v = $n</code>, <code>VECTOR($n, dims)</code> and function arguments take <code>KineticaText(vector.as\_slice())</code>. <code>L1\_DISTANCE</code>, <code>L2\_DISTANCE</code>, <code>COSINE\_DISTANCE</code>, <code>DOT\_PRODUCT</code> and <code>L2\_NORM</code> return <code>f32</code>, as does <code>v &lt;-&gt; CAST($1 AS VECTOR(n))</code>; a bare <code>v &lt;-&gt; $1</code> is refused.</li>
+</ul>
+<div>
+
+```rust
+use gpudb_api::sqlx_support::{
+    KineticaArray, KineticaJson, KineticaPool, KineticaText, KineticaVector,
+};
+use serde::{Deserialize, Serialize};
+use sqlx::Row;
+
+#[derive(Serialize, Deserialize)]
+struct Profile {
+    name: String,
+    score: f64,
+}
+
+async fn nearest_tagged(pool: &KineticaPool, tag: &str, probe: &[f32]) -> Result<Vec<(i64, Profile)>, sqlx::Error> {
+    sqlx::query("INSERT INTO docs (id, profile, tags, embedding) VALUES ($1, $2, $3, $4)")
+        .bind(KineticaText(1_i64))
+        .bind(KineticaJson(Profile { name: "first".into(), score: 0.5 }))
+        .bind(KineticaArray(vec![tag.to_string()]))
+        .bind(KineticaVector(probe.to_vec()))
+        .execute(pool)
+        .await?;
+
+    let rows = sqlx::query(
+        "SELECT id, profile FROM docs WHERE ARRAY_CONTAINS(tags, $1)
+         ORDER BY COSINE_DISTANCE(embedding, $2) LIMIT 5",
+    )
+    .bind(KineticaText(tag))
+    .bind(KineticaText(probe))
+    .fetch_all(pool)
+    .await?;
+    Ok(rows
+        .iter()
+        .map(|row| (row.get("id"), row.get::<KineticaJson<Profile>, _>("profile").0))
+        .collect())
+}
+```
+
+</div>
+<p>Read arrays through <code>sqlx::query</code>: in the text form <code>sqlx::raw\_sql</code> returns, Kinetica writes <code>null</code> in capitals wherever it occurs in a string element.</p>
+<h2 id="compile-time-checked-queries">Compile-Time Checked Queries</h2>
+<p>SQLx supports compile-time checked queries with the <code>query!</code> macro. However, this requires a live database connection during compilation. For Kinetica, you can:</p>
+<ol>
+<li>Use the offline mode with <code>sqlx prepare</code></li>
+<li>Use runtime queries with <code>sqlx::query()</code></li>
+</ol>
+<div>
+
+```rust
+use gpudb_api::sqlx_support::KineticaPool;
+
+// Runtime query (always works)
+async fn get_users(pool: &KineticaPool) -> Result<Vec<(i64, String)>, sqlx::Error> {
+    let rows = sqlx::query_as::<_, (i64, String)>("SELECT id, name FROM users")
+        .fetch_all(pool)
+        .await?;
+    Ok(rows)
+}
+
+// With a custom struct
+#[derive(sqlx::FromRow)]
+struct User {
+    id: i64,
+    name: String,
+    email: Option<String>,
+}
+
+async fn get_users_typed(pool: &KineticaPool) -> Result<Vec<User>, sqlx::Error> {
+    sqlx::query_as::<_, User>("SELECT id, name, email FROM users")
+        .fetch_all(pool)
+        .await
+}
+```
+
+</div>
+<h2 id="transactions">Transactions</h2>
+<p>Kinetica’s PostgreSQL protocol does not support transactions: <code>pool.begin()</code> fails (“got unexpected connection status after attempting to begin transaction”), and each statement applies when it runs.</p>
+<h2 id="connection-pooling-best-practices">Connection Pooling Best Practices</h2>
+<p>For optimal performance with Kinetica:</p>
+<ul>
+<li>Set <code>max\_connections</code> based on your workload (default: 10)</li>
+<li>Use <code>min\_connections</code> for warm connection pools</li>
+<li>Set appropriate timeouts for your network latency</li>
+</ul>
+<p>The server serves one session per thread, up to its <code>postgres\_proxy.max\_threads</code> (64 by default), shared by every client. It ends a session when its client sends PostgreSQL’s Terminate message, which <code>pool.close()</code> sends. A connection closed without it, as when a process exits or a task panics with the connection open, keeps its session until the server’s <code>postgres\_proxy.idle\_connection\_timeout</code> (300 seconds by default). Pools that outgrow the server’s sessions wait, then fail with <code>sqlx::Error::PoolTimedOut</code>. SQLx 0.8’s <code>pool.close()</code> can return while a connection on its way back to the pool is still open: before a program ends, close again once <code>pool.size()</code> shows it is back (see SQLX\_API.md).</p>
+<div>
+
+```rust
+use gpudb_api::sqlx_support::KineticaPoolOptions;
+use std::time::Duration;
+
+let pool = KineticaPoolOptions::new()
+    .host("kinetica-cluster.example.com")
+    .username("admin")
+    .password("secure_password")
+    .max_connections(20)
+    .min_connections(5)
+    .acquire_timeout(Duration::from_secs(30))
+    .idle_timeout(Some(Duration::from_secs(600)))
+    .connect()
+    .await?;
+```
+
+</div>
+<h2 id="limitations">Limitations</h2>
+<p>Besides the types and parameters above:</p>
+<ul>
+<li>Transactions are not supported.</li>
+<li>Sessions are limited by the server, and outlive connections that are not closed (see above).</li>
+<li>PostgreSQL-specific features, such as <code>LISTEN</code>/<code>NOTIFY</code>, are not available.</li>
+<li>Kinetica-specific SQL extensions should be written as raw SQL strings.</li>
+</ul>
+<p>For full fidelity on every Kinetica type, and for Kinetica-specific operations (bulk insert, type management, KiFS), use the native API of the <a href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica"><code>Kinetica</code></a> client. It carries each value with its column’s properties.</p>
+</div>
+</div>
+<h2 id="structs" className="section-header">Structs</h2>
+<div className="dl item-table">
+<div className="dt"><a className="struct" href="/content/api/rust/sqlx_support/struct.BatchingSqlxClient" title="struct gpudb_api::sqlx_support::BatchingSqlxClient">Batching<wbr />Sqlx<wbr />Client</a></div>
+<div className="dd">A SQLx client that automatically batches INSERT statements and routes them through <code>BulkInserter&lt;GenericRecord&gt;</code> for high-performance shard-aware ingestion.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sqlx_support/struct.BatchingSqlxStats" title="struct gpudb_api::sqlx_support::BatchingSqlxStats">Batching<wbr />Sqlx<wbr />Stats</a></div>
+<div className="dd">Statistics from batching operations.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sqlx_support/struct.KineticaArray" title="struct gpudb_api::sqlx_support::KineticaArray">Kinetica<wbr />Array</a></div>
+<div className="dd">Values for the Kinetica types SQLx’s own PostgreSQL types cannot read or write over Kinetica’s protocol, or cannot reliably: see their module. An array column’s value. Kinetica sends arrays numbered from 0, which SQLx’s own <code>Vec&lt;T&gt;</code> refuses; this reads them, in the binary form a query’s results come in and in the text form <code>sqlx::raw\_sql</code> gives, and writes them as the JSON text Kinetica takes. It also reads the JSON text Kinetica sends for an array a function computes, such as <code>ARRAY\_APPEND(col, 4)</code>.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sqlx_support/struct.KineticaBytes" title="struct gpudb_api::sqlx_support::KineticaBytes">Kinetica<wbr />Bytes</a></div>
+<div className="dd">Values for the Kinetica types SQLx’s own PostgreSQL types cannot read or write over Kinetica’s protocol, or cannot reliably: see their module. A <code>BLOB</code> column’s value. Kinetica refuses a <code>BYTEA</code> parameter, but takes the bytes of a text parameter as they are, so this sends them under the text type; it reads the <code>BYTEA</code> Kinetica sends.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sqlx_support/struct.KineticaJson" title="struct gpudb_api::sqlx_support::KineticaJson">Kinetica<wbr />Json</a></div>
+<div className="dd">Values for the Kinetica types SQLx’s own PostgreSQL types cannot read or write over Kinetica’s protocol, or cannot reliably: see their module. A <code>JSON</code> column’s value: anything serde serializes, bound directly as JSON, and read back from the JSON Kinetica sends.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sqlx_support/struct.KineticaPoolOptions" title="struct gpudb_api::sqlx_support::KineticaPoolOptions">Kinetica<wbr />Pool<wbr />Options</a></div>
+<div className="dd">Builder for creating Kinetica connection pools with sensible defaults.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sqlx_support/struct.KineticaText" title="struct gpudb_api::sqlx_support::KineticaText">Kinetica<wbr />Text</a></div>
+<div className="dd">Values for the Kinetica types SQLx’s own PostgreSQL types cannot read or write over Kinetica’s protocol, or cannot reliably: see their module. A value carried as text, both ways, which Kinetica converts to and from its column’s type.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sqlx_support/struct.KineticaTimestamp" title="struct gpudb_api::sqlx_support::KineticaTimestamp">Kinetica<wbr />Timestamp</a></div>
+<div className="dd">Values for the Kinetica types SQLx’s own PostgreSQL types cannot read or write over Kinetica’s protocol, or cannot reliably: see their module. A <code>TIMESTAMP</code> column’s value: milliseconds since the Unix epoch, which Kinetica sends as <code>BIGINT</code> and takes as text.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sqlx_support/struct.KineticaVector" title="struct gpudb_api::sqlx_support::KineticaVector">Kinetica<wbr />Vector</a></div>
+<div className="dd">Values for the Kinetica types SQLx’s own PostgreSQL types cannot read or write over Kinetica’s protocol, or cannot reliably: see their module. A <code>VECTOR(n)</code> column’s value. Kinetica sends it as text, <code>\[1,2.5,3\]</code>, and reads it from a parameter in two ways, depending on where it is:</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sqlx_support/struct.SqlxBulkInserter" title="struct gpudb_api::sqlx_support::SqlxBulkInserter">Sqlx<wbr />Bulk<wbr />Inserter</a></div>
+<div className="dd">Bulk inserter for SQLx that uses Kinetica’s HTTP API for efficient data loading.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/sqlx_support/struct.SqlxPaginationStats" title="struct gpudb_api::sqlx_support::SqlxPaginationStats">Sqlx<wbr />Pagination<wbr />Stats</a></div>
+<div className="dd">Statistics from a paginated SQLx query execution.</div>
+</div>
+<h2 id="enums" className="section-header">Enums</h2>
+<div className="dl item-table">
+<div className="dt"><a className="enum" href="/content/api/rust/sqlx_support/enum.BatchingSqlxError" title="enum gpudb_api::sqlx_support::BatchingSqlxError">Batching<wbr />Sqlx<wbr />Error</a></div>
+<div className="dd">Error type for BatchingSqlxClient operations</div>
+<div className="dt"><a className="enum" href="/content/api/rust/sqlx_support/enum.SslMode" title="enum gpudb_api::sqlx_support::SslMode">SslMode</a></div>
+<div className="dd">SSL mode for connections.</div>
+</div>
+<h2 id="constants" className="section-header">Constants</h2>
+<div className="dl item-table">
+<div id="constant.DEFAULT_DATABASE" className="dt constant-def"><code>pub const DEFAULT\_DATABASE: &amp;str = &quot;postgres&quot;;</code></div>
+<div className="dd">
+<p>Default database name (PostgreSQL compatibility).</p>
+</div>
+<div id="constant.DEFAULT_PORT" className="dt constant-def"><code>pub const DEFAULT\_PORT: u16 = 5432;</code></div>
+<div className="dd">
+<p>Default PostgreSQL wire protocol port for Kinetica.</p>
+</div>
+</div>
+<h2 id="traits" className="section-header">Traits</h2>
+<div className="dl item-table">
+<div className="dt"><a className="trait" href="/content/api/rust/sqlx_support/trait.FromKineticaText" title="trait gpudb_api::sqlx_support::FromKineticaText">From<wbr />Kinetica<wbr />Text</a></div>
+<div className="dd">Values for the Kinetica types SQLx’s own PostgreSQL types cannot read or write over Kinetica’s protocol, or cannot reliably: see their module. A value read from the text Kinetica sends: see <a href="/content/api/rust/sqlx_support/struct.KineticaText" title="struct gpudb_api::sqlx_support::KineticaText"><code>KineticaText</code></a>.</div>
+<div className="dt"><a className="trait" href="/content/api/rust/sqlx_support/trait.KineticaArrayElement" title="trait gpudb_api::sqlx_support::KineticaArrayElement">Kinetica<wbr />Array<wbr />Element</a></div>
+<div className="dd">Values for the Kinetica types SQLx’s own PostgreSQL types cannot read or write over Kinetica’s protocol, or cannot reliably: see their module. An element of a Kinetica array: see <a href="/content/api/rust/sqlx_support/struct.KineticaArray" title="struct gpudb_api::sqlx_support::KineticaArray"><code>KineticaArray</code></a>.</div>
+<div className="dt"><a className="trait" href="/content/api/rust/sqlx_support/trait.KineticaPoolExt" title="trait gpudb_api::sqlx_support::KineticaPoolExt">Kinetica<wbr />Pool<wbr />Ext</a></div>
+<div className="dd">Extension trait for <code>PgPool</code> with Kinetica-specific helpers.</div>
+<div className="dt"><a className="trait" href="/content/api/rust/sqlx_support/trait.ToKineticaText" title="trait gpudb_api::sqlx_support::ToKineticaText">ToKinetica<wbr />Text</a></div>
+<div className="dd">Values for the Kinetica types SQLx’s own PostgreSQL types cannot read or write over Kinetica’s protocol, or cannot reliably: see their module. A value Kinetica takes as text: see <a href="/content/api/rust/sqlx_support/struct.KineticaText" title="struct gpudb_api::sqlx_support::KineticaText"><code>KineticaText</code></a>.</div>
+</div>
+<h2 id="functions" className="section-header">Functions</h2>
+<div className="dl item-table">
+<div className="dt"><a className="fn" href="/content/api/rust/sqlx_support/fn.build_connection_url" title="fn gpudb_api::sqlx_support::build_connection_url">build\_<wbr />connection\_<wbr />url</a></div>
+<div className="dd">Create a connection URL from components.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/sqlx_support/fn.connect" title="fn gpudb_api::sqlx_support::connect">connect</a></div>
+<div className="dd">Connect to Kinetica with minimal configuration.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/sqlx_support/fn.connect_from_env" title="fn gpudb_api::sqlx_support::connect_from_env">connect\_<wbr />from\_<wbr />env</a></div>
+<div className="dd">Connect to Kinetica using environment variables.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/sqlx_support/fn.connect_with_options" title="fn gpudb_api::sqlx_support::connect_with_options">connect\_<wbr />with\_<wbr />options</a></div>
+<div className="dd">Connect to Kinetica using <code>PgConnectOptions</code>.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/sqlx_support/fn.connect_with_url" title="fn gpudb_api::sqlx_support::connect_with_url">connect\_<wbr />with\_<wbr />url</a></div>
+<div className="dd">Connect to Kinetica using a connection URL.</div>
+<div className="dt"><a className="fn" href="/content/api/rust/sqlx_support/fn.connection_url_from_env" title="fn gpudb_api::sqlx_support::connection_url_from_env">connection\_<wbr />url\_<wbr />from\_<wbr />env</a></div>
+<div className="dd">Parse a Kinetica connection URL from environment variables.</div>
+</div>
+<h2 id="types" className="section-header">Type Aliases</h2>
+<div className="dl item-table">
+<div className="dt"><a className="type" href="/content/api/rust/sqlx_support/type.KineticaConnection" title="type gpudb_api::sqlx_support::KineticaConnection">Kinetica<wbr />Connection</a></div>
+<div className="dd">Type alias for SQLx PostgreSQL connection.</div>
+<div className="dt"><a className="type" href="/content/api/rust/sqlx_support/type.KineticaPool" title="type gpudb_api::sqlx_support::KineticaPool">Kinetica<wbr />Pool</a></div>
+<div className="dd">Type alias for SQLx PostgreSQL connection pool configured for Kinetica.</div>
+<div className="dt"><a className="type" href="/content/api/rust/sqlx_support/type.KineticaTransaction" title="type gpudb_api::sqlx_support::KineticaTransaction">Kinetica<wbr />Transaction</a></div>
+<div className="dd">Type alias for SQLx PostgreSQL transaction.</div>
+</div>
+</div>

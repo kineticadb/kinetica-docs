@@ -1,0 +1,117 @@
+---
+title: VERIFY DATABASE
+---
+
+<a id="verify-database"></a>
+
+<a id="sql-verify-database"></a>
+
+
+Verifies that the database is in a consistent state across the cluster.  The
+verification compares the metadata on the head node with the metadata on each
+worker, and checks that each table's records are counted and distributed
+consistently across the ranks.  Options add checks of null values and of
+persisted objects, and can limit the table checks to particular tables.  Only
+users with the `system_admin`
+[permission](/content/security/sec_concepts#security-concepts-permissions) can issue this
+command, and it cannot be run while the database is in read-only mode.
+
+To check individual tables for corrupted data, see
+[CHECK TABLE](/content/sql/ddl/check-table#sql-check-table); to repair them, see
+[REPAIR TABLE](/content/sql/ddl/repair-table#sql-repair-table).
+
+```sql title="VERIFY DATABASE Syntax"
+VERIFY DATABASE
+[WITH OPTIONS ('<option name>' = '<option value>'[,...])]
+```
+
+
+<Info>
+Through SQL, the verification runs as part of the SQL statement, alongside
+any other database activity, rather than on its own.  As a result:
+
+* Orphaned table data (table data on the workers with no corresponding
+  metadata) is not checked.  To check for orphaned table data, use the
+  [/admin/verifydb](/content/api/rest/admin_verifydb_rest) endpoint, which pauses other
+  database activity while it runs.
+* Differences in metadata between the head node and the workers may be
+  reported while other DDL is in progress.  Run the verification again to
+  confirm any such finding before acting on it.
+</Info>
+
+
+## Options
+
+
+The following options can be specified in the `WITH OPTIONS` clause.  Both the
+option names and their values must be quoted.
+
+<AccordionGroup>
+
+<Accordion title="verify_nulls" id="verify_nulls" defaultOpen>
+
+When `true`, verifies that null values are set to zero.  The default is `false`.
+
+</Accordion>
+
+<Accordion title="verify_persist" id="verify_persist" defaultOpen>
+
+When `true`, compares persistent objects against their state in memory.  The default
+is `false`.
+
+</Accordion>
+
+<Accordion title="verify_rank0" id="verify_rank0" defaultOpen>
+
+When `true`, compares the table metadata on the head node (rank 0) against the table
+metadata on each worker.  The default is `false`.
+
+</Accordion>
+
+<Accordion title="table_includes" id="table_includes" defaultOpen>
+
+Comma-separated list of tables to include when verifying table consistency on the
+workers; all other tables are skipped.  Cannot be used with `table_excludes`.
+
+</Accordion>
+
+<Accordion title="table_excludes" id="table_excludes" defaultOpen>
+
+Comma-separated list of tables to exclude when verifying table consistency on the
+workers.  Cannot be used with `table_includes`.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Response
+
+
+The response to `VERIFY DATABASE` is a single-row, 3-column result set:
+
+| Output Column | Description |
+| --- | --- |
+| `VERIFIED_OK` | Whether the verification found the database to be in a consistent state. |
+| `ERROR_LIST` | List of the inconsistencies found. <br/> <br/> This list can contain findings even when `VERIFIED_OK` is `true`, so review it rather than relying on `VERIFIED_OK` alone. |
+| `ORPHANED_TABLES_TOTAL_SIZE` | Total size, in bytes, of the orphaned table data found; `-1` when orphaned table data was not checked, as is the case when verifying through SQL. |
+
+
+## Examples
+
+
+To verify the database:
+
+{/* Source: /examples/sql/system_properties.kisql (lines 72) */}
+```sql VERIFY DATABASE Example
+VERIFY DATABASE
+```
+
+To verify the database, also checking null values and comparing the table
+metadata on the head node against that on the workers:
+
+{/* Source: /examples/sql/system_properties.kisql (lines 78-79) */}
+```sql VERIFY DATABASE with Options Example
+VERIFY DATABASE
+WITH OPTIONS ('verify_nulls' = 'true', 'verify_rank0' = 'true')
+```

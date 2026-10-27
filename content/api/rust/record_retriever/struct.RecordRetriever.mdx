@@ -1,0 +1,292 @@
+---
+title: "RecordRetriever"
+description: "RecordRetriever — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/record_retriever/index">record\_retriever</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L220-L268">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub struct RecordRetriever&lt;R = <a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a>&gt; {"{"} <span className="comment">/\* private fields \*/</span> {"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Object that permits efficient retrieval of records from GPUdb, with support for multi-head access.</p>
+<p><code>RecordRetriever</code> instances are thread safe and may be used from any number of tasks simultaneously. Records are returned as <code>R</code>: <a href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord"><code>GenericRecord</code></a>s by default, or any type serde can deserialize (see <a href="/content/api/rust/record_retriever/trait.RetrievedRecord" title="trait gpudb_api::record_retriever::RetrievedRecord"><code>RetrievedRecord</code></a>).</p>
+</div>
+</div>
+<h2 id="implementations" className="section-header">Implementations</h2>
+<div id="implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-RecordRetriever" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L270-L332">Source</a>
+<h3 className="code-header">impl <a className="struct" href="/content/api/rust/record_retriever/struct.RecordRetriever" title="struct gpudb_api::record_retriever::RecordRetriever">RecordRetriever</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a>&gt;</h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.new" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L294-L296">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.new" className="fn">new</a>( kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, table\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, record\_type: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type">Type</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Creates a retriever of the records of <code>table\_name</code>, which are of <code>record\_type</code>, returning them as <a href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord"><code>GenericRecord</code></a>s.</p>
+<p>The worker list is derived from the connection’s own worker addresses, and records are retrieved with no options.</p>
+<h5 id="example">Example</h5>
+<div>
+
+```rust
+use gpudb_api::{Kinetica, KineticaOptions, RecordRetriever, Type};
+use std::sync::Arc;
+
+let options = KineticaOptions::new();
+let kinetica = Arc::new(
+    Kinetica::new(vec!["http://localhost:9191".to_string()], options).await?
+);
+let record_type = Arc::new(Type::from_table(&kinetica, "my_table").await?);
+
+let retriever = RecordRetriever::new(kinetica, "my_table", record_type).await?;
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.with_retriever_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L299-L306">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.with_retriever_options" className="fn">with\_retriever\_options</a>( kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, table\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, record\_type: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type">Type</a>&gt;, options: <a className="struct" href="/content/api/rust/record_retriever/struct.RecordRetrieverOptions" title="struct gpudb_api::record_retriever::RecordRetrieverOptions">RecordRetrieverOptions</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Creates a retriever passing <code>options</code> to its retrievals.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.with_workers" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L313-L320">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.with_workers" className="fn">with\_workers</a>( kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, table\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, record\_type: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type">Type</a>&gt;, workers: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/worker_list/struct.WorkerList" title="struct gpudb_api::worker_list::WorkerList">WorkerList</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Creates a retriever with the given worker list.</p>
+<p><code>None</code> derives the list from the connection’s own worker addresses, which is the default; an empty list (<a href="/content/api/rust/worker_list/struct.WorkerList#method.empty" title="associated function gpudb_api::worker_list::WorkerList::empty"><code>WorkerList::empty</code></a>) declines multi-head for this retriever.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.with_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L323-L331">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.with_options" className="fn">with\_options</a>( kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, table\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, record\_type: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type">Type</a>&gt;, workers: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/worker_list/struct.WorkerList" title="struct gpudb_api::worker_list::WorkerList">WorkerList</a>&gt;, options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Creates a retriever with the given worker list and options.</p>
+</div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-RecordRetriever%3CT%3E" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L334-L366">Source</a>
+<h3 className="code-header">impl&lt;T: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/de/trait.DeserializeOwned.html" title="trait serde_core::de::DeserializeOwned">DeserializeOwned</a> + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'static&gt; <a className="struct" href="/content/api/rust/record_retriever/struct.RecordRetriever" title="struct gpudb_api::record_retriever::RecordRetriever">RecordRetriever</a>&lt;T&gt;</h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.new_typed" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L357-L365">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.new_typed" className="fn">new\_typed</a>( kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, table\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, record\_type: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type">Type</a>&gt;, workers: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/worker_list/struct.WorkerList" title="struct gpudb_api::worker_list::WorkerList">WorkerList</a>&gt;, options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Creates a retriever returning records decoded as <code>T</code>, from the Avro schema of <code>record\_type</code>. <code>workers</code> and <code>options</code> are as for <a href="/content/api/rust/record_retriever/struct.RecordRetriever#method.with_options" title="associated function gpudb_api::record_retriever::RecordRetriever::with_options"><code>RecordRetriever::with\_options</code></a>.</p>
+<div>
+
+```rust
+use gpudb_api::{Kinetica, KineticaOptions, RecordRetriever, ShardKeyValue, Type};
+use std::sync::Arc;
+
+#[derive(serde::Deserialize)]
+struct Row {
+    id: i32,
+    name: Option<String>,
+}
+
+let record_type = Arc::new(Type::from_table(&kinetica, "my_table").await?);
+let retriever = RecordRetriever::<Row>::new_typed(kinetica, "my_table", record_type, None, None).await?;
+let rows: Vec<Row> = retriever.get_by_key(&[ShardKeyValue::Int(1)], None).await?.data;
+```
+
+</div>
+</div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-RecordRetriever%3CR%3E" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L368-L1294">Source</a>
+<h3 className="code-header">impl&lt;R: <a className="trait" href="/content/api/rust/record_retriever/trait.RetrievedRecord" title="trait gpudb_api::record_retriever::RetrievedRecord">RetrievedRecord</a>&gt; <a className="struct" href="/content/api/rust/record_retriever/struct.RecordRetriever" title="struct gpudb_api::record_retriever::RecordRetriever">RecordRetriever</a>&lt;R&gt;</h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.kinetica" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L485-L487">Source</a>
+<h4 className="code-header">pub fn <a href="#method.kinetica" className="fn">kinetica</a>(&amp;self) -&gt; &amp;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Gets the connection from which records will be retrieved.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.table_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L490-L492">Source</a>
+<h4 className="code-header">pub fn <a href="#method.table_name" className="fn">table\_name</a>(&amp;self) -&gt; &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Gets the name of the table from which records will be retrieved.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.is_using_head_rank" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L496-L498">Source</a>
+<h4 className="code-header">pub fn <a href="#method.is_using_head_rank" className="fn">is\_using\_head\_rank</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns whether this RecordRetriever is using the head rank for simple record fetching (not utilizing the server’s key lookup feature).</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.is_doing_worker_lookup" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L501-L503">Source</a>
+<h4 className="code-header">pub fn <a href="#method.is_doing_worker_lookup" className="fn">is\_doing\_worker\_lookup</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns whether this RecordRetriever is using worker ranks for key lookups.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L506-L508">Source</a>
+<h4 className="code-header">pub fn <a href="#method.options" className="fn">options</a>(&amp;self) -&gt; <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Gets the options currently used for the retriever methods.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L511-L513">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_options" className="fn">set\_options</a>(&amp;self, options: <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;)</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sets the options to be used for the retriever methods.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_by_key" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L899-L905">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.get_by_key" className="fn">get\_by\_key</a>( &amp;self, key\_values: &amp;\[<a className="enum" href="/content/api/rust/bulk_inserter_common/enum.ShardKeyValue" title="enum gpudb_api::bulk_inserter_common::ShardKeyValue">ShardKeyValue</a>&lt;'\_&gt;\], expression: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.GetRecordsResponse" title="struct gpudb_api::generated::api::GetRecordsResponse">GetRecordsResponse</a>&lt;R&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Retrieves records with the given key values and filter expression.</p>
+<p>This method operates in four modes, depending on the parameters passed:</p>
+<ul>
+<li><strong>key values only</strong>: attempts a direct-to-rank lookup for records matching the given key values</li>
+<li><strong>key values and expression</strong>: attempts a direct-to-rank lookup for records matching the given key values, filtering them by the given expression</li>
+<li><strong>expression only</strong>: requests, via the head rank, all records in the table matching the given filter expression</li>
+<li><strong>neither</strong>: retrieves all records from the table via the head rank</li>
+</ul>
+<h5 id="arguments">Arguments</h5>
+<ul>
+<li><code>key\_values</code> - The key values to use for the lookup, one per key column in key order, or none; these must correspond to either the explicit or implicit shard key for sharded tables or the primary key of replicated tables. Each must be of a type its column takes (see <a href="/content/api/rust/record_key_builder/struct.RecordKeyBuilder#method.build_expression" title="method gpudb_api::record_key_builder::RecordKeyBuilder::build_expression"><code>RecordKeyBuilder::build\_expression</code></a>).</li>
+<li><code>expression</code> - A filter expression that will be applied to the data requested by the key values; if no key values are specified this filter will be applied to all of the data in the target table</li>
+</ul>
+<h5 id="returns">Returns</h5>
+<p>The requested records, decoded.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_by_key_with_offset" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L918-L1013">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.get_by_key_with_offset" className="fn">get\_by\_key\_with\_offset</a>( &amp;self, key\_values: &amp;\[<a className="enum" href="/content/api/rust/bulk_inserter_common/enum.ShardKeyValue" title="enum gpudb_api::bulk_inserter_common::ShardKeyValue">ShardKeyValue</a>&lt;'\_&gt;\], expression: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>&gt;, offset: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.GetRecordsResponse" title="struct gpudb_api::generated::api::GetRecordsResponse">GetRecordsResponse</a>&lt;R&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Retrieves records with the given key values and filter expression, starting from an offset.</p>
+<h5 id="arguments-1">Arguments</h5>
+<ul>
+<li><code>key\_values</code> - The key values to use for the lookup, or none</li>
+<li><code>expression</code> - A filter expression</li>
+<li><code>offset</code> - Offset of the record(s) within the result set to return</li>
+</ul>
+<h5 id="returns-1">Returns</h5>
+<p>The requested records, decoded.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_columns_by_key" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L1064-L1072">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.get_columns_by_key" className="fn">get\_columns\_by\_key</a>( &amp;self, columns: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, key\_values: &amp;\[<a className="enum" href="/content/api/rust/bulk_inserter_common/enum.ShardKeyValue" title="enum gpudb_api::bulk_inserter_common::ShardKeyValue">ShardKeyValue</a>&lt;'\_&gt;\], expression: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.GetRecordsByColumnResponse" title="struct gpudb_api::generated::api::GetRecordsByColumnResponse">GetRecordsByColumnResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Retrieves specific columns with the given key values and filter expression.</p>
+<h5 id="arguments-2">Arguments</h5>
+<ul>
+<li><code>columns</code> - The requested columns (which can include expressions). May use “\*” for all columns.</li>
+<li><code>key\_values</code> - The key values to use for the lookup, or none</li>
+<li><code>expression</code> - A filter expression</li>
+</ul>
+<h5 id="returns-2">Returns</h5>
+<p>The requested records, typed by the response.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_columns_by_key_with_offset" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L1086-L1161">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.get_columns_by_key_with_offset" className="fn">get\_columns\_by\_key\_with\_offset</a>( &amp;self, columns: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, key\_values: &amp;\[<a className="enum" href="/content/api/rust/bulk_inserter_common/enum.ShardKeyValue" title="enum gpudb_api::bulk_inserter_common::ShardKeyValue">ShardKeyValue</a>&lt;'\_&gt;\], expression: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>&gt;, offset: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.GetRecordsByColumnResponse" title="struct gpudb_api::generated::api::GetRecordsByColumnResponse">GetRecordsByColumnResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Retrieves specific columns with the given key values and filter expression, starting from an offset.</p>
+<h5 id="arguments-3">Arguments</h5>
+<ul>
+<li><code>columns</code> - The requested columns</li>
+<li><code>key\_values</code> - The key values to use for the lookup, or none</li>
+<li><code>expression</code> - A filter expression</li>
+<li><code>offset</code> - Offset of the record(s) within the result set to return</li>
+</ul>
+<h5 id="returns-3">Returns</h5>
+<p>The requested records, typed by the response.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

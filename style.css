@@ -3,7 +3,7 @@
  *
  * Installed as the site's root `style.css` (Mintlify auto-loads it globally).
  * The language API pages converted by the *_to_mdx.py steps wrap their content
- * in `<div className="kinetica-javadoc|kinetica-jsdoc|kinetica-typedoc|kinetica-pydoc">` and keep
+ * in `<div className="kinetica-javadoc|kinetica-jsdoc|kinetica-typedoc|kinetica-pydoc|kinetica-rustdoc">` and keep
  * the original tool CSS class names on the inner elements.  Rather than vendor
  * each tool's full stylesheet (100s of KB, prone to clashing with Mintlify),
  * these compact rules — scoped under the wrapper classes so they can't leak —
@@ -16,7 +16,8 @@
 .kinetica-jsdoc,
 .kinetica-typedoc,
 .kinetica-pydoc,
-.kinetica-doxygen {
+.kinetica-doxygen,
+.kinetica-rustdoc {
   /* generated reference is dense; tighten the default prose rhythm a touch */
   line-height: 1.5;
 }
@@ -216,4 +217,53 @@
 .kinetica-typedoc .tsd-parameter-list {
   list-style: none;
   padding-left: 0.5rem;
+}
+
+/* --- rustdoc (Rust) ------------------------------------------------------ */
+/* Signatures: item declarations and the per-method/per-impl code headers. */
+.kinetica-rustdoc .code-header,
+.kinetica-rustdoc .item-decl {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  font-weight: 500;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+/* Declarations render on Mintlify's dark code background in both themes, but
+ * light mode colors links near-black; keep the type links in the code's color. */
+.kinetica-rustdoc pre.item-decl a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(245, 245, 250, 0.4);
+  text-underline-offset: 3px;
+}
+/* Module item tables (rustdoc's <dl class="item-table">): the item on its own
+ * line, its summary indented beneath.  Folded constants carry their full
+ * declaration in the item line, too long for a two-column grid. */
+.kinetica-rustdoc .item-table > .dt {
+  margin-top: 0.6rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  word-break: break-word;
+}
+.kinetica-rustdoc .item-table > .dd {
+  margin-left: 1.5rem;
+}
+/* Separate methods so long impl blocks read as a list of entries. */
+.kinetica-rustdoc .method-toggle {
+  border-top: 1px solid var(--border-color, #e5e7eb);
+  padding-top: 0.5rem;
+  margin-top: 0.75rem;
+}
+/* "Available on crate feature sqlx only." */
+.kinetica-rustdoc .stab {
+  display: inline-block;
+  font-size: 0.85em;
+  padding: 0.1em 0.5em;
+  border-radius: 4px;
+  background: var(--border-color, #e5e7eb);
+}
+.kinetica-rustdoc .rustdoc-breadcrumbs {
+  font-size: 0.85em;
+  opacity: 0.8;
 }

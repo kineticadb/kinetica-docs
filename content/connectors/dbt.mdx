@@ -1,0 +1,191 @@
+---
+title: Kinetica Adapter for dbt
+sidebarTitle: dbt Adapter
+---
+
+The *Kinetica* adapter for [dbt](https://www.getdbt.com/) (`dbt-kinetica`)
+lets dbt build, test, snapshot, and document data models in *Kinetica*.  The
+adapter connects through the [Python API](/content/api/python), so no ODBC
+or JDBC driver is needed.
+
+The adapter is open source, and is developed and maintained by Rosetta Labs.
+
+
+<Info>
+The adapter is in alpha, and has been verified against *Kinetica*
+7.2.3.  It has not been tested against earlier versions of *Kinetica*.
+</Info>
+
+
+<a id="dbt-install"></a>
+
+
+## Installation
+
+
+The adapter requires Python 3.10 or later and dbt Core 1.x.  It can be
+installed from PyPI using `pip`, which also installs dbt Core and the
+*Kinetica* Python API:
+
+```
+pip3 install dbt-kinetica
+```
+To verify the installation, run `dbt --version`; `kinetica` is listed under
+`Plugins`.
+
+The adapter's source is available on GitHub:
+
+```
+https://github.com/kineticadb/kinetica-dbt-adapter
+```
+<a id="dbt-connect"></a>
+
+
+## Connecting
+
+
+dbt connects to *Kinetica* using a profile of type `kinetica` in the dbt
+`profiles.yml` file.  Running `dbt init` in a new project prompts for the
+required settings.
+
+```yaml title="profiles.yml"
+kinetica_project:
+  target: dev
+  outputs:
+    dev:
+      type: kinetica
+      host: http://localhost:9191
+      user: admin
+      password: "{{ env_var('KINETICA_PASSWORD') }}"
+      schema: ki_home
+      threads: 4
+```
+
+To check the connection, run `dbt debug`.
+
+
+### Profile Settings
+
+
+| Setting | Default | Description |
+| --- | --- | --- |
+| `type` |  | Must be `kinetica`. |
+| `host` | `http://localhost:9191` | Full URL of the *Kinetica* head node.  Also accepted as `url`. |
+| `user` |  | *Kinetica* user name.  Also accepted as `username`. |
+| `password` |  | Password for `user`.  Also accepted as `pass`.  Use dbt's `env_var()` function to keep the password out of the file. |
+| `schema` | `ki_home` | [Schema](/content/sql/ddl/create-schema#sql-create-schema) in which dbt builds models. |
+| `threads` |  | Number of models dbt builds at the same time. |
+| `database` | `kinetica` | Label only; *Kinetica* has no databases, and this value is never used in SQL. |
+| `timeout` | none | Time limit, in seconds, for each request to the database; by default, there is no limit. |
+| `retries` | `1` | Number of times to retry opening a connection. |
+| `skip_ssl_cert_verification` | `false` | Skip verification of the server's SSL certificate. |
+| `disable_auto_discovery` | `true` | Connect only to `host`, without discovering the cluster's other URLs.  Keep this `true` when connecting through Docker, NAT, or a load balancer. |
+| `disable_failover` | `false` | Turn off failover to a backup cluster. |
+| `oauth_token` |  | OAuth token to authenticate with, instead of `user` and `password`. |
+| `page_size` | `10000` | Number of records fetched per page of query results. |
+| `http_headers` |  | Map of extra HTTP headers to send with each request. |
+| `sql_options` |  | Map of options to send with every SQL request; e.g., `ttl: "120"`. |
+
+
+<a id="dbt-models"></a>
+
+
+## Model Configuration
+
+
+In addition to dbt's standard model settings, the adapter supports the
+following settings, which can be given in a model's `config()` block or in
+`dbt_project.yml`.
+
+| Setting | Applies To | Description |
+| --- | --- | --- |
+| `materialized` | All models | How the model is built: `table`, `view`, `incremental`, `materialized_view`, `ephemeral`, `seed`, or `snapshot` |
+| `replicated: true` | Table, incremental | Create the *table* as a [replicated table](/content/sql/ddl/create-table#sql-create-table) |
+| `ttl: <minutes>` | Table, incremental | Set the *table's* [time-to-live](/content/concepts/ttl), in minutes |
+| `table_properties: {...}` | Table, incremental | Map of [table properties](/content/sql/ddl/create-table#sql-create-table-prop) to apply to the *table* |
+| `partition_by: "..."` | Table, incremental | [Partition](/content/sql/ddl/create-table#sql-create-table-partition) clause, passed through as written; e.g., `"RANGE (order_date) ..."` |
+| `tier_strategy: "..."` | Table, incremental | [Tier strategy](/content/sql/ddl/create-table#sql-create-table-tier-strategy) clause, passed through as written |
+| `indexes: [...]` | Table, incremental, seed, snapshot | List of [indexes](/content/sql/ddl/create-table#sql-create-table-index) to create, each with a list of `columns` and an optional `type`; e.g., `[{'columns': ['customer_id']}]` |
+| `refresh: "..."` | Materialized view | Refresh mode of the [materialized view](/content/sql/ddl/create-materialized-view#sql-create-materialized-view); e.g., `EVERY 5 MINUTES`, `ON CHANGE`, `ON QUERY`, or `MANUAL` |
+| `incremental_strategy` | Incremental | How new data is added: `append` (the default), `delete+insert`, or `microbatch` |
+| `unique_key` | Incremental | Column, or list of columns, that identifies a record for `delete+insert` |
+| `grants` | All models | [Privileges](/content/sql/security/grant-table-permission#sql-security-priv-mgmt-table-grant) to grant on the model after it is built; privileges are never revoked |
+
+For example, this incremental model replaces any existing records that have the
+same `order_id` as new ones, and expires its *table* after a day without use:
+
+```sql title="Incremental Model"
+{{ config(
+    materialized='incremental',
+    incremental_strategy='delete+insert',
+    unique_key='order_id',
+    ttl=1440,
+    indexes=[{'columns': ['customer_id']}]
+) }}
+
+SELECT order_id, customer_id, order_date, amount, status
+FROM {{ ref('stg_orders') }}
+{% if is_incremental() %}
+WHERE order_date >= (SELECT MAX(order_date) FROM {{ this }})
+{% endif %}
+```
+
+
+<a id="dbt-behavior"></a>
+
+
+## How dbt Runs on Kinetica
+
+
+* **Transactions** - Each statement takes effect as soon as it runs; dbt's
+  transaction statements are not sent, and hooks run as ordinary statements.
+* **Tables and views** - Each run replaces a model's *table* or *view* in
+  place, using `CREATE OR REPLACE`.  A *materialized view* is replaced when
+  dbt is run with `--full-refresh`, and is otherwise refreshed.
+* **Incremental models** - New records are staged in a temporary *table*,
+  `<model>__dbt_tmp`, which is dropped at the end of the run.  With
+  `delete+insert`, records in the model whose `unique_key` matches a staged
+  record are deleted, and then the staged records are inserted.
+* **Snapshots** - Snapshots use `NOW()` as the snapshot time and `SHA256()`
+  to generate the `dbt_scd_id` column.
+* **Seeds** - Seed files are loaded in batches of 5,000 records.
+* **Metadata** - Schema, *table*, and column information is read through the
+  `/show/schema` and `/show/table` endpoints.
+
+
+<a id="dbt-limitations"></a>
+
+
+## Limitations
+
+
+* The `merge` and `insert_overwrite` incremental strategies are not
+  supported; use `delete+insert` or `append` instead.
+* `persist_docs` is not supported; model and column descriptions are not saved
+  to the database.
+* *Views* and *materialized views* cannot be renamed.
+* Source freshness cannot be checked from *table* metadata; sources with a
+  `loaded_at_field` can be checked.
+* Python models are not supported.
+
+
+<a id="dbt-example"></a>
+
+
+## Example Project
+
+
+The adapter's GitHub repository includes a small example project in
+`examples/demo`, with seeds, staging *views*, a *table* with a
+time-to-live, a `delete+insert` incremental model, tests, and a snapshot.
+
+To run it, set the `KINETICA_HOST`, `KINETICA_USER`, and
+`KINETICA_PASSWORD` environment variables, and then run the following from the
+`examples/demo` directory:
+
+```
+dbt seed --profiles-dir .
+dbt run --profiles-dir .
+dbt test --profiles-dir .
+dbt snapshot --profiles-dir .
+```

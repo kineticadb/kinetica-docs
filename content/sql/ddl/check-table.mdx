@@ -1,0 +1,131 @@
+---
+title: CHECK TABLE
+---
+
+<a id="sql-check-table"></a>
+
+
+Checks one or more *tables* for corrupted data, by reading every column of every
+chunk of each *table* from disk, on every rank.  Chunks whose data cannot be read
+are reported and marked as corrupt.
+
+Checking a *table* requires read
+[permission](/content/security/sec_concepts#security-concepts-permissions) on it; *tables* the
+user cannot read are skipped without error, as are *views*.
+
+```sql title="CHECK TABLE Syntax"
+CHECK TABLE[S] < [<schema name>.]<table name>[,...] | * >
+[WITH OPTIONS (<option name> = '<option value>'[,...])]
+```
+
+
+<Warning>
+`CHECK TABLE` only reads data, but any chunks it finds to be
+corrupt are marked as such, and, by default, the database then repairs them
+automatically in the background:  each corrupted chunk is truncated to a
+consistent length or, if that fails, deleted, and the records lost are not
+recoverable.  To review any corruption before data is removed, set
+`wal.auto_truncate_corrupt_tables` to `false` in the
+[system configuration](/content/config) and repair the *table*
+with [REPAIR TABLE](/content/sql/ddl/repair-table).  Until a *table* marked as corrupt is repaired, reads
+from and deletes on it fail.
+</Warning>
+
+Because `CHECK TABLE` loads every column of each *table* into memory, checking
+large *tables* can take a long time and can displace data that other queries are
+using.  Queries can read a *table* while it is being checked, but some changes to
+the *table* wait until its check is complete.  Consider checking large *tables*,
+or all *tables* with `*`, during a period of low activity.
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;schema name&gt;" id="<schema-name>" defaultOpen>
+
+Name of the *schema* containing the *table* to check
+
+</Accordion>
+
+<Accordion title="&lt;table name&gt;" id="<table-name>" defaultOpen>
+
+Name of the *table* to check; multiple *tables* can be given as a comma-separated list
+
+</Accordion>
+
+<Accordion title="*" defaultOpen>
+
+Check all *tables*
+
+</Accordion>
+
+<Accordion title="WITH OPTIONS" id="with-options" defaultOpen>
+
+Optional indicator that a comma-delimited list of option/value assignments will follow; see
+the options below
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Options
+
+
+<AccordionGroup>
+
+<Accordion title="LOCAL_ONLY" id="local_only" defaultOpen>
+
+If `true`, only check column data that has a copy in the local
+[persist tier](/content/rm/concepts#rm-concepts-tiers-persist); data held only in cold storage is skipped,
+and so is not checked.  The default is `false`, which downloads data held only in cold
+storage in order to check it.
+
+</Accordion>
+
+<Accordion title="SHOW_DETAIL" id="show_detail" defaultOpen>
+
+If `true` (the default), report each corrupted chunk individually.  If `false`, report only
+a count of the corrupted chunks found for each *table* at each location.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Response
+
+
+`CHECK TABLE` returns rows only for *tables* with corrupted data; a *table*
+with no corruption produces no rows.  By default, each row describes one
+corrupted chunk; with `SHOW_DETAIL` set to `false`, each row summarizes the
+corrupted chunks of one *table* at one location.
+
+| Output Column | Description |
+| --- | --- |
+| `table_name` | Name of the *table* with corrupted data |
+| `id` | Identifier of the corrupted chunk (`ChunkId:<n>`); empty when `SHOW_DETAIL` is `false` |
+| `location` | Rank (and, on ranks with more than one TOM, the TOM) holding the corrupted data, in the form `Rank:<rank>` or `Rank:<rank>,Tom:<tom>` |
+| `error` | Description of the error found in the chunk; when `SHOW_DETAIL` is `false`, the number of corrupted chunks found for the *table* at that location |
+
+
+## Examples
+
+
+To check two *tables* for corrupted data:
+
+{/* Source: /examples/sql/table/repair_table.kisql (lines 44) */}
+```sql CHECK TABLE Example
+CHECK TABLES example.rt_product, example.rt_order
+```
+
+To check a *table*, reporting only a count of corrupted chunks for each location
+and skipping data held only in cold storage:
+
+{/* Source: /examples/sql/table/repair_table.kisql (lines 50-51) */}
+```sql CHECK TABLE with Options Example
+CHECK TABLE example.rt_product
+WITH OPTIONS (SHOW_DETAIL = 'false', LOCAL_ONLY = 'true')
+```

@@ -1,0 +1,458 @@
+---
+title: "KifsFileHandler"
+description: "KifsFileHandler — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/filesystem/index">filesystem</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L57-L62">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub struct KifsFileHandler {"{"} <span className="comment">/\* private fields \*/</span> {"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Main class for interacting with the Kinetica File System (KiFS).</p>
+<p>This handler provides a high-level API for file uploads, downloads, directory management, and file operations.</p>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use gpudb_api::{Kinetica, KineticaOptions};
+use gpudb_api::filesystem::{KifsFileHandler, KifsFileHandlerOptions};
+use std::sync::Arc;
+
+let kinetica = Arc::new(
+    Kinetica::new(vec!["http://localhost:9191".to_string()], KineticaOptions::new()).await?
+);
+
+let handler = KifsFileHandler::new(kinetica, None);
+
+// Create a directory
+handler.create_directory("my_dir", true).await?;
+
+// Upload files
+handler.upload("/path/to/*.csv", "my_dir", None, None).await?;
+
+// List files
+let files = handler.show_files(vec!["my_dir".to_string()]).await?;
+println!("Found {} files", files.len());
+
+// Delete directory
+handler.delete_directory("my_dir", true, true).await?;
+```
+
+</div>
+</div>
+</div>
+<h2 id="implementations" className="section-header">Implementations</h2>
+<div id="implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-KifsFileHandler" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L64-L785">Source</a>
+<h3 className="code-header">impl <a className="struct" href="/content/api/rust/filesystem/struct.KifsFileHandler" title="struct gpudb_api::filesystem::KifsFileHandler">KifsFileHandler</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.new" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L71-L76">Source</a>
+<h4 className="code-header">pub fn <a href="#method.new" className="fn">new</a>(db: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.KifsFileHandlerOptions" title="struct gpudb_api::filesystem::KifsFileHandlerOptions">KifsFileHandlerOptions</a>&gt;) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Creates a new KiFS file handler.</p>
+<h5 id="arguments">Arguments</h5>
+<ul>
+<li><code>db</code> - The Kinetica client instance</li>
+<li><code>options</code> - Optional file handler options (uses defaults if None)</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L79-L81">Source</a>
+<h4 className="code-header">pub fn <a href="#method.options" className="fn">options</a>(&amp;self) -&gt; &amp;<a className="struct" href="/content/api/rust/filesystem/struct.KifsFileHandlerOptions" title="struct gpudb_api::filesystem::KifsFileHandlerOptions">KifsFileHandlerOptions</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the file handler options.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.default_thread_pool_termination_timeout" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L84-L86">Source</a>
+<h4 className="code-header">pub fn <a href="#method.default_thread_pool_termination_timeout" className="fn">default\_thread\_pool\_termination\_timeout</a>() -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i32.html">i32</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>The default thread pool termination timeout, in seconds.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.default_full_file_dispatcher_threadpool_size" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L89-L91">Source</a>
+<h4 className="code-header">pub fn <a href="#method.default_full_file_dispatcher_threadpool_size" className="fn">default\_full\_file\_dispatcher\_threadpool\_size</a>() -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i32.html">i32</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>The default number of full-file upload batches sent concurrently.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.upload" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L126-L135">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.upload" className="fn">upload</a>( &amp;self, file\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, remote\_dir\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, upload\_options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.UploadOptions" title="struct gpudb_api::filesystem::UploadOptions">UploadOptions</a>&gt;, callback: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;dyn <a className="trait" href="/content/api/rust/filesystem/trait.FileUploadListener" title="trait gpudb_api::filesystem::FileUploadListener">FileUploadListener</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Uploads a single file from a local path to a KiFS directory.</p>
+<h5 id="arguments-1">Arguments</h5>
+<ul>
+<li><code>file\_name</code> - Name and path of the file (or glob pattern) to upload</li>
+<li><code>remote\_dir\_name</code> - Name of the KiFS directory to upload to</li>
+<li><code>upload\_options</code> - Optional upload options (uses defaults if None)</li>
+<li><code>callback</code> - Optional listener for progress callbacks</li>
+</ul>
+<h5 id="returns">Returns</h5>
+<p>A vector of <code>OperationResult</code> for each file processed (successful or failed).</p>
+<h5 id="errors">Errors</h5>
+<p>Returns an aggregated error containing all failure messages if any files fail to upload. The operation continues processing remaining files even when individual uploads fail.</p>
+<h5 id="example-1">Example</h5>
+<div>
+
+```rust
+// Upload a single file
+let results = handler.upload("/path/to/file.csv", "my_dir", None, None).await?;
+
+// Upload with glob pattern
+let results = handler.upload("/data/**/*.json", "my_dir", None, None).await?;
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.upload_multiple" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L154-L211">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.upload_multiple" className="fn">upload\_multiple</a>( &amp;self, file\_names: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, remote\_dir\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, upload\_options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.UploadOptions" title="struct gpudb_api::filesystem::UploadOptions">UploadOptions</a>&gt;, callback: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;dyn <a className="trait" href="/content/api/rust/filesystem/trait.FileUploadListener" title="trait gpudb_api::filesystem::FileUploadListener">FileUploadListener</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Uploads multiple files to a KiFS directory.</p>
+<h5 id="arguments-2">Arguments</h5>
+<ul>
+<li><code>file\_names</code> - Names and paths of the files (or glob patterns) to upload</li>
+<li><code>remote\_dir\_name</code> - Name of the KiFS directory to upload to</li>
+<li><code>upload\_options</code> - Optional upload options (uses defaults if None)</li>
+<li><code>callback</code> - Optional listener for progress callbacks</li>
+</ul>
+<h5 id="returns-1">Returns</h5>
+<p>A vector of <code>OperationResult</code> for each file processed (successful or failed).</p>
+<h5 id="errors-1">Errors</h5>
+<p>Returns an aggregated error containing all failure messages if any files fail to upload. The operation continues processing remaining files even when individual uploads fail.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.download" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L232-L246">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.download" className="fn">download</a>( &amp;self, file\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, local\_dir\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, download\_options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.DownloadOptions" title="struct gpudb_api::filesystem::DownloadOptions">DownloadOptions</a>&gt;, callback: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;dyn <a className="trait" href="/content/api/rust/filesystem/trait.FileDownloadListener" title="trait gpudb_api::filesystem::FileDownloadListener">FileDownloadListener</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Downloads a single KiFS file to a local directory.</p>
+<h5 id="arguments-3">Arguments</h5>
+<ul>
+<li><code>file\_name</code> - Path of the KiFS file to download</li>
+<li><code>local\_dir\_name</code> - Path of the local directory to download to</li>
+<li><code>download\_options</code> - Optional download options (uses defaults if None)</li>
+<li><code>callback</code> - Optional listener for progress callbacks</li>
+</ul>
+<h5 id="returns-2">Returns</h5>
+<p>A vector of <code>OperationResult</code> for each file processed (successful or failed).</p>
+<h5 id="errors-2">Errors</h5>
+<p>Returns an aggregated error containing all failure messages if any files fail to download. The operation continues processing remaining files even when individual downloads fail.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.download_multiple" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L265-L312">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.download_multiple" className="fn">download\_multiple</a>( &amp;self, file\_names: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, local\_dir\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, download\_options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.DownloadOptions" title="struct gpudb_api::filesystem::DownloadOptions">DownloadOptions</a>&gt;, callback: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;dyn <a className="trait" href="/content/api/rust/filesystem/trait.FileDownloadListener" title="trait gpudb_api::filesystem::FileDownloadListener">FileDownloadListener</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Downloads multiple KiFS files to a local directory.</p>
+<h5 id="arguments-4">Arguments</h5>
+<ul>
+<li><code>file\_names</code> - Paths of the KiFS files to download</li>
+<li><code>local\_dir\_name</code> - Path of the local directory to download to</li>
+<li><code>download\_options</code> - Optional download options (uses defaults if None)</li>
+<li><code>callback</code> - Optional listener for progress callbacks</li>
+</ul>
+<h5 id="returns-3">Returns</h5>
+<p>A vector of <code>OperationResult</code> for each file processed (successful or failed).</p>
+<h5 id="errors-3">Errors</h5>
+<p>Returns an aggregated error containing all failure messages if any files fail to download. The operation continues processing remaining files even when individual downloads fail.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.download_dir" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L335-L362">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.download_dir" className="fn">download\_dir</a>( &amp;self, remote\_dir\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, local\_dir\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, download\_options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.DownloadOptions" title="struct gpudb_api::filesystem::DownloadOptions">DownloadOptions</a>&gt;, callback: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;dyn <a className="trait" href="/content/api/rust/filesystem/trait.FileDownloadListener" title="trait gpudb_api::filesystem::FileDownloadListener">FileDownloadListener</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Downloads all files from a KiFS directory to a local directory.</p>
+<p>Each file keeps its path below the KiFS directory: <code>dir/a.csv</code> is saved as <code>&lt;local dir&gt;/a.csv</code>, and <code>dir/sub/x.csv</code> as <code>&lt;local dir&gt;/sub/x.csv</code>, its subdirectory made as needed.</p>
+<h5 id="arguments-5">Arguments</h5>
+<ul>
+<li><code>remote\_dir\_name</code> - Path of the KiFS directory to download</li>
+<li><code>local\_dir\_name</code> - Path of the local directory to download to</li>
+<li><code>download\_options</code> - Optional download options (uses defaults if None)</li>
+<li><code>callback</code> - Optional listener for progress callbacks</li>
+</ul>
+<h5 id="returns-4">Returns</h5>
+<p>A vector of <code>OperationResult</code> for each file processed (successful or failed).</p>
+<h5 id="errors-4">Errors</h5>
+<p>Returns an aggregated error containing all failure messages if any files fail to download. The operation continues processing remaining files even when individual downloads fail.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.ingest" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L378-L411">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.ingest" className="fn">ingest</a>( &amp;self, file\_names: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, table\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, ingest\_options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.IngestOptions" title="struct gpudb_api::filesystem::IngestOptions">IngestOptions</a>&gt;, create\_table\_options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.TableCreationOptions" title="struct gpudb_api::filesystem::TableCreationOptions">TableCreationOptions</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.IngestResult" title="struct gpudb_api::filesystem::IngestResult">IngestResult</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Uploads local files and inserts their records into <code>table\_name</code>.</p>
+<p>The files, which may be glob patterns, are uploaded to a directory of their own under the user’s KiFS home directory, inserted from there with <code>/insert/records/fromfiles</code> and the options given, and the directory is deleted afterwards.</p>
+<h5 id="errors-5">Errors</h5>
+<p>Fails if no file is named, a name is empty, or a file named (not a pattern) does not exist; and with the upload’s or the insert’s error if either fails.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.delete_files" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L421-L439">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.delete_files" className="fn">delete\_files</a>( &amp;self, file\_names: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, no\_error\_if\_not\_exists: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Deletes the given list of KiFS file paths.</p>
+<h5 id="arguments-6">Arguments</h5>
+<ul>
+<li><code>file\_names</code> - List of files in KiFS to delete</li>
+<li><code>no\_error\_if\_not\_exists</code> - Whether to suppress errors if files don’t exist</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.delete_files_in_dir" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L450-L463">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.delete_files_in_dir" className="fn">delete\_files\_in\_dir</a>( &amp;self, remote\_dir\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, no\_error\_if\_not\_exists: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Deletes files in the given KiFS directory.</p>
+<p>The files found are deleted with one <code>/delete/files</code> request, sent even when there are none.</p>
+<h5 id="arguments-7">Arguments</h5>
+<ul>
+<li><code>remote\_dir\_name</code> - Name of the KiFS directory containing files to delete</li>
+<li><code>no\_error\_if\_not\_exists</code> - Whether to suppress errors if the directory doesn’t exist</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.show_files" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L474-L500">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.show_files" className="fn">show\_files</a>( &amp;self, remote\_paths: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.KifsFileInfo" title="struct gpudb_api::filesystem::KifsFileInfo">KifsFileInfo</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns statistics about the given KiFS files and/or directories.</p>
+<h5 id="arguments-8">Arguments</h5>
+<ul>
+<li><code>remote\_paths</code> - List of KiFS files and/or directory names</li>
+</ul>
+<h5 id="returns-5">Returns</h5>
+<p>List of <code>KifsFileInfo</code> objects containing statistics about the files.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.create_directory" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L510-L528">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.create_directory" className="fn">create\_directory</a>( &amp;self, remote\_dir\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, no\_error\_if\_exists: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Creates a KiFS directory with the given name.</p>
+<h5 id="arguments-9">Arguments</h5>
+<ul>
+<li><code>remote\_dir\_name</code> - Name of the KiFS directory to create</li>
+<li><code>no\_error\_if\_exists</code> - Whether to suppress an error if the directory already exists</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.delete_directory" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L537-L560">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.delete_directory" className="fn">delete\_directory</a>( &amp;self, remote\_dir\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, recursive: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>, no\_error\_if\_not\_exists: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Deletes the given KiFS directory.</p>
+<h5 id="arguments-10">Arguments</h5>
+<ul>
+<li><code>remote\_dir\_name</code> - Name of the KiFS directory to delete</li>
+<li><code>recursive</code> - Whether to delete all files and subdirectories</li>
+<li><code>no\_error\_if\_not\_exists</code> - Whether to suppress an error if the directory doesn’t exist</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.show_directories" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L568-L573">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.show_directories" className="fn">show\_directories</a>( &amp;self, remote\_dir\_names: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.KifsDirectoryInfo" title="struct gpudb_api::filesystem::KifsDirectoryInfo">KifsDirectoryInfo</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns statistics about the given KiFS directories: one entry for each.</p>
+<h5 id="arguments-11">Arguments</h5>
+<ul>
+<li><code>remote\_dir\_names</code> - List of KiFS directory names</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.show_directories_with_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L577-L619">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.show_directories_with_options" className="fn">show\_directories\_with\_options</a>( &amp;self, remote\_dir\_names: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, options: <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.KifsDirectoryInfo" title="struct gpudb_api::filesystem::KifsDirectoryInfo">KifsDirectoryInfo</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns statistics about the given KiFS directories, one entry for each, passing <code>options</code> to each <code>/show/directories</code>.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.show_directory" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L630-L632">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.show_directory" className="fn">show\_directory</a>( &amp;self, remote\_dir\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.KifsDirectoryInfo" title="struct gpudb_api::filesystem::KifsDirectoryInfo">KifsDirectoryInfo</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns statistics about a single KiFS directory.</p>
+<h5 id="arguments-12">Arguments</h5>
+<ul>
+<li><code>remote\_dir\_name</code> - Name of the KiFS directory</li>
+</ul>
+<h5 id="returns-6">Returns</h5>
+<p>List of <code>KifsDirectoryInfo</code> objects (may include subdirectories).</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.show_directory_with_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L636-L647">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.show_directory_with_options" className="fn">show\_directory\_with\_options</a>( &amp;self, remote\_dir\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, options: <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.KifsDirectoryInfo" title="struct gpudb_api::filesystem::KifsDirectoryInfo">KifsDirectoryInfo</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns statistics about a single KiFS directory, passing <code>options</code> to <code>/show/directories</code>.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.show_all_directories" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L654-L656">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.show_all_directories" className="fn">show\_all\_directories</a>( &amp;self, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.KifsDirectoryInfo" title="struct gpudb_api::filesystem::KifsDirectoryInfo">KifsDirectoryInfo</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns statistics about all KiFS directories.</p>
+<h5 id="returns-7">Returns</h5>
+<p>List of <code>KifsDirectoryInfo</code> objects for all directories.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.show_all_directories_with_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L660-L665">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.show_all_directories_with_options" className="fn">show\_all\_directories\_with\_options</a>( &amp;self, options: <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.KifsDirectoryInfo" title="struct gpudb_api::filesystem::KifsDirectoryInfo">KifsDirectoryInfo</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns statistics about all KiFS directories, passing <code>options</code> to <code>/show/directories</code>.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.kifs_directory_exists" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L705-L723">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.kifs_directory_exists" className="fn">kifs\_directory\_exists</a>(&amp;self, dir\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Checks whether the given KiFS directory exists.</p>
+<h5 id="arguments-13">Arguments</h5>
+<ul>
+<li><code>dir\_name</code> - The full KiFS directory path to check</li>
+</ul>
+<h5 id="returns-8">Returns</h5>
+<p><code>true</code> if the directory exists, <code>false</code> otherwise.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.kifs_directories_exist" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L734-L755">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.kifs_directories_exist" className="fn">kifs\_directories\_exist</a>(&amp;self, dir\_names: &amp;\[<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>\]) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Checks whether the given KiFS directories exist.</p>
+<h5 id="arguments-14">Arguments</h5>
+<ul>
+<li><code>dir\_names</code> - The set of full KiFS directory paths to check</li>
+</ul>
+<h5 id="returns-9">Returns</h5>
+<p><code>true</code> if all directories exist, <code>false</code> otherwise.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.kifs_file_exists" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/handler.rs#L766-L784">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.kifs_file_exists" className="fn">kifs\_file\_exists</a>(&amp;self, file\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Checks whether the given KiFS file exists.</p>
+<h5 id="arguments-15">Arguments</h5>
+<ul>
+<li><code>file\_name</code> - The full KiFS file path to check</li>
+</ul>
+<h5 id="returns-10">Returns</h5>
+<p><code>true</code> if the file exists, <code>false</code> otherwise.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

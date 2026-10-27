@@ -1,0 +1,98 @@
+---
+title: "aggregate_group_by"
+---
+
+<div className="kinetica-rustdoc">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.aggregate_group_by" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/aggregate_group_by.rs#L83-L98">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/aggregate-group-by#method.aggregate_group_by" className="fn">aggregate\_group\_by</a>( &amp;self, table\_name: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, column\_names: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, offset: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, limit: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.AggregateGroupByResponse" title="struct gpudb_api::generated::api::AggregateGroupByResponse">AggregateGroupByResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Calculate unique combinations of values for the given columns in a given dataset</p>
+<p>Calculates unique combinations (groups) of values for the given columns in a given table or view and computes aggregates on each unique combination. This is somewhat analogous to an SQL-style SELECT…GROUP BY.</p>
+<p>For aggregation details and examples, see Aggregation. For limitations, see Aggregation Limitations.</p>
+<p>Any column(s) can be grouped on, and all column types except unrestricted-length strings may be used for computing applicable aggregates.</p>
+<p>The results can be paged via the <code>offset</code> and <code>limit</code> parameters. For example, to get 10 groups with the largest counts the inputs would be: limit=10, options={"{"}“sort\_order”:“descending”, “sort\_by”:“value”{"}"}.</p>
+<p><code>options</code> can be used to customize behavior of this call e.g. filtering or sorting the results.</p>
+<p>To group by columns ‘x’ and ‘y’ and compute the number of objects within each group, use: column\_names=\[‘x’,‘y’,‘count(\*)’\].</p>
+<p>To also compute the sum of ‘z’ over each group, use: column\_names=\[‘x’,‘y’,‘count(\*)’,‘sum(z)’\].</p>
+<p>Available aggregation functions are: count(\*), sum, min, max, avg, mean, stddev, stddev\_pop, stddev\_samp, var, var\_pop, var\_samp, arg\_min, arg\_max and count\_distinct.</p>
+<p>Available grouping functions are Rollup, Cube, and Grouping Sets</p>
+<p>This service also provides support for Pivot operations.</p>
+<p>Filtering on aggregates is supported via expressions using aggregation functions supplied to having.</p>
+<p>The response is returned as a dynamic schema. For details see: dynamic schemas documentation.</p>
+<p>If a result\_table name is specified in the <code>options</code>, the results are stored in a new table with that name–no results are returned in the response. Both the table name and resulting column names must adhere to standard naming conventions; column/aggregation expressions will need to be aliased. If the source table’s shard key is used as the grouping column(s) and all result records are selected (<code>offset</code> is 0 and <code>limit</code> is -9999), the result table will be sharded, in all other cases it will be replicated. Sorting will properly function only if the result table is replicated or if there is only one processing node and should not be relied upon in other cases. Not available when any of the values of <code>column\_names</code> is an unrestricted-length string.</p>
+<h5 id="arguments-41">Arguments</h5>
+<ul>
+<li><code>table\_name</code> - Name of an existing table or view on which the operation will be performed, in \[schema\_name.\]table\_name format, using standard name resolution rules.</li>
+<li><code>column\_names</code> - List of one or more column names, expressions, and aggregate expressions.</li>
+<li><code>offset</code> - A positive integer indicating the number of initial results to skip (this can be useful for paging through the results).</li>
+<li><code>limit</code> - A positive integer indicating the maximum number of results to be returned, or END\_OF\_SET (-9999) to indicate that the maximum number of results allowed by the server should be returned. The number of records returned will never exceed the server’s own limit, defined by the max\_get\_records\_size parameter in the server configuration. Use <code>has\_more\_records</code> to see if more records exist in the result to be fetched, and <code>offset</code> and <code>limit</code> to request subsequent pages of results.</li>
+</ul>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.aggregate_group_by_with_opts" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/aggregate_group_by.rs#L173-L198">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/aggregate-group-by#method.aggregate_group_by_with_opts" className="fn">aggregate\_group\_by\_with\_opts</a>( &amp;self, table\_name: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, column\_names: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, offset: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, limit: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, options: <a className="struct" href="/content/api/rust/generated/api/struct.AggregateGroupByRequestOptions" title="struct gpudb_api::generated::api::AggregateGroupByRequestOptions">AggregateGroupByRequestOptions</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.AggregateGroupByResponse" title="struct gpudb_api::generated::api::AggregateGroupByResponse">AggregateGroupByResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Calculate unique combinations of values for the given columns in a given dataset</p>
+<p>Calculates unique combinations (groups) of values for the given columns in a given table or view and computes aggregates on each unique combination. This is somewhat analogous to an SQL-style SELECT…GROUP BY.</p>
+<p>For aggregation details and examples, see Aggregation. For limitations, see Aggregation Limitations.</p>
+<p>Any column(s) can be grouped on, and all column types except unrestricted-length strings may be used for computing applicable aggregates.</p>
+<p>The results can be paged via the <code>offset</code> and <code>limit</code> parameters. For example, to get 10 groups with the largest counts the inputs would be: limit=10, options={"{"}“sort\_order”:“descending”, “sort\_by”:“value”{"}"}.</p>
+<p><code>options</code> can be used to customize behavior of this call e.g. filtering or sorting the results.</p>
+<p>To group by columns ‘x’ and ‘y’ and compute the number of objects within each group, use: column\_names=\[‘x’,‘y’,‘count(\*)’\].</p>
+<p>To also compute the sum of ‘z’ over each group, use: column\_names=\[‘x’,‘y’,‘count(\*)’,‘sum(z)’\].</p>
+<p>Available aggregation functions are: count(\*), sum, min, max, avg, mean, stddev, stddev\_pop, stddev\_samp, var, var\_pop, var\_samp, arg\_min, arg\_max and count\_distinct.</p>
+<p>Available grouping functions are Rollup, Cube, and Grouping Sets</p>
+<p>This service also provides support for Pivot operations.</p>
+<p>Filtering on aggregates is supported via expressions using aggregation functions supplied to having.</p>
+<p>The response is returned as a dynamic schema. For details see: dynamic schemas documentation.</p>
+<p>If a result\_table name is specified in the <code>options</code>, the results are stored in a new table with that name–no results are returned in the response. Both the table name and resulting column names must adhere to standard naming conventions; column/aggregation expressions will need to be aliased. If the source table’s shard key is used as the grouping column(s) and all result records are selected (<code>offset</code> is 0 and <code>limit</code> is -9999), the result table will be sharded, in all other cases it will be replicated. Sorting will properly function only if the result table is replicated or if there is only one processing node and should not be relied upon in other cases. Not available when any of the values of <code>column\_names</code> is an unrestricted-length string.</p>
+<h5 id="arguments-42">Arguments</h5>
+<ul>
+<li><code>table\_name</code> - Name of an existing table or view on which the operation will be performed, in \[schema\_name.\]table\_name format, using standard name resolution rules.</li>
+<li><code>column\_names</code> - List of one or more column names, expressions, and aggregate expressions.</li>
+<li><code>offset</code> - A positive integer indicating the number of initial results to skip (this can be useful for paging through the results).</li>
+<li><code>limit</code> - A positive integer indicating the maximum number of results to be returned, or END\_OF\_SET (-9999) to indicate that the maximum number of results allowed by the server should be returned. The number of records returned will never exceed the server’s own limit, defined by the max\_get\_records\_size parameter in the server configuration. Use <code>has\_more\_records</code> to see if more records exist in the result to be fetched, and <code>offset</code> and <code>limit</code> to request subsequent pages of results.</li>
+<li><code>options</code> - The optional parameters; any left unset take the server’s defaults.</li>
+</ul>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.aggregate_group_by_request" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/aggregate_group_by.rs#L202-L220">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/aggregate-group-by#method.aggregate_group_by_request" className="fn">aggregate\_group\_by\_request</a>( &amp;self, request: &amp;<a className="struct" href="/content/api/rust/generated/api/struct.AggregateGroupByRequest" title="struct gpudb_api::generated::api::AggregateGroupByRequest">AggregateGroupByRequest</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.AggregateGroupByResponse" title="struct gpudb_api::generated::api::AggregateGroupByResponse">AggregateGroupByResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sends a pre-built <a href="/content/api/rust/generated/api/struct.AggregateGroupByRequest" title="struct gpudb_api::generated::api::AggregateGroupByRequest"><code>AggregateGroupByRequest</code></a> to the <code>/aggregate/groupby</code> endpoint and decodes the records it returns. Only binary encoding is supported.</p>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.aggregate_group_by_raw" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/aggregate_group_by.rs#L224-L235">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/aggregate-group-by#method.aggregate_group_by_raw" className="fn">aggregate\_group\_by\_raw</a>( &amp;self, request: &amp;<a className="struct" href="/content/api/rust/generated/api/struct.AggregateGroupByRequest" title="struct gpudb_api::generated::api::AggregateGroupByRequest">AggregateGroupByRequest</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.RawAggregateGroupByResponse" title="struct gpudb_api::generated::api::RawAggregateGroupByResponse">RawAggregateGroupByResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sends a pre-built <a href="/content/api/rust/generated/api/struct.AggregateGroupByRequest" title="struct gpudb_api::generated::api::AggregateGroupByRequest"><code>AggregateGroupByRequest</code></a> to the <code>/aggregate/groupby</code> endpoint, returning the response as the server sends it.</p>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.aggregate_group_by_from_url" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/aggregate_group_by.rs#L239-L251">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/aggregate-group-by#method.aggregate_group_by_from_url" className="fn">aggregate\_group\_by\_from\_url</a>( &amp;self, url: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, request: &amp;<a className="struct" href="/content/api/rust/generated/api/struct.AggregateGroupByRequest" title="struct gpudb_api::generated::api::AggregateGroupByRequest">AggregateGroupByRequest</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.RawAggregateGroupByResponse" title="struct gpudb_api::generated::api::RawAggregateGroupByResponse">RawAggregateGroupByResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sends a pre-built <a href="/content/api/rust/generated/api/struct.AggregateGroupByRequest" title="struct gpudb_api::generated::api::AggregateGroupByRequest"><code>AggregateGroupByRequest</code></a> to a specific worker URL, bypassing HA head-node selection. Used for multi-head access.</p>
+</div>
+</div>
+</div>

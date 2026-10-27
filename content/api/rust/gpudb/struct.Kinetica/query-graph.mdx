@@ -1,0 +1,72 @@
+---
+title: "query_graph"
+---
+
+<div className="kinetica-rustdoc">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.query_graph" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/query_graph.rs#L69-L86">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/query-graph#method.query_graph" className="fn">query\_graph</a>( &amp;self, graph\_name: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, queries: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, restrictions: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, adjacency\_table: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, rings: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i32.html">i32</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.QueryGraphResponse" title="struct gpudb_api::generated::api::QueryGraphResponse">QueryGraphResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Queries an existing graph.</p>
+<p>Employs a topological query on a graph generated a-priori by <code>/create/graph</code> and returns a list of adjacent edge(s) or node(s), also known as an adjacency list, depending on what’s been provided to the endpoint; providing edges will return nodes and providing nodes will return edges.</p>
+<p>To determine the node(s) or edge(s) adjacent to a value from a given column, provide a list of values to <code>queries</code>. This field can be populated with column values from any table as long as the type is supported by the given identifier. See Query Identifiers for more information.</p>
+<p>To return the adjacency list in the response, leave <code>adjacency\_table</code> empty.</p>
+<p>IMPORTANT: It’s highly recommended that you review the Graphs and Solvers concepts documentation, the Graph REST Tutorial, and/or some /match/graph examples before using this endpoint.</p>
+<h5 id="arguments-318">Arguments</h5>
+<ul>
+<li><code>graph\_name</code> - Name of the graph resource to query.</li>
+<li><code>queries</code> - Nodes or edges to be queried specified using query identifiers. Identifiers can be used with existing column names, e.g., ‘table.column AS QUERY\_NODE\_ID’, raw values, e.g., ‘{"{"}0, 2{"}"} AS QUERY\_NODE\_ID’, or expressions, e.g., ‘ST\_MAKEPOINT(table.x, table.y) AS QUERY\_NODE\_WKTPOINT’. Multiple values can be provided as long as the same identifier is used for all values. If using raw values in an identifier combination, the number of values specified must match across the combination.</li>
+<li><code>restrictions</code> - Additional restrictions to apply to the nodes/edges of an existing graph. Restrictions must be specified using identifiers; identifiers are grouped as combinations. Identifiers can be used with existing column names, e.g., ‘table.column AS RESTRICTIONS\_EDGE\_ID’, expressions, e.g., ‘column/2 AS RESTRICTIONS\_VALUECOMPARED’, or raw values, e.g., ‘{"{"}0, 0, 0, 1{"}"} AS RESTRICTIONS\_ONOFFCOMPARED’. If using raw values in an identifier combination, the number of values specified must match across the combination.</li>
+<li><code>adjacency\_table</code> - Name of the table to store the resulting adjacencies, in \[schema\_name.\]table\_name format, using standard name resolution rules and meeting table naming criteria. If left blank, the query results are instead returned in the response. If the ‘QUERY\_TARGET\_NODE\_LABEL’ query identifier is used in <code>queries</code>, then two additional columns will be available: ‘PATH\_ID’ and ‘RING\_ID’. See Using Labels for more information.</li>
+<li><code>rings</code> - Sets the number of rings around the node to query for adjacency, with ‘1’ being the edges directly attached to the queried node. Also known as number of hops. For example, if it is set to ‘2’, the edge(s) directly attached to the queried node(s) will be returned; in addition, the edge(s) attached to the node(s) attached to the initial ring of edge(s) surrounding the queried node(s) will be returned. If the value is set to ‘0’, any nodes that meet the criteria in <code>queries</code> and <code>restrictions</code> will be returned. This parameter is only applicable when querying nodes.</li>
+</ul>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.query_graph_with_opts" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/query_graph.rs#L147-L171">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/query-graph#method.query_graph_with_opts" className="fn">query\_graph\_with\_opts</a>( &amp;self, graph\_name: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, queries: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, restrictions: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, adjacency\_table: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, rings: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i32.html">i32</a>, options: <a className="struct" href="/content/api/rust/generated/api/struct.QueryGraphRequestOptions" title="struct gpudb_api::generated::api::QueryGraphRequestOptions">QueryGraphRequestOptions</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.QueryGraphResponse" title="struct gpudb_api::generated::api::QueryGraphResponse">QueryGraphResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Queries an existing graph.</p>
+<p>Employs a topological query on a graph generated a-priori by <code>/create/graph</code> and returns a list of adjacent edge(s) or node(s), also known as an adjacency list, depending on what’s been provided to the endpoint; providing edges will return nodes and providing nodes will return edges.</p>
+<p>To determine the node(s) or edge(s) adjacent to a value from a given column, provide a list of values to <code>queries</code>. This field can be populated with column values from any table as long as the type is supported by the given identifier. See Query Identifiers for more information.</p>
+<p>To return the adjacency list in the response, leave <code>adjacency\_table</code> empty.</p>
+<p>IMPORTANT: It’s highly recommended that you review the Graphs and Solvers concepts documentation, the Graph REST Tutorial, and/or some /match/graph examples before using this endpoint.</p>
+<h5 id="arguments-319">Arguments</h5>
+<ul>
+<li><code>graph\_name</code> - Name of the graph resource to query.</li>
+<li><code>queries</code> - Nodes or edges to be queried specified using query identifiers. Identifiers can be used with existing column names, e.g., ‘table.column AS QUERY\_NODE\_ID’, raw values, e.g., ‘{"{"}0, 2{"}"} AS QUERY\_NODE\_ID’, or expressions, e.g., ‘ST\_MAKEPOINT(table.x, table.y) AS QUERY\_NODE\_WKTPOINT’. Multiple values can be provided as long as the same identifier is used for all values. If using raw values in an identifier combination, the number of values specified must match across the combination.</li>
+<li><code>restrictions</code> - Additional restrictions to apply to the nodes/edges of an existing graph. Restrictions must be specified using identifiers; identifiers are grouped as combinations. Identifiers can be used with existing column names, e.g., ‘table.column AS RESTRICTIONS\_EDGE\_ID’, expressions, e.g., ‘column/2 AS RESTRICTIONS\_VALUECOMPARED’, or raw values, e.g., ‘{"{"}0, 0, 0, 1{"}"} AS RESTRICTIONS\_ONOFFCOMPARED’. If using raw values in an identifier combination, the number of values specified must match across the combination.</li>
+<li><code>adjacency\_table</code> - Name of the table to store the resulting adjacencies, in \[schema\_name.\]table\_name format, using standard name resolution rules and meeting table naming criteria. If left blank, the query results are instead returned in the response. If the ‘QUERY\_TARGET\_NODE\_LABEL’ query identifier is used in <code>queries</code>, then two additional columns will be available: ‘PATH\_ID’ and ‘RING\_ID’. See Using Labels for more information.</li>
+<li><code>rings</code> - Sets the number of rings around the node to query for adjacency, with ‘1’ being the edges directly attached to the queried node. Also known as number of hops. For example, if it is set to ‘2’, the edge(s) directly attached to the queried node(s) will be returned; in addition, the edge(s) attached to the node(s) attached to the initial ring of edge(s) surrounding the queried node(s) will be returned. If the value is set to ‘0’, any nodes that meet the criteria in <code>queries</code> and <code>restrictions</code> will be returned. This parameter is only applicable when querying nodes.</li>
+<li><code>options</code> - The optional parameters; any left unset take the server’s defaults.</li>
+</ul>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.query_graph_raw" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/query_graph.rs#L174-L185">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/query-graph#method.query_graph_raw" className="fn">query\_graph\_raw</a>( &amp;self, request: &amp;<a className="struct" href="/content/api/rust/generated/api/struct.QueryGraphRequest" title="struct gpudb_api::generated::api::QueryGraphRequest">QueryGraphRequest</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.QueryGraphResponse" title="struct gpudb_api::generated::api::QueryGraphResponse">QueryGraphResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sends a pre-built <a href="/content/api/rust/generated/api/struct.QueryGraphRequest" title="struct gpudb_api::generated::api::QueryGraphRequest"><code>QueryGraphRequest</code></a> to the <code>/query/graph</code> endpoint.</p>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.query_graph_from_url" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/query_graph.rs#L189-L201">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/query-graph#method.query_graph_from_url" className="fn">query\_graph\_from\_url</a>( &amp;self, url: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, request: &amp;<a className="struct" href="/content/api/rust/generated/api/struct.QueryGraphRequest" title="struct gpudb_api::generated::api::QueryGraphRequest">QueryGraphRequest</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.QueryGraphResponse" title="struct gpudb_api::generated::api::QueryGraphResponse">QueryGraphResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sends a pre-built <a href="/content/api/rust/generated/api/struct.QueryGraphRequest" title="struct gpudb_api::generated::api::QueryGraphRequest"><code>QueryGraphRequest</code></a> to a specific worker URL, bypassing HA head-node selection. Used for multi-head access.</p>
+</div>
+</div>
+</div>

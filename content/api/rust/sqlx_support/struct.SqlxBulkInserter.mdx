@@ -1,0 +1,180 @@
+---
+title: "SqlxBulkInserter"
+description: "SqlxBulkInserter — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/sqlx_support/index">sqlx\_support</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L947-L949">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub struct SqlxBulkInserter {"{"} <span className="comment">/\* private fields \*/</span> {"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Bulk inserter for SQLx that uses Kinetica’s HTTP API for efficient data loading.</p>
+<p>SQLx uses the PostgreSQL wire protocol which is less efficient for bulk loading than Kinetica’s native HTTP API with Avro encoding. This helper bridges the gap by sending the records through a <a href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica"><code>Kinetica</code></a> client, connected and configured (TLS, HA failover and the rest) as for any other HTTP API use.</p>
+<p>Uses <code>GenericRecord</code> for dynamic record creation.</p>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use gpudb_api::sqlx_support::SqlxBulkInserter;
+use gpudb_api::{GenericRecord, Kinetica, KineticaError, KineticaOptions};
+use std::sync::Arc;
+
+// The HTTP API client the records are sent through
+let mut options = KineticaOptions::new();
+options.set_username("admin").set_password("password");
+let kinetica = Arc::new(Kinetica::new(vec!["http://localhost:9191".to_string()], options).await?);
+
+let bulk_inserter = SqlxBulkInserter::new(kinetica);
+
+// Fetch type schema and create records
+let record_type = Arc::new(bulk_inserter.fetch_type("my_table").await?);
+
+// Setting a column fails on a name the type does not have
+let records = (0..10000)
+    .map(|i| {
+        let mut r = record_type.new_record();
+        r.set_by_name("id", i)?;
+        r.set_by_name("name", format!("user_{i}"))?;
+        Ok(r)
+    })
+    .collect::<Result<Vec<GenericRecord>, KineticaError>>()?;
+
+// Bulk insert
+let stats = bulk_inserter.insert("my_table", records, 10000).await?;
+println!("Inserted {} records", stats.records_inserted);
+```
+
+</div>
+</div>
+</div>
+<h2 id="implementations" className="section-header">Implementations</h2>
+<div id="implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-SqlxBulkInserter" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L951-L1107">Source</a>
+<h3 className="code-header">impl <a className="struct" href="/content/api/rust/sqlx_support/struct.SqlxBulkInserter" title="struct gpudb_api::sqlx_support::SqlxBulkInserter">SqlxBulkInserter</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.new" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L954-L956">Source</a>
+<h4 className="code-header">pub fn <a href="#method.new" className="fn">new</a>(kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Create a bulk inserter that sends records through <code>kinetica</code>, a client of Kinetica’s HTTP API.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.kinetica" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L959-L961">Source</a>
+<h4 className="code-header">pub fn <a href="#method.kinetica" className="fn">kinetica</a>(&amp;self) -&gt; &amp;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get a reference to the underlying Kinetica client.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.fetch_type" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L978-L980">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.fetch_type" className="fn">fetch\_type</a>(&amp;self, table\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type">Type</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Fetch the Type for creating GenericRecords.</p>
+<p>Returns a <code>Type</code> that can be used to create <code>GenericRecord</code> instances.</p>
+<h5 id="example-1">Example</h5>
+<div>
+
+```rust
+let record_type = Arc::new(inserter.fetch_type("my_table").await?);
+let mut record = record_type.new_record();
+record.set_by_name("id", 42)?;
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.insert" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1012-L1019">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.insert" className="fn">insert</a>( &amp;self, table\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, records: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a>&gt;, batch\_size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.BulkInsertStats" title="struct gpudb_api::generic_record::BulkInsertStats">BulkInsertStats</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Perform a bulk insert of GenericRecords with shard-aware multi-head ingest.</p>
+<p>This uses the high-performance <code>BulkInserter&lt;GenericRecord&gt;</code> which provides:</p>
+<ul>
+<li>Shard-aware routing to worker nodes (multi-head ingest)</li>
+<li>Parallel batch processing</li>
+<li>Avro binary encoding for maximum throughput</li>
+</ul>
+<h5 id="arguments">Arguments</h5>
+<ul>
+<li><code>table\_name</code> - The name of the table to insert into</li>
+<li><code>records</code> - Vector of GenericRecords to insert</li>
+<li><code>batch\_size</code> - Number of records per batch (recommended: 10000-50000)</li>
+</ul>
+<h5 id="example-2">Example</h5>
+<div>
+
+```rust
+let record_type = Arc::new(inserter.fetch_type("my_table").await?);
+// Setting a column fails on a name the type does not have
+let records = (0..1000).map(|i| {
+    let mut r = record_type.new_record();
+    r.set_by_name("id", i)?;
+    Ok(r)
+}).collect::<Result<Vec<GenericRecord>, KineticaError>>()?;
+let stats = inserter.insert("my_table", records, 10000).await?;
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.insert_with_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1032-L1091">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.insert_with_options" className="fn">insert\_with\_options</a>( &amp;self, table\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, records: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a>&gt;, batch\_size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, num\_workers: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/bulk_inserter/struct.BulkInserterOptions" title="struct gpudb_api::bulk_inserter::BulkInserterOptions">BulkInserterOptions</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.BulkInsertStats" title="struct gpudb_api::generic_record::BulkInsertStats">BulkInsertStats</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Perform a bulk insert of GenericRecords with custom options and shard-aware routing.</p>
+<p>Uses <code>BulkInserter&lt;GenericRecord&gt;</code> for optimal performance with multi-head ingest.</p>
+<h5 id="arguments-1">Arguments</h5>
+<ul>
+<li><code>table\_name</code> - The name of the table to insert into</li>
+<li><code>records</code> - Vector of GenericRecords to insert</li>
+<li><code>batch\_size</code> - Number of records per batch (recommended: 10000-50000)</li>
+<li><code>num\_workers</code> - Number of parallel workers (recommended: 4-16)</li>
+<li><code>options</code> - Optional BulkInserterOptions for controlling insert behavior</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.upsert" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1097-L1106">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.upsert" className="fn">upsert</a>( &amp;self, table\_name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, records: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a>&gt;, batch\_size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.BulkInsertStats" title="struct gpudb_api::generic_record::BulkInsertStats">BulkInsertStats</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Perform a bulk insert with upsert mode (update on existing primary key).</p>
+<p>Updates existing records if primary key already exists. Uses shard-aware multi-head ingest for optimal performance.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

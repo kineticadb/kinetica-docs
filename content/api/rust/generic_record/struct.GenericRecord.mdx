@@ -1,0 +1,806 @@
+---
+title: "GenericRecord"
+description: "GenericRecord — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/generic_record/index">generic\_record</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1514-L1519">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub struct GenericRecord {"{"} <span className="comment">/\* private fields \*/</span> {"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>A generic record that can hold values for any Kinetica type.</p>
+<p>It stores values in an array indexed by column position, and uses the associated <code>Type</code> for schema information.</p>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+let record_type = Type::from_table(&kinetica, "my_table").await?;
+let type_arc = Arc::new(record_type);
+
+let mut record = type_arc.new_record();
+
+// Set values by index
+record.set(0, 42)?;
+record.set(1, "Alice")?;
+
+// Set values by name; a name the type does not have is an error
+record.set_by_name("score", 95.5)?;
+
+// Get values
+let id: i32 = record.get_int(0).unwrap();
+let name: &str = record.get_string_by_name("name").unwrap();
+```
+
+</div>
+<h2 id="dates-and-times">Dates and times</h2>
+<p>A date, time or datetime column holds text in Kinetica’s formats: <code>yyyy-MM-dd</code>, <code>HH:mm:ss.SSS</code> and <code>yyyy-MM-dd HH:mm:ss.SSS</code>. A record reads no other formats; format the value with chrono first:</p>
+<div>
+
+```rust
+use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime};
+
+// Text without an offset is kept as it is
+let date = NaiveDate::parse_from_str("01/15/2024", "%m/%d/%Y").unwrap();
+assert_eq!(date.format("%Y-%m-%d").to_string(), "2024-01-15");
+let time = NaiveTime::parse_from_str("10:30:45.123999", "%H:%M:%S%.f").unwrap();
+assert_eq!(time.format("%H:%M:%S%.3f").to_string(), "10:30:45.123");
+let datetime = NaiveDateTime::parse_from_str("15.01.2024 10:30", "%d.%m.%Y %H:%M").unwrap();
+assert_eq!(datetime.format("%Y-%m-%d %H:%M:%S%.3f").to_string(), "2024-01-15 10:30:00.000");
+// A date alone, for a datetime column, is the start of the day
+let midnight = date.and_time(NaiveTime::MIN);
+assert_eq!(midnight.format("%Y-%m-%d %H:%M:%S%.3f").to_string(), "2024-01-15 00:00:00.000");
+
+// Text with an offset is converted to the offset of the time zone given
+// (a fixed offset, without daylight saving)
+let india = FixedOffset::east_opt(5 * 3600 + 1800).unwrap();
+let zoned = DateTime::parse_from_rfc3339("2024-01-15T23:30:00Z").unwrap().with_timezone(&india);
+assert_eq!(zoned.format("%Y-%m-%d %H:%M:%S%.3f").to_string(), "2024-01-16 05:00:00.000");
+assert_eq!(zoned.format("%Y-%m-%d").to_string(), "2024-01-16");
+```
+
+</div>
+<p>Fractions of a second past the millisecond are dropped, not rounded. chrono refuses a day past the end of its month (<code>2023-02-30</code>) and the time <code>24:00</code>. Zone names (<code>America/New\_York</code>, <code>EST</code>) need a zone database, such as the <code>chrono-tz</code> crate. A fixed offset ignores daylight saving, so give the offset in effect if that is what is meant.</p>
+</div>
+</div>
+<h2 id="implementations" className="section-header">Implementations</h2>
+<div id="implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-GenericRecord" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1521-L1997">Source</a>
+<h3 className="code-header">impl <a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.decode" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1523-L1526">Source</a>
+<h4 className="code-header">pub fn <a href="#method.decode" className="fn">decode</a>( record\_type: &amp;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type">Type</a>&gt;, encoded: &amp;\[<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.u8.html">u8</a>\], ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Decodes a record of <code>record\_type</code> from its Avro binary form.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.decode_all" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1529-L1547">Source</a>
+<h4 className="code-header">pub fn <a href="#method.decode_all" className="fn">decode\_all</a>&lt;B: <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;\[<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.u8.html">u8</a>\]&gt;&gt;( record\_type: &amp;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type">Type</a>&gt;, encoded: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.slice.html">\[B\]</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Decodes records of <code>record\_type</code> from their Avro binary forms.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.transpose" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1551-L1575">Source</a>
+<h4 className="code-header">pub fn <a href="#method.transpose" className="fn">transpose</a>( schema\_string: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, encoded\_data: &amp;\[<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.u8.html">u8</a>\], record\_type: &amp;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type">Type</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>The records of a dynamic (column-wise) response, one per row, typed by <code>record\_type</code> (see <a href="/content/api/rust/generic_record/struct.Type#method.from_dynamic_schema" title="associated function gpudb_api::generic_record::Type::from_dynamic_schema"><code>Type::from\_dynamic\_schema</code></a>).</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.new" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1580-L1583">Source</a>
+<h4 className="code-header">pub fn <a href="#method.new" className="fn">new</a>(record\_type: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type">Type</a>&gt;) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Create a new GenericRecord for the given type.</p>
+<p>All values are initialized to Null.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.record_type" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1586-L1588">Source</a>
+<h4 className="code-header">pub fn <a href="#method.record_type" className="fn">record\_type</a>(&amp;self) -&gt; &amp;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type">Type</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get the type definition for this record.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1591-L1593">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get" className="fn">get</a>(&amp;self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a className="enum" href="/content/api/rust/generic_record/enum.RecordValue" title="enum gpudb_api::generic_record::RecordValue">RecordValue</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get a value by index.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1596-L1599">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_by_name" className="fn">get\_by\_name</a>(&amp;self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a className="enum" href="/content/api/rust/generic_record/enum.RecordValue" title="enum gpudb_api::generic_record::RecordValue">RecordValue</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get a value by column name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1604-L1611">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set" className="fn">set</a>&lt;V: <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a className="enum" href="/content/api/rust/generic_record/enum.RecordValue" title="enum gpudb_api::generic_record::RecordValue">RecordValue</a>&gt;&gt;( &amp;mut self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, value: V, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sets the value at <code>index</code>. The value is not checked against the column’s type here; encoding the record does that. An index past the last column fails.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1615-L1618">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_by_name" className="fn">set\_by\_name</a>&lt;V: <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a className="enum" href="/content/api/rust/generic_record/enum.RecordValue" title="enum gpudb_api::generic_record::RecordValue">RecordValue</a>&gt;&gt;( &amp;mut self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, value: V, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sets the value of the column <code>name</code>. A name the type does not have fails with “Field ‘&lt;name&gt;’ does not exist.”</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_null" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1621-L1623">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_null" className="fn">set\_null</a>(&amp;mut self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sets the value at <code>index</code> to null; see <a href="/content/api/rust/generic_record/struct.GenericRecord#method.set" title="method gpudb_api::generic_record::GenericRecord::set"><code>GenericRecord::set</code></a>.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_null_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1627-L1629">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_null_by_name" className="fn">set\_null\_by\_name</a>(&amp;mut self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sets the value of the column <code>name</code> to null; see <a href="/content/api/rust/generic_record/struct.GenericRecord#method.set_by_name" title="method gpudb_api::generic_record::GenericRecord::set_by_name"><code>GenericRecord::set\_by\_name</code></a>.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_int" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1634-L1636">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_int" className="fn">get\_int</a>(&amp;self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i32.html">i32</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get integer value by index.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_long" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1639-L1641">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_long" className="fn">get\_long</a>(&amp;self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get long value by index. An int value is widened.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_float" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1644-L1646">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_float" className="fn">get\_float</a>(&amp;self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.f32.html">f32</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get float value by index.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_double" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1649-L1651">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_double" className="fn">get\_double</a>(&amp;self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.f64.html">f64</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get double value by index. A float value is widened.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_string" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1654-L1656">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_string" className="fn">get\_string</a>(&amp;self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get string value by index.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_bytes" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1659-L1661">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_bytes" className="fn">get\_bytes</a>(&amp;self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;\[<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.u8.html">u8</a>\]&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get bytes value by index.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_bool" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1664-L1666">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_bool" className="fn">get\_bool</a>(&amp;self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get boolean value by index.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_int_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1671-L1673">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_int_by_name" className="fn">get\_int\_by\_name</a>(&amp;self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i32.html">i32</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get integer value by name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_long_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1676-L1678">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_long_by_name" className="fn">get\_long\_by\_name</a>(&amp;self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get long value by name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_float_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1681-L1683">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_float_by_name" className="fn">get\_float\_by\_name</a>(&amp;self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.f32.html">f32</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get float value by name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_double_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1686-L1688">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_double_by_name" className="fn">get\_double\_by\_name</a>(&amp;self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.f64.html">f64</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get double value by name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_string_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1691-L1693">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_string_by_name" className="fn">get\_string\_by\_name</a>(&amp;self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get string value by name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_bytes_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1696-L1698">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_bytes_by_name" className="fn">get\_bytes\_by\_name</a>(&amp;self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;\[<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.u8.html">u8</a>\]&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get bytes value by name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_bool_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1701-L1703">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_bool_by_name" className="fn">get\_bool\_by\_name</a>(&amp;self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get boolean value by name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_array" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1724-L1829">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_array" className="fn">get\_array</a>(&amp;self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="enum" href="/content/api/rust/generic_record/enum.ArrayValue" title="enum gpudb_api::generic_record::ArrayValue">ArrayValue</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>The elements of an array column, or the floats of a vector column. An array column’s value is JSON text, read as an array of its element type (see <a href="/content/api/rust/generic_record/struct.Column#method.array_type" title="method gpudb_api::generic_record::Column::array_type"><code>Column::array\_type</code></a>), each element <code>None</code> where it is null, with these coercions: a number from text, an integer from a fraction (truncated), a boolean from a number. Bytes elements arrive as text whose characters are the bytes, or as integers, which become their minimal big-endian bytes.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_array_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1832-L1834">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_array_by_name" className="fn">get\_array\_by\_name</a>(&amp;self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="enum" href="/content/api/rust/generic_record/enum.ArrayValue" title="enum gpudb_api::generic_record::ArrayValue">ArrayValue</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p><a href="/content/api/rust/generic_record/struct.GenericRecord#method.get_array" title="method gpudb_api::generic_record::GenericRecord::get_array"><code>Self::get\_array</code></a>, by column name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_vector" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1839-L1853">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_vector" className="fn">get\_vector</a>(&amp;self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.f32.html">f32</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>The floats of a vector column, read little-endian from its bytes. Fails with “Not a vector column” for a column without a <code>vector(N)</code> property.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_vector_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1856-L1858">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_vector_by_name" className="fn">get\_vector\_by\_name</a>(&amp;self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.f32.html">f32</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p><a href="/content/api/rust/generic_record/struct.GenericRecord#method.get_vector" title="method gpudb_api::generic_record::GenericRecord::get_vector"><code>Self::get\_vector</code></a>, by column name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_json" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1861-L1869">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_json" className="fn">get\_json</a>( &amp;self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://docs.rs/serde_json/1.0.149/serde_json/map/struct.Map.html" title="struct serde_json::map::Map">Map</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="enum" href="https://docs.rs/serde_json/1.0.149/serde_json/value/enum.Value.html" title="enum serde_json::value::Value">Value</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>A JSON column’s object.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get_json_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1872-L1874">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get_json_by_name" className="fn">get\_json\_by\_name</a>( &amp;self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://docs.rs/serde_json/1.0.149/serde_json/map/struct.Map.html" title="struct serde_json::map::Map">Map</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="enum" href="https://docs.rs/serde_json/1.0.149/serde_json/value/enum.Value.html" title="enum serde_json::value::Value">Value</a>&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p><a href="/content/api/rust/generic_record/struct.GenericRecord#method.get_json" title="method gpudb_api::generic_record::GenericRecord::get_json"><code>Self::get\_json</code></a>, by column name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_array" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1890-L1892">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_array" className="fn">set\_array</a>&lt;V: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html" title="trait serde_core::ser::Serialize">Serialize</a>&gt;( &amp;mut self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.reference.html">&amp;V</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Puts an array column’s value. Text goes as it is, <code>None</code> as null, and anything else (a <code>Vec&lt;i32&gt;</code>, say) as its JSON text.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_array_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1895-L1898">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_array_by_name" className="fn">set\_array\_by\_name</a>&lt;V: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html" title="trait serde_core::ser::Serialize">Serialize</a>&gt;( &amp;mut self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.reference.html">&amp;V</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p><a href="/content/api/rust/generic_record/struct.GenericRecord#method.set_array" title="method gpudb_api::generic_record::GenericRecord::set_array"><code>Self::set\_array</code></a>, by column name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_json" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1902-L1904">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_json" className="fn">set\_json</a>&lt;V: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html" title="trait serde_core::ser::Serialize">Serialize</a>&gt;( &amp;mut self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.reference.html">&amp;V</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Puts a JSON column’s value. Text goes as it is, <code>None</code> as null, and anything else (a map, say) as its JSON text.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_json_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1907-L1910">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_json_by_name" className="fn">set\_json\_by\_name</a>&lt;V: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html" title="trait serde_core::ser::Serialize">Serialize</a>&gt;( &amp;mut self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, value: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.reference.html">&amp;V</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p><a href="/content/api/rust/generic_record/struct.GenericRecord#method.set_json" title="method gpudb_api::generic_record::GenericRecord::set_json"><code>Self::set\_json</code></a>, by column name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_bytes" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1913-L1918">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_bytes" className="fn">set\_bytes</a>( &amp;mut self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, value: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.u8.html">u8</a>&gt;&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Puts a bytes column’s value, or null.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_bytes_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1921-L1924">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_bytes_by_name" className="fn">set\_bytes\_by\_name</a>( &amp;mut self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, value: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.u8.html">u8</a>&gt;&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p><a href="/content/api/rust/generic_record/struct.GenericRecord#method.set_bytes" title="method gpudb_api::generic_record::GenericRecord::set_bytes"><code>Self::set\_bytes</code></a>, by column name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_vector" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1930-L1942">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_vector" className="fn">set\_vector</a>( &amp;mut self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, value: &amp;\[<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.f32.html">f32</a>\], ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Puts a vector column’s floats, little-endian. Fails with “Not a vector column” for a column without a <code>vector(N)</code> property, and with “Unmatched vector dimensions: found &lt;n&gt; but expected &lt;n&gt;” for another number of floats.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_vector_text" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1946-L1950">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_vector_text" className="fn">set\_vector\_text</a>( &amp;mut self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, text: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Puts a vector column’s floats given as a JSON array: “Error reading vector string” where it is not one.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_vector_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1953-L1956">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_vector_by_name" className="fn">set\_vector\_by\_name</a>( &amp;mut self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, value: &amp;\[<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.f32.html">f32</a>\], ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p><a href="/content/api/rust/generic_record/struct.GenericRecord#method.set_vector" title="method gpudb_api::generic_record::GenericRecord::set_vector"><code>Self::set\_vector</code></a>, by column name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_decimal" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1963-L1985">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_decimal" className="fn">set\_decimal</a>( &amp;mut self, index: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, value: impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a className="enum" href="/content/api/rust/generic_record/enum.RecordValue" title="enum gpudb_api::generic_record::RecordValue">RecordValue</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Puts a decimal column’s value: text as it is, null as null, and a number at the column’s scale, failing where that would drop a digit, and for a NaN or infinity. Trailing zeros after the decimal point are stripped (“120.00” is “120.”). A whole number at scale 0 has no decimal point, so it keeps its value.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_decimal_by_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1988-L1991">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_decimal_by_name" className="fn">set\_decimal\_by\_name</a>( &amp;mut self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, value: impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;<a className="enum" href="/content/api/rust/generic_record/enum.RecordValue" title="enum gpudb_api::generic_record::RecordValue">RecordValue</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p><a href="/content/api/rust/generic_record/struct.GenericRecord#method.set_decimal" title="method gpudb_api::generic_record::GenericRecord::set_decimal"><code>Self::set\_decimal</code></a>, by column name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.data_map" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1994-L1996">Source</a>
+<h4 className="code-header">pub fn <a href="#method.data_map" className="fn">data\_map</a>(&amp;self) -&gt; <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;(&amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, &amp;<a className="enum" href="/content/api/rust/generic_record/enum.RecordValue" title="enum gpudb_api::generic_record::RecordValue">RecordValue</a>)&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>The record’s values by column name, in column order.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<h2 id="trait-implementations" className="section-header">Trait Implementations</h2>
+<div id="trait-implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Clone-for-GenericRecord" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1513">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> for <a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1513">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone" className="fn">clone</a>(&amp;self) -&gt; <a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a></h4>
+</div>
+</div>
+<div className="docblock">Returns a duplicate of the value. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone">Read more</a></div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone_from" className="section method trait-impl">
+<span className="rightside"><span className="since" title="Stable since Rust version 1.0.0, const unstable">1.0.0 (const: <a href="https://github.com/rust-lang/rust/issues/142757" title="Tracking issue for const_clone">unstable</a>)</span> · <a className="src" href="https://doc.rust-lang.org/1.98.1/src/core/clone.rs.html#245-247">Source</a></span>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from" className="fn">clone\_from</a>(&amp;mut self, source: &amp;Self)</h4>
+</div>
+</div>
+<div className="docblock">Performs copy-assignment from <code>source</code>. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Debug-for-GenericRecord" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1513">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> for <a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.fmt" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L1513">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt" className="fn">fmt</a>(&amp;self, f: &amp;mut <a className="struct" href="https://doc.rust-lang.org/1.98.1/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>&lt;'\_&gt;) -&gt; <a className="type" href="https://doc.rust-lang.org/1.98.1/core/fmt/type.Result.html" title="type core::fmt::Result">Result</a></h4>
+</div>
+</div>
+<div className="docblock">Formats the value using the given formatter. <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Display-for-GenericRecord" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2084-L2094">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Display.html" title="trait core::fmt::Display">Display</a> for <a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a></h3>
+<div className="docblock">
+<p><code>{"{"}"name":value,..{"}"}</code>, each name quoted and escaped, and each value as its text: a number bare (NaN and the infinities quoted), text and bytes quoted, and null as <code>null</code>.</p>
+</div>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.fmt-1" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2085-L2093">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Display.html#tymethod.fmt" className="fn">fmt</a>(&amp;self, f: &amp;mut <a className="struct" href="https://doc.rust-lang.org/1.98.1/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>&lt;'\_&gt;) -&gt; <a className="type" href="https://doc.rust-lang.org/1.98.1/core/fmt/type.Result.html" title="type core::fmt::Result">Result</a></h4>
+</div>
+</div>
+<div className="docblock">Formats the value using the given formatter. <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Display.html#tymethod.fmt">Read more</a></div>
+</div>
+</div>
+</div>
+<div id="impl-Eq-for-GenericRecord" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2060">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/cmp/trait.Eq.html" title="trait core::cmp::Eq">Eq</a> for <a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a></h3>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Hash-for-GenericRecord" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2064-L2079">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/hash/trait.Hash.html" title="trait core::hash::Hash">Hash</a> for <a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a></h3>
+<div className="docblock">
+<p>Consistent with <a href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord"><code>GenericRecord</code></a>’s equality: floats by their bits, every NaN alike.</p>
+</div>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.hash" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2065-L2078">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/hash/trait.Hash.html#tymethod.hash" className="fn">hash</a>&lt;H: <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/hash/trait.Hasher.html" title="trait core::hash::Hasher">Hasher</a>&gt;(&amp;self, state: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.reference.html">&amp;mut H</a>)</h4>
+</div>
+</div>
+<div className="docblock">Feeds this value into the given <a href="https://doc.rust-lang.org/1.98.1/core/hash/trait.Hasher.html" title="trait core::hash::Hasher"><code>Hasher</code></a>. <a href="https://doc.rust-lang.org/1.98.1/core/hash/trait.Hash.html#tymethod.hash">Read more</a></div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.hash_slice" className="section method trait-impl">
+<span className="rightside"><span className="since" title="Stable since Rust version 1.3.0">1.3.0</span> · <a className="src" href="https://doc.rust-lang.org/1.98.1/src/core/hash/mod.rs.html#234-236">Source</a></span>
+<h4 className="code-header">
+fn <a href="https://doc.rust-lang.org/1.98.1/core/hash/trait.Hash.html#method.hash_slice" className="fn">hash\_slice</a>&lt;H&gt;(data: &amp;\[Self\], state: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.reference.html">&amp;mut H</a>)
+<div className="where">where H: <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/hash/trait.Hasher.html" title="trait core::hash::Hasher">Hasher</a>, Self: <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Sized.html" title="trait core::marker::Sized">Sized</a>,</div>
+</h4>
+</div>
+</div>
+<div className="docblock">Feeds a slice of this type into the given <a href="https://doc.rust-lang.org/1.98.1/core/hash/trait.Hasher.html" title="trait core::hash::Hasher"><code>Hasher</code></a>. <a href="https://doc.rust-lang.org/1.98.1/core/hash/trait.Hash.html#method.hash_slice">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-KineticaRecord-for-GenericRecord" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2324-L2336">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> for <a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.avro_schema" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2325-L2331">Source</a>
+<h4 className="code-header">fn <a href="/content/api/rust/trait.KineticaRecord#tymethod.avro_schema" className="fn">avro\_schema</a>(&amp;self) -&gt; &amp;'static <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a></h4>
+</div>
+</div>
+<div className="docblock">Returns the Avro schema as a JSON string for this record type.</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.type_properties" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2333-L2335">Source</a>
+<h4 className="code-header">fn <a href="/content/api/rust/trait.KineticaRecord#tymethod.type_properties" className="fn">type\_properties</a>() -&gt; <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;&gt;</h4>
+</div>
+</div>
+<div className="docblock">Returns type properties including field types and attributes (e.g., primary\_key).</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.use_compression" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/lib.rs#L325-L327">Source</a>
+<h4 className="code-header">fn <a href="/content/api/rust/trait.KineticaRecord#method.use_compression" className="fn">use\_compression</a>() -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">Whether requests of this type are Snappy-compressed when the client has <a href="/content/api/rust/gpudb/struct.KineticaOptions#structfield.use_snappy" title="field gpudb_api::gpudb::KineticaOptions::use_snappy"><code>KineticaOptions::use\_snappy</code></a> enabled. <a href="/content/api/rust/trait.KineticaRecord#method.use_compression">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-PartialEq-for-GenericRecord" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2052-L2058">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/cmp/trait.PartialEq.html" title="trait core::cmp::PartialEq">PartialEq</a> for <a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a></h3>
+<div className="docblock">
+<p>The same type, and every value equal, floats by their bits with every NaN alike.</p>
+</div>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.eq" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2053-L2057">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/cmp/trait.PartialEq.html#tymethod.eq" className="fn">eq</a>(&amp;self, other: &amp;Self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">Tests for <code>self</code> and <code>other</code> values to be equal, and is used by <code>==</code>.</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.ne" className="section method trait-impl">
+<span className="rightside"><span className="since" title="Stable since Rust version 1.0.0, const unstable">1.0.0 (const: <a href="https://github.com/rust-lang/rust/issues/143800" title="Tracking issue for const_cmp">unstable</a>)</span> · <a className="src" href="https://doc.rust-lang.org/1.98.1/src/core/cmp.rs.html#263">Source</a></span>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/cmp/trait.PartialEq.html#method.ne" className="fn">ne</a>(&amp;self, other: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.reference.html">&amp;Rhs</a>) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">Tests for <code>!=</code>. The default implementation is almost always sufficient, and should not be overridden without very good reason.</div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-RetrievedRecord-for-GenericRecord" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L113-L117">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/record_retriever/trait.RetrievedRecord" title="trait gpudb_api::record_retriever::RetrievedRecord">RetrievedRecord</a> for <a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.decode_records" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L114-L116">Source</a>
+<h4 className="code-header">fn <a href="/content/api/rust/record_retriever/trait.RetrievedRecord#tymethod.decode_records" className="fn">decode\_records</a>( record\_type: &amp;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type">Type</a>&gt;, encoded: &amp;\[<a className="struct" href="/content/api/rust/struct.ByteBuf" title="struct gpudb_api::ByteBuf">ByteBuf</a>\], ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;Self&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">Decodes records of <code>record\_type</code>. A failure reads “Could not decode object: …”.</div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Serialize-for-GenericRecord" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2109-L2121">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html" title="trait serde_core::ser::Serialize">Serialize</a> for <a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a></h3>
+<div className="docblock">
+<p>Encodes the record for its Avro schema, field by field in column order, each value converted for its column:</p>
+</div>
+</div>
+</div>
+<div className="docblock">
+<ul>
+<li>a number goes into an <code>int</code>, <code>long</code>, <code>float</code> or <code>double</code> column whatever its own type, converted as <code>as</code> converts it (truncated, or rounded to the nearest);</li>
+<li>a string goes only into a <code>string</code> column, and bytes only into <code>bytes</code>;</li>
+<li>a nullable column is an Avro union, which takes a value only of the column’s own type, unconverted, or null.</li>
+</ul>
+<p>A value the column cannot take fails the record with a message that begins with <code>ENCODE\_FAILURE\_PREFIX</code>.</p>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.serialize" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2110-L2120">Source</a>
+<h4 className="code-header">
+fn <a href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html#tymethod.serialize" className="fn">serialize</a>&lt;S&gt;(&amp;self, serializer: S) -&gt;<a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;S::<a className="associatedtype" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serializer.html#associatedtype.Ok" title="type serde_core::ser::Serializer::Ok">Ok</a>, S::<a className="associatedtype" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serializer.html#associatedtype.Error" title="type serde_core::ser::Serializer::Error">Error</a>&gt;
+<div className="where">where S: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serializer.html" title="trait serde_core::ser::Serializer">Serializer</a>,</div>
+</h4>
+</div>
+</div>
+<div className="docblock">Serialize this value into the given Serde serializer. <a href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html#tymethod.serialize">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-ShardKeyExtractor-for-GenericRecord" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2339-L2378">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/bulk_inserter_common/trait.ShardKeyExtractor" title="trait gpudb_api::bulk_inserter_common::ShardKeyExtractor">ShardKeyExtractor</a> for <a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.shard_key_values" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2342-L2377">Source</a>
+<h4 className="code-header">fn <a href="/content/api/rust/bulk_inserter_common/trait.ShardKeyExtractor#tymethod.shard_key_values" className="fn">shard\_key\_values</a>(&amp;self) -&gt; <a className="type" href="/content/api/rust/bulk_inserter_common/type.ShardKeyValues" title="type gpudb_api::bulk_inserter_common::ShardKeyValues">ShardKeyValues</a>&lt;'\_&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the values of the columns the table is sharded on: its shard key columns, or its primary key columns when it has no shard key.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

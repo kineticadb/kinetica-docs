@@ -1,0 +1,100 @@
+---
+title: "create_type"
+---
+
+<div className="kinetica-rustdoc">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.create_type" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/create_type.rs#L66-L79">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/create-type#method.create_type" className="fn">create\_type</a>( &amp;self, type\_definition: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, label: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, properties: <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.CreateTypeResponse" title="struct gpudb_api::generated::api::CreateTypeResponse">CreateTypeResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Create a table record type</p>
+<p>Creates a new type describing the columns of a table. The type definition is specified as a list of columns, each specified as a list of the column name, data type, and any column attributes.</p>
+<p>Example of a type definition with some parameters::</p>
+<div>
+
+```text
+[
+    ["id", "int8", "primary_key"],
+    ["dept_id", "int8", "primary_key", "shard_key"],
+    ["manager_id", "int8", "nullable"],
+    ["first_name", "char32"],
+    ["last_name", "char64"],
+    ["salary", "decimal"],
+    ["hire_date", "date"]
+]
+```
+
+</div>
+<p>Each column definition consists of the column name (which should meet the standard column naming criteria), the column’s specific type (int, long, float, double, string, bytes, or any of the possible values for <code>properties</code>), and any data handling, data key, or data replacement properties.</p>
+<p>Note that some properties are mutually exclusive–i.e. they cannot be specified for any given column simultaneously. One example of mutually exclusive properties are primary\_key and nullable.</p>
+<p>A single primary key and/or single shard key can be set across one or more columns. If a primary key is specified, then a uniqueness constraint is enforced, in that only a single object can exist with a given primary key column value (or set of values for the key columns, if using a composite primary key). When inserting data into a table with a primary key, depending on the parameters in the request, incoming objects with primary key values that match existing objects will either overwrite (i.e. update) the existing object or will be skipped and not added into the set.</p>
+<h5 id="arguments-163">Arguments</h5>
+<ul>
+<li><code>type\_definition</code> - JSON string defining the columns of the type to be registered, as described above.</li>
+<li><code>label</code> - A user-defined description string which can be used to differentiate between tables and types with otherwise identical schemas.</li>
+<li><code>properties</code> - \[DEPRECATED–please use these property values in the <code>type\_definition</code> directly, as described at the top, instead\] Each key-value pair specifies the properties to use for a given column where the key is the column name. All keys used must be relevant column names for the given table. Specifying any property overrides the default properties for that column (which is based on the column’s data type).</li>
+</ul>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.create_type_with_opts" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/create_type.rs#L137-L165">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/create-type#method.create_type_with_opts" className="fn">create\_type\_with\_opts</a>( &amp;self, type\_definition: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, label: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, properties: <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;&gt;, options: <a className="struct" href="/content/api/rust/generated/api/struct.CreateTypeRequestOptions" title="struct gpudb_api::generated::api::CreateTypeRequestOptions">CreateTypeRequestOptions</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.CreateTypeResponse" title="struct gpudb_api::generated::api::CreateTypeResponse">CreateTypeResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Create a table record type</p>
+<p>Creates a new type describing the columns of a table. The type definition is specified as a list of columns, each specified as a list of the column name, data type, and any column attributes.</p>
+<p>Example of a type definition with some parameters::</p>
+<div>
+
+```text
+[
+    ["id", "int8", "primary_key"],
+    ["dept_id", "int8", "primary_key", "shard_key"],
+    ["manager_id", "int8", "nullable"],
+    ["first_name", "char32"],
+    ["last_name", "char64"],
+    ["salary", "decimal"],
+    ["hire_date", "date"]
+]
+```
+
+</div>
+<p>Each column definition consists of the column name (which should meet the standard column naming criteria), the column’s specific type (int, long, float, double, string, bytes, or any of the possible values for <code>properties</code>), and any data handling, data key, or data replacement properties.</p>
+<p>Note that some properties are mutually exclusive–i.e. they cannot be specified for any given column simultaneously. One example of mutually exclusive properties are primary\_key and nullable.</p>
+<p>A single primary key and/or single shard key can be set across one or more columns. If a primary key is specified, then a uniqueness constraint is enforced, in that only a single object can exist with a given primary key column value (or set of values for the key columns, if using a composite primary key). When inserting data into a table with a primary key, depending on the parameters in the request, incoming objects with primary key values that match existing objects will either overwrite (i.e. update) the existing object or will be skipped and not added into the set.</p>
+<h5 id="arguments-164">Arguments</h5>
+<ul>
+<li><code>type\_definition</code> - JSON string defining the columns of the type to be registered, as described above.</li>
+<li><code>label</code> - A user-defined description string which can be used to differentiate between tables and types with otherwise identical schemas.</li>
+<li><code>properties</code> - \[DEPRECATED–please use these property values in the <code>type\_definition</code> directly, as described at the top, instead\] Each key-value pair specifies the properties to use for a given column where the key is the column name. All keys used must be relevant column names for the given table. Specifying any property overrides the default properties for that column (which is based on the column’s data type).</li>
+<li><code>options</code> - The optional parameters; any left unset take the server’s defaults.</li>
+</ul>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.create_type_raw" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/create_type.rs#L168-L187">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/create-type#method.create_type_raw" className="fn">create\_type\_raw</a>( &amp;self, request: &amp;<a className="struct" href="/content/api/rust/generated/api/struct.CreateTypeRequest" title="struct gpudb_api::generated::api::CreateTypeRequest">CreateTypeRequest</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.CreateTypeResponse" title="struct gpudb_api::generated::api::CreateTypeResponse">CreateTypeResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sends a pre-built <a href="/content/api/rust/generated/api/struct.CreateTypeRequest" title="struct gpudb_api::generated::api::CreateTypeRequest"><code>CreateTypeRequest</code></a> to the <code>/create/type</code> endpoint.</p>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.create_type_from_url" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/create_type.rs#L191-L211">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/create-type#method.create_type_from_url" className="fn">create\_type\_from\_url</a>( &amp;self, url: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, request: &amp;<a className="struct" href="/content/api/rust/generated/api/struct.CreateTypeRequest" title="struct gpudb_api::generated::api::CreateTypeRequest">CreateTypeRequest</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.CreateTypeResponse" title="struct gpudb_api::generated::api::CreateTypeResponse">CreateTypeResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sends a pre-built <a href="/content/api/rust/generated/api/struct.CreateTypeRequest" title="struct gpudb_api::generated::api::CreateTypeRequest"><code>CreateTypeRequest</code></a> to a specific worker URL, bypassing HA head-node selection. Used for multi-head access.</p>
+</div>
+</div>
+</div>

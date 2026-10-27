@@ -1,0 +1,51 @@
+---
+title: DESCRIBE FILE CACHE
+---
+
+<a id="describe-file-cache"></a>
+
+<a id="sql-describe-file-cache"></a>
+
+
+Shows the settings of the database's
+[file caches](/content/config#config-main-file-cache).  File caches can be
+described by any user.
+
+```sql title="DESCRIBE FILE CACHE Syntax"
+DESC[RIBE] FILE CACHE [<cache name>]
+```
+
+Specify a `<cache name>` to describe only that file cache; the only file cache
+is `external_files`.  Cache names are case-sensitive and must be given in
+lowercase.
+
+To change a file cache's settings, use
+[ALTER SYSTEM SET PROPERTIES](/content/sql/system_properties/alter-system-set-properties#sql-alter-system-properties).
+
+
+## Response
+
+
+The response to `DESCRIBE FILE CACHE` has one row per file cache, with the
+following columns:
+
+| Output Column | Description |
+| --- | --- |
+| `CACHE_NAME` | Name of the file cache. |
+| `ENABLED` | Whether the file cache is enabled. |
+| `PERSISTENT` | Not populated.  To see whether the file cache retains its entries on disk across restarts, use [SHOW SYSTEM PROPERTIES](/content/sql/system_properties/show-system-properties#sql-show-system-properties) to show the cache's `conf.file_cache.<cache name>.persistence` property. |
+| `MAX_DISK_SIZE` | Maximum size, in bytes, of the data the file cache can hold on disk. |
+| `MAX_MEMORY_SIZE` | Maximum size, in bytes, of the data the file cache can hold in memory. |
+| `BLOCK_SIZE` | Size, in bytes, of the blocks into which the file cache splits the files it caches. |
+| `STATS_WINDOW` | Time span, in seconds, over which the file cache's hit & miss statistics are kept. |
+
+
+## Examples
+
+
+To show the settings of the external files cache:
+
+{/* Source: /examples/sql/file_cache.kisql (lines 15) */}
+```sql DESCRIBE FILE CACHE Example
+DESCRIBE FILE CACHE external_files
+```

@@ -1,0 +1,89 @@
+---
+title: "ShardKeyExtractor"
+description: "ShardKeyExtractor — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/bulk_inserter_common/index">bulk\_inserter\_common</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter_common.rs#L125-L131">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub trait ShardKeyExtractor {"{"}<br />&nbsp;&nbsp;&nbsp;&nbsp;// Required method<br />&nbsp;&nbsp;&nbsp;&nbsp;fn <a href="#tymethod.shard_key_values" className="fn">shard\_key\_values</a>(&amp;self) -&gt; <a className="type" href="/content/api/rust/bulk_inserter_common/type.ShardKeyValues" title="type gpudb_api::bulk_inserter_common::ShardKeyValues">ShardKeyValues</a>&lt;'\_&gt;;<br />{"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Trait for extracting shard key values from a record.</p>
+<p>Records must implement this trait to enable shard-aware routing. Returns a SmallVec of (column\_name, typed\_value) pairs for shard key columns.</p>
+<h2 id="performance">Performance</h2>
+<ul>
+<li>Returns <code>ShardKeyValues</code> (SmallVec) which is stack-allocated for up to 4 columns</li>
+<li>Use typed variants (<code>Int</code>, <code>Long</code>, <code>Float</code>, <code>Double</code>) when possible to avoid string parsing overhead</li>
+<li>The <code>String</code> variants are for string/char columns, and specialized variants (<code>Date</code>, <code>Ipv4</code>, <code>Decimal</code>) handle formatted types</li>
+<li>Use the <code>smallvec!</code> macro for convenient construction</li>
+</ul>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use smallvec::smallvec;
+use gpudb_api::{ShardKeyExtractor, ShardKeyValue, ShardKeyValues};
+
+impl ShardKeyExtractor for MyRecord {
+    fn shard_key_values(&self) -> ShardKeyValues<'_> {
+        smallvec![
+            ("id", ShardKeyValue::Int(self.id)),
+            ("region", ShardKeyValue::String(&self.region)),
+        ]
+    }
+}
+```
+
+</div>
+</div>
+</div>
+<h2 id="required-methods" className="section-header">Required Methods</h2>
+<div className="methods">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="tymethod.shard_key_values" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter_common.rs#L130">Source</a>
+<h4 className="code-header">fn <a href="#tymethod.shard_key_values" className="fn">shard\_key\_values</a>(&amp;self) -&gt; <a className="type" href="/content/api/rust/bulk_inserter_common/type.ShardKeyValues" title="type gpudb_api::bulk_inserter_common::ShardKeyValues">ShardKeyValues</a>&lt;'\_&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns shard key column names and their typed values.</p>
+<p>Only columns that are part of the shard key need to be included. Returns a SmallVec which is stack-allocated for up to 4 shard columns.</p>
+</div>
+</div>
+</div>
+<h2 id="dyn-compatibility" className="section-header">Dyn Compatibility</h2>
+<div className="dyn-compatibility-info">
+<p>This trait <span className="b">is</span> <a href="https://doc.rust-lang.org/1.98.1/reference/items/traits.html#dyn-compatibility">dyn compatible</a>.</p>
+<p><span className="i">In older versions of Rust, dyn compatibility was called "object safety".</span></p>
+</div>
+<h2 id="foreign-impls" className="section-header">Implementations on Foreign Types</h2>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-ShardKeyExtractor-for-String" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter_common.rs#L136-L140">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/bulk_inserter_common/trait.ShardKeyExtractor" title="trait gpudb_api::bulk_inserter_common::ShardKeyExtractor">ShardKeyExtractor</a> for <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></h3>
+<div className="docblock">
+<p>A JSON record, as a <a href="/content/api/rust/bulk_inserter/struct.BulkInserter" title="struct gpudb_api::bulk_inserter::BulkInserter"><code>BulkInserter</code></a> in JSON mode takes it. Its key is not read: it has no shard key values, and each record goes to the rank of a random shard.</p>
+</div>
+</div>
+</div>
+<div className="impl-items">
+<div id="method.shard_key_values" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter_common.rs#L137-L139">Source</a>
+<h4 className="code-header">fn <a href="#tymethod.shard_key_values" className="fn">shard\_key\_values</a>(&amp;self) -&gt; <a className="type" href="/content/api/rust/bulk_inserter_common/type.ShardKeyValues" title="type gpudb_api::bulk_inserter_common::ShardKeyValues">ShardKeyValues</a>&lt;'\_&gt;</h4>
+</div>
+</div>
+</div>
+<h2 id="implementors" className="section-header">Implementors</h2>
+<div id="implementors-list">
+<div className="negative-marker"></div>
+<div id="impl-ShardKeyExtractor-for-GenericRecord" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generic_record.rs#L2339-L2378">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/bulk_inserter_common/trait.ShardKeyExtractor" title="trait gpudb_api::bulk_inserter_common::ShardKeyExtractor">ShardKeyExtractor</a> for <a className="struct" href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord">GenericRecord</a></h3>
+</div>
+</div>
+</div>

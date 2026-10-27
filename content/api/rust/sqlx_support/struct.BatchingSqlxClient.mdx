@@ -1,0 +1,236 @@
+---
+title: "BatchingSqlxClient"
+description: "BatchingSqlxClient — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/sqlx_support/index">sqlx\_support</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1246-L1249">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub struct BatchingSqlxClient {"{"} <span className="comment">/\* private fields \*/</span> {"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>A SQLx client that automatically batches INSERT statements and routes them through <code>BulkInserter&lt;GenericRecord&gt;</code> for high-performance shard-aware ingestion.</p>
+<p>This client intercepts INSERT statements executed in a loop, accumulates them, and flushes them through the high-performance <code>BulkInserter</code> when the batch size is reached. Non-INSERT statements are executed immediately via SQLx.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li><strong>Auto-batching</strong>: INSERT statements are automatically accumulated</li>
+<li><strong>Shard-aware routing</strong>: Uses <code>BulkInserter&lt;GenericRecord&gt;</code> for multi-head ingest</li>
+<li><strong>Mixed statements</strong>: SELECT, CREATE, etc. work normally alongside INSERTs</li>
+<li><strong>Performance</strong>: Achieves high throughput for bulk INSERT operations</li>
+</ul>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use gpudb_api::sqlx_support::{BatchingSqlxClient, connect};
+use gpudb_api::{Kinetica, KineticaOptions};
+use std::sync::Arc;
+
+// The SQLx pool for other statements, and the HTTP API client INSERT
+// batches are flushed through
+let pool = connect("localhost", "admin", "password").await?;
+let mut options = KineticaOptions::new();
+options.set_username("admin").set_password("password");
+let kinetica = Arc::new(Kinetica::new(vec!["http://localhost:9191".to_string()], options).await?);
+
+let mut client = BatchingSqlxClient::new(pool, kinetica, 10000, 8);
+
+// Execute INSERT statements in a loop - they get auto-batched
+for i in 0..100000 {
+    client.execute(&format!(
+        "INSERT INTO my_table (id, value) VALUES ({}, {})", i, i * 10
+    )).await?;
+}
+
+// Flush remaining records and get stats
+let stats = client.close().await?;
+println!("Inserted {} records at {:.0} rec/sec",
+    stats.records_inserted, stats.records_per_second);
+```
+
+</div>
+</div>
+</div>
+<h2 id="implementations" className="section-header">Implementations</h2>
+<div id="implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-BatchingSqlxClient" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1251-L1405">Source</a>
+<h3 className="code-header">impl <a className="struct" href="/content/api/rust/sqlx_support/struct.BatchingSqlxClient" title="struct gpudb_api::sqlx_support::BatchingSqlxClient">BatchingSqlxClient</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.new" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1260-L1272">Source</a>
+<h4 className="code-header">pub fn <a href="#method.new" className="fn">new</a>( pool: <a className="type" href="/content/api/rust/sqlx_support/type.KineticaPool" title="type gpudb_api::sqlx_support::KineticaPool">KineticaPool</a>, kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, batch\_size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, num\_workers: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, ) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Create a new batching SQLx client.</p>
+<h5 id="arguments">Arguments</h5>
+<ul>
+<li><code>pool</code> - SQLx PostgreSQL connection pool, for statements other than INSERT</li>
+<li><code>kinetica</code> - The Kinetica HTTP API client INSERT batches are flushed through</li>
+<li><code>batch\_size</code> - Number of records to accumulate before flushing (recommended: 10000-50000)</li>
+<li><code>num\_workers</code> - Number of parallel workers for BulkInserter (recommended: 4-16)</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.with_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1275-L1288">Source</a>
+<h4 className="code-header">pub fn <a href="#method.with_options" className="fn">with\_options</a>( pool: <a className="type" href="/content/api/rust/sqlx_support/type.KineticaPool" title="type gpudb_api::sqlx_support::KineticaPool">KineticaPool</a>, kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, batch\_size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, num\_workers: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, options: <a className="struct" href="/content/api/rust/bulk_inserter/struct.BulkInserterOptions" title="struct gpudb_api::bulk_inserter::BulkInserterOptions">BulkInserterOptions</a>, ) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Create a batching client with custom options (e.g., upsert mode).</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.with_hints" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1313-L1328">Source</a>
+<h4 className="code-header">pub fn <a href="#method.with_hints" className="fn">with\_hints</a>( pool: <a className="type" href="/content/api/rust/sqlx_support/type.KineticaPool" title="type gpudb_api::sqlx_support::KineticaPool">KineticaPool</a>, kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, batch\_size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, num\_workers: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, hints: <a className="struct" href="/content/api/rust/sql/struct.SqlHints" title="struct gpudb_api::sql::SqlHints">SqlHints</a>, ) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Create a batching client with SQL hints.</p>
+<h5 id="example-1">Example</h5>
+<div>
+
+```rust
+use gpudb_api::sqlx_support::{BatchingSqlxClient, connect};
+use gpudb_api::{Kinetica, KineticaOptions, SqlHints};
+use std::sync::Arc;
+
+let pool = connect("localhost", "admin", "password").await?;
+let mut options = KineticaOptions::new();
+options.set_username("admin").set_password("password");
+let kinetica = Arc::new(Kinetica::new(vec!["http://localhost:9191".to_string()], options).await?);
+
+let hints = SqlHints::new()
+    .update_on_existing_pk(true)
+    .distributed_operations(true);
+
+let mut client = BatchingSqlxClient::with_hints(pool, kinetica, 10000, 8, hints);
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.with_options_and_hints" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1331-L1343">Source</a>
+<h4 className="code-header">pub fn <a href="#method.with_options_and_hints" className="fn">with\_options\_and\_hints</a>( pool: <a className="type" href="/content/api/rust/sqlx_support/type.KineticaPool" title="type gpudb_api::sqlx_support::KineticaPool">KineticaPool</a>, kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, batch\_size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, num\_workers: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, options: <a className="struct" href="/content/api/rust/bulk_inserter/struct.BulkInserterOptions" title="struct gpudb_api::bulk_inserter::BulkInserterOptions">BulkInserterOptions</a>, hints: <a className="struct" href="/content/api/rust/sql/struct.SqlHints" title="struct gpudb_api::sql::SqlHints">SqlHints</a>, ) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Create a batching client with both BulkInserter options and SQL hints.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_hints" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1349-L1351">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_hints" className="fn">set\_hints</a>(&amp;mut self, hints: <a className="struct" href="/content/api/rust/sql/struct.SqlHints" title="struct gpudb_api::sql::SqlHints">SqlHints</a>)</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Set SQL hints for the client.</p>
+<p>Note: For INSERT statements, hints like <code>update\_on\_existing\_pk</code> are automatically applied through the BulkInserter options.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.hints" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1354-L1356">Source</a>
+<h4 className="code-header">pub fn <a href="#method.hints" className="fn">hints</a>(&amp;self) -&gt; &amp;<a className="struct" href="/content/api/rust/sql/struct.SqlHints" title="struct gpudb_api::sql::SqlHints">SqlHints</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get the current SQL hints.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.execute" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1365-L1376">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.execute" className="fn">execute</a>( &amp;mut self, sql: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;PgRow&gt;&gt;, <a className="enum" href="/content/api/rust/sqlx_support/enum.BatchingSqlxError" title="enum gpudb_api::sqlx_support::BatchingSqlxError">BatchingSqlxError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Execute a SQL statement.</p>
+<ul>
+<li>INSERT statements are accumulated and batched automatically</li>
+<li>Other statements (SELECT, CREATE, etc.) are executed immediately via SQLx</li>
+</ul>
+<p>When the batch size is reached, records are automatically flushed through <code>BulkInserter&lt;GenericRecord&gt;</code> with shard-aware routing.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.flush" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1379-L1381">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.flush" className="fn">flush</a>(&amp;mut self) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/sqlx_support/enum.BatchingSqlxError" title="enum gpudb_api::sqlx_support::BatchingSqlxError">BatchingSqlxError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Flush all pending records for all tables.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.close" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1386-L1389">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.close" className="fn">close</a>(self) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/sqlx_support/struct.BatchingSqlxStats" title="struct gpudb_api::sqlx_support::BatchingSqlxStats">BatchingSqlxStats</a>, <a className="enum" href="/content/api/rust/sqlx_support/enum.BatchingSqlxError" title="enum gpudb_api::sqlx_support::BatchingSqlxError">BatchingSqlxError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Flush all pending records and return final statistics.</p>
+<p>This should be called when you’re done inserting to ensure all records are flushed.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.pending_count" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1392-L1394">Source</a>
+<h4 className="code-header">pub fn <a href="#method.pending_count" className="fn">pending\_count</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get the number of pending (unflushed) records across all tables.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.stats" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1397-L1399">Source</a>
+<h4 className="code-header">pub fn <a href="#method.stats" className="fn">stats</a>(&amp;self) -&gt; <a className="struct" href="/content/api/rust/sqlx_support/struct.BatchingSqlxStats" title="struct gpudb_api::sqlx_support::BatchingSqlxStats">BatchingSqlxStats</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get current statistics without closing.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.pool" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sqlx_support.rs#L1402-L1404">Source</a>
+<h4 className="code-header">pub fn <a href="#method.pool" className="fn">pool</a>(&amp;self) -&gt; &amp;<a className="type" href="/content/api/rust/sqlx_support/type.KineticaPool" title="type gpudb_api::sqlx_support::KineticaPool">KineticaPool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get a reference to the SQLx pool for direct queries.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>

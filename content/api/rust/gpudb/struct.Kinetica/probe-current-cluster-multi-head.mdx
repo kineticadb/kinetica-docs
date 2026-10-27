@@ -1,0 +1,22 @@
+---
+title: "probe_current_cluster_multi_head"
+---
+
+<div className="kinetica-rustdoc">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.probe_current_cluster_multi_head" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/gpudb.rs#L2948-L2953">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/probe-current-cluster-multi-head#method.probe_current_cluster_multi_head" className="fn">probe\_current\_cluster\_multi\_head</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Re-reads the current cluster’s worker rank addresses from that cluster’s own system properties and records whether multi-head operations are usable there.</p>
+<p>This is a <strong>capability probe</strong>, not a health check: a cluster whose head node is up is usable whatever its workers are doing, and the answer here only decides multi-head versus head-node-only. Callers in the failover path must not treat <code>false</code> as a reason to reject the cluster — doing so kills a failover to a cluster that would have accepted the work through its head node.</p>
+<p>The refresh matters because the cluster list is populated once during connection setup and never refreshed per failover; without it the probe would validate a construction-time snapshot of a topology that may have moved since.</p>
+<p>Resolves addresses with the <span className="em">connection’s</span> hostname regex, never a caller’s. What this writes — the cluster’s worker addresses and whether multi-head is available there — is connection-scoped state that every multi-head object reads, so letting one object’s filter decide it would let that object’s address selection determine a fact about the cluster for all of them.</p>
+<h5 id="returns-2">Returns</h5>
+<p>Whether multi-head operations are available on the current cluster.</p>
+</div>
+</div>
+</div>

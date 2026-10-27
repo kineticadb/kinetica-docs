@@ -1,0 +1,44 @@
+---
+title: "decode_records"
+description: "decode_records — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/avro/index">avro</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/avro.rs#L409-L422">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub fn decode\_records&lt;T: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/de/trait.DeserializeOwned.html" title="trait serde_core::de::DeserializeOwned">DeserializeOwned</a> + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a>, B: <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;\[<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.u8.html">u8</a>\]&gt; + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a>&gt;(<br />&nbsp;&nbsp;&nbsp;&nbsp;schema: &amp;Schema,<br />&nbsp;&nbsp;&nbsp;&nbsp;binary\_records: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.slice.html">\[B\]</a>,<br />) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;T&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Decodes binary Avro records to typed Rust structs.</p>
+<p>This is the <strong>recommended</strong> decoding function. It automatically chooses between sequential and parallel decoding based on record count, and uses <code>serde\_avro\_fast</code> for optimal performance.</p>
+<h2 id="type-parameters">Type Parameters</h2>
+<ul>
+<li><code>T</code> - The target type to decode into. Must implement <code>serde::Deserialize</code>.</li>
+</ul>
+<h2 id="arguments">Arguments</h2>
+<ul>
+<li><code>schema</code> - The serde\_avro\_fast schema to use for decoding</li>
+<li><code>binary\_records</code> - Slice of binary Avro-encoded records</li>
+</ul>
+<h2 id="returns">Returns</h2>
+<p>A vector of decoded typed records, or an error if any record fails to decode.</p>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use gpudb_api::avro::{decode_records, parse_fast_schema};
+
+#[derive(serde::Deserialize)]
+struct Employee { id: i32, name: String, salary: f64 }
+
+let response = kinetica.get_records_raw(&request).await?;
+let schema = parse_fast_schema(&response.type_schema)?;
+let employees: Vec<Employee> = decode_records(&schema, &response.records_binary)?;
+```
+
+</div>
+</div>
+</div>
+</div>

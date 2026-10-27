@@ -4,7 +4,7 @@ title: "admin_repair_table"
 
 <div className="kinetica-pydoc">
 <div className="dl py method">
-<div className="dt sig sig-object py" id="gpudb.GPUdb.admin_repair_table"> <span className="sig-name descname"><span className="pre">admin\_repair\_table</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_names</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">table\_types</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L15172"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
+<div className="dt sig sig-object py" id="gpudb.GPUdb.admin_repair_table"> <span className="sig-name descname"><span className="pre">admin\_repair\_table</span></span><span className="sig-paren">(</span><span className="em sig-param"><span className="n"><span className="pre">table\_names</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">table\_types</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">None</span></span></span>, <span className="em sig-param"><span className="n"><span className="pre">options</span></span><span className="o"><span className="pre">=</span></span><span className="default_value"><span className="pre">{"{"}{"}"}</span></span></span><span className="sig-paren">)</span><a href="https://github.com/kineticadb/kinetica-api-python/blob/master/gpudb/gpudb.py#L15260"><span className="viewcode-link"><span className="pre">\[source\]</span></span></a></div>
 <div className="dd">
 <p>Manually repair a corrupted table. Returns information about affected tables.</p>
 <p><strong>Parameters</strong></p>
@@ -38,6 +38,9 @@ title: "admin_repair_table"
 <li>
 <p><strong>alter\_table</strong> – Reset columns modification after incomplete alter column.</p>
 </li>
+<li>
+<p><strong>resync\_replicas</strong> – Repairs replicated tables whose record counts differ across the worker ranks and toms: the copy with the most records is kept, and every other copy is replaced with it. That copy may include records from a load that did not complete, or records that a delete did not remove. A table whose copies all have the same number of records is not repaired, even if their contents differ. Views cannot be named in input parameter <span className="em">table\_names</span>; a named table that is not replicated is reported in output parameter <span className="em">repair\_status</span>. An asterisk selects every replicated table. The repair runs only while no other requests are running. The repaired tables are listed in the <span className="em">repaired\_replicated\_tables</span> entry of the response output parameter <span className="em">info</span> map.</p>
+</li>
 </ul>
 </li>
 <li>
@@ -62,7 +65,7 @@ title: "admin_repair_table"
 <div className="blockquote">
 <div>
 <p>A dict with the following entries–</p>
-<div className="dl simple">
+<div className="dl">
 <div className="dt">table\_names (<span className="em">list of str</span>) –</div>
 <div className="dd">
 <p>List of repaired tables.</p>
@@ -73,7 +76,13 @@ title: "admin_repair_table"
 </div>
 <div className="dt">info (<span className="em">dict of str to str</span>) –</div>
 <div className="dd">
-<p>Additional information.</p>
+<p>Additional information. Allowed keys are:</p>
+<ul className="simple">
+<li>
+<p><strong>repaired\_replicated\_tables</strong> – If <span className="em">repair\_policy</span> is <span className="em">resync\_replicas</span>, comma-separated list of the replicated tables that were repaired.</p>
+</li>
+</ul>
+<p>The default value is an empty dict ( {"{"}{"}"} ).</p>
 </div>
 </div>
 </div>

@@ -1,0 +1,84 @@
+---
+title: "upload_files"
+---
+
+<div className="kinetica-rustdoc">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.upload_files" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/upload_files.rs#L73-L80">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/upload-files#method.upload_files" className="fn">upload\_files</a>( &amp;self, file\_names: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, file\_data: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/struct.ByteBuf" title="struct gpudb_api::ByteBuf">ByteBuf</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.UploadFilesResponse" title="struct gpudb_api::generated::api::UploadFilesResponse">UploadFilesResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Upload one or more files to KiFS</p>
+<p>Uploads one or more files to KiFS. There are two methods for uploading files: load files in their entirety, or load files in parts. The latter is recommended for files of approximately 60 MB or larger.</p>
+<p>To upload files in their entirety, populate <code>file\_names</code> with the file names to upload into on KiFS, and their respective byte content in <code>file\_data</code>.</p>
+<p>Multiple steps are involved when uploading in multiple parts. Only one file at a time can be uploaded in this manner. A user-provided UUID is utilized to tie all the upload steps together for a given file. To upload a file in multiple parts:</p>
+<ol>
+<li>Provide the file name in <code>file\_names</code>, the UUID in the multipart\_upload\_uuid key in <code>options</code>, and a multipart\_operation value of init.</li>
+<li>Upload one or more parts by providing the file name, the part data in <code>file\_data</code>, the UUID, a multipart\_operation value of upload\_part, and the part number in the multipart\_upload\_part\_number. The part numbers must start at 1 and increase incrementally. Parts may not be uploaded out of order.</li>
+<li>Complete the upload by providing the file name, the UUID, and a multipart\_operation value of complete.</li>
+</ol>
+<p>Multipart uploads in progress may be canceled by providing the file name, the UUID, and a multipart\_operation value of cancel. If an new upload is initialized with a different UUID for an existing upload in progress, the pre-existing upload is automatically canceled in favor of the new upload.</p>
+<p>The multipart upload must be completed for the file to be usable in KiFS. Information about multipart uploads in progress is available in <code>/show/files</code>.</p>
+<p>File data may be pre-encoded using base64 encoding. This should be indicated using the file\_encoding option, and is recommended when using JSON serialization.</p>
+<p>Each file path must reside in a top-level KiFS directory, i.e. one of the directories listed in <code>/show/directories</code>. The user must have write permission on the directory. Nested directories are permitted in file name paths. Directories are delineated with the directory separator of ‘/’. For example, given the file path ‘/a/b/c/d.txt’, ‘a’ must be a KiFS directory.</p>
+<p>These characters are allowed in file name paths: letters, numbers, spaces, the path delimiter of ‘/’, and the characters: ‘.’ ‘-’ ‘:’ ‘\[’ ‘\]’ ‘(’ ‘)’ ‘#’ ‘=’.</p>
+<h5 id="arguments-404">Arguments</h5>
+<ul>
+<li><code>file\_names</code> - An array of full file name paths to be used for the files uploaded to KiFS. File names may have any number of nested directories in their paths, but the top-level directory must be an existing KiFS directory. Each file must reside in or under a top-level directory. A full file name path cannot be larger than 1024 characters.</li>
+<li><code>file\_data</code> - File data for the files being uploaded, for the respective files in <code>file\_names</code>.</li>
+</ul>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.upload_files_with_opts" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/upload_files.rs#L145-L163">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/upload-files#method.upload_files_with_opts" className="fn">upload\_files\_with\_opts</a>( &amp;self, file\_names: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;, file\_data: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/struct.ByteBuf" title="struct gpudb_api::ByteBuf">ByteBuf</a>&gt;, options: <a className="struct" href="/content/api/rust/generated/api/struct.UploadFilesRequestOptions" title="struct gpudb_api::generated::api::UploadFilesRequestOptions">UploadFilesRequestOptions</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.UploadFilesResponse" title="struct gpudb_api::generated::api::UploadFilesResponse">UploadFilesResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Upload one or more files to KiFS</p>
+<p>Uploads one or more files to KiFS. There are two methods for uploading files: load files in their entirety, or load files in parts. The latter is recommended for files of approximately 60 MB or larger.</p>
+<p>To upload files in their entirety, populate <code>file\_names</code> with the file names to upload into on KiFS, and their respective byte content in <code>file\_data</code>.</p>
+<p>Multiple steps are involved when uploading in multiple parts. Only one file at a time can be uploaded in this manner. A user-provided UUID is utilized to tie all the upload steps together for a given file. To upload a file in multiple parts:</p>
+<ol>
+<li>Provide the file name in <code>file\_names</code>, the UUID in the multipart\_upload\_uuid key in <code>options</code>, and a multipart\_operation value of init.</li>
+<li>Upload one or more parts by providing the file name, the part data in <code>file\_data</code>, the UUID, a multipart\_operation value of upload\_part, and the part number in the multipart\_upload\_part\_number. The part numbers must start at 1 and increase incrementally. Parts may not be uploaded out of order.</li>
+<li>Complete the upload by providing the file name, the UUID, and a multipart\_operation value of complete.</li>
+</ol>
+<p>Multipart uploads in progress may be canceled by providing the file name, the UUID, and a multipart\_operation value of cancel. If an new upload is initialized with a different UUID for an existing upload in progress, the pre-existing upload is automatically canceled in favor of the new upload.</p>
+<p>The multipart upload must be completed for the file to be usable in KiFS. Information about multipart uploads in progress is available in <code>/show/files</code>.</p>
+<p>File data may be pre-encoded using base64 encoding. This should be indicated using the file\_encoding option, and is recommended when using JSON serialization.</p>
+<p>Each file path must reside in a top-level KiFS directory, i.e. one of the directories listed in <code>/show/directories</code>. The user must have write permission on the directory. Nested directories are permitted in file name paths. Directories are delineated with the directory separator of ‘/’. For example, given the file path ‘/a/b/c/d.txt’, ‘a’ must be a KiFS directory.</p>
+<p>These characters are allowed in file name paths: letters, numbers, spaces, the path delimiter of ‘/’, and the characters: ‘.’ ‘-’ ‘:’ ‘\[’ ‘\]’ ‘(’ ‘)’ ‘#’ ‘=’.</p>
+<h5 id="arguments-405">Arguments</h5>
+<ul>
+<li><code>file\_names</code> - An array of full file name paths to be used for the files uploaded to KiFS. File names may have any number of nested directories in their paths, but the top-level directory must be an existing KiFS directory. Each file must reside in or under a top-level directory. A full file name path cannot be larger than 1024 characters.</li>
+<li><code>file\_data</code> - File data for the files being uploaded, for the respective files in <code>file\_names</code>.</li>
+<li><code>options</code> - The optional parameters; any left unset take the server’s defaults.</li>
+</ul>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.upload_files_raw" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/upload_files.rs#L166-L177">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/upload-files#method.upload_files_raw" className="fn">upload\_files\_raw</a>( &amp;self, request: &amp;<a className="struct" href="/content/api/rust/generated/api/struct.UploadFilesRequest" title="struct gpudb_api::generated::api::UploadFilesRequest">UploadFilesRequest</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.UploadFilesResponse" title="struct gpudb_api::generated::api::UploadFilesResponse">UploadFilesResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sends a pre-built <a href="/content/api/rust/generated/api/struct.UploadFilesRequest" title="struct gpudb_api::generated::api::UploadFilesRequest"><code>UploadFilesRequest</code></a> to the <code>/upload/files</code> endpoint.</p>
+</div>
+</div><div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.upload_files_from_url" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/upload_files.rs#L181-L193">Source</a>
+<h4 className="code-header">pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/upload-files#method.upload_files_from_url" className="fn">upload\_files\_from\_url</a>( &amp;self, url: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, request: &amp;<a className="struct" href="/content/api/rust/generated/api/struct.UploadFilesRequest" title="struct gpudb_api::generated::api::UploadFilesRequest">UploadFilesRequest</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="/content/api/rust/generated/api/struct.UploadFilesResponse" title="struct gpudb_api::generated::api::UploadFilesResponse">UploadFilesResponse</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sends a pre-built <a href="/content/api/rust/generated/api/struct.UploadFilesRequest" title="struct gpudb_api::generated::api::UploadFilesRequest"><code>UploadFilesRequest</code></a> to a specific worker URL, bypassing HA head-node selection. Used for multi-head access.</p>
+</div>
+</div>
+</div>

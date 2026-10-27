@@ -54,7 +54,7 @@ The *ANSI Virtual Catalog* tables reside in the `information_schema` schema.
 | [KI_BACKUP_HISTORY](#ki-backup-history) | Data backup events initiated on the database. |
 | [KI_CATALOG_VERSION](#ki-catalog-version) | Contains a single record with the virtual catalog schema version. |
 | [KI_DATASOURCE_SUBSCRIPTIONS](#ki-datasource-subscriptions) | Remote data subscriptions, associating data sources with their target load tables. |
-| [KI_HA_CONSUMERS](#ki-ha-consumers) | Consumer processes of Kafka HA queues. |
+| [KI_HA_CONSUMERS](#ki-ha-consumers) | Queues consumed for high availability, and their backlogs. |
 | [KI_KAFKA_LAG_INFO](#ki-kafka-lag-info) | Remote Kafka subscriptions, and the index of both the most recently read & available messages per topic partition. |
 | [KI_LOAD_HISTORY](#ki-load-history) | Record & statistics of each data load or export, subscription event, and data refresh. |
 | [KI_PERIODIC_OBJECTS](#ki-periodic-objects) | List of materialized views and SQL procedures that have periodic refresh/execution intervals, with their respective statistics. |
@@ -553,17 +553,24 @@ single target table has through a single
 ### KI_HA_CONSUMERS
 
 
-Each record in `KI_HA_CONSUMERS` represents a process that consumes messages
-from the Kafka HA queues.
+Each record in `KI_HA_CONSUMERS` represents a queue that the database consumes for
+[high availability](/content/ha), and how many of its messages are waiting to
+be consumed.  A Kafka queue has one record for each of its partitions; a
+RabbitMQ queue has a single record.
 
 
 | Column Name | Column Type | Description |
 | --- | --- | --- |
-| `QUEUE_NAME` | `VARCHAR(256)` | Unique name associated with the Kafka HA queue used by this consumer. |
-| `QUEUE_SIZE` | `BIGINT` | Number of messages in the Kafka HA queue waiting to be consumed. |
-| `LAST_RECV_TIME` | `TIMESTAMP` | Time of the most recently consumed message from the Kafka HA queue. |
-| `LAST_RECV_JOB_ID` | `BIGINT` | Job ID associated with the most recently consumed message from the Kafka HA queue. |
-| `SOURCE_RANK` | `INTEGER` | Rank on which this HA consumer resides. |
+| `QUEUE_NAME` | `VARCHAR(256)` | Name of the HA queue. |
+| `ROLE` | `VARCHAR(16)` | What the queue carries: <br/> <br/> * `commands` - all operations in single-consumer mode; operations other than inserts in multi-consumer mode <br/> * `inserts` - inserts in multi-consumer mode, consumed by a group the worker ranks share <br/> * `replay` - this cluster's replay history <br/> * `replay_active` - the queue being replayed, during a disaster recovery replay |
+| `PARTITION_ID` | `INTEGER` | Kafka partition of the queue this record represents; null for a RabbitMQ queue, which is represented as a whole. |
+| `CONSUMER_GROUP` | `VARCHAR(256)` | Kafka consumer group whose offsets are reported; null for a RabbitMQ queue and for a replay queue that is not being consumed. |
+| `HIGH_OFFSET` | `BIGINT` | Offset of the next message to be written to the partition; null if it could not be read. |
+| `COMMITTED_OFFSET` | `BIGINT` | Most recent offset committed by the consumer group; null if the group has committed none, or if it could not be read. |
+| `QUEUE_SIZE` | `BIGINT` | Number of messages in the partition or queue waiting to be consumed; null if it could not be measured. |
+| `ASSIGNED_RANK` | `INTEGER` | Rank consuming the partition or queue; null if no single rank is consuming it. |
+| `LAST_RECV_TIME` | `TIMESTAMP` | Time the consuming rank last received a message. |
+| `LAST_RECV_JOB_ID` | `BIGINT` | Job ID associated with the message the consuming rank last received. |
 
 
 <a id="ki-kafka-lag-info"></a>
@@ -915,17 +922,14 @@ Each record in `OBJECT_PRIVILEGES` represents the mapping of a
 ### PARTITIONS
 
 
-Each record in `PARTITIONS` represents one chunk of a table's data, as held
-in one tier by one TOM of one worker rank.  Tables that are not
+Each record in `PARTITIONS` represents one chunk of a table's data, as held by
+one TOM of one worker rank.  Tables that are not
 [partitioned](/content/concepts/tables#partitioning) are listed as well, with a
 `PARTITION_TYPE` of `NONE`.
 
-A partition normally spans many chunks across ranks, and a chunk held in more
-than one tier (e.g., both `RAM` and `PERSIST`) is listed once per tier, with
-the same `TOTAL_ROWS` in each.  To total the records in a table or partition,
-count each chunk only once; for instance, take the largest `TOTAL_ROWS` among
-the records sharing a `RANK_NUM`, `TOM_ID`, `PARTITION_ID`, &
-`CHUNK_ID`, and sum those.
+A partition normally spans many chunks across ranks and TOMs.  Each chunk is
+listed once, however many tiers hold a copy of it, so the number of records in
+a table or partition is the sum of `TOTAL_ROWS` over its records.
 
 
 | Column Name | Column Type | Description |
@@ -940,8 +944,8 @@ the records sharing a `RANK_NUM`, `TOM_ID`, `PARTITION_ID`, &
 | `PARTITION_TYPE` | `VARCHAR(8)` | Type of partition: <br/> <br/> `NONE`: Not partitioned <br/> <br/> `HASH`: [Hash](/content/concepts/tables#partitioning-by-hash) <br/> <br/> `INTERVAL`: [Interval](/content/concepts/tables#partitioning-by-interval) <br/> <br/> `LIST`: [List](/content/concepts/tables#partitioning-by-list) <br/> <br/> `RANGE`: [Range](/content/concepts/tables#partitioning-by-range) <br/> <br/> `SERIES`: [Series](/content/concepts/tables#partitioning-by-series) |
 | `TOTAL_ROWS` | `BIGINT` | Number of records in this chunk.  This is a physical count, which includes deleted records until the chunk is compacted, so it can exceed the table's `COUNT(*)`. |
 | `LOGICAL_BYTES` | `BIGINT` | Size of this chunk's column data, uncompressed, in bytes. |
-| `ACTUAL_BYTES` | `BIGINT` | Number of bytes this copy of the chunk occupies in its tier, which can differ from `LOGICAL_BYTES` due to compression and storage overhead. |
-| `STORAGE_TIER` | `VARCHAR(32)` | Tier holding this copy of the chunk.  A chunk held in more than one tier has one record for each tier. <br/> <br/> `PERSIST`: [Persist tier](/content/rm/concepts#rm-concepts-tiers-persist) <br/> <br/> `RAM`: [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram) |
+| `ACTUAL_BYTES` | `BIGINT` | Number of bytes the chunk occupies in the persist tier; if the chunk is not in the persist tier, in a cold storage tier; otherwise, in the first tier listed in `STORAGE_TIER`.  This can differ from `LOGICAL_BYTES` due to compression and storage overhead. |
+| `STORAGE_TIER` | `VARCHAR(32)` | Comma-separated list of the tiers holding a copy of this chunk's data, in tier order; e.g., `RAM,PERSIST`.  The tiers are: <br/> <br/> `PERSIST`: [Persist tier](/content/rm/concepts#rm-concepts-tiers-persist) <br/> <br/> `RAM`: [RAM tier](/content/rm/concepts#rm-concepts-tiers-ram) |
 
 
 <a id="referential-constraints"></a>

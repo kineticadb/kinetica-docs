@@ -1,0 +1,164 @@
+---
+title: "UpdateRecordsRequestOptions"
+description: "UpdateRecordsRequestOptions — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/generated/index">generated</a>::<wbr /><a href="/content/api/rust/generated/api/index">api</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23251-L23337">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub struct UpdateRecordsRequestOptions {"{"}<br />&nbsp;&nbsp;&nbsp;&nbsp;pub global\_expression: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub bypass\_safety\_checks: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub error\_handling: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub update\_on\_existing\_pk: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub pk\_conflict\_predicate\_higher: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub pk\_conflict\_predicate\_lower: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub ignore\_existing\_pk: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub update\_partition: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub enable\_inplace\_updates: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub truncate\_strings: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub use\_expressions\_in\_new\_values\_maps: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,<br />&nbsp;&nbsp;&nbsp;&nbsp;pub record\_id: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>,<br />{"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Optional parameters for the <code>/update/records</code> endpoint.</p>
+<p><code>Default::default()</code> is the empty set: only options set explicitly are sent, and anything left empty falls back to the server’s own default.</p>
+</div>
+</div>
+<h2 id="fields" className="fields section-header">Fields</h2>
+<span id="structfield.global_expression" className="structfield section-header"><code>global\_expression: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></code></span>
+<div className="docblock">
+<p>An optional global expression to reduce the search space of the predicates listed in <code>expressions</code>.</p>
+</div>
+<span id="structfield.bypass_safety_checks" className="structfield section-header"><code>bypass\_safety\_checks: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></code></span>
+<div className="docblock">
+<p>When set to true, all predicates are available for primary key updates. Keep in mind that it is possible to destroy data in this case, since a single predicate may match multiple objects (potentially all of records of a table), and then updating all of those records to have the same primary key will, due to the primary key uniqueness constraints, effectively delete all but one of those updated records. Server default: <code>false</code>.</p>
+</div>
+<span id="structfield.error_handling" className="structfield section-header"><code>error\_handling: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></code></span>
+<div className="docblock">
+<p>Specifies how record errors are handled during the update’s reinsert (including any alternate insert records supplied via <code>records\_to\_insert</code>). When set, this option is authoritative for the reinsert. Primary-key collision behavior is governed by update\_on\_existing\_pk and ignore\_existing\_pk. Server default: <code>abort</code>.</p>
+</div>
+<span id="structfield.update_on_existing_pk" className="structfield section-header"><code>update\_on\_existing\_pk: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></code></span>
+<div className="docblock">
+<p>Specifies the record collision policy for updating a table with a primary key. There are two ways that a record collision can occur.</p>
+<p>The first is an “update collision”, which happens when the update changes the value of the updated record’s primary key, and that new primary key already exists as the primary key of another record in the table.</p>
+<p>The second is an “insert collision”, which occurs when a given filter in <code>expressions</code> finds no records to update, and the alternate insert record given in <code>records\_to\_insert</code> (or <code>records\_to\_insert\_str</code>) contains a primary key matching that of an existing record in the table.</p>
+<p>If update\_on\_existing\_pk is set to true, “update collisions” will result in the existing record collided into being removed and the record updated with values specified in <code>new\_values\_maps</code> taking its place; “insert collisions” will result in the collided-into record being updated with the values in <code>records\_to\_insert</code> / <code>records\_to\_insert\_str</code> (if given).</p>
+<p>If set to false, the existing collided-into record will remain unchanged, while the update will be rejected and the error handled as determined by ignore\_existing\_pk. If the specified table does not have a primary key, then this option has no effect. Server default: <code>false</code>.</p>
+</div>
+<span id="structfield.pk_conflict_predicate_higher" className="structfield section-header"><code>pk\_conflict\_predicate\_higher: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></code></span>
+<div className="docblock">
+<p>The record with higher value for the column resolves the primary-key insert conflict.</p>
+</div>
+<span id="structfield.pk_conflict_predicate_lower" className="structfield section-header"><code>pk\_conflict\_predicate\_lower: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></code></span>
+<div className="docblock">
+<p>The record with lower value for the column resolves the primary-key insert conflict.</p>
+</div>
+<span id="structfield.ignore_existing_pk" className="structfield section-header"><code>ignore\_existing\_pk: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></code></span>
+<div className="docblock">
+<p>Specifies the record collision error-suppression policy for updating a table with a primary key, only used when primary key record collisions are rejected (update\_on\_existing\_pk is false). If set to true, any record update that is rejected for resulting in a primary key collision with an existing table record will be ignored with no error generated. If false, the rejection of any update for resulting in a primary key collision will cause an error to be reported. If the specified table does not have a primary key or if update\_on\_existing\_pk is true, then this option has no effect. Server default: <code>false</code>.</p>
+</div>
+<span id="structfield.update_partition" className="structfield section-header"><code>update\_partition: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></code></span>
+<div className="docblock">
+<p>Force qualifying records to be deleted and reinserted so their partition membership will be reevaluated. Server default: <code>false</code>.</p>
+</div>
+<span id="structfield.enable_inplace_updates" className="structfield section-header"><code>enable\_inplace\_updates: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></code></span>
+<div className="docblock">
+<p>If set to true, qualifying records are modified in place. If set to false, they are updated by deleting the existing record and inserting a replacement (delete and insert), which prevents the change from being reflected in dependent materialized views until they are refreshed. Server default: <code>true</code>.</p>
+</div>
+<span id="structfield.truncate_strings" className="structfield section-header"><code>truncate\_strings: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></code></span>
+<div className="docblock">
+<p>If set to true, any strings which are too long for their charN string fields will be truncated to fit. Server default: <code>false</code>.</p>
+</div>
+<span id="structfield.use_expressions_in_new_values_maps" className="structfield section-header"><code>use\_expressions\_in\_new\_values\_maps: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></code></span>
+<div className="docblock">
+<p>When set to true, all new values in <code>new\_values\_maps</code> are considered as expression values. When set to false, all new values in <code>new\_values\_maps</code> are considered as constants. NOTE: When true, string constants will need to be quoted to avoid being evaluated as expressions. Server default: <code>false</code>.</p>
+</div>
+<span id="structfield.record_id" className="structfield section-header"><code>record\_id: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></code></span>
+<div className="docblock">
+<p>ID of a single record to be updated (returned in the call to <code>/insert/records</code> or <code>/get/records/fromcollection</code>).</p>
+</div>
+<h2 id="implementations" className="section-header">Implementations</h2>
+<div id="implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-UpdateRecordsRequestOptions" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23339-L23411">Source</a>
+<h3 className="code-header">impl <a className="struct" href="/content/api/rust/generated/api/struct.UpdateRecordsRequestOptions" title="struct gpudb_api::generated::api::UpdateRecordsRequestOptions">UpdateRecordsRequestOptions</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.to_map" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23341-L23410">Source</a>
+<h4 className="code-header">pub fn <a href="#method.to_map" className="fn">to\_map</a>(&amp;self) -&gt; <a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Converts the set (non-empty) options into the wire-format string map.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<h2 id="trait-implementations" className="section-header">Trait Implementations</h2>
+<div id="trait-implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Clone-for-UpdateRecordsRequestOptions" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23250">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> for <a className="struct" href="/content/api/rust/generated/api/struct.UpdateRecordsRequestOptions" title="struct gpudb_api::generated::api::UpdateRecordsRequestOptions">UpdateRecordsRequestOptions</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23250">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone" className="fn">clone</a>(&amp;self) -&gt; <a className="struct" href="/content/api/rust/generated/api/struct.UpdateRecordsRequestOptions" title="struct gpudb_api::generated::api::UpdateRecordsRequestOptions">UpdateRecordsRequestOptions</a></h4>
+</div>
+</div>
+<div className="docblock">Returns a duplicate of the value. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone">Read more</a></div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone_from" className="section method trait-impl">
+<span className="rightside"><span className="since" title="Stable since Rust version 1.0.0, const unstable">1.0.0 (const: <a href="https://github.com/rust-lang/rust/issues/142757" title="Tracking issue for const_clone">unstable</a>)</span> · <a className="src" href="https://doc.rust-lang.org/1.98.1/src/core/clone.rs.html#245-247">Source</a></span>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from" className="fn">clone\_from</a>(&amp;mut self, source: &amp;Self)</h4>
+</div>
+</div>
+<div className="docblock">Performs copy-assignment from <code>source</code>. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Debug-for-UpdateRecordsRequestOptions" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23250">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> for <a className="struct" href="/content/api/rust/generated/api/struct.UpdateRecordsRequestOptions" title="struct gpudb_api::generated::api::UpdateRecordsRequestOptions">UpdateRecordsRequestOptions</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.fmt" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23250">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt" className="fn">fmt</a>(&amp;self, f: &amp;mut <a className="struct" href="https://doc.rust-lang.org/1.98.1/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>&lt;'\_&gt;) -&gt; <a className="type" href="https://doc.rust-lang.org/1.98.1/core/fmt/type.Result.html" title="type core::fmt::Result">Result</a></h4>
+</div>
+</div>
+<div className="docblock">Formats the value using the given formatter. <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt">Read more</a></div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Default-for-UpdateRecordsRequestOptions" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23250">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html" title="trait core::default::Default">Default</a> for <a className="struct" href="/content/api/rust/generated/api/struct.UpdateRecordsRequestOptions" title="struct gpudb_api::generated::api::UpdateRecordsRequestOptions">UpdateRecordsRequestOptions</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.default" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/generated/api.rs#L23250">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html#tymethod.default" className="fn">default</a>() -&gt; <a className="struct" href="/content/api/rust/generated/api/struct.UpdateRecordsRequestOptions" title="struct gpudb_api::generated::api::UpdateRecordsRequestOptions">UpdateRecordsRequestOptions</a></h4>
+</div>
+</div>
+<div className="docblock">Returns the “default value” for a type. <a href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html#tymethod.default">Read more</a></div>
+</div>
+</div>
+</div>
+</div>
+</div>

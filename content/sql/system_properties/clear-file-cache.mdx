@@ -1,0 +1,73 @@
+---
+title: CLEAR FILE CACHE
+---
+
+<a id="clear-file-cache"></a>
+
+<a id="sql-clear-file-cache"></a>
+
+
+Removes all entries from a [file cache](/content/config#config-main-file-cache),
+both in memory and on disk, on every rank.  The cache remains enabled, so data
+read after it is cleared is cached again; until then, reads of data that was
+held in the cache are retrieved from their source instead, and may be slower.
+Only users with the `system_admin`
+[permission](/content/security/sec_concepts#security-concepts-permissions) can issue this
+command.
+
+To see the entries held in each file cache and the usage statistics of the
+caches, query the [ki_file_cache_entries](/content/catalogs/kinetica#ki-file-cache-entries) and
+[ki_file_cache_stats](/content/catalogs/kinetica#ki-file-cache-stats) catalog tables.
+
+```sql title="CLEAR FILE CACHE Syntax"
+CLEAR FILE CACHE < <cache name> | "default" >
+```
+
+
+## Parameters
+
+
+<AccordionGroup>
+
+<Accordion title="&lt;cache name&gt;" id="<cache-name>" defaultOpen>
+
+Name of the file cache to clear.  The only file cache is `external_files`, which holds
+data read from files in remote storage, such as the files backing *external tables*.
+
+Cache names are case-sensitive and must be given in lowercase.
+
+</Accordion>
+
+<Accordion title="&quot;default&quot;" id="default" defaultOpen>
+
+Clear all file caches.  As `default` is a reserved word, it must be double-quoted.
+
+</Accordion>
+
+</AccordionGroup>
+
+
+## Response
+
+
+The response to `CLEAR FILE CACHE` is a single-row result set with one
+column, `SYSTEM_PROPERTIES`, confirming the request in the form
+`file_cache.<cache name>.clear = true`.
+
+
+## Examples
+
+
+To clear the external files cache:
+
+{/* Source: /examples/sql/file_cache.kisql (lines 34) */}
+```sql CLEAR FILE CACHE Example
+CLEAR FILE CACHE external_files
+```
+
+To clear all file caches:
+
+{/* Source: /examples/sql/file_cache.kisql (lines 39) */}
+```sql CLEAR FILE CACHE for All Caches Example
+CLEAR FILE CACHE "default"
+```

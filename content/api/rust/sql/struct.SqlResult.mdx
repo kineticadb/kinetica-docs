@@ -1,0 +1,328 @@
+---
+title: "SqlResult"
+description: "SqlResult — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/sql/index">sql</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L795-L801">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub struct SqlResult {"{"} <span className="comment">/\* private fields \*/</span> {"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Wrapper around <code>RawExecuteSqlResponse</code> with convenient parsing methods.</p>
+<p><code>SqlResult</code> provides ergonomic access to query results including:</p>
+<ul>
+<li>Row iteration</li>
+<li>Column extraction</li>
+<li>Scalar value retrieval</li>
+<li>Direct deserialization to structs</li>
+</ul>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use gpudb_api::SqlResult;
+
+// Check metadata
+println!("Total records: {}", result.total_records());
+println!("Has more: {}", result.has_more());
+
+// Get a single value
+let count: i64 = result.scalar()?;
+
+// Extract a column
+let names: Vec<String> = result.column("name")?;
+
+// Iterate rows
+for row in result.rows()? {
+    let id: i64 = row.get("id")?;
+    println!("ID: {}", id);
+}
+```
+
+</div>
+</div>
+</div>
+<h2 id="implementations" className="section-header">Implementations</h2>
+<div id="implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-SqlResult" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L803-L1095">Source</a>
+<h3 className="code-header">impl <a className="struct" href="/content/api/rust/sql/struct.SqlResult" title="struct gpudb_api::sql::SqlResult">SqlResult</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.new" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L805-L811">Source</a>
+<h4 className="code-header">pub fn <a href="#method.new" className="fn">new</a>(response: <a className="struct" href="/content/api/rust/generated/api/struct.RawExecuteSqlResponse" title="struct gpudb_api::generated::api::RawExecuteSqlResponse">RawExecuteSqlResponse</a>) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Create a new SqlResult from an RawExecuteSqlResponse</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.with_column_names" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L817-L827">Source</a>
+<h4 className="code-header">pub fn <a href="#method.with_column_names" className="fn">with\_column\_names</a>( response: <a className="struct" href="/content/api/rust/generated/api/struct.RawExecuteSqlResponse" title="struct gpudb_api::generated::api::RawExecuteSqlResponse">RawExecuteSqlResponse</a>, column\_names: &amp;\[&amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>\], ) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Create a SqlResult with column name mapping</p>
+<p>The column\_names slice should contain the column names in order, which will be mapped to column\_1, column\_2, etc.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.inner" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L830-L832">Source</a>
+<h4 className="code-header">pub fn <a href="#method.inner" className="fn">inner</a>(&amp;self) -&gt; &amp;<a className="struct" href="/content/api/rust/generated/api/struct.RawExecuteSqlResponse" title="struct gpudb_api::generated::api::RawExecuteSqlResponse">RawExecuteSqlResponse</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get the underlying RawExecuteSqlResponse</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.into_inner" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L835-L837">Source</a>
+<h4 className="code-header">pub fn <a href="#method.into_inner" className="fn">into\_inner</a>(self) -&gt; <a className="struct" href="/content/api/rust/generated/api/struct.RawExecuteSqlResponse" title="struct gpudb_api::generated::api::RawExecuteSqlResponse">RawExecuteSqlResponse</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Consume and return the underlying RawExecuteSqlResponse</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.total_records" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L840-L842">Source</a>
+<h4 className="code-header">pub fn <a href="#method.total_records" className="fn">total\_records</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get the total number of records matching the query (before LIMIT)</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.count_affected" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L845-L847">Source</a>
+<h4 className="code-header">pub fn <a href="#method.count_affected" className="fn">count\_affected</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get the number of records affected by the query (INSERT/UPDATE/DELETE)</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.has_more" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L850-L852">Source</a>
+<h4 className="code-header">pub fn <a href="#method.has_more" className="fn">has\_more</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Check if there are more records available (for paginated queries)</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.paging_table" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L855-L861">Source</a>
+<h4 className="code-header">pub fn <a href="#method.paging_table" className="fn">paging\_table</a>(&amp;self) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get the paging table name (if any)</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.info" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L864-L866">Source</a>
+<h4 className="code-header">pub fn <a href="#method.info" className="fn">info</a>(&amp;self) -&gt; &amp;<a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get info metadata from the response</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.json_response" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L869-L871">Source</a>
+<h4 className="code-header">pub fn <a href="#method.json_response" className="fn">json\_response</a>(&amp;self) -&gt; &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get the raw JSON response string</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.row_count" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L898-L908">Source</a>
+<h4 className="code-header">pub fn <a href="#method.row_count" className="fn">row\_count</a>(&amp;mut self) -&gt; <a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOpResult</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get the number of rows in the result</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.column_names" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L914-L926">Source</a>
+<h4 className="code-header">pub fn <a href="#method.column_names" className="fn">column\_names</a>(&amp;mut self) -&gt; <a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOpResult</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get all column names in the result</p>
+<p>Returns the raw column names (column\_1, column\_2, etc.) unless column mapping was provided via <code>with\_column\_names</code>.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.column" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L941-L958">Source</a>
+<h4 className="code-header">pub fn <a href="#method.column" className="fn">column</a>&lt;T: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/de/trait.DeserializeOwned.html" title="trait serde_core::de::DeserializeOwned">DeserializeOwned</a>&gt;(&amp;mut self, name: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOpResult</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;T&gt;&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Extract a single column as a Vec</p>
+<h5 id="example-1">Example</h5>
+<div>
+
+```rust
+use gpudb_api::SqlResult;
+
+let ids: Vec<i64> = result.column("column_1")?;
+let names: Vec<String> = result.column("column_2")?;
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.scalar" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L974-L988">Source</a>
+<h4 className="code-header">pub fn <a href="#method.scalar" className="fn">scalar</a>&lt;T: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/de/trait.DeserializeOwned.html" title="trait serde_core::de::DeserializeOwned">DeserializeOwned</a>&gt;(&amp;mut self) -&gt; <a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOpResult</a>&lt;T&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get a single scalar value from the first row, first column</p>
+<p>Useful for queries like <code>SELECT COUNT(\*) FROM table</code></p>
+<h5 id="example-2">Example</h5>
+<div>
+
+```rust
+use gpudb_api::SqlResult;
+
+let count: i64 = result.scalar()?;
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.get" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L991-L1009">Source</a>
+<h4 className="code-header">pub fn <a href="#method.get" className="fn">get</a>&lt;T: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/de/trait.DeserializeOwned.html" title="trait serde_core::de::DeserializeOwned">DeserializeOwned</a>&gt;( &amp;mut self, row: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, column: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, ) -&gt; <a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOpResult</a>&lt;T&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get a value from a specific row and column</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.rows" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1027-L1050">Source</a>
+<h4 className="code-header">pub fn <a href="#method.rows" className="fn">rows</a>(&amp;mut self) -&gt; <a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOpResult</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/sql/struct.Row" title="struct gpudb_api::sql::Row">Row</a>&gt;&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Iterate over rows in the result</p>
+<h5 id="example-3">Example</h5>
+<div>
+
+```rust
+use gpudb_api::SqlResult;
+
+for row in result.rows()? {
+    let id: i64 = row.get("column_1")?;
+    let name: String = row.get("column_2")?;
+    println!("id={}, name={}", id, name);
+}
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.deserialize" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1074-L1083">Source</a>
+<h4 className="code-header">pub fn <a href="#method.deserialize" className="fn">deserialize</a>&lt;T: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/de/trait.DeserializeOwned.html" title="trait serde_core::de::DeserializeOwned">DeserializeOwned</a>&gt;(&amp;mut self) -&gt; <a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOpResult</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;T&gt;&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Deserialize all rows into a Vec of structs</p>
+<h5 id="example-4">Example</h5>
+<div>
+
+```rust
+use gpudb_api::SqlResult;
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct User {
+    column_1: i64,  // id
+    column_2: String,  // name
+}
+
+let users: Vec<User> = result.deserialize()?;
+for user in users {
+    println!("id={}, name={}", user.column_1, user.column_2);
+}
+```
+
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<h2 id="trait-implementations" className="section-header">Trait Implementations</h2>
+<div id="trait-implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Debug-for-SqlResult" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L794">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> for <a className="struct" href="/content/api/rust/sql/struct.SqlResult" title="struct gpudb_api::sql::SqlResult">SqlResult</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.fmt" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L794">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt" className="fn">fmt</a>(&amp;self, f: &amp;mut <a className="struct" href="https://doc.rust-lang.org/1.98.1/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>&lt;'\_&gt;) -&gt; <a className="type" href="https://doc.rust-lang.org/1.98.1/core/fmt/type.Result.html" title="type core::fmt::Result">Result</a></h4>
+</div>
+</div>
+<div className="docblock">Formats the value using the given formatter. <a href="https://doc.rust-lang.org/1.98.1/core/fmt/trait.Debug.html#tymethod.fmt">Read more</a></div>
+</div>
+</div>
+</div>
+</div>
+</div>

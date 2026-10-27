@@ -58,16 +58,21 @@ A set of string constants for the <a href="/content/api/java/com/gpudb/protocol/
 <div className="block">Manually invokes write-ahead log (WAL) replay on the table.</div>
 </div>
 <div className="col-first odd-row-color"><code>static final <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></code></div>
-<div className="col-second odd-row-color"><code><a href="#SHRINK_COLUMNS" className="member-name-link">SHRINK\_COLUMNS</a></code></div>
+<div className="col-second odd-row-color"><code><a href="#RESYNC_REPLICAS" className="member-name-link">RESYNC\_REPLICAS</a></code></div>
 <div className="col-last odd-row-color">
-<div className="block">Shrinks corrupted chunks to the shortest column.</div>
+<div className="block">Repairs replicated tables whose record counts differ across the worker ranks and toms: the copy with the most records is kept, and every other copy is replaced with it.</div>
 </div>
 <div className="col-first even-row-color"><code>static final <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></code></div>
-<div className="col-second even-row-color"><code><a href="#TRUE" className="member-name-link">TRUE</a></code></div>
-<div className="col-last even-row-color">&nbsp;</div>
+<div className="col-second even-row-color"><code><a href="#SHRINK_COLUMNS" className="member-name-link">SHRINK\_COLUMNS</a></code></div>
+<div className="col-last even-row-color">
+<div className="block">Shrinks corrupted chunks to the shortest column.</div>
+</div>
 <div className="col-first odd-row-color"><code>static final <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></code></div>
-<div className="col-second odd-row-color"><code><a href="#VERIFY_ALL" className="member-name-link">VERIFY\_ALL</a></code></div>
-<div className="col-last odd-row-color">
+<div className="col-second odd-row-color"><code><a href="#TRUE" className="member-name-link">TRUE</a></code></div>
+<div className="col-last odd-row-color">&nbsp;</div>
+<div className="col-first even-row-color"><code>static final <a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></code></div>
+<div className="col-second even-row-color"><code><a href="#VERIFY_ALL" className="member-name-link">VERIFY\_ALL</a></code></div>
+<div className="col-last even-row-color">
 <div className="block">If <a href="#FALSE"><code>FALSE</code></a> only table chunk data already known to be corrupted will be repaired.</div>
 </div>
 </div>
@@ -101,6 +106,7 @@ Corrective action to take. Supported values:
 <li><a href="#SHRINK_COLUMNS"><code>SHRINK\_COLUMNS</code></a>: Shrinks corrupted chunks to the shortest column. </li>
 <li><a href="#REPLAY_WAL"><code>REPLAY\_WAL</code></a>: Manually invokes write-ahead log (WAL) replay on the table. </li>
 <li><a href="#ALTER_TABLE"><code>ALTER\_TABLE</code></a>: Reset columns modification after incomplete alter column. </li>
+<li><a href="#RESYNC_REPLICAS"><code>RESYNC\_REPLICAS</code></a>: Repairs replicated tables whose record counts differ across the worker ranks and toms: the copy with the most records is kept, and every other copy is replaced with it. That copy may include records from a load that did not complete, or records that a delete did not remove. A table whose copies all have the same number of records is not repaired, even if their contents differ. Views cannot be named in <a href="/content/api/java/com/gpudb/protocol/AdminRepairTableRequest#getTableNames()"><code>tableNames</code></a>; a named table that is not replicated is reported in <a href="/content/api/java/com/gpudb/protocol/AdminRepairTableResponse#getRepairStatus()"><code>repairStatus</code></a>. An asterisk selects every replicated table. The repair runs only while no other requests are running. The repaired tables are listed in the <a href="/content/api/java/com/gpudb/protocol/AdminRepairTableResponse.Info#REPAIRED_REPLICATED_TABLES"><code>REPAIRED\_REPLICATED\_TABLES</code></a> entry of the response <a href="/content/api/java/com/gpudb/protocol/AdminRepairTableResponse#getInfo()"><code>info</code></a> map. </li>
 </ul>
 </div>
 <div className="dl notes">
@@ -168,6 +174,21 @@ Corrective action to take. Supported values:
 <div className="dd">
 <ul className="tag-list">
 <li><a href="/content/api/java/constant-values#com.gpudb.protocol.AdminRepairTableRequest.Options.ALTER_TABLE">Constant Field Values</a></li>
+</ul>
+</div>
+</div>
+</div>
+</li>
+<li>
+<div className="section detail" id="RESYNC_REPLICAS">
+<h3>RESYNC\_REPLICAS</h3>
+<div className="member-signature"><span className="modifiers">public static final</span>&nbsp;<span className="return-type"><a href="https://docs.oracle.com/en/java/javase/11/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" className="external-link">String</a></span>&nbsp;<span className="element-name">RESYNC\_REPLICAS</span></div>
+<div className="block">Repairs replicated tables whose record counts differ across the worker ranks and toms: the copy with the most records is kept, and every other copy is replaced with it. That copy may include records from a load that did not complete, or records that a delete did not remove. A table whose copies all have the same number of records is not repaired, even if their contents differ. Views cannot be named in <a href="/content/api/java/com/gpudb/protocol/AdminRepairTableRequest#getTableNames()"><code>tableNames</code></a>; a named table that is not replicated is reported in <a href="/content/api/java/com/gpudb/protocol/AdminRepairTableResponse#getRepairStatus()"><code>repairStatus</code></a>. An asterisk selects every replicated table. The repair runs only while no other requests are running. The repaired tables are listed in the <a href="/content/api/java/com/gpudb/protocol/AdminRepairTableResponse.Info#REPAIRED_REPLICATED_TABLES"><code>REPAIRED\_REPLICATED\_TABLES</code></a> entry of the response <a href="/content/api/java/com/gpudb/protocol/AdminRepairTableResponse#getInfo()"><code>info</code></a> map.</div>
+<div className="dl notes">
+<div className="dt">See Also:</div>
+<div className="dd">
+<ul className="tag-list">
+<li><a href="/content/api/java/constant-values#com.gpudb.protocol.AdminRepairTableRequest.Options.RESYNC_REPLICAS">Constant Field Values</a></li>
 </ul>
 </div>
 </div>

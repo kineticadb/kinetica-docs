@@ -1,0 +1,33 @@
+---
+title: "submit_request_raw"
+---
+
+<div className="kinetica-rustdoc">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.submit_request_raw" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/gpudb.rs#L3847-L3880">Source</a>
+<h4 className="code-header">
+pub async fn <a href="/content/api/rust/gpudb/struct.Kinetica/submit-request#method.submit_request_raw" className="fn">submit\_request\_raw</a>&lt;Req, Resp&gt;( &amp;self, url: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, req\_schema: &amp;FastSchema, resp\_schema: &amp;FastSchema, request: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.reference.html">&amp;Req</a>, ) -&gt;<a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Resp, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;
+<div className="where">where Req: <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> + <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html" title="trait serde_core::ser::Serialize">Serialize</a>, Resp: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/de/trait.DeserializeOwned.html" title="trait serde_core::de::DeserializeOwned">DeserializeOwned</a>,</div>
+</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Submits a request directly to a specific URL without HA failover.</p>
+<p>This is the low-level method used internally by <code>submit\_request</code> and by bulk inserters that handle their own routing.</p>
+<h5 id="arguments-3">Arguments</h5>
+<ul>
+<li><code>url</code> - Full URL including endpoint</li>
+<li><code>req\_schema</code> - Pre-parsed Avro schema for the request</li>
+<li><code>resp\_schema</code> - Pre-parsed Avro schema for the response</li>
+<li><code>request</code> - The request object</li>
+</ul>
+<h5 id="performance-1">Performance</h5>
+<p>This is the fastest method, saving \~5-10ms per request by avoiding all schema parsing. Critical for bulk insert performance.</p>
+<h5 id="compression">Compression</h5>
+<p>The payload is Snappy-compressed only when <code>options.use\_snappy</code> is true <span className="em">and</span> the request type opts in via <a href="/content/api/rust/trait.KineticaRecord#method.use_compression" title="associated function gpudb_api::KineticaRecord::use_compression"><code>KineticaRecord::use\_compression</code></a>, which the generator enables for <code>/insert/records</code> and <code>/update/records</code> alone. Compressing a two-field <code>has\_table</code> request costs more than it saves.</p>
+<p>Payloads above <a href="/content/api/rust/gpudb/index#constant.MAX_SNAPPY_COMPRESSION_SIZE" title="constant gpudb_api::gpudb::MAX_SNAPPY_COMPRESSION_SIZE"><code>MAX\_SNAPPY\_COMPRESSION\_SIZE</code></a> are sent uncompressed.</p>
+</div>
+</div>
+</div>

@@ -1,0 +1,138 @@
+---
+title: "FileUploadListener"
+description: "FileUploadListener — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/filesystem/index">filesystem</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/listeners.rs#L37-L89">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub trait FileUploadListener: <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> {"{"}<br />&nbsp;&nbsp;&nbsp;&nbsp;// Required methods<br />&nbsp;&nbsp;&nbsp;&nbsp;fn <a href="#tymethod.on_multi_part_upload_complete" className="fn">on\_multi\_part\_upload\_complete</a>(&amp;self, results: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>&gt;);<br /><span className="item-spacer"></span>    fn <a href="#tymethod.on_part_upload" className="fn">on\_part\_upload</a>(&amp;self, result: <a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>);<br /><span className="item-spacer"></span>    fn <a href="#tymethod.on_full_file_upload" className="fn">on\_full\_file\_upload</a>(&amp;self, result: <a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>);<br /><br />&nbsp;&nbsp;&nbsp;&nbsp;// Provided method<br />&nbsp;&nbsp;&nbsp;&nbsp;fn <a href="#method.on_multi_part_upload_cancel" className="fn">on\_multi\_part\_upload\_cancel</a>(&amp;self, results: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>&gt;) {"{"} ... {"}"}<br />{"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Listener trait for file upload progress callbacks.</p>
+<p>Implement this trait to receive notifications about upload progress, including per-part completion for multi-part uploads.</p>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use gpudb_api::filesystem::{FileUploadListener, OperationResult};
+
+struct MyUploadListener;
+
+impl FileUploadListener for MyUploadListener {
+    fn on_multi_part_upload_complete(&self, results: Vec<OperationResult>) {
+        println!("Multi-part upload complete with {} parts", results.len());
+    }
+
+    fn on_part_upload(&self, result: OperationResult) {
+        if let Some(info) = &result.upload_info {
+            println!("Uploaded part {} of {}", info.upload_part_number, info.total_parts);
+        }
+    }
+
+    fn on_full_file_upload(&self, result: OperationResult) {
+        if result.successful {
+            println!("Uploaded: {:?}", result.full_file_names);
+        } else {
+            println!("Upload error: {:?}", result.error_message);
+        }
+    }
+}
+```
+
+</div>
+</div>
+</div>
+<h2 id="required-methods" className="section-header">Required Methods</h2>
+<div className="methods">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="tymethod.on_multi_part_upload_complete" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/listeners.rs#L48">Source</a>
+<h4 className="code-header">fn <a href="#tymethod.on_multi_part_upload_complete" className="fn">on\_multi\_part\_upload\_complete</a>(&amp;self, results: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>&gt;)</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Called when all parts of a multi-part upload have been completed.</p>
+<p>The list holds a result for every stage of the job, in order: the initiating stage, one per uploaded part, and the completing stage. Only the completing stage names the uploaded file in <code>full\_file\_names</code>. Use <code>upload\_info</code> to tell the stages apart.</p>
+<h5 id="arguments">Arguments</h5>
+<ul>
+<li><code>results</code> - List of results for each stage of the upload</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="tymethod.on_part_upload" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/listeners.rs#L74">Source</a>
+<h4 className="code-header">fn <a href="#tymethod.on_part_upload" className="fn">on\_part\_upload</a>(&amp;self, result: <a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>)</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Called whenever a single part of a multi-part upload has been completed.</p>
+<p>This is useful for tracking progress during large file uploads. It is called for the data parts only, not for the initiating or completing stages.</p>
+<h5 id="arguments-1">Arguments</h5>
+<ul>
+<li><code>result</code> - Result of the part upload</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="tymethod.on_full_file_upload" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/listeners.rs#L88">Source</a>
+<h4 className="code-header">fn <a href="#tymethod.on_full_file_upload" className="fn">on\_full\_file\_upload</a>(&amp;self, result: <a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>)</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Called for each batch of whole files sent in one request, as it finishes, and for each file that could not be read to be sent.</p>
+<p>For a batch sent, <code>full\_file\_names</code> lists its files and <code>file\_name</code> is empty; if the request failed, <code>successful</code> is false and <code>error\_message</code> says why. For a file that could not be read, <code>file\_name</code> is its local name and <code>error\_message</code> says why.</p>
+<h5 id="arguments-2">Arguments</h5>
+<ul>
+<li><code>result</code> - Result of the upload operation</li>
+</ul>
+</div>
+</div>
+</div>
+<h2 id="provided-methods" className="section-header">Provided Methods</h2>
+<div className="methods">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.on_multi_part_upload_cancel" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/listeners.rs#L61-L63">Source</a>
+<h4 className="code-header">fn <a href="#method.on_multi_part_upload_cancel" className="fn">on\_multi\_part\_upload\_cancel</a>(&amp;self, results: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>&gt;)</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Called when a multi-part upload was aborted because one of its stages failed after it had been initiated.</p>
+<p>The list holds a result for every stage that completed before the failure, followed by the cancelling stage. It is informational only: the failure is also reported in the upload’s returned error. Not called when the cancel request itself fails. By default it does nothing.</p>
+<h5 id="arguments-3">Arguments</h5>
+<ul>
+<li><code>results</code> - List of results for each stage, ending with the cancel</li>
+</ul>
+</div>
+</div>
+</div>
+<h2 id="dyn-compatibility" className="section-header">Dyn Compatibility</h2>
+<div className="dyn-compatibility-info">
+<p>This trait <span className="b">is</span> <a href="https://doc.rust-lang.org/1.98.1/reference/items/traits.html#dyn-compatibility">dyn compatible</a>.</p>
+<p><span className="i">In older versions of Rust, dyn compatibility was called "object safety".</span></p>
+</div>
+<h2 id="implementors" className="section-header">Implementors</h2>
+<div id="implementors-list">
+<div className="negative-marker"></div>
+<div id="impl-FileUploadListener-for-NoOpUploadListener" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/listeners.rs#L278-L282">Source</a>
+<h3 className="code-header">impl <a className="trait" href="/content/api/rust/filesystem/trait.FileUploadListener" title="trait gpudb_api::filesystem::FileUploadListener">FileUploadListener</a> for <a className="struct" href="/content/api/rust/filesystem/struct.NoOpUploadListener" title="struct gpudb_api::filesystem::NoOpUploadListener">NoOpUploadListener</a></h3>
+</div>
+<div id="impl-FileUploadListener-for-FnUploadListener%3CF1,+F2,+F3%3E" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/filesystem/listeners.rs#L190-L207">Source</a>
+<h3 className="code-header">
+impl&lt;F1, F2, F3&gt;<a className="trait" href="/content/api/rust/filesystem/trait.FileUploadListener" title="trait gpudb_api::filesystem::FileUploadListener">FileUploadListener</a> for <a className="struct" href="/content/api/rust/filesystem/struct.FnUploadListener" title="struct gpudb_api::filesystem::FnUploadListener">FnUploadListener</a>&lt;F1, F2, F3&gt;
+<div className="where">where F1: <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/ops/function/trait.Fn.html" title="trait core::ops::function::Fn">Fn</a>(<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>&gt;) + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a>, F2: <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/ops/function/trait.Fn.html" title="trait core::ops::function::Fn">Fn</a>(<a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>) + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a>, F3: <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/ops/function/trait.Fn.html" title="trait core::ops::function::Fn">Fn</a>(<a className="struct" href="/content/api/rust/filesystem/struct.OperationResult" title="struct gpudb_api::filesystem::OperationResult">OperationResult</a>) + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a>,</div>
+</h3>
+</div>
+</div>
+</div>

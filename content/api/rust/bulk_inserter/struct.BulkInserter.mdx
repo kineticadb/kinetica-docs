@@ -1,0 +1,816 @@
+---
+title: "BulkInserter"
+description: "BulkInserter — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/bulk_inserter/index">bulk\_inserter</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L1101-L1277">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub struct BulkInserter&lt;T&gt; {"{"} <span className="comment">/\* private fields \*/</span> {"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Shard-aware high-performance bulk inserter.</p>
+<p>Routes records to the correct worker based on shard key computation, enabling true multi-head ingest. Uses <code>serde\_avro\_fast</code> for fast Avro encoding and rayon for parallel processing.</p>
+<p>It also provides:</p>
+<ul>
+<li>Support for insert options (update\_on\_existing\_pk, etc.)</li>
+<li>Permission checking before insertion</li>
+<li>Table replication detection (replicated tables use head node only)</li>
+<li>Multi-head ingest configuration</li>
+<li>Retry logic with configurable max retries</li>
+</ul>
+<h2 id="ha-failover-safety">HA Failover Safety</h2>
+<p>This implementation uses <code>ArcSwap</code> for lock-free atomic updates of routing state during HA failover. This ensures:</p>
+<ul>
+<li>No race conditions when routing table changes during insert operations</li>
+<li>No out-of-bounds indexing from stale routing data</li>
+<li>Records are always routed using consistent, up-to-date routing information</li>
+</ul>
+</div>
+</div>
+<h2 id="implementations" className="section-header">Implementations</h2>
+<div id="implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-BulkInserter%3CT%3E" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L1280-L1340">Source</a>
+<h3 className="code-header">impl&lt;T: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html" title="trait serde_core::ser::Serialize">Serialize</a> + <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> + <a className="trait" href="/content/api/rust/bulk_inserter_common/trait.ShardKeyExtractor" title="trait gpudb_api::bulk_inserter_common::ShardKeyExtractor">ShardKeyExtractor</a> + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/default/trait.Default.html" title="trait core::default::Default">Default</a>&gt; <a className="struct" href="/content/api/rust/bulk_inserter/struct.BulkInserter" title="struct gpudb_api::bulk_inserter::BulkInserter">BulkInserter</a>&lt;T&gt;</h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.new" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L1294-L1301">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.new" className="fn">new</a>( kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, table\_name: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, batch\_size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, num\_workers: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;Self&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Creates a new shard-aware BulkInserter instance with default options.</p>
+<p>This is a convenience method that calls <code>with\_options</code> with <code>None</code> for options. For more control over insert behavior, use <code>with\_options</code> directly.</p>
+<h5 id="arguments">Arguments</h5>
+<ul>
+<li><code>kinetica</code> - Shared Kinetica client</li>
+<li><code>table\_name</code> - Target table for inserts (including schema, e.g., “my\_schema.my\_table”)</li>
+<li><code>batch\_size</code> - Records per batch (recommended: 50000)</li>
+<li><code>num\_workers</code> - Number of flush workers, i.e. of batches sent concurrently; used exactly as given. <code>0</code> sizes the pool at one worker per available CPU.</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.with_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L1329-L1339">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.with_options" className="fn">with\_options</a>( kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, table\_name: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, batch\_size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, num\_workers: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/bulk_inserter/struct.BulkInserterOptions" title="struct gpudb_api::bulk_inserter::BulkInserterOptions">BulkInserterOptions</a>&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;Self&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Creates a new shard-aware BulkInserter instance with the specified options.</p>
+<p>This constructor:</p>
+<ol>
+<li>Validates user permissions for the table</li>
+<li>Validates batch size</li>
+<li>Checks if the table is replicated</li>
+<li>Configures multi-head ingest (if available and table is not replicated)</li>
+<li>Sets up worker queues and routing</li>
+</ol>
+<h5 id="arguments-1">Arguments</h5>
+<ul>
+<li><code>kinetica</code> - Shared Kinetica client</li>
+<li><code>table\_name</code> - Target table for inserts (including schema, e.g., “my\_schema.my\_table”)</li>
+<li><code>batch\_size</code> - Records per batch (recommended: 50000); must be &gt; 0</li>
+<li><code>num\_workers</code> - Number of flush workers, i.e. of batches sent concurrently; used exactly as given. <code>0</code> sizes the pool at one worker per available CPU.</li>
+<li><code>options</code> - Optional BulkInserterOptions for configuring insert behavior</li>
+</ul>
+<h5 id="errors">Errors</h5>
+<p>Returns an error if:</p>
+<ul>
+<li>User doesn’t have required permissions (insert, and update if using upsert)</li>
+<li>Table doesn’t exist</li>
+<li>Batch size is less than 1</li>
+<li>Unable to configure multi-head ingest</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-BulkInserter%3CT%3E-1" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L1343-L1392">Source</a>
+<h3 className="code-header">impl&lt;T: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html" title="trait serde_core::ser::Serialize">Serialize</a> + <a className="trait" href="/content/api/rust/trait.KineticaRecord" title="trait gpudb_api::KineticaRecord">KineticaRecord</a> + <a className="trait" href="/content/api/rust/bulk_inserter_common/trait.ShardKeyExtractor" title="trait gpudb_api::bulk_inserter_common::ShardKeyExtractor">ShardKeyExtractor</a> + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static&gt; <a className="struct" href="/content/api/rust/bulk_inserter/struct.BulkInserter" title="struct gpudb_api::bulk_inserter::BulkInserter">BulkInserter</a>&lt;T&gt;</h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.with_schema" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L1382-L1391">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.with_schema" className="fn">with\_schema</a>( kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, table\_name: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, batch\_size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, num\_workers: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/bulk_inserter/struct.BulkInserterOptions" title="struct gpudb_api::bulk_inserter::BulkInserterOptions">BulkInserterOptions</a>&gt;, schema\_str: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;Self&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Creates a new shard-aware BulkInserter instance with an explicit schema.</p>
+<p>This constructor is useful for types that cannot implement <code>Default</code>, such as <code>GenericRecord</code> which requires a <code>Type</code> reference at construction time.</p>
+<h5 id="arguments-2">Arguments</h5>
+<ul>
+<li><code>kinetica</code> - Shared Kinetica client</li>
+<li><code>table\_name</code> - Target table for inserts (including schema, e.g., “my\_schema.my\_table”)</li>
+<li><code>batch\_size</code> - Records per batch (recommended: 50000); must be &gt; 0</li>
+<li><code>num\_workers</code> - Number of flush workers, i.e. of batches sent concurrently; used exactly as given. <code>0</code> sizes the pool at one worker per available CPU.</li>
+<li><code>options</code> - Optional BulkInserterOptions for configuring insert behavior</li>
+<li><code>schema\_str</code> - The Avro schema JSON string for the record type</li>
+</ul>
+<h5 id="example">Example</h5>
+<div>
+
+```rust
+use gpudb_api::{BulkInserter, GenericRecord, Type};
+
+let record_type = Arc::new(Type::from_table(&kinetica, "my_table").await?);
+let schema_str = record_type.schema_string();
+
+let inserter = BulkInserter::<GenericRecord>::with_schema(
+    kinetica,
+    "my_table".into(),
+    50000,
+    8,
+    None,
+    schema_str,
+).await?;
+```
+
+</div>
+</div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-BulkInserter%3CString%3E" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L1401-L1427">Source</a>
+<h3 className="code-header">impl <a className="struct" href="/content/api/rust/bulk_inserter/struct.BulkInserter" title="struct gpudb_api::bulk_inserter::BulkInserter">BulkInserter</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h3>
+<div className="docblock">
+<p>An inserter of JSON records.</p>
+</div>
+</div>
+</div>
+<div className="docblock">
+<p>Each record is one JSON object, as text. Records are sent as JSON arrays to the ranks’ <code>/insert/records/json</code>, each to the rank of a random shard: the client does not read their keys. A batch the server fails is reported as any other, through <a href="/content/api/rust/bulk_inserter/struct.BulkInserter#method.drain_errors" title="method gpudb_api::bulk_inserter::BulkInserter::drain_errors"><code>drain\_errors</code></a>, and one that meets a connection failure is retried and failed over like any other.</p>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.new_json" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L1405-L1412">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.new_json" className="fn">new\_json</a>( kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, table\_name: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, batch\_size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, num\_workers: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;Self&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Creates a JSON inserter with the default <a href="/content/api/rust/json_records/struct.JsonOptions" title="struct gpudb_api::json_records::JsonOptions"><code>JsonOptions</code></a> and options.</p>
+<p><code>num\_workers</code> is as for <a href="/content/api/rust/bulk_inserter/struct.BulkInserter#method.with_schema" title="associated function gpudb_api::bulk_inserter::BulkInserter::with_schema"><code>BulkInserter::with\_schema</code></a>.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.with_json_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L1416-L1426">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.with_json_options" className="fn">with\_json\_options</a>( kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, table\_name: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, batch\_size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, num\_workers: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>, options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/bulk_inserter/struct.BulkInserterOptions" title="struct gpudb_api::bulk_inserter::BulkInserterOptions">BulkInserterOptions</a>&gt;, json\_options: <a className="struct" href="/content/api/rust/json_records/struct.JsonOptions" title="struct gpudb_api::json_records::JsonOptions">JsonOptions</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;Self&gt;, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Creates a JSON inserter. With <a href="/content/api/rust/json_records/struct.JsonOptions#method.is_validate_json" title="method gpudb_api::json_records::JsonOptions::is_validate_json"><code>JsonOptions::is\_validate\_json</code></a>, each record inserted must be a JSON object.</p>
+</div>
+</div>
+</div>
+</div>
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-BulkInserter%3CT%3E-2" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L1430-L3608">Source</a>
+<h3 className="code-header">impl&lt;T: <a className="trait" href="https://docs.rs/serde_core/1.0.228/serde_core/ser/trait.Serialize.html" title="trait serde_core::ser::Serialize">Serialize</a> + <a className="trait" href="/content/api/rust/bulk_inserter_common/trait.ShardKeyExtractor" title="trait gpudb_api::bulk_inserter_common::ShardKeyExtractor">ShardKeyExtractor</a> + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/marker/trait.Sync.html" title="trait core::marker::Sync">Sync</a> + 'static&gt; <a className="struct" href="/content/api/rust/bulk_inserter/struct.BulkInserter" title="struct gpudb_api::bulk_inserter::BulkInserter">BulkInserter</a>&lt;T&gt;</h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.insert" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L1970-L1975">Source</a>
+<h4 className="code-header">pub fn <a href="#method.insert" className="fn">insert</a>(&amp;self, record: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;T&gt;) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="struct" href="/content/api/rust/bulk_inserter/struct.QueueError" title="struct gpudb_api::bulk_inserter::QueueError">QueueError</a>&lt;T&gt;&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Inserts a single record with shard-aware routing.</p>
+<p>The record’s shard key is computed using <code>ShardKeyExtractor::shard\_key\_values()</code>, and the record is routed to the worker that owns the corresponding shard.</p>
+<h5 id="errors-1">Errors</h5>
+<p>Returns an error if the record cannot be routed — see <a href="/content/api/rust/bulk_inserter/struct.BulkInserter#method.route_to_worker" title="method gpudb_api::bulk_inserter::BulkInserter::route_to_worker"><code>Self::route\_to\_worker</code></a>. The record is not queued in that case, and comes back in the <a href="/content/api/rust/bulk_inserter/struct.QueueError" title="struct gpudb_api::bulk_inserter::QueueError"><code>QueueError</code></a>.</p>
+<p>Also returns an error after <a href="/content/api/rust/bulk_inserter/struct.BulkInserter#method.close" title="method gpudb_api::bulk_inserter::BulkInserter::close"><code>close</code></a> when this record fills a batch: the batch cannot be sent, and its records come back.</p>
+<h5 id="ha-failover-safety-1">HA Failover Safety</h5>
+<p>This method uses <code>ArcSwap::load()</code> to get the current routing state, which provides:</p>
+<ul>
+<li>Lock-free atomic read of the routing configuration</li>
+<li>Consistent routing even during HA failover (no torn reads)</li>
+<li>No race conditions with concurrent routing updates</li>
+</ul>
+<p>A JSON inserter whose <a href="/content/api/rust/json_records/struct.JsonOptions" title="struct gpudb_api::json_records::JsonOptions"><code>JsonOptions</code></a> ask for it first checks that the record is a JSON object.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.insert_with_backpressure" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2057-L2094">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.insert_with_backpressure" className="fn">insert\_with\_backpressure</a>( &amp;self, record: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;T&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Inserts a single record with backpressure control.</p>
+<p>This async method will wait if the maximum in-flight batches limit is reached, providing memory-bounded operation for high-throughput scenarios.</p>
+<h5 id="ha-failover-safety-2">HA Failover Safety</h5>
+<p>This method uses <code>ArcSwap::load()</code> to get the current routing state atomically.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.insert_batch" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2145-L2160">Source</a>
+<h4 className="code-header">pub fn <a href="#method.insert_batch" className="fn">insert\_batch</a>(&amp;self, records: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;T&gt;) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="struct" href="/content/api/rust/bulk_inserter/struct.QueueError" title="struct gpudb_api::bulk_inserter::QueueError">QueueError</a>&lt;T&gt;&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Inserts a batch of records with shard-aware routing.</p>
+<p>This method is more efficient than calling <code>insert()</code> in a loop because:</p>
+<ol>
+<li>Worker indices are computed in parallel using rayon</li>
+<li>Records are grouped by destination before any lock is taken</li>
+<li>Each destination’s queue is locked once per call, not once per record</li>
+</ol>
+<p>The records go into the calling thread’s stripe of each queue, as <code>insert</code> puts them, and a batch is sent each time that stripe reaches the batch size. No batch is larger than the batch size.</p>
+<h5 id="arguments-3">Arguments</h5>
+<ul>
+<li><code>records</code> - A vector of records to insert. Each record will be wrapped in Arc internally.</li>
+</ul>
+<h5 id="errors-2">Errors</h5>
+<p>The records before the first that cannot be routed are queued, and that record and every one after it come back in the <a href="/content/api/rust/bulk_inserter/struct.QueueError" title="struct gpudb_api::bulk_inserter::QueueError"><code>QueueError</code></a> with its error. A list whose JSON does not validate is not queued at all, and comes back whole.</p>
+<h5 id="example-1">Example</h5>
+<div>
+
+```rust
+let records: Vec<MyRecord> = (0..100_000)
+    .map(|i| MyRecord { id: i, name: format!("name_{}", i) })
+    .collect();
+inserter.insert_batch(records)?;
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.insert_batch_arc" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2169-L2184">Source</a>
+<h4 className="code-header">pub fn <a href="#method.insert_batch_arc" className="fn">insert\_batch\_arc</a>( &amp;self, records: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;T&gt;&gt;, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="struct" href="/content/api/rust/bulk_inserter/struct.QueueError" title="struct gpudb_api::bulk_inserter::QueueError">QueueError</a>&lt;T&gt;&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Inserts a batch of records that are already wrapped in Arc.</p>
+<p>This is useful when records are shared or when the caller already has Arc-wrapped records.</p>
+<h5 id="arguments-4">Arguments</h5>
+<ul>
+<li><code>records</code> - A vector of Arc-wrapped records to insert.</li>
+</ul>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.count_inserted" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2737-L2739">Source</a>
+<h4 className="code-header">pub fn <a href="#method.count_inserted" className="fn">count\_inserted</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the total number of records successfully inserted.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.count_updated" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2742-L2744">Source</a>
+<h4 className="code-header">pub fn <a href="#method.count_updated" className="fn">count\_updated</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the total number of records successfully updated (for upserts).</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.table_name" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2747-L2749">Source</a>
+<h4 className="code-header">pub fn <a href="#method.table_name" className="fn">table\_name</a>(&amp;self) -&gt; &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the table name.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.batch_size" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2752-L2754">Source</a>
+<h4 className="code-header">pub fn <a href="#method.batch_size" className="fn">batch\_size</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the batch size.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.is_table_replicated" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2757-L2759">Source</a>
+<h4 className="code-header">pub fn <a href="#method.is_table_replicated" className="fn">is\_table\_replicated</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns whether the target table is replicated.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.is_multi_head_enabled" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2762-L2764">Source</a>
+<h4 className="code-header">pub fn <a href="#method.is_multi_head_enabled" className="fn">is\_multi\_head\_enabled</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns whether multi-head ingest is enabled.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.is_using_head_node" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2767-L2769">Source</a>
+<h4 className="code-header">pub fn <a href="#method.is_using_head_node" className="fn">is\_using\_head\_node</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns whether the head node is being used (replicated table or multi-head disabled).</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.max_retries" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2772-L2774">Source</a>
+<h4 className="code-header">pub fn <a href="#method.max_retries" className="fn">max\_retries</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the current maximum retries for failed insertions.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_max_retries" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2777-L2779">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_max_retries" className="fn">set\_max\_retries</a>(&amp;self, max\_retries: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a>)</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Sets the maximum retries for failed insertions.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2782-L2784">Source</a>
+<h4 className="code-header">pub fn <a href="#method.options" className="fn">options</a>(&amp;self) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;&amp;<a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns a reference to the insert options.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.json_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2787-L2789">Source</a>
+<h4 className="code-header">pub fn <a href="#method.json_options" className="fn">json\_options</a>(&amp;self) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/json_records/struct.JsonOptions" title="struct gpudb_api::json_records::JsonOptions">JsonOptions</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>The JSON options of a JSON inserter, or those set since.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_json_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2793-L2795">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_json_options" className="fn">set\_json\_options</a>(&amp;self, json\_options: <a className="struct" href="/content/api/rust/json_records/struct.JsonOptions" title="struct gpudb_api::json_records::JsonOptions">JsonOptions</a>)</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Replaces the JSON options, which a JSON inserter reads for each record it is given. They do not make an inserter of Avro records a JSON one.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.flush_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2798-L2800">Source</a>
+<h4 className="code-header">pub fn <a href="#method.flush_options" className="fn">flush\_options</a>(&amp;self) -&gt; <a className="struct" href="/content/api/rust/bulk_inserter/struct.FlushOptions" title="struct gpudb_api::bulk_inserter::FlushOptions">FlushOptions</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the flush options.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.timed_flush_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2803-L2805">Source</a>
+<h4 className="code-header">pub fn <a href="#method.timed_flush_options" className="fn">timed\_flush\_options</a>(&amp;self) -&gt; <a className="struct" href="/content/api/rust/bulk_inserter/struct.FlushOptions" title="struct gpudb_api::bulk_inserter::FlushOptions">FlushOptions</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>The timed flush options.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.set_timed_flush_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2811-L2819">Source</a>
+<h4 className="code-header">pub fn <a href="#method.set_timed_flush_options" className="fn">set\_timed\_flush\_options</a>( self: &amp;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;Self&gt;, flush\_options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="/content/api/rust/bulk_inserter/struct.FlushOptions" title="struct gpudb_api::bulk_inserter::FlushOptions">FlushOptions</a>&gt;, )</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Replaces the timed flush options, <code>None</code> restoring the defaults (no timed flush), and restarts the timed flush with them. A scheduled timed flush is stopped first, and a new one starts if the new interval is positive, its first run one interval from now.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.is_return_individual_errors" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2875-L2877">Source</a>
+<h4 className="code-header">pub fn <a href="#method.is_return_individual_errors" className="fn">is\_return\_individual\_errors</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns whether return\_individual\_errors mode is active.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.buffered_record_count" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2883-L2892">Source</a>
+<h4 className="code-header">pub fn <a href="#method.buffered_record_count" className="fn">buffered\_record\_count</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the number of records currently buffered in worker queues.</p>
+<p>These are records that have been queued via <code>insert()</code> but not yet sent to the flush workers. Call <code>flush()</code> to send these records.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.in_flight_record_estimate" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2898-L2900">Source</a>
+<h4 className="code-header">pub fn <a href="#method.in_flight_record_estimate" className="fn">in\_flight\_record\_estimate</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the estimated number of records in-flight (sent but not yet confirmed).</p>
+<p>This is an estimate based on pending\_batches \* batch\_size. The actual number may be slightly different due to partial batches.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.kinetica" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2907-L2909">Source</a>
+<h4 className="code-header">pub fn <a href="#method.kinetica" className="fn">kinetica</a>(&amp;self) -&gt; &amp;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>The connection this inserter sends through.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.drain_errors" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2913-L2916">Source</a>
+<h4 className="code-header">pub fn <a href="#method.drain_errors" className="fn">drain\_errors</a>(&amp;self) -&gt; <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="/content/api/rust/bulk_inserter/struct.InsertError" title="struct gpudb_api::bulk_inserter::InsertError">InsertError</a>&lt;T&gt;&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Drains and returns all queued errors. This clears the error queue, so subsequent calls return new errors only.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.error_count" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2919-L2921">Source</a>
+<h4 className="code-header">pub fn <a href="#method.error_count" className="fn">error\_count</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the number of queued errors without draining.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.failed_record_count" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2925-L2927">Source</a>
+<h4 className="code-header">pub fn <a href="#method.failed_record_count" className="fn">failed\_record\_count</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the total number of records that failed to insert. This sums the record\_count from all errors in the queue.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.drain_warnings" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2930-L2933">Source</a>
+<h4 className="code-header">pub fn <a href="#method.drain_warnings" className="fn">drain\_warnings</a>(&amp;self) -&gt; <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Drains and returns all queued warnings.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.warning_count" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2936-L2938">Source</a>
+<h4 className="code-header">pub fn <a href="#method.warning_count" className="fn">warning\_count</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the number of queued warnings without draining.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.is_timed_flush_running" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2941-L2943">Source</a>
+<h4 className="code-header">pub fn <a href="#method.is_timed_flush_running" className="fn">is\_timed\_flush\_running</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns whether timed flush is currently running.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.stop_timed_flush" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2946-L2948">Source</a>
+<h4 className="code-header">pub fn <a href="#method.stop_timed_flush" className="fn">stop\_timed\_flush</a>(&amp;self)</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Stops the timed flush task.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.max_in_flight_batches" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2951-L2953">Source</a>
+<h4 className="code-header">pub fn <a href="#method.max_in_flight_batches" className="fn">max\_in\_flight\_batches</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the maximum number of in-flight batches configured.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.available_in_flight_permits" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2956-L2958">Source</a>
+<h4 className="code-header">pub fn <a href="#method.available_in_flight_permits" className="fn">available\_in\_flight\_permits</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the number of available in-flight permits.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.backpressure_metrics" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L2977-L2997">Source</a>
+<h4 className="code-header">pub fn <a href="#method.backpressure_metrics" className="fn">backpressure\_metrics</a>(&amp;self) -&gt; <a className="struct" href="/content/api/rust/bulk_inserter/struct.BackpressureMetrics" title="struct gpudb_api::bulk_inserter::BackpressureMetrics">BackpressureMetrics</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns backpressure metrics for monitoring.</p>
+<p>This provides visibility into the backpressure state of the inserter, useful for monitoring and tuning <code>max\_in\_flight\_batches</code>.</p>
+<h5 id="example-2">Example</h5>
+<div>
+
+```rust
+let metrics = inserter.backpressure_metrics();
+println!("In-flight: {}/{} ({:.1}% utilized)",
+    metrics.in_flight_batches,
+    metrics.max_in_flight_batches,
+    metrics.utilization_pct
+);
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.flush" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L3017-L3021">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.flush" className="fn">flush</a>(&amp;self) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Flushes all buffered records to the server and waits until they have been acknowledged.</p>
+<p>When this returns <code>Ok(())</code>, every record queued before the call has either been inserted or recorded in the error queue — so a subsequent read is guaranteed to see them.</p>
+<p>Check <a href="/content/api/rust/bulk_inserter/struct.BulkInserter#method.error_count" title="method gpudb_api::bulk_inserter::BulkInserter::error_count"><code>error\_count</code></a> or <a href="/content/api/rust/bulk_inserter/struct.BulkInserter#method.drain_errors" title="method gpudb_api::bulk_inserter::BulkInserter::drain_errors"><code>drain\_errors</code></a> afterwards to see whether any records failed; a returned <code>Ok</code> means “all batches finished”, not “all batches succeeded”.</p>
+<p>Use <a href="/content/api/rust/bulk_inserter/struct.BulkInserter#method.flush_no_wait" title="method gpudb_api::bulk_inserter::BulkInserter::flush_no_wait"><code>flush\_no\_wait</code></a> if you deliberately want to hand the batches off without waiting.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.flush_no_wait" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L3030-L3035">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.flush_no_wait" className="fn">flush\_no\_wait</a>(&amp;self) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Hands all buffered records to the flush workers without waiting for them to complete.</p>
+<p>Prefer <a href="/content/api/rust/bulk_inserter/struct.BulkInserter#method.flush" title="method gpudb_api::bulk_inserter::BulkInserter::flush"><code>flush</code></a> — after this returns, the records have <span className="em">not</span> necessarily reached the server, so reading the table back may not see them. This exists for background flushing (the timed-flush task uses it) where blocking would stall the caller.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.pending_batches" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L3112-L3114">Source</a>
+<h4 className="code-header">pub fn <a href="#method.pending_batches" className="fn">pending\_batches</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the number of pending batches (sent but not yet completed).</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.close" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L3138-L3164">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.close" className="fn">close</a>(&amp;self) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Closes the BulkInserter, flushing all records and waiting for completion.</p>
+<p>This method:</p>
+<ol>
+<li>Flushes all buffered records to the flush workers</li>
+<li>Waits for all pending batches to complete</li>
+<li>Stops the flush workers and the timed flush</li>
+</ol>
+<p>The inserter cannot send anything afterwards: an insert still buffers, but one that fills a batch, or a <code>flush()</code> with records buffered, fails.</p>
+<p><strong>IMPORTANT</strong>: This method will wait indefinitely until all pending batches complete. It only returns when:</p>
+<ol>
+<li>All records have been successfully inserted, OR</li>
+<li>All records have either succeeded or failed (with errors queued)</li>
+</ol>
+<p>Failed records are tracked in the error queue and can be retrieved via <code>drain\_errors()</code>. The method guarantees that <code>inserted + updated + failed = queued</code>.</p>
+<h5 id="returns">Returns</h5>
+<p>Returns <code>Ok(())</code> when all batches have completed (success or failure). Check <code>error\_count()</code> or <code>drain\_errors()</code> to see if any records failed.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.close_with_timeout" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L3178-L3220">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.close_with_timeout" className="fn">close\_with\_timeout</a>( &amp;self, timeout: <a className="struct" href="https://doc.rust-lang.org/1.98.1/core/time/struct.Duration.html" title="struct core::time::Duration">Duration</a>, ) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.unit.html">()</a>, <a className="enum" href="/content/api/rust/errors/enum.KineticaError" title="enum gpudb_api::errors::KineticaError">KineticaError</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Closes the BulkInserter with an optional timeout.</p>
+<p>If timeout is reached, returns an error but records may still be in-flight. <strong>Prefer using <code>close()</code> without timeout to ensure all records are flushed.</strong></p>
+<h5 id="arguments-5">Arguments</h5>
+<ul>
+<li><code>timeout</code> - Maximum time to wait for pending batches to complete</li>
+</ul>
+<h5 id="returns-1">Returns</h5>
+<p>Returns <code>Ok(())</code> if all batches completed, or <code>Err</code> if timeout was reached.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.shard_column_count" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L3227-L3229">Source</a>
+<h4 className="code-header">pub fn <a href="#method.shard_column_count" className="fn">shard\_column\_count</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the number of shard key columns used for routing.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.shard_column_names" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L3232-L3236">Source</a>
+<h4 className="code-header">pub fn <a href="#method.shard_column_names" className="fn">shard\_column\_names</a>(&amp;self) -&gt; <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/vec/struct.Vec.html" title="struct alloc::vec::Vec">Vec</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the names of shard key columns.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.routing_table_size" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L3239-L3241">Source</a>
+<h4 className="code-header">pub fn <a href="#method.routing_table_size" className="fn">routing\_table\_size</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the routing table size (number of shards).</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.worker_count" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L3244-L3246">Source</a>
+<h4 className="code-header">pub fn <a href="#method.worker_count" className="fn">worker\_count</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the number of worker queues.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.num_cluster_switches" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L3254-L3256">Source</a>
+<h4 className="code-header">pub fn <a href="#method.num_cluster_switches" className="fn">num\_cluster\_switches</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the number of times the connection has switched clusters due to failover.</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.ha_ring_size" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L3259-L3261">Source</a>
+<h4 className="code-header">pub fn <a href="#method.ha_ring_size" className="fn">ha\_ring\_size</a>(&amp;self) -&gt; <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.usize.html">usize</a></h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the current HA ring size (number of clusters).</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.current_head_node_url" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L3264-L3266">Source</a>
+<h4 className="code-header">pub fn <a href="#method.current_head_node_url" className="fn">current\_head\_node\_url</a>(&amp;self) -&gt; <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="https://docs.rs/url/2.5.7/url/struct.Url.html" title="struct url::Url">Url</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Returns the current head node URL.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<h2 id="trait-implementations" className="section-header">Trait Implementations</h2>
+<div id="trait-implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Drop-for-BulkInserter%3CT%3E" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L3614-L3634">Source</a>
+<h3 className="code-header">impl&lt;T&gt; <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/ops/drop/trait.Drop.html" title="trait core::ops::drop::Drop">Drop</a> for <a className="struct" href="/content/api/rust/bulk_inserter/struct.BulkInserter" title="struct gpudb_api::bulk_inserter::BulkInserter">BulkInserter</a>&lt;T&gt;</h3>
+<div className="docblock">
+<p>Dropping an inserter stops its background tasks (they hold only <code>Weak</code> references, and the shutdown sender goes with it), so nothing leaks. It cannot flush, since that is asynchronous: records still buffered, or queued but not yet sent, are lost. Say so, rather than lose them silently.</p>
+</div>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.drop" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/bulk_inserter.rs#L3615-L3633">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/ops/drop/trait.Drop.html#method.drop" className="fn">drop</a>(&amp;mut self)</h4>
+</div>
+</div>
+<div className="docblock">Executes the destructor for this type. <a href="https://doc.rust-lang.org/1.98.1/core/ops/drop/trait.Drop.html#method.drop">Read more</a></div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.pin_drop" className="section method trait-impl">
+<a className="src rightside" href="https://doc.rust-lang.org/1.98.1/src/core/ops/drop.rs.html#267">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/ops/drop/trait.Drop.html#method.pin_drop" className="fn">pin\_drop</a>(self: <a className="struct" href="https://doc.rust-lang.org/1.98.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;&amp;mut Self&gt;)</h4>
+</div>
+</div>
+<span className="item-info"><div className="stab unstable"><span className="emoji">🔬</span><span>This is a nightly-only experimental API. (<code>pin\_ergonomics</code>)</span></div></span>
+<div className="docblock">Execute the destructor for this type, but different to <a href="https://doc.rust-lang.org/1.98.1/core/ops/drop/trait.Drop.html#method.drop" title="method core::ops::drop::Drop::drop"><code>Drop::drop</code></a>, it requires <code>self</code> to be pinned. <a href="https://doc.rust-lang.org/1.98.1/core/ops/drop/trait.Drop.html#method.pin_drop">Read more</a></div>
+</div>
+</div>
+</div>
+</div>
+</div>

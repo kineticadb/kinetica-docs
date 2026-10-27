@@ -1,0 +1,332 @@
+---
+title: "SqlClient"
+description: "SqlClient — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a>::<wbr /><a href="/content/api/rust/sql/index">sql</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1132-L1138">Source</a> </span>
+</div>
+<pre className="rust item-decl"><code>pub struct SqlClient {"{"} <span className="comment">/\* private fields \*/</span> {"}"}</code></pre>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>High-level SQL client that wraps Kinetica with result parsing.</p>
+<p><code>SqlClient</code> executes SQL through Kinetica’s <code>/execute/sql</code> endpoint and returns <a href="/content/api/rust/sql/struct.SqlResult" title="struct gpudb_api::sql::SqlResult"><code>SqlResult</code></a>s, with helpers for paging through large result sets.</p>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use gpudb_api::{Kinetica, KineticaOptions, SqlClient};
+use std::sync::Arc;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let options = KineticaOptions::new();
+    let kinetica = Arc::new(
+        Kinetica::new(vec!["http://localhost:9191".to_string()], options).await?
+    );
+
+    let client = SqlClient::new(kinetica);
+
+    // Execute a SELECT query
+    let result = client.execute("SELECT * FROM my_table LIMIT 10").await?;
+    println!("Found {} records", result.total_records());
+
+    // Fetch a specific page
+    let page = client.execute_paged("SELECT * FROM my_table ORDER BY id", 100, 50).await?;
+
+    Ok(())
+}
+```
+
+</div>
+</div>
+</div>
+<h2 id="implementations" className="section-header">Implementations</h2>
+<div id="implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-SqlClient" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1140-L1498">Source</a>
+<h3 className="code-header">impl <a className="struct" href="/content/api/rust/sql/struct.SqlClient" title="struct gpudb_api::sql::SqlClient">SqlClient</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.new" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1157-L1163">Source</a>
+<h4 className="code-header">pub fn <a href="#method.new" className="fn">new</a>(kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Create a new SqlClient wrapping a Kinetica instance</p>
+<h5 id="example-1">Example</h5>
+<div>
+
+```rust
+use gpudb_api::{Kinetica, KineticaOptions, SqlClient};
+use std::sync::Arc;
+
+let kinetica = Arc::new(
+    Kinetica::new(vec!["http://localhost:9191".to_string()], KineticaOptions::new()).await?
+);
+let client = SqlClient::new(kinetica);
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.with_defaults" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1166-L1172">Source</a>
+<h4 className="code-header">pub fn <a href="#method.with_defaults" className="fn">with\_defaults</a>( kinetica: <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;, encoding: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, limit: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, ) -&gt; Self</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Create a SqlClient with custom defaults</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.kinetica" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1175-L1177">Source</a>
+<h4 className="code-header">pub fn <a href="#method.kinetica" className="fn">kinetica</a>(&amp;self) -&gt; &amp;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/sync/struct.Arc.html" title="struct alloc::sync::Arc">Arc</a>&lt;<a className="struct" href="/content/api/rust/gpudb/struct.Kinetica" title="struct gpudb_api::gpudb::Kinetica">Kinetica</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Get a reference to the underlying Kinetica client</p>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.execute" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1192-L1194">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.execute" className="fn">execute</a>(&amp;self, sql: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>) -&gt; <a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOpResult</a>&lt;<a className="struct" href="/content/api/rust/sql/struct.SqlResult" title="struct gpudb_api::sql::SqlResult">SqlResult</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Execute a raw SQL string</p>
+<h5 id="example-2">Example</h5>
+<div>
+
+```rust
+use gpudb_api::SqlClient;
+
+let mut result = client.execute("SELECT COUNT(*) FROM users WHERE active = true").await?;
+let count: i64 = result.scalar()?;
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.execute_paged" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1209-L1211">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.execute_paged" className="fn">execute\_paged</a>( &amp;self, sql: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, offset: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, limit: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, ) -&gt; <a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOpResult</a>&lt;<a className="struct" href="/content/api/rust/sql/struct.SqlResult" title="struct gpudb_api::sql::SqlResult">SqlResult</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Execute a raw SQL string with custom limit and offset</p>
+<h5 id="example-3">Example</h5>
+<div>
+
+```rust
+use gpudb_api::SqlClient;
+
+// Get records 10-19
+let result = client.execute_paged("SELECT * FROM users", 10, 10).await?;
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.execute_with_options" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1234-L1252">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.execute_with_options" className="fn">execute\_with\_options</a>( &amp;self, sql: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, offset: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, limit: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, options: <a className="enum" href="https://doc.rust-lang.org/1.98.1/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/std/collections/hash/map/struct.HashMap.html" title="struct std::collections::hash::map::HashMap">HashMap</a>&lt;<a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>, <a className="struct" href="https://doc.rust-lang.org/1.98.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;&gt;, ) -&gt; <a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOpResult</a>&lt;<a className="struct" href="/content/api/rust/sql/struct.SqlResult" title="struct gpudb_api::sql::SqlResult">SqlResult</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Execute SQL with full control over options</p>
+<h5 id="example-4">Example</h5>
+<div>
+
+```rust
+use gpudb_api::SqlClient;
+use std::collections::HashMap;
+
+let mut options = HashMap::new();
+options.insert("parallel_execution".to_string(), "true".to_string());
+
+let result = client.execute_with_options(
+    "SELECT * FROM large_table",
+    0,
+    1000,
+    Some(options)
+).await?;
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.fetch_next_page" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1293-L1302">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.fetch_next_page" className="fn">fetch\_next\_page</a>( &amp;self, paging\_table: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, offset: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, limit: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, ) -&gt; <a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOpResult</a>&lt;<a className="struct" href="/content/api/rust/sql/struct.SqlResult" title="struct gpudb_api::sql::SqlResult">SqlResult</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Fetch the next page of results using a paging table</p>
+<p>When a query returns <code>has\_more\_records = true</code>, Kinetica creates a temporary paging table containing the full result set. Use this method to fetch subsequent pages from that paging table.</p>
+<h5 id="arguments">Arguments</h5>
+<ul>
+<li><code>paging\_table</code> - The paging table name from <code>SqlResult::paging\_table()</code></li>
+<li><code>offset</code> - The offset within the paging table to start fetching from</li>
+<li><code>limit</code> - The maximum number of records to fetch</li>
+</ul>
+<h5 id="example-5">Example</h5>
+<div>
+
+```rust
+use gpudb_api::SqlClient;
+
+// Initial query with a limit
+let mut result = client.execute_paged("SELECT * FROM large_table", 0, 1000).await?;
+let mut all_rows = result.rows()?.to_vec();
+
+// Fetch remaining pages if there are more records
+let paging_table = result.paging_table().map(|s| s.to_string());
+if let Some(pt) = paging_table {
+    let mut offset = 1000i64;
+    while result.has_more() {
+        result = client.fetch_next_page(&pt, offset, 1000).await?;
+        all_rows.extend(result.rows()?.to_vec());
+        offset += 1000;
+    }
+}
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.execute_all" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1336-L1403">Source</a>
+<h4 className="code-header">pub async fn <a href="#method.execute_all" className="fn">execute\_all</a>( &amp;self, sql: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, page\_size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, ) -&gt; <a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOpResult</a>&lt;<a className="struct" href="/content/api/rust/sql/struct.SqlResult" title="struct gpudb_api::sql::SqlResult">SqlResult</a>&gt;</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Execute a query and iterate through all pages automatically</p>
+<p>This method handles pagination transparently, fetching all pages from the paging table and returning an iterator over all results.</p>
+<p><strong>Warning</strong>: This loads all results into memory. For very large result sets, consider using <code>execute\_paged</code> and <code>fetch\_next\_page</code> to process results in batches.</p>
+<h5 id="arguments-1">Arguments</h5>
+<ul>
+<li><code>sql</code> - The SQL query to execute</li>
+<li><code>page\_size</code> - The number of records to fetch per page</li>
+</ul>
+<h5 id="example-6">Example</h5>
+<div>
+
+```rust
+use gpudb_api::SqlClient;
+
+// Fetch all records, 10000 at a time
+let mut result = client.execute_all("SELECT * FROM large_table", 10000).await?;
+
+println!("Total records fetched: {}", result.row_count()?);
+
+for row in result.rows()? {
+    let id: i64 = row.get("column_1")?;
+    // Process each row...
+}
+```
+
+</div>
+</div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.execute_paginated" className="section method">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1439-L1497">Source</a>
+<h4 className="code-header">
+pub async fn <a href="#method.execute_paginated" className="fn">execute\_paginated</a>&lt;F&gt;( &amp;self, sql: &amp;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.str.html">str</a>, page\_size: <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.i64.html">i64</a>, callback: F, ) -&gt;<a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOpResult</a>&lt;<a className="struct" href="/content/api/rust/sql/struct.PaginationStats" title="struct gpudb_api::sql::PaginationStats">PaginationStats</a>&gt;
+<div className="where">where F: <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/ops/function/trait.FnMut.html" title="trait core::ops::function::FnMut">FnMut</a>(<a className="struct" href="/content/api/rust/sql/struct.SqlResult" title="struct gpudb_api::sql::SqlResult">SqlResult</a>, <a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.u64.html">u64</a>) -&gt; <a className="type" href="/content/api/rust/sql/type.SqlOpResult" title="type gpudb_api::sql::SqlOpResult">SqlOpResult</a>&lt;<a className="primitive" href="https://doc.rust-lang.org/1.98.1/std/primitive.bool.html">bool</a>&gt;,</div>
+</h4>
+</div>
+</div>
+<div className="docblock">
+<p>Execute a query and process results page by page with a callback</p>
+<p>This is the most memory-efficient way to process large result sets, as it only loads one page at a time.</p>
+<h5 id="arguments-2">Arguments</h5>
+<ul>
+<li><code>sql</code> - The SQL query to execute</li>
+<li><code>page\_size</code> - The number of records to fetch per page</li>
+<li><code>callback</code> - A function called for each page of results</li>
+</ul>
+<h5 id="example-7">Example</h5>
+<div>
+
+```rust
+use gpudb_api::SqlClient;
+
+let mut total_processed = 0u64;
+
+client.execute_paginated(
+    "SELECT * FROM large_table",
+    10000,
+    |mut page, page_num| {
+        println!("Processing page {}", page_num);
+        for row in page.rows()? {
+            let id: i64 = row.get("column_1")?;
+            // Process row...
+        }
+        Ok(true) // Return false to stop pagination early
+    }
+).await?;
+```
+
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<h2 id="trait-implementations" className="section-header">Trait Implementations</h2>
+<div id="trait-implementations-list">
+<div className="details toggle implementors-toggle">
+<div className="summary">
+<div id="impl-Clone-for-SqlClient" className="section impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1131">Source</a>
+<h3 className="code-header">impl <a className="trait" href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html" title="trait core::clone::Clone">Clone</a> for <a className="struct" href="/content/api/rust/sql/struct.SqlClient" title="struct gpudb_api::sql::SqlClient">SqlClient</a></h3>
+</div>
+</div>
+<div className="impl-items">
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone" className="section method trait-impl">
+<a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/sql.rs#L1131">Source</a>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone" className="fn">clone</a>(&amp;self) -&gt; <a className="struct" href="/content/api/rust/sql/struct.SqlClient" title="struct gpudb_api::sql::SqlClient">SqlClient</a></h4>
+</div>
+</div>
+<div className="docblock">Returns a duplicate of the value. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#tymethod.clone">Read more</a></div>
+</div>
+<div className="details toggle method-toggle">
+<div className="summary">
+<div id="method.clone_from" className="section method trait-impl">
+<span className="rightside"><span className="since" title="Stable since Rust version 1.0.0, const unstable">1.0.0 (const: <a href="https://github.com/rust-lang/rust/issues/142757" title="Tracking issue for const_clone">unstable</a>)</span> · <a className="src" href="https://doc.rust-lang.org/1.98.1/src/core/clone.rs.html#245-247">Source</a></span>
+<h4 className="code-header">fn <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from" className="fn">clone\_from</a>(&amp;mut self, source: &amp;Self)</h4>
+</div>
+</div>
+<div className="docblock">Performs copy-assignment from <code>source</code>. <a href="https://doc.rust-lang.org/1.98.1/core/clone/trait.Clone.html#method.clone_from">Read more</a></div>
+</div>
+</div>
+</div>
+</div>
+</div>

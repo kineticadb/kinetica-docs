@@ -2,11 +2,9 @@
 title: Using Tableau with Kinetica
 ---
 
-Tableau integrates with *Kinetica* through the *Kinetica* ODBC/JDBC drivers.
-The drivers can be installed from GitHub:
-
-* [JDBC](https://github.com/kineticadb/kinetica-client-jdbc)
-* [ODBC](https://github.com/kineticadb/kinetica-client-win-odbc)
+*Tableau* connects to *Kinetica* using its built-in *PostgreSQL* connector, over
+the [PostgreSQL Wire Protocol](/content/connectors/psql_wire_protocol); no
+additional driver is needed.
 
 
 <Info>
@@ -14,46 +12,54 @@ To visualize maps from Kinetica-hosted datasets, see
 [Kinetica Geospatial Visualization for Tableau](/content/bi/tableau/kin_geo_viz_tableau).
 </Info>
 
-Once you have installed the driver, follow the steps below to view your
-*Kinetica* data from Tableau.
+To view your *Kinetica* data from *Tableau*:
 
+1. In *Tableau*, under **Connect**, select
+   **To a Server --&gt; PostgreSQL**
+2. Enter the connection details:
 
-<Tip>
-Follow the
-[Tableau connection guide](https://help.tableau.com/current/pro/desktop/en-us/examples_otherdatabases_jdbc.htm)
-to set up a *JDBC* connection. Visit the
-[SQL Connector](/content/connectors/sql_guide) page for information on
-setting up an *ODBC* connection. Note that *ODBC* may have better performance
-than *JDBC*, but *JDBC* is compatible with *macOS* environments.
-</Tip>
+   * **Server**:  host name of the *Kinetica* head node
+   * **Port**:  `5432`
+   * **Database**:  `postgres`
+   * **Authentication**:  **Username and Password**
+   * **Username** & **Password**:  credentials of
+     the *Kinetica* user to connect as
 
-If using the *ODBC* driver, integrate it with Tableau:
-
-1. Create an ODBC DSN for your *Kinetica* instance/schema using the ODBC
-   Data Sources *Windows* application
-2. In Tableau, select the *Kinetica* DSN
-
-
-    ![images/odbcSelection.jpg](/content/bi/tableau/images/odbcSelection.jpg)
-
-3. Once the ODBC connection has been made, you will see your schema in the
-   **Select Database** options. Select the schema
-
-
-    ![images/dbschema.jpg](/content/bi/tableau/images/dbschema.jpg)
-
-4. Select the *table* containing the data you want to view
+3. Click **Sign In**
+4. Select the schema containing the data you want to view
+5. Select the *table* containing the data you want to view
 
 
     ![images/tableSelection.jpg](/content/bi/tableau/images/tableSelection.jpg)
 
-5. From a sheet, configure the fields as needed.  In this example, the "x" field
+6. From a sheet, configure the fields as needed.  In this example, the "x" field
    is set as longitude and the "y" field is set as latitude.
 
 
     ![images/setColumnType.jpg](/content/bi/tableau/images/setColumnType.jpg)
 
-6. Add the fields you want to view and the type of display
+7. Add the fields you want to view and the type of display
 
 
     ![images/map.jpg](/content/bi/tableau/images/map.jpg)
+
+
+<Info>
+When connecting this way:
+* *Geometry* columns cannot be read directly.  To use one, connect with
+  **Custom SQL** and convert it to WKT text with
+  [ST_ASTEXT](/content/sql/query/geospatial-geometry-functions#sql-geo-functions), or use numeric longitude &
+  latitude columns, as in the steps above.
+* In earlier releases, *Kinetica* did not report foreign keys to
+  *Tableau*, so relationships between *tables* were not detected
+  automatically; define them in the *Tableau* data source as needed.
+</Info>
+
+
+<Tip>
+*Tableau* can also connect to *Kinetica* through the *Kinetica* JDBC
+driver, using *Tableau's* **Other Databases (JDBC)** connector.
+Download the [JDBC JAR from GitHub](https://github.com/kineticadb/kinetica-client-jdbc)
+and follow the
+[Tableau connection guide](https://help.tableau.com/current/pro/desktop/en-us/examples_otherdatabases_jdbc.htm).
+</Tip>

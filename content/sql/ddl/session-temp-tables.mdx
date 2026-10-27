@@ -1,0 +1,84 @@
+---
+title: Session Temp Tables
+---
+
+<a id="sql-session-temp-tables"></a>
+
+
+A *table* whose name begins with `#`, like `#staging`, is a temporary
+[memory-only table](/content/concepts/tables_memory_only) that belongs to
+the client's *session*.  Each *session* has its own: two connections, even as
+the same user, can each create and use `#staging` without seeing each other's
+data.  The *table* is dropped when its *session* ends.
+
+```sql title="Session Temp Table Example"
+CREATE TABLE #staging AS
+SELECT id, amount FROM orders WHERE order_date = CURRENT_DATE;
+
+SELECT COUNT(*) FROM #staging;
+```
+
+A `#name` can be used anywhere SQL takes a *table* name, including queries,
+[CREATE TABLE ... AS](/content/sql/ddl/create-table-as#sql-create-table-as), `INSERT`, `UPDATE`, `DELETE`,
+[LOAD INTO](/content/sql/load/load-into#sql-load-into) (also as its `BAD RECORD TABLE`), foreign keys,
+statistics, and graph inputs.  An unqualified `#name` is
+placed in the user's [default schema](/content/concepts/schemas#schema-default); a qualified
+one, like `my_schema.#staging`, in the named *schema*.
+
+
+## What a session is
+
+
+| Client | Session |
+| --- | --- |
+| JDBC (including [KiSQL](/content/tools/kisql)) | Each connection, until it is closed |
+| PostgreSQL wire protocol (e.g., `psql`) | Each connection, until it is closed |
+| Java, Python & C++ APIs | Each `GPUdb` object, until it is closed |
+| Requests with no session | None; see below |
+
+A client can also be given an existing *session* to join, with the JDBC
+`SessionId` [connection parameter](/content/connectors/sql_guide#jdbc-config-standard) or the
+API's session ID option.  A session ID may contain only letters, digits and
+`-`, as a UUID does.  A client never drops a *session* it was given; that is
+left to the client that created it.
+
+Without a *session*, a `#name` is shared by all of that user's requests and
+is not dropped when a request or connection ends, as in earlier releases.
+
+
+## When a session ends
+
+
+A *session* ends, and its `#` *tables* are dropped, when:
+
+* its client closes the connection or `GPUdb` object and it wasn't given a parent's session ID
+* it has been idle for longer than `sql.session_idle_timeout` minutes (default
+  `60`); see the [Configuration Reference](/content/config#config-main-sql-engine)
+* it is dropped explicitly with the `/drop/session` endpoint, by the user who
+  owns the *session* or by an administrator
+
+A *table* also leaves the *session* if it is renamed to a name without `#`, and
+is then no longer dropped with the *session*.  Renaming a *memory-only table* to
+a `#name` moves it into the *session*.  See
+[Rename Table](/content/sql/ddl/alter-table#sql-alter-table-rename).
+
+
+## Naming
+
+
+In a *session*, [SHOW TABLE](/content/sql/ddl/show-table#sql-show-table) `#staging` shows the *table* as
+`#staging`.  Everywhere else, such as catalogs and `SHOW <schema>.*`, it is listed under its
+generated name, `<user>_<session ID>_staging`.  That name is internal and may
+change; refer to the *table* by its `#name`.
+
+
+## Procedures and views
+
+
+* A [SQL procedure](/content/sql/procedure#sql-procedures) uses its caller's *session*, so
+  the `#` *tables* it creates are still there after it returns.  A procedure
+  run with `EXECUTE AS` creates them under the `EXECUTE AS` user's name, in
+  the caller's *session*.
+* A procedure run on a schedule gets a new *session* for each run, dropped when
+  the run ends.  So does a procedure run in Python mode with no *session*.
+* *Views* and *materialized views* cannot reference a `#` *table*.

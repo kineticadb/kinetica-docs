@@ -1,0 +1,67 @@
+---
+title: "record_retriever"
+description: "record_retriever — Kinetica Rust API"
+---
+
+<div className="kinetica-rustdoc">
+<div className="main-heading">
+<div className="rustdoc-breadcrumbs"><a href="/content/api/rust/index">gpudb\_api</a></div>
+<span className="sub-heading"><a className="src" href="https://github.com/kineticadb/kinetica-api-rust/blob/master/crates/gpudb-api/src/record_retriever.rs#L1-L1949">Source</a> </span>
+</div>
+<div className="details toggle top-doc">
+<div className="docblock">
+<p>Record retriever for efficient record retrieval from Kinetica with multi-head support.</p>
+<p>This module provides the <a href="/content/api/rust/record_retriever/struct.RecordRetriever" title="struct gpudb_api::record_retriever::RecordRetriever"><code>RecordRetriever</code></a> struct which allows efficient retrieval of records from GPUdb, with support for multi-head access. <code>RecordRetriever</code> instances are thread safe and may be used from any number of tasks simultaneously.</p>
+<p>A retriever is given the <a href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type"><code>Type</code></a> of the table’s records, takes typed key values (<a href="/content/api/rust/bulk_inserter_common/enum.ShardKeyValue" title="enum gpudb_api::bulk_inserter_common::ShardKeyValue"><code>ShardKeyValue</code></a>, with <a href="/content/api/rust/bulk_inserter_common/enum.ShardKeyValue#variant.Null" title="variant gpudb_api::bulk_inserter_common::ShardKeyValue::Null"><code>ShardKeyValue::Null</code></a> for a null), and returns the records decoded: as <a href="/content/api/rust/generic_record/struct.GenericRecord" title="struct gpudb_api::generic_record::GenericRecord"><code>GenericRecord</code></a>s, or as any type serde can deserialize from the type’s Avro schema.</p>
+<h2 id="example">Example</h2>
+<div>
+
+```rust
+use gpudb_api::{Kinetica, KineticaOptions, RecordRetriever, ShardKeyValue, Type};
+use std::sync::Arc;
+
+let options = KineticaOptions::new();
+let kinetica = Arc::new(
+    Kinetica::new(vec!["http://localhost:9191".to_string()], options).await?
+);
+let record_type = Arc::new(Type::from_table(&kinetica, "my_table").await?);
+
+// Create retriever with default options
+let retriever = RecordRetriever::new(kinetica.clone(), "my_table", record_type).await?;
+
+// Retrieve all records
+let response = retriever.get_by_key(&[], None).await?;
+
+// Retrieve records by key
+let response = retriever.get_by_key(&[ShardKeyValue::Int(123)], None).await?;
+for record in &response.data {
+    println!("{:?}", record.get(0));
+}
+
+// Retrieve with expression filter
+let response = retriever.get_by_key(&[], Some("status = 'active'")).await?;
+```
+
+</div>
+</div>
+</div>
+<h2 id="structs" className="section-header">Structs</h2>
+<div className="dl item-table">
+<div className="dt"><a className="struct" href="/content/api/rust/record_retriever/struct.RecordRetriever" title="struct gpudb_api::record_retriever::RecordRetriever">Record<wbr />Retriever</a></div>
+<div className="dd">Object that permits efficient retrieval of records from GPUdb, with support for multi-head access.</div>
+<div className="dt"><a className="struct" href="/content/api/rust/record_retriever/struct.RecordRetrieverOptions" title="struct gpudb_api::record_retriever::RecordRetrieverOptions">Record<wbr />Retriever<wbr />Options</a></div>
+<div className="dd">Options for the RecordRetriever.</div>
+</div>
+<h2 id="constants" className="section-header">Constants</h2>
+<div className="dl item-table">
+<div id="constant.END_OF_SET" className="dt constant-def"><code>pub const END\_OF\_SET: i64 = -9999;</code></div>
+<div className="dd">
+<p>End of set marker for retrieving all records</p>
+</div>
+</div>
+<h2 id="traits" className="section-header">Traits</h2>
+<div className="dl item-table">
+<div className="dt"><a className="trait" href="/content/api/rust/record_retriever/trait.RetrievedRecord" title="trait gpudb_api::record_retriever::RetrievedRecord">Retrieved<wbr />Record</a></div>
+<div className="dd">A record a <a href="/content/api/rust/record_retriever/struct.RecordRetriever" title="struct gpudb_api::record_retriever::RecordRetriever"><code>RecordRetriever</code></a> returns, decoded from the Avro binary form the server sends by the <a href="/content/api/rust/generic_record/struct.Type" title="struct gpudb_api::generic_record::Type"><code>Type</code></a> the retriever was given.</div>
+</div>
+</div>
